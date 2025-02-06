@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  orders_app:
+    build:
+      context: ./orders_app
+      dockerfile: Dockerfile
+    image: artkoval/orders_app
+    container_name: orders_app
+    restart: unless-stopped
+    env_file: ./orders_app/.env
+    ports:
+      - "4242:9000"
+    depends_on:
+      [mongo, payments_app]
+    volumes:
+      - .:/home/node/orders_app
+      - node_modules:/home/node/orders_app/node_modules
+    networks:
+      - app-network
+    command: npm --prefix ./orders_app run dev
+
+  payments_app:
+    build:
+      context: ./payments_app
+      dockerfile: Dockerfile
+    image: artkoval/payments_app
+    container_name: payments_app
+    restart: unless-stopped
+    env_file: ./payments_app/.env
+    ports:
+      - "4241:9000"
+    depends_on:
+      - mongo
+    volumes:
+      - .:/home/node/payments_app
+      - node_modules:/home/node/payments_app/node_modules
+    networks:
+      - app-network
+    command: npm --prefix ./payments_app run dev
+
+  mongo:
+    container_name: mongo
+    image: mongo:4.1.8-xenial
+    volumes:
+      - dbdata:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  dbdata:
+  node_modules:
