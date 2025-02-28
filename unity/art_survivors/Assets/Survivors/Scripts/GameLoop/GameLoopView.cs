@@ -1,18 +1,18 @@
-using CHARK.ScriptableEvents.Events;
+using ScriptableObjectArchitecture;
 using UnityEngine;
 
 namespace Survivors.Scripts.GameLoop {
 	public class GameLoopView : MonoBehaviour {
-		public SimpleScriptableEvent gameLoopInitializedEvent;
-		public SimpleScriptableEvent gameLoopPostInitializedEvent;
-		public SimpleScriptableEvent gameLoopStartedEvent;
-		public SimpleScriptableEvent gameLoopPostStartedEvent;
-		public SimpleScriptableEvent gameLoopFixedTickEvent;
-		public SimpleScriptableEvent gameLoopPostFixedTickEvent;
-		public SimpleScriptableEvent gameLoopTickEvent;
-		public SimpleScriptableEvent gameLoopPostTickEvent;
-		public SimpleScriptableEvent gameLoopLateTickEvent;
-		public SimpleScriptableEvent gameLoopPostLateTickEvent;
-		public SimpleScriptableEvent gameLoopDisposedEvent;
+		public GameEvent gameLoopInitializedEvent;
+		public GameEvent gameLoopPostInitializedEvent;
+		public GameEvent gameLoopStartedEvent;
+		public GameEvent gameLoopPostStartedEvent;
+		public GameEvent gameLoopFixedTickEvent;
+		public GameEvent gameLoopPostFixedTickEvent;
+		public GameEvent gameLoopTickEvent;
+		public GameEvent gameLoopPostTickEvent;
+		public GameEvent gameLoopLateTickEvent;
+		public GameEvent gameLoopPostLateTickEvent;
+		public GameEvent gameLoopDisposedEvent;
 	}
 }

@@ -2,6 +2,6 @@
 
 - https://assetstore.unity.com/packages/2d/undead-survivor-assets-pack-238068
 
-- https://github.com/chark/scriptable-events
+- https://github.com/DanielEverland/ScriptableObject-Architecture
 
 - https://vcontainer.hadashikick.jp/

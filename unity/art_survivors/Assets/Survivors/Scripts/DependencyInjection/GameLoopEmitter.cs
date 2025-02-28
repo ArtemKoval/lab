@@ -1,6 +1,6 @@
 using System;
-using CHARK.ScriptableEvents.Events;
 using JetBrains.Annotations;
+using ScriptableObjectArchitecture;
 using Survivors.Scripts.GameLoop;
 using VContainer.Unity;
 
@@ -8,17 +8,17 @@ namespace Survivors.Scripts.DependencyInjection {
 	[UsedImplicitly]
 	public class GameLoopEmitter : IInitializable, IPostInitializable, IStartable, IPostStartable,
 		IFixedTickable, IPostFixedTickable, ITickable, IPostTickable, ILateTickable, IPostLateTickable, IDisposable {
-		private SimpleScriptableEvent _gameLoopInitializedEvent;
-		private SimpleScriptableEvent _gameLoopPostInitializedEvent;
-		private SimpleScriptableEvent _gameLoopStartedEvent;
-		private SimpleScriptableEvent _gameLoopPostStartedEvent;
-		private SimpleScriptableEvent _gameLoopFixedTickEvent;
-		private SimpleScriptableEvent _gameLoopPostFixedTickEvent;
-		private SimpleScriptableEvent _gameLoopTickEvent;
-		private SimpleScriptableEvent _gameLoopPostTickEvent;
-		private SimpleScriptableEvent _gameLoopLateTickEvent;
-		private SimpleScriptableEvent _gameLoopPostLateTickEvent;
-		private SimpleScriptableEvent _gameLoopDisposedEvent;
+		private GameEvent _gameLoopInitializedEvent;
+		private GameEvent _gameLoopPostInitializedEvent;
+		private GameEvent _gameLoopStartedEvent;
+		private GameEvent _gameLoopPostStartedEvent;
+		private GameEvent _gameLoopFixedTickEvent;
+		private GameEvent _gameLoopPostFixedTickEvent;
+		private GameEvent _gameLoopTickEvent;
+		private GameEvent _gameLoopPostTickEvent;
+		private GameEvent _gameLoopLateTickEvent;
+		private GameEvent _gameLoopPostLateTickEvent;
+		private GameEvent _gameLoopDisposedEvent;
 
 
 		private readonly GameLoopView _gameLoopView;
