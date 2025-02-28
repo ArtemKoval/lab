@@ -8,11 +8,13 @@ namespace Survivors.Scripts.Movement {
 		public Vector3Reference movementInput;
 		public FloatReference movementSpeed;
 		public GameObjectReference playerGameObject;
+		public Vector3Reference playerPosition;
 
 		public void OnMovementInput() {
 			var input = movementInput.Value;
 			input.Normalize();
 			playerGameObject.Value.transform.position += input * movementSpeed.Value * Time.deltaTime;
+			playerPosition.Value = playerGameObject.Value.transform.position;
 		}
 	}
 }
