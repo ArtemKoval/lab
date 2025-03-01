@@ -24,3 +24,7 @@ MonoBehaviour:
     _useConstant: 0
     _constantValue: {fileID: 0}
     _variable: {fileID: 11400000, guid: 002fd70d79fb8114586390c26ce940e7, type: 2}
+  playerPosition:
+    _useConstant: 0
+    _constantValue: {x: 0, y: 0, z: 0}
+    _variable: {fileID: 11400000, guid: 690d4851bb8de704892798b9ee9f60e2, type: 2}
