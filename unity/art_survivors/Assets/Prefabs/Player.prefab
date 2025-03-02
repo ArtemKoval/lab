@@ -22,7 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.66
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalPosition.y
@@ -38,15 +38,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -67,5 +67,26 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6506739683798661335, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7249464331304769415}
   m_SourcePrefab: {fileID: 100100000, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+--- !u!1 &5150813612902575923 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6506739683798661335, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+  m_PrefabInstance: {fileID: 2105372303256475620}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7249464331304769415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5150813612902575923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22d7638d394847c0a322e4ecdfcc61dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  value: 10
