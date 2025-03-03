@@ -1,3 +1,4 @@
+using Authoring;
 using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -9,22 +10,20 @@ namespace Systems {
 		[BurstCompile]
 		public void OnUpdate(ref SystemState state) {
 			foreach (var (localTransform,
-				         moveSpeed,
+				         unitMover,
 				         physicsVelocity)
 			         in SystemAPI.Query<
 					         RefRW<LocalTransform>,
-					         RefRO<MoveSpeed>,
+					         RefRO<UnitMover>,
 					         RefRW<PhysicsVelocity>>
 				         ()) {
-				var mousePosition = MouseWorldPosition.Instance.GetWorldPosition();
-				var targetPosition = new float3(mousePosition.x, mousePosition.y,mousePosition.z);
-				var moveDirection = targetPosition - localTransform.ValueRO.Position;
-				moveDirection = math.normalize(moveDirection);
+				var moveDirection = unitMover.ValueRO.TargetPosition - localTransform.ValueRO.Position;
+				moveDirection = math.normalizesafe(moveDirection);
 
 				// for 2d use sprite flip instead of rotation todo
 				// localTransform.ValueRW.Rotation = quaternion.LookRotation(moveDirection, math.up());
 
-				physicsVelocity.ValueRW.Linear = moveDirection * moveSpeed.ValueRO.Value;
+				physicsVelocity.ValueRW.Linear = moveDirection * unitMover.ValueRO.MoveSpeed;
 				physicsVelocity.ValueRW.Angular = float3.zero; // freeze rotation on collisions
 			}
 		}
