@@ -16,7 +16,8 @@ namespace Systems {
 					         RefRO<MoveSpeed>,
 					         RefRW<PhysicsVelocity>>
 				         ()) {
-				var targetPosition = localTransform.ValueRO.Position + new float3(10, 0, 0);
+				var mousePosition = MouseWorldPosition.Instance.GetWorldPosition();
+				var targetPosition = new float3(mousePosition.x, mousePosition.y,mousePosition.z);
 				var moveDirection = targetPosition - localTransform.ValueRO.Position;
 				moveDirection = math.normalize(moveDirection);
 
