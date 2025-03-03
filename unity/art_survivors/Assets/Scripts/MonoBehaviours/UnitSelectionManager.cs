@@ -9,7 +9,8 @@ namespace MonoBehaviours {
 			if (!Input.GetMouseButtonDown(1)) return;
 			var mouseWorldPosition = MouseWorldPosition.Instance.GetWorldPosition();
 			var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-			var entityQuery = new EntityQueryBuilder(Allocator.Temp).WithAll<UnitMover>().Build(entityManager);
+			var entityQuery = new EntityQueryBuilder(Allocator.Temp)
+				.WithAll<UnitMover, Selected>().Build(entityManager);
 			var unitMoverArray = entityQuery.ToComponentDataArray<UnitMover>(Allocator.Temp);
 			for (var index = 0; index < unitMoverArray.Length; index++) {
 				var unitMover = unitMoverArray[index];
