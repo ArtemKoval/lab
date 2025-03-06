@@ -2,6 +2,7 @@ using System;
 using Authoring;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -53,19 +54,47 @@ namespace MonoBehaviours {
 				entityManager.SetComponentEnabled<Selected>(entityArray[index], false);
 			}
 
-			entityQuery = new EntityQueryBuilder(Allocator.Temp)
-				.WithAll<LocalTransform, Unit>()
-				.WithPresent<Selected>()
-				.Build(entityManager);
-
 			var selectionAreaRect = GetSelectionAreaRect();
-			entityArray = entityQuery.ToEntityArray(Allocator.Temp);
-			var localTransformArray = entityQuery.ToComponentDataArray<LocalTransform>(Allocator.Temp);
-			for (var index = 0; index < localTransformArray.Length; index++) {
-				var unitScreenPosition =
-					Camera.main.WorldToScreenPoint(localTransformArray[index].Position);
-				if (selectionAreaRect.Contains(unitScreenPosition)) {
-					entityManager.SetComponentEnabled<Selected>(entityArray[index], true);
+			var selectionAreaSize = selectionAreaRect.width + selectionAreaRect.height;
+			var multipleSelectionSizeMin = 40f;
+			var isMultipleSelection = selectionAreaSize > multipleSelectionSizeMin;
+
+			if (isMultipleSelection) {
+				entityQuery = new EntityQueryBuilder(Allocator.Temp)
+					.WithAll<LocalTransform, Unit>()
+					.WithPresent<Selected>()
+					.Build(entityManager);
+
+
+				entityArray = entityQuery.ToEntityArray(Allocator.Temp);
+				var localTransformArray = entityQuery.ToComponentDataArray<LocalTransform>(Allocator.Temp);
+				for (var index = 0; index < localTransformArray.Length; index++) {
+					var unitScreenPosition =
+						Camera.main.WorldToScreenPoint(localTransformArray[index].Position);
+					if (selectionAreaRect.Contains(unitScreenPosition)) {
+						entityManager.SetComponentEnabled<Selected>(entityArray[index], true);
+					}
+				}
+			}
+			else {
+				entityQuery = entityManager.CreateEntityQuery(typeof(PhysicsWorldSingleton));
+				var physicsWorldSingleton = entityQuery.GetSingleton<PhysicsWorldSingleton>();
+				var collisionWorld = physicsWorldSingleton.CollisionWorld;
+				var cameraRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+				int unitsLayer = 6;
+				var raycastInput = new RaycastInput {
+					Start = cameraRay.GetPoint(0f),
+					End = cameraRay.GetPoint(9999f),
+					Filter = new CollisionFilter {
+						BelongsTo = ~0u,
+						CollidesWith = 1u << unitsLayer,
+						GroupIndex = 0
+					}
+				};
+				if (collisionWorld.CastRay(raycastInput, out var hit)) {
+					if (entityManager.HasComponent<Unit>(hit.Entity)) {
+						entityManager.SetComponentEnabled<Selected>(hit.Entity, true);
+					}
 				}
 			}
 
