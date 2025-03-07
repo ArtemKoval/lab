@@ -2,6 +2,7 @@ using System;
 using Authoring;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
@@ -34,9 +35,10 @@ namespace MonoBehaviours {
 			var entityQuery = new EntityQueryBuilder(Allocator.Temp)
 				.WithAll<UnitMover, Selected>().Build(entityManager);
 			var unitMoverArray = entityQuery.ToComponentDataArray<UnitMover>(Allocator.Temp);
+			var movePositionArray = GenerateMovePositionArray(mouseWorldPosition, unitMoverArray.Length);	
 			for (var index = 0; index < unitMoverArray.Length; index++) {
 				var unitMover = unitMoverArray[index];
-				unitMover.TargetPosition = mouseWorldPosition;
+				unitMover.TargetPosition = movePositionArray[index];
 				unitMoverArray[index] = unitMover;
 			}
 
@@ -119,6 +121,31 @@ namespace MonoBehaviours {
 				lowerLeftCorner.y,
 				upperRightCorner.x - lowerLeftCorner.x,
 				upperRightCorner.y - lowerLeftCorner.y);
+		}
+
+		private NativeArray<float3> GenerateMovePositionArray(float3 targetPosition, int positioncount) {
+			var positionArray = new NativeArray<float3>(positioncount, Allocator.Temp);
+			if (positioncount == 0)	return positionArray;
+			positionArray[0] = targetPosition;
+			if (positioncount == 1) return positionArray;
+			float ringSize = 2.2f;
+			int ring = 0;
+			int positionIndex = 1;
+			while (positionIndex < positioncount) {
+				var ringPositionCount = 3 + ring * 2;
+				for (var i = 0; i < ringPositionCount; i++) {
+					var angle = i * (math.PI2 / ringPositionCount);
+					var ringVector = math.rotate(quaternion.RotateY(angle), new float3(ringSize * (ring + 1), 0, 0));
+					var ringPosition = targetPosition + ringVector;
+					positionArray[positionIndex] = ringPosition;
+					positionIndex++;
+					if (positionIndex >= positioncount) {
+						break;
+					}
+				}
+				ring++;
+			}
+			return positionArray;
 		}
 	}
 }
