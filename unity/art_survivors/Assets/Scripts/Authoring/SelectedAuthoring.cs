@@ -22,4 +22,7 @@ namespace Authoring {
 public struct Selected : IComponentData, IEnableableComponent {
 	public Entity VisualEntity;
 	public float ShowScale;
+
+	public bool onSelected;
+	public bool onDeselected;
 }

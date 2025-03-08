@@ -52,8 +52,12 @@ namespace MonoBehaviours {
 				.WithAll<Selected>()
 				.Build(entityManager);
 			var entityArray = entityQuery.ToEntityArray(Allocator.Temp);
+			var selectedArray = entityQuery.ToComponentDataArray<Selected>(Allocator.Temp);
 			for (var index = 0; index < entityArray.Length; index++) {
 				entityManager.SetComponentEnabled<Selected>(entityArray[index], false);
+				var selected = selectedArray[index];
+				selected.onDeselected = true;
+				entityManager.SetComponentData(entityArray[index], selected);
 			}
 
 			var selectionAreaRect = GetSelectionAreaRect();
@@ -75,6 +79,9 @@ namespace MonoBehaviours {
 						Camera.main.WorldToScreenPoint(localTransformArray[index].Position);
 					if (selectionAreaRect.Contains(unitScreenPosition)) {
 						entityManager.SetComponentEnabled<Selected>(entityArray[index], true);
+						var selected = entityManager.GetComponentData<Selected>(entityArray[index]);
+						selected.onSelected = true;
+						entityManager.SetComponentData(entityArray[index], selected);
 					}
 				}
 			}
@@ -96,6 +103,9 @@ namespace MonoBehaviours {
 				if (collisionWorld.CastRay(raycastInput, out var hit)) {
 					if (entityManager.HasComponent<Unit>(hit.Entity)) {
 						entityManager.SetComponentEnabled<Selected>(hit.Entity, true);
+						var selected = entityManager.GetComponentData<Selected>(hit.Entity);
+						selected.onSelected = true;
+						entityManager.SetComponentData(hit.Entity, selected);
 					}
 				}
 			}
