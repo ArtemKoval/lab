@@ -35,7 +35,7 @@ namespace MonoBehaviours {
 			var entityQuery = new EntityQueryBuilder(Allocator.Temp)
 				.WithAll<UnitMover, Selected>().Build(entityManager);
 			var unitMoverArray = entityQuery.ToComponentDataArray<UnitMover>(Allocator.Temp);
-			var movePositionArray = GenerateMovePositionArray(mouseWorldPosition, unitMoverArray.Length);	
+			var movePositionArray = GenerateMovePositionArray(mouseWorldPosition, unitMoverArray.Length);
 			for (var index = 0; index < unitMoverArray.Length; index++) {
 				var unitMover = unitMoverArray[index];
 				unitMover.TargetPosition = movePositionArray[index];
@@ -101,7 +101,7 @@ namespace MonoBehaviours {
 					}
 				};
 				if (collisionWorld.CastRay(raycastInput, out var hit)) {
-					if (entityManager.HasComponent<Unit>(hit.Entity)) {
+					if (entityManager.HasComponent<Unit>(hit.Entity) && entityManager.HasComponent<Selected>(hit.Entity)) {
 						entityManager.SetComponentEnabled<Selected>(hit.Entity, true);
 						var selected = entityManager.GetComponentData<Selected>(hit.Entity);
 						selected.onSelected = true;
@@ -135,7 +135,7 @@ namespace MonoBehaviours {
 
 		private NativeArray<float3> GenerateMovePositionArray(float3 targetPosition, int positioncount) {
 			var positionArray = new NativeArray<float3>(positioncount, Allocator.Temp);
-			if (positioncount == 0)	return positionArray;
+			if (positioncount == 0) return positionArray;
 			positionArray[0] = targetPosition;
 			if (positioncount == 1) return positionArray;
 			float ringSize = 2.2f;
@@ -153,8 +153,10 @@ namespace MonoBehaviours {
 						break;
 					}
 				}
+
 				ring++;
 			}
+
 			return positionArray;
 		}
 	}

@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -5774052389835831003, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: faction
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3164484608010163235, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 613658156, guid: 1bc6097228993f045852159e71f81d5b, type: 3}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -50,10 +58,36 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6506739683798661335, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_Name
-      value: Creature
+      value: Zombie
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    - target: {fileID: 6757895424027634055, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: moveSpeed
+      value: 3
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 5847948147049610881, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 5810642844042692580, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6506739683798661335, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -6178189106974791253}
   m_SourcePrefab: {fileID: 100100000, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+--- !u!1 &8430161693638876862 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6506739683798661335, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+  m_PrefabInstance: {fileID: 3364582691070731881}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &-6178189106974791253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8430161693638876862}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b954cb30123f0054ab7bd813dbab64c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
