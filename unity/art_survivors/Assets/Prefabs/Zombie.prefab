@@ -12,6 +12,14 @@ PrefabInstance:
       propertyPath: faction
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -1607026178899918854, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: range
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: -1607026178899918854, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: faction
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3164484608010163235, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_Sprite
       value: 

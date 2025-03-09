@@ -90,13 +90,12 @@ namespace MonoBehaviours {
 				var physicsWorldSingleton = entityQuery.GetSingleton<PhysicsWorldSingleton>();
 				var collisionWorld = physicsWorldSingleton.CollisionWorld;
 				var cameraRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-				int unitsLayer = 6;
 				var raycastInput = new RaycastInput {
 					Start = cameraRay.GetPoint(0f),
 					End = cameraRay.GetPoint(9999f),
 					Filter = new CollisionFilter {
 						BelongsTo = ~0u,
-						CollidesWith = 1u << unitsLayer,
+						CollidesWith = 1u << GameAssets.UnitsLayer,
 						GroupIndex = 0
 					}
 				};
@@ -133,15 +132,15 @@ namespace MonoBehaviours {
 				upperRightCorner.y - lowerLeftCorner.y);
 		}
 
-		private NativeArray<float3> GenerateMovePositionArray(float3 targetPosition, int positioncount) {
-			var positionArray = new NativeArray<float3>(positioncount, Allocator.Temp);
-			if (positioncount == 0) return positionArray;
+		private NativeArray<float3> GenerateMovePositionArray(float3 targetPosition, int positionCount) {
+			var positionArray = new NativeArray<float3>(positionCount, Allocator.Temp);
+			if (positionCount == 0) return positionArray;
 			positionArray[0] = targetPosition;
-			if (positioncount == 1) return positionArray;
+			if (positionCount == 1) return positionArray;
 			float ringSize = 2.2f;
 			int ring = 0;
 			int positionIndex = 1;
-			while (positionIndex < positioncount) {
+			while (positionIndex < positionCount) {
 				var ringPositionCount = 3 + ring * 2;
 				for (var i = 0; i < ringPositionCount; i++) {
 					var angle = i * (math.PI2 / ringPositionCount);
@@ -149,7 +148,7 @@ namespace MonoBehaviours {
 					var ringPosition = targetPosition + ringVector;
 					positionArray[positionIndex] = ringPosition;
 					positionIndex++;
-					if (positionIndex >= positioncount) {
+					if (positionIndex >= positionCount) {
 						break;
 					}
 				}
