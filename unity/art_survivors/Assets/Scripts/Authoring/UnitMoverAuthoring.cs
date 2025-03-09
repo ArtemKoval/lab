@@ -19,5 +19,6 @@ namespace Authoring {
 	public struct UnitMover : IComponentData {
 		public float MoveSpeed;
 		public float3 TargetPosition;
+		public bool IsController;
 	}
 }

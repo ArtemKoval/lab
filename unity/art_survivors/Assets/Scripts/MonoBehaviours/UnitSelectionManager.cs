@@ -11,6 +11,8 @@ namespace MonoBehaviours {
 	public class UnitSelectionManager : MonoBehaviour {
 		public static UnitSelectionManager Instance { get; private set; }
 
+		public bool useControllerMove = true;
+
 		private Vector2 _selectionStartMousePosition;
 		public event EventHandler OnSelectionAreaStart;
 		public event EventHandler OnSelectionAreaEnd;
@@ -25,20 +27,52 @@ namespace MonoBehaviours {
 				OnSelectionAreaStart?.Invoke(this, EventArgs.Empty);
 			}
 
+			var controllerInput = new Vector3(
+					Input.GetAxisRaw("Horizontal"),
+					0,
+					Input.GetAxisRaw("Vertical"))
+				.normalized;
+
 			if (Input.GetMouseButtonUp(0)) {
 				SelectUnits();
+				return;
 			}
 
-			if (!Input.GetMouseButtonDown(1)) return;
-			var mouseWorldPosition = MouseWorldPosition.Instance.GetWorldPosition();
+			if (controllerInput.x == 0
+			    & controllerInput.y == 0
+			    & Input.GetMouseButtonDown(1)) {
+				MouseMove();
+				return;
+			}
+
+			// ControllerMove(controllerInput);
+			
+			// if (controllerInput.x != 0 || controllerInput.y != 0) {
+			// 	ControllerMove(controllerInput);
+			// 	Debug.Log("Moving with controller");
+			// 	return;
+			// }
+		}
+
+		private void ControllerMove(Vector3 input) {
+			MoveUnit(input.normalized, true);
+		}
+
+		private void MouseMove() {
+			var targetWorldPosition = MouseWorldPosition.Instance.GetWorldPosition();
+			MoveUnit(targetWorldPosition);
+		}
+
+		private void MoveUnit(float3 targetWorldPosition, bool withController = false) {
 			var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 			var entityQuery = new EntityQueryBuilder(Allocator.Temp)
 				.WithAll<UnitMover, Selected>().Build(entityManager);
 			var unitMoverArray = entityQuery.ToComponentDataArray<UnitMover>(Allocator.Temp);
-			var movePositionArray = GenerateMovePositionArray(mouseWorldPosition, unitMoverArray.Length);
+			var movePositionArray = GenerateMovePositionArray(targetWorldPosition, unitMoverArray.Length);
 			for (var index = 0; index < unitMoverArray.Length; index++) {
 				var unitMover = unitMoverArray[index];
 				unitMover.TargetPosition = movePositionArray[index];
+				unitMover.IsController = withController;
 				unitMoverArray[index] = unitMover;
 			}
 
@@ -62,7 +96,7 @@ namespace MonoBehaviours {
 
 			var selectionAreaRect = GetSelectionAreaRect();
 			var selectionAreaSize = selectionAreaRect.width + selectionAreaRect.height;
-			var multipleSelectionSizeMin = 40f;
+			const float multipleSelectionSizeMin = 40f;
 			var isMultipleSelection = selectionAreaSize > multipleSelectionSizeMin;
 
 			if (isMultipleSelection) {
@@ -90,9 +124,10 @@ namespace MonoBehaviours {
 				var physicsWorldSingleton = entityQuery.GetSingleton<PhysicsWorldSingleton>();
 				var collisionWorld = physicsWorldSingleton.CollisionWorld;
 				var cameraRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+				const float distance = 9999f;
 				var raycastInput = new RaycastInput {
 					Start = cameraRay.GetPoint(0f),
-					End = cameraRay.GetPoint(9999f),
+					End = cameraRay.GetPoint(distance),
 					Filter = new CollisionFilter {
 						BelongsTo = ~0u,
 						CollidesWith = 1u << GameAssets.UnitsLayer,
@@ -137,9 +172,9 @@ namespace MonoBehaviours {
 			if (positionCount == 0) return positionArray;
 			positionArray[0] = targetPosition;
 			if (positionCount == 1) return positionArray;
-			float ringSize = 2.2f;
-			int ring = 0;
-			int positionIndex = 1;
+			var ringSize = 2.2f;
+			var ring = 0;
+			var positionIndex = 1;
 			while (positionIndex < positionCount) {
 				var ringPositionCount = 3 + ring * 2;
 				for (var i = 0; i < ringPositionCount; i++) {
