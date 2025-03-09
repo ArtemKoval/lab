@@ -24,6 +24,10 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 613658156, guid: 1bc6097228993f045852159e71f81d5b, type: 3}
+    - target: {fileID: 4712489204433731020, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -63,6 +67,18 @@ PrefabInstance:
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Height
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Radius
+      value: 0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Center.y
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6506739683798661335, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_Name

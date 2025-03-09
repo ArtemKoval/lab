@@ -171,7 +171,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4712489204433731020, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_Mass
-      value: 100
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4712489204433731020, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Constraints
+      value: 116
+      objectReference: {fileID: 0}
+    - target: {fileID: 4712489204433731020, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Interpolate
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4712489204433731020, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4712489204433731020, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_CollisionDetection
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5742192153203688608, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_LocalPosition.x
@@ -214,8 +230,28 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
-      propertyPath: m_IsTrigger
+      propertyPath: m_Height
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Radius
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Center.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Center.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_Direction
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6337989762405976797, guid: 593782e6c90bb934587cc0baa500a149, type: 3}
       propertyPath: m_ProvidesContacts

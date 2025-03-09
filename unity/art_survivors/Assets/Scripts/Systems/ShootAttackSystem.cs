@@ -12,6 +12,10 @@ namespace Systems {
 				shootAttack.ValueRW.Timer -= SystemAPI.Time.DeltaTime;
 				if (shootAttack.ValueRO.Timer > 0f) continue;
 				shootAttack.ValueRW.Timer += shootAttack.ValueRO.TimerMax;
+				
+				var targetHealth = SystemAPI.GetComponentRW<Health>(target.ValueRO.TargetEntity);
+				var damageAmount = 1f;
+				targetHealth.ValueRW.Value -= damageAmount;
 			}
 		}
 	}
