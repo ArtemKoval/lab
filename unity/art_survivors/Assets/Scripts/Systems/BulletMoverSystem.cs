@@ -14,6 +14,11 @@ namespace Systems {
 
 			foreach (var (localTransform, bullet, target, entity)
 			         in SystemAPI.Query<RefRW<LocalTransform>, RefRO<Bullet>, RefRO<Target>>().WithEntityAccess()) {
+				if (target.ValueRO.TargetEntity == Entity.Null) {
+					entityCommandBuffer.DestroyEntity(entity);
+					continue;
+				}
+				
 				var targetLocalTransform =
 					SystemAPI.GetComponentRO<LocalTransform>(target.ValueRO.TargetEntity);
 				var distanceBeforeSq = math.distancesq(targetLocalTransform.ValueRO.Position, localTransform.ValueRO.Position);
