@@ -1,0 +1,6 @@
+setuptools
+cython
+pandas
+prophet
+matplotlib
+scikit-learn
