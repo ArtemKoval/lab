@@ -6,10 +6,10 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="deepseek-r1:1.5b",
+    model="gemma3",
     messages=[
         {"role": "system", "content": "You are an experienced AWS SRE"},
-        {"role": "user", "content": "Write anomaly detection in python to analyze network throughput"}
+        {"role": "user", "content": "Write bash script to create EC2 instance"}
     ],
     #stream=False
     stream=True
