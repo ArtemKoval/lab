@@ -1,0 +1,17 @@
+name: timecast
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.13
+  - pip:
+      - jupyterlab==4.1.4
+      - matplotlib==3.8.3
+      - numba==0.59.0
+      - numpy==1.26.4
+      - pandas==2.1.4
+      - pyts==0.13.0
+      - sktime==0.27.0
+      - tensorflow==2.18.0
+      - torch==2.5.1
+      - tsfresh==0.20.2
