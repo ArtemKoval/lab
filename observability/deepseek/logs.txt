@@ -1,0 +1,20 @@
+2023-10-01T12:00:01Z INFO: Server started on port 8080
+2023-10-01T12:00:05Z INFO: User 'admin' logged in successfully
+2023-10-01T12:00:10Z INFO: Request received: GET /api/v1/users
+2023-10-01T12:00:15Z INFO: Response sent: 200 OK
+2023-10-01T12:00:20Z INFO: Request received: POST /api/v1/orders
+2023-10-01T12:00:25Z INFO: Response sent: 201 Created
+2023-10-01T12:00:30Z WARNING: High CPU usage detected: 85%
+2023-10-01T12:00:35Z INFO: Request received: GET /api/v1/products
+2023-10-01T12:00:40Z INFO: Response sent: 200 OK
+2023-10-01T12:00:45Z ERROR: Database connection timeout
+2023-10-01T12:00:50Z ERROR: Failed to process request: GET /api/v1/orders
+2023-10-01T12:00:55Z INFO: Retrying database connection...
+2023-10-01T12:01:00Z INFO: Database connection established
+2023-10-01T12:01:05Z INFO: Request received: GET /api/v1/orders
+2023-10-01T12:01:10Z INFO: Response sent: 200 OK
+2023-10-01T12:01:15Z WARNING: High memory usage detected: 90%
+2023-10-01T12:01:20Z INFO: Request received: DELETE /api/v1/users/123
+2023-10-01T12:01:25Z INFO: Response sent: 204 No Content
+2023-10-01T12:01:30Z INFO: User 'admin' logged out
+2023-10-01T12:01:35Z INFO: Server shutting down
