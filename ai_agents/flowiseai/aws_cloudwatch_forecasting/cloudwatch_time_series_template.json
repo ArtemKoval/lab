@@ -1,0 +1,117 @@
+{
+  "name": "CloudWatch Time Series Analyzer - Forecast & Anomaly Detection",
+  "description": "Fetches Amazon CloudWatch metrics, preprocesses the data, runs time series forecasting with Prophet, and detects anomalies.",
+  "nodes": [
+    {
+      "id": "1",
+      "type": "AmazonCloudWatchInput",
+      "name": "CloudWatch Metrics",
+      "credentials": {
+        "awsAccessKeyId": "{{AWS_ACCESS_KEY_ID}}",
+        "awsSecretAccessKey": "{{AWS_SECRET_ACCESS_KEY}}",
+        "region": "us-east-1"
+      },
+      "properties": {
+        "namespace": "AWS/EC2",
+        "metricName": "CPUUtilization",
+        "dimensions": {
+          "InstanceId": "i-1234567890abcdef0"
+        },
+        "period": 300,
+        "stat": "Average",
+        "startTime": "{{startTime}}",
+        "endTime": "{{endTime}}"
+      },
+      "position": {
+        "x": 100,
+        "y": 100
+      }
+    },
+    {
+      "id": "2",
+      "type": "PythonFunction",
+      "name": "Preprocess Time Series",
+      "properties": {
+        "code": "import pandas as pd\n\ndef preprocess(data):\n    df = pd.DataFrame(data)\n    df['Timestamp'] = pd.to_datetime(df['Timestamp'])\n    df.set_index('Timestamp', inplace=True)\n    df = df.resample('5T').mean().fillna(method='ffill')\n    df.reset_index(inplace=True)\n    df.columns = ['ds', 'y']\n    return df.to_dict(orient='records')"
+      },
+      "inputs": {
+        "data": "1"
+      },
+      "position": {
+        "x": 300,
+        "y": 100
+      }
+    },
+    {
+      "id": "3",
+      "type": "PythonFunction",
+      "name": "Forecast with Prophet",
+      "properties": {
+        "code": "from prophet import Prophet\nimport pandas as pd\n\ndef forecast(data):\n    df = pd.DataFrame(data)\n    m = Prophet()\n    m.fit(df)\n    future = m.make_future_dataframe(periods=12, freq='5min')\n    forecast = m.predict(future)\n    return forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].to_dict(orient='records')"
+      },
+      "inputs": {
+        "data": "2"
+      },
+      "position": {
+        "x": 500,
+        "y": 100
+      }
+    },
+    {
+      "id": "4",
+      "type": "PythonFunction",
+      "name": "Detect Anomalies",
+      "properties": {
+        "code": "import pandas as pd\n\ndef detect_anomalies(data):\n    df = pd.DataFrame(data)\n    df['anomaly'] = (df['y'] < df['y'].rolling(window=12).mean() - 2*df['y'].rolling(window=12).std()) | (df['y'] > df['y'].rolling(window=12).mean() + 2*df['y'].rolling(window=12).std())\n    return df.to_dict(orient='records')"
+      },
+      "inputs": {
+        "data": "2"
+      },
+      "position": {
+        "x": 500,
+        "y": 250
+      }
+    },
+    {
+      "id": "5",
+      "type": "DataVisualizer",
+      "name": "Forecast Visualization",
+      "properties": {
+        "xField": "ds",
+        "yField": "yhat",
+        "yLower": "yhat_lower",
+        "yUpper": "yhat_upper",
+        "title": "Prophet Forecast"
+      },
+      "inputs": {
+        "data": "3"
+      },
+      "position": {
+        "x": 700,
+        "y": 100
+      }
+    },
+    {
+      "id": "6",
+      "type": "DataVisualizer",
+      "name": "Anomaly Detection Visualization",
+      "properties": {
+        "xField": "ds",
+        "yField": "y",
+        "highlightCondition": "anomaly == True",
+        "title": "Anomaly Detection"
+      },
+      "inputs": {
+        "data": "4"
+      },
+      "position": {
+        "x": 700,
+        "y": 250
+      }
+    }
+  ],
+  "inputs": {
+    "startTime": "2025-03-01T00:00:00Z",
+    "endTime": "2025-04-01T00:00:00Z"
+  }
+}
