@@ -166,3 +166,5 @@ cython_debug/
 *.sqlite3
 *.bin
 /anomaly_detection/nab/nab_data/
+
+.claude
