@@ -11,7 +11,7 @@ ultrathink. Plan Mode. revving. split role sub-agents.
 ## Orchestrator Template
 Execute the orchestrator workflow defined in:
 ```
-https://github.com/ArtemKoval/lab/anthropic/orchestrator_template.md
+https://github.com/ArtemKoval/lab/blob/main/anthropic/orchestrator_template.md
 ```
 
 ---
