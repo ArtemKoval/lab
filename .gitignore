@@ -168,3 +168,4 @@ cython_debug/
 /anomaly_detection/nab/nab_data/
 
 .claude
+.DS_Store
