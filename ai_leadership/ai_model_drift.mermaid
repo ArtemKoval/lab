@@ -1,0 +1,34 @@
+flowchart TD
+    A["Anomaly Detected"] --> B{"Detection Source?"}
+    B --> C["Statistical Monitor"]
+    B --> D["Prediction Confidence Drop"]
+    B --> E["Field Report / User Feedback"]
+    B --> F["Pipeline / Data Alert"]
+
+    C --> G["Classify Drift Type"]
+    D --> G
+    E --> G
+    F --> H["Diagnose System Failure"]
+
+    G --> I{"Drift Severity?"}
+    I -->|Gradual| J["Increase Monitoring Frequency"]
+    I -->|Acute| K["Trigger Incident Protocol"]
+
+    H --> K
+
+    J --> L["Schedule Retraining / Recalibration"]
+    K --> M["Activate Incident Playbook"]
+
+    M --> N["Assign Response Roles"]
+    N --> O{"Rollback Required?"}
+    O -->|Yes| P["Revert to Last Known Good Model"]
+    O -->|No| Q["Apply Targeted Fix"]
+
+    P --> R["Validate Restored Performance"]
+    Q --> R
+
+    R --> S["Conduct Root Cause Analysis"]
+    S --> T["Update Playbook and Monitoring"]
+    T --> U["Share Retrospective Across Teams"]
+
+    L --> R
