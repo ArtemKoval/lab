@@ -1,0 +1,46 @@
+flowchart TD
+    A([Model in Production]) --> B[Monitoring Layer]
+
+    B --> C{Drift or\nAnomaly Detected?}
+
+    C -- No --> D[Ongoing Metrics Tracking\nAccuracy - Fairness - Latency]
+    D --> B
+
+    C -- Yes --> E[Diagnosis]
+
+    E --> F{Drift Type?}
+
+    F --> G[Input Drift\nData distribution shift]
+    F --> H[Concept Drift\nInput-label relationship evolved]
+    F --> I[Label Drift\nTarget variable redefined]
+
+    G & H & I --> J[Escalation Protocol\nNotify - Triage - Assign Owner]
+
+    J --> K{Severity Level?}
+
+    K -- Low --> L[Targeted Tuning\nFeature refresh or threshold adjustment]
+    K -- Medium --> M[Retraining Assessment\nNew data - Validation - Versioning]
+    K -- High --> N[Rollback or Freeze\nExecutive notification]
+
+    L & M --> O[Experimentation Loop\nTest hypothesis - Validate on subgroups]
+    N --> O
+
+    O --> P[Model Review\nBusiness alignment - Regulatory fit - Fairness audit]
+
+    P --> Q{Model Still Fit\nfor Context?}
+
+    Q -- Yes --> R[Redeploy Updated Model]
+    Q -- No --> S[Sunset Protocol\nDocument - Archive - Retire]
+
+    R --> B
+    S --> T([Lifecycle Closed\nInstitutional Knowledge Preserved])
+
+    style A fill:#1e3a5f,color:#fff
+    style T fill:#1e3a5f,color:#fff
+    style C fill:#2d6a9f,color:#fff
+    style F fill:#2d6a9f,color:#fff
+    style K fill:#2d6a9f,color:#fff
+    style Q fill:#2d6a9f,color:#fff
+    style J fill:#c0392b,color:#fff
+    style N fill:#c0392b,color:#fff
+    style S fill:#7f8c8d,color:#fff

@@ -1,0 +1,18 @@
+flowchart TD
+    A[AI System Anomaly Detected] --> B{Severity Assessment}
+    B -->|Low| C[Log and Monitor]
+    C --> D[Review at Next Cadence]
+    B -->|Medium| E[Alert Model Owner]
+    E --> F{Containable?}
+    F -->|Yes| G[Apply Threshold Override]
+    G --> H[Document and Update Risk Register]
+    F -->|No| I[Escalate to Leadership]
+    B -->|High| I
+    I --> J{Immediate Harm Risk?}
+    J -->|Yes| K[Activate Kill Switch]
+    K --> L[Revert to Fallback System]
+    L --> M[Post-Incident Review]
+    J -->|No| N[Convene Cross-Functional Response]
+    N --> O[Scenario-Based Remediation]
+    O --> M
+    M --> P[Update Risk Register and Protocols]
