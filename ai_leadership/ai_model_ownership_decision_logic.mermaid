@@ -1,0 +1,18 @@
+flowchart TD
+    A["Evaluate AI Use Case"] --> B{"Risk & Compliance Level?"}
+    B -->|High| C["Centralized Ownership"]
+    B -->|Medium| D["Hybrid Ownership"]
+    B -->|Low| E["Federated Ownership"]
+    
+    C --> F{"Organizational AI Maturity?"}
+    F -->|Early Stage| C1["Full Central Control\nGovernance + Build + Deploy"]
+    F -->|Maturing| C2["Central Governance\nShared Build Capacity"]
+    
+    D --> G{"Innovation Speed Required?"}
+    G -->|High| D1["Central Backbone\nEdge Execution"]
+    G -->|Moderate| D2["Central Standards\nCoordinated Delivery"]
+    
+    E --> H{"Coordination Maturity?"}
+    H -->|High| E1["Autonomous Units\nLight Central Guidance"]
+    H -->|Low| E2["Risk: Reconsider\nFederation Premature"]
+    E2 -.->|Upgrade Maturity| D
