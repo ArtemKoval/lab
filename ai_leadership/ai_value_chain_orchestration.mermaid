@@ -1,0 +1,17 @@
+flowchart TD
+    A[Problem Definition] --> B{Cross-Functional<br/>Input?}
+    B -->|Yes| C[Shared Problem Framing]
+    B -->|No| D[Data-Driven Framing Only]
+    D --> E[Risk: Technically Elegant<br/>but Misaligned Solution]
+    C --> F[Data Acquisition<br/>and Preparation]
+    F --> G[Model Development<br/>with Shared Visibility]
+    G --> H{Legal and Compliance<br/>Review}
+    H -->|Approved| I[Cross-Functional<br/>Deployment Checkpoint]
+    H -->|Issues Found| J[Iterate with<br/>Feedback Loop]
+    J --> G
+    I --> K[Operational Monitoring<br/>as Cross-Functional Loop]
+    K --> L{Performance<br/>Drift Detected?}
+    L -->|Yes| M[Business, Data, and Legal<br/>Joint Response]
+    M --> G
+    L -->|No| N[Continuous Stakeholder<br/>Feedback]
+    N --> K
