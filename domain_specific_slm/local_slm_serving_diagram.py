@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-CAIO Diagram: The Four Layers of Inference Sovereignty
-Topic: slm-deployment-serving
-Type: Concentric Rings
-Output: caio-slm-deployment-serving-diagram-1.png
+CAIO Diagram: The Laptop-Native Inference Stack — A Three-Way Capability Overlay
+Topic: laptop-native-ai
+Type: Radar / spider chart overlay with three series (Ollama, LM Studio, Jan)
+Output: caio-laptop-native-ai-diagram-2.png
 """
 
 import math
@@ -24,9 +24,8 @@ BURGUNDY = HexColor('#6B1C2A')
 AMETHYST = HexColor('#5A2D6A')
 TEAL = HexColor('#1A7A7A')
 MUSTARD = HexColor('#C4952A')
-BRICK = HexColor('#A04A2A')
 TERRACOTTA = HexColor('#C4613A')
-BRONZE = HexColor('#8C6E3A')
+WHITE = HexColor('#FFFFFF')
 
 # --- Font Registration ---
 pdfmetrics.registerFont(
@@ -40,164 +39,145 @@ pdfmetrics.registerFont(TTFont(
 
 # --- Canvas Setup ---
 W, H = 1600, 1200
-OUTPUT_PNG = '/home/claude/caio-slm-deployment-serving-diagram-1.png'
-OUTPUT_PDF = '/tmp/_diagram1_temp.pdf'
+OUTPUT_PNG = '/home/claude/caio-laptop-native-ai-diagram-2.png'
+OUTPUT_PDF = '/tmp/_diagram2_temp.pdf'
 
 
 def draw_diagram(c):
-    """Main diagram drawing function."""
-    # Background — white
-    c.setFillColor(HexColor('#FFFFFF'))
+    c.setFillColor(WHITE)
     c.rect(0, 0, W, H, stroke=0, fill=1)
 
     # Title
     c.setFillColor(NAVY)
-    c.setFont('Poppins-Bold', 30)
+    c.setFont('Poppins-Bold', 32)
     c.drawCentredString(
-        W/2, H - 70, "The Four Layers of Inference Sovereignty")
+        W / 2, H - 80, "The Three Credible Laptop-Native Inference Stacks")
 
     # Subtitle
     c.setFillColor(GRAPHITE)
-    c.setFont('Poppins-Light', 15)
+    c.setFont('Poppins-Light', 16)
     c.drawCentredString(
-        W/2, H - 100, "Deployment topology as a first-class strategic decision — each layer trades centralization for control")
+        W / 2, H - 115, "Capability overlay across seven enterprise-relevant dimensions")
 
-    # Center of concentric rings (shifted left to leave room for right-side annotations)
-    cx, cy = 560, 580
-
-    # Four concentric rings — outermost to innermost
-    # Layer 4 (outermost): Cloud API — lowest sovereignty, highest convenience
-    # Layer 3: Centralized GPU cluster
-    # Layer 2: FastAPI microservices
-    # Layer 1 (innermost): On-device / edge — highest sovereignty
-
-    rings = [
-        {'r': 400, 'color': BURGUNDY, 'label_inner': 'Layer 4',
-            'label_outer': 'Hyperscale Cloud APIs'},
-        {'r': 310, 'color': AMETHYST, 'label_inner': 'Layer 3',
-            'label_outer': 'Centralized GPU Clusters'},
-        {'r': 220, 'color': SAPPHIRE, 'label_inner': 'Layer 2',
-            'label_outer': 'FastAPI Microservices'},
-        {'r': 130, 'color': EMERALD, 'label_inner': 'Layer 1',
-            'label_outer': 'On-Device and Edge'},
+    # Axes definitions — 7 dimensions
+    dimensions = [
+        "Open source\nlicensing",
+        "Graphical\ninterface quality",
+        "REST API\nmaturity",
+        "Model format\nbreadth",
+        "Inference\nperformance",
+        "SDK\nproductization",
+        "Cloud-local\nrouting",
     ]
 
-    # Draw rings outermost first
-    for ring in rings:
-        c.setFillColor(ring['color'])
-        c.setStrokeColor(IVORY)
-        c.setLineWidth(3)
-        c.circle(cx, cy, ring['r'], stroke=1, fill=1)
+    # Scores 0-5 for each dimension (qualitative judgment based on source material)
+    # Order must match dimensions
+    series = [
+        ("Ollama", [5, 2, 5, 4, 4, 5, 3], EMERALD),
+        ("LM Studio", [2, 5, 5, 5, 5, 5, 2], BURGUNDY),
+        ("Jan", [5, 4, 5, 3, 3, 2, 5], AMETHYST),
+    ]
 
-    # Draw labels on ring top edges (inside each ring band)
-    # Layer 4 label — at top of outermost ring
-    c.setFillColor(IVORY)
-    c.setFont('Poppins-Bold', 16)
-    c.drawCentredString(cx, cy + 355, "LAYER 4")
-    c.setFont('Poppins-Medium', 15)
-    c.drawCentredString(cx, cy + 335, "Hyperscale Cloud APIs")
+    cx, cy = W / 2, 560
+    max_r = 300
+    max_val = 5
+    n = len(dimensions)
 
-    # Layer 3
-    c.setFont('Poppins-Bold', 16)
-    c.drawCentredString(cx, cy + 265, "LAYER 3")
-    c.setFont('Poppins-Medium', 15)
-    c.drawCentredString(cx, cy + 245, "Centralized GPU Clusters")
+    # --- Draw concentric gridlines (polygons) ---
+    for ring_val in [1, 2, 3, 4, 5]:
+        r = max_r * (ring_val / max_val)
+        points = []
+        for i in range(n):
+            angle = math.radians(90 - i * (360 / n))
+            x = cx + r * math.cos(angle)
+            y = cy + r * math.sin(angle)
+            points.append((x, y))
 
-    # Layer 2
-    c.setFont('Poppins-Bold', 16)
-    c.drawCentredString(cx, cy + 175, "LAYER 2")
-    c.setFont('Poppins-Medium', 15)
-    c.drawCentredString(cx, cy + 155, "FastAPI Microservices")
+        c.setStrokeColor(HexColor('#D0D0D0'))
+        c.setLineWidth(1)
+        c.setFillColor(WHITE)
+        c.setFillAlpha(0)
+        path = c.beginPath()
+        path.moveTo(points[0][0], points[0][1])
+        for x, y in points[1:]:
+            path.lineTo(x, y)
+        path.close()
+        c.drawPath(path, stroke=1, fill=0)
 
-    # Layer 1 (innermost — use larger text)
-    c.setFont('Poppins-Bold', 18)
-    c.drawCentredString(cx, cy + 20, "LAYER 1")
-    c.setFont('Poppins-Medium', 14)
-    c.drawCentredString(cx, cy - 5, "On-Device")
-    c.drawCentredString(cx, cy - 25, "and Edge")
+    # --- Draw axis spokes ---
+    c.setStrokeColor(HexColor('#C0C0C0'))
+    c.setLineWidth(1)
+    for i in range(n):
+        angle = math.radians(90 - i * (360 / n))
+        x = cx + max_r * math.cos(angle)
+        y = cy + max_r * math.sin(angle)
+        c.line(cx, cy, x, y)
 
-    # Right-side descriptive panel
-    panel_x = 1050
+    # --- Draw each series polygon ---
+    for name, values, color in series:
+        points = []
+        for i, value in enumerate(values):
+            angle = math.radians(90 - i * (360 / n))
+            r = max_r * (value / max_val)
+            x = cx + r * math.cos(angle)
+            y = cy + r * math.sin(angle)
+            points.append((x, y))
+
+        # Filled polygon (semi-transparent)
+        c.setFillColor(color)
+        c.setFillAlpha(0.22)
+        c.setStrokeColor(color)
+        c.setLineWidth(2.5)
+        path = c.beginPath()
+        path.moveTo(points[0][0], points[0][1])
+        for x, y in points[1:]:
+            path.lineTo(x, y)
+        path.close()
+        c.drawPath(path, stroke=1, fill=1)
+        c.setFillAlpha(1.0)
+
+        # Vertex dots
+        c.setFillColor(color)
+        for x, y in points:
+            c.circle(x, y, 4, stroke=0, fill=1)
+
+    # --- Axis labels ---
     c.setFillColor(NAVY)
-    c.setFont('Poppins-Bold', 22)
-    c.drawString(panel_x, H - 180, "Sovereignty Gradient")
+    for i, dim in enumerate(dimensions):
+        angle = math.radians(90 - i * (360 / n))
+        label_r = max_r + 55
+        lx = cx + label_r * math.cos(angle)
+        ly = cy + label_r * math.sin(angle)
 
-    c.setFillColor(GRAPHITE)
-    c.setFont('Poppins', 13)
-    c.drawString(panel_x, H - 210,
-                 "Inner rings trade convenience for control.")
-    c.drawString(panel_x, H - 228,
-                 "Outer rings trade control for convenience.")
-
-    # Layer descriptions
-    layer_info = [
-        {
-            'num': 'LAYER 4',
-            'name': 'Hyperscale Cloud APIs',
-            'color': BURGUNDY,
-            'use': 'Use for experimentation, low-volume novel cases, frontier reasoning where the model is the bottleneck.',
-            'y_offset': 270
-        },
-        {
-            'num': 'LAYER 3',
-            'name': 'Centralized GPU Clusters',
-            'color': AMETHYST,
-            'use': 'Use for high-volume production serving with vLLM. Cost-per-token and throughput dominate.',
-            'y_offset': 400
-        },
-        {
-            'num': 'LAYER 2',
-            'name': 'FastAPI Microservices',
-            'color': SAPPHIRE,
-            'use': 'Use for bespoke inference endpoints. Fine-grained control over routing and pre and post-processing.',
-            'y_offset': 530
-        },
-        {
-            'num': 'LAYER 1',
-            'name': 'On-Device and Edge',
-            'color': EMERALD,
-            'use': 'Use for data sovereignty, real-time latency, offline resilience. MLC LLM, mllm, Termux enable this.',
-            'y_offset': 660
-        },
-    ]
-
-    for info in layer_info:
-        y = H - info['y_offset']
-        # Color swatch
-        c.setFillColor(info['color'])
-        c.rect(panel_x, y - 8, 18, 18, stroke=0, fill=1)
-        # Layer number + name
-        c.setFillColor(NAVY)
-        c.setFont('Poppins-Bold', 13)
-        c.drawString(panel_x + 28, y, info['num'])
+        lines = dim.split("\n")
         c.setFont('Poppins-Medium', 13)
-        c.drawString(panel_x + 100, y, info['name'])
-        # Use case
-        c.setFillColor(GRAPHITE)
-        c.setFont('Poppins', 11)
-        words = info['use'].split(' ')
-        line1 = []
-        line2 = []
-        line3 = []
-        current = line1
-        for word in words:
-            test = ' '.join(current + [word])
-            if len(test) > 48 and current is line1:
-                current = line2
-            elif len(test) > 48 and current is line2:
-                current = line3
-            current.append(word)
-        c.drawString(panel_x + 28, y - 20, ' '.join(line1))
-        if line2:
-            c.drawString(panel_x + 28, y - 37, ' '.join(line2))
-        if line3:
-            c.drawString(panel_x + 28, y - 54, ' '.join(line3))
+        for idx, line in enumerate(lines):
+            c.drawCentredString(lx, ly + 8 - idx * 16, line)
 
-    # Bottom note
-    c.setFillColor(NAVY)
-    c.setFont('Poppins-Medium', 14)
-    c.drawCentredString(
-        W/2, 90, "Mature enterprises operate across all four layers — routing each workload to the topology where its economics and constraints align.")
+    # --- Legend (bottom) ---
+    legend_y = 140
+    legend_x_start = W / 2 - 380
+    col_width = 260
+    for idx, (name, _, color) in enumerate(series):
+        lx = legend_x_start + idx * col_width
+        # Filled swatch
+        c.setFillColor(color)
+        c.setFillAlpha(0.45)
+        c.rect(lx, legend_y - 4, 30, 18, stroke=0, fill=1)
+        c.setFillAlpha(1.0)
+        c.setStrokeColor(color)
+        c.setLineWidth(2)
+        c.rect(lx, legend_y - 4, 30, 18, stroke=1, fill=0)
+        # Label
+        c.setFillColor(NAVY)
+        c.setFont('Poppins-Bold', 16)
+        c.drawString(lx + 40, legend_y, name)
+
+    # Attribution
+    c.setFillColor(GRAPHITE)
+    c.setFont('Poppins-Light', 11)
+    c.drawCentredString(W / 2, 90,
+                        "Capability scoring based on official project documentation and feature parity as of April 2026")
 
 
 def main():
@@ -207,7 +187,8 @@ def main():
 
     subprocess.run([
         'pdftoppm', '-png', '-r', '150',
-        '-singlefile', OUTPUT_PDF, OUTPUT_PNG.replace('.png', '')
+        '-singlefile', OUTPUT_PDF,
+        OUTPUT_PNG.replace('.png', '')
     ], check=True)
     print(f"Rendered: {OUTPUT_PNG}")
 
