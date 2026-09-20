@@ -1,0 +1,6 @@
+CONTRACT
+export function {{SIGNATURE}}
+{{DESCRIPTION}}
+
+EXAMPLES
+{{EXAMPLES}}
