@@ -547,7 +547,9 @@ gate_serve() {
 
     gs_ready=0
     gs_try=0
-    while [ "$gs_try" -lt 3 ] && [ "$gs_ready" -eq 0 ]; do
+    gs_max_try=3
+    [ -n "${SERVE_CHECK_PORT:-}" ] && gs_max_try=1
+    while [ "$gs_try" -lt "$gs_max_try" ] && [ "$gs_ready" -eq 0 ]; do
         gs_try=$((gs_try + 1))
         gs_port="${SERVE_CHECK_PORT:-}"
         [ -n "$gs_port" ] || gs_port=$(gates_free_port)
@@ -571,7 +573,11 @@ gate_serve() {
             gs_i=$((gs_i + 1))
         done
         if [ "$gs_ready" -eq 0 ]; then
-            log_warn "no local server answered on the port $gs_port. The build takes another port."
+            if [ "$gs_try" -lt "$gs_max_try" ]; then
+                log_warn "no local server answered on the port $gs_port. The build takes another port."
+            else
+                log_warn "no local server answered on the port $gs_port."
+            fi
             kill "$gs_pid" 2>/dev/null || true
             wait "$gs_pid" 2>/dev/null || true
         fi

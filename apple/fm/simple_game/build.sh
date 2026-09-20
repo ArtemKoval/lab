@@ -45,8 +45,6 @@ LOGS_DIR="$BUILD_DIR/logs"
 FM_LOCK_DIR="$BUILD_DIR/fm.lock"
 BUILD_LOCK_DIR="$BUILD_DIR/build.lock"
 
-SANDBOX_MODULES='/private/tmp/claude-501/-Users-art-Documents-git-lab-apple-fm-simple-game/c700d1d4-6a8f-481c-9fb3-c10b1956a17c/scratchpad/gatecheck/node_modules'
-
 # ---------------------------------------------------------------------------
 # Knobs
 # ---------------------------------------------------------------------------
@@ -787,11 +785,6 @@ GIT
         die "package.json holds the broken script 'node --test test/'. Node 24 reads test/ as a module. Use the quoted glob."
     fi
     log_ok "package.json holds no broken 'node --test test/' script."
-
-    if [ ! -d "$ROOT/node_modules" ] && [ -d "$SANDBOX_MODULES" ]; then
-        log_info "the build copies the node_modules tree of the validated sandbox."
-        cp -R "$SANDBOX_MODULES" "$ROOT/node_modules"
-    fi
 
     log_cmd "npm install"
     ( cd "$ROOT" && npm install ) >"$LOGS_DIR/npm-install.out" 2>&1 ||

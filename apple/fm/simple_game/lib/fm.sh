@@ -323,8 +323,7 @@ fm_normalise() {
                 started = 1
                 line = $0
                 sub(/^.*function[[:space:]]+/, "function ", line)
-                if (index($0, "export") > 0) { line = "export " line }
-                else { line = "export " line }
+                line = "export " line
                 print line
                 depth = gsub(/\{/, "{", line) - gsub(/\}/, "}", line)
                 if (depth <= 0 && index(line, "{") > 0) { exit }

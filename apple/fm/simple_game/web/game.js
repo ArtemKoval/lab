@@ -49,7 +49,7 @@ function keyToInput(key) {
 function startLoop(state, tick, render, ms) {
   let s = state;
   render(s);
-  setInterval(() => { s = tick(s); render(s); }, ms);
+  let id = setInterval(() => { s = tick(s); render(s); if (s.over) { clearInterval(id); } }, ms);
 }
 
 function boot(doc, cols, rows, cell) {
