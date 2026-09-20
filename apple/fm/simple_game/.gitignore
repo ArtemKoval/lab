@@ -1,0 +1,16 @@
+# npm
+node_modules/
+npm-debug.log*
+
+# build state, logs, feedback, transcripts and the fm response cache
+.build/
+
+# mutation testing
+.stryker-tmp/
+reports/
+
+# macOS
+.DS_Store
+
+# Note: src/, test/ and web/game.js hold model generated code.
+# They stay under version control, because they are the product of a build.

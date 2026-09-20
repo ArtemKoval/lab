@@ -1,0 +1,24 @@
+{
+  "name": "apple-fm-simple-game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A Snake game generated step by step by the Apple Foundation Models CLI.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "test:coverage": "node --test --experimental-test-coverage \"test/**/*.test.mjs\"",
+    "coverage": "node --test --experimental-test-coverage \"test/**/*.test.mjs\"",
+    "lint": "eslint src",
+    "lint:web": "eslint -c eslint.web.mjs web/game.js",
+    "mutation": "stryker run",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "eslint": "^10.11.0"
+  }
+}
