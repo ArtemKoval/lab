@@ -22,14 +22,16 @@ config, hook, docs) runs:
 1. **Plan** — approach, files, shape, edge cases, failure modes; run the ASIT
    pass before adding anything.
 2. **Review the plan** — consult prior lessons first (`MEMORY.md`/memories,
-   CLAUDE.md invariants, recent reflections — the `session-reflection` consult
-   step), then critique against the requirement, CLAUDE.md, and reality; fix.
-   Escalate with risk: independent adversarial review (Step 12 machinery) for a
-   risky step; `decision-tournament` for a genuine fork (several valid
-   architectures, ambiguous requirements, high-risk draft);
-   `evolutionary-optimization` when a runnable numeric eval exists and the
-   search space is large. Surface directions that are the user's call
-   (ExitPlanMode).
+   CLAUDE.md invariants, recent reflections), then critique against the
+   requirement, CLAUDE.md, and reality; fix. Escalate with risk: independent
+   adversarial review (Step 12 machinery) for a risky step; a decision
+   tournament (several independent attempts, judged and synthesized) for a
+   genuine fork (several valid architectures, ambiguous requirements,
+   high-risk draft); an evolutionary or iterative search when a runnable
+   numeric eval exists and the search space is large. Use the matching skill
+   (`decision-tournament`, `evolutionary-optimization`, `session-reflection`)
+   when this session's skill listing offers it; otherwise run the pattern
+   inline. Surface directions that are the user's call (ExitPlanMode).
 3. **Implement** the corrected plan.
 4. **Review the result** — run it, read the diff, check the gates; fix. At most
    2 refinement rounds, each driven by a new external signal (failing test,
@@ -110,14 +112,14 @@ any new component without a plan justification is removed or unified.
 Parts of this repo are a stable **core** plus registry-loaded **packs** ("add a
 pack, never edit the core"). A change belongs in exactly one; state the verdict.
 
-Seams (registry + base contract + sibling units):
-- **Artin domains** — `artin_brain/src/artin_brain/domains/`: `base.py`
-  (`Domain` contract), `__init__.py` (`DOMAINS` registry), `<name>/` packs
-  (`retail`, `aoao`) with their own `config/*.yaml`. The core flow
-  (`crews/artin_flow.py`) routes on capability (KB / MCP / none), never on a
-  specific intent.
-- **Tenants** — `infrastructure/tenants.json` maps tenant → domain.
-- No such split in the area → plain core/tool code; go to Step 1.
+Seams (registry + base contract + sibling units): a registry file (e.g. an
+`__init__.py` exporting a mapping, or a JSON/YAML config list) plus a base
+contract (a shared interface every entry implements) plus sibling units that
+plug into it. This repo (`lab`) is a personal collection of standalone
+projects (`apple/fm/`, `configs/`, …) with no such registry today — plain
+core/tool code; go to Step 1. If a split ever forms here, name its actual
+registry/base-contract/sibling-unit files in this section instead of this
+paragraph.
 
 Verdicts:
 - **Pack** — one domain, plugin, or tenant (intent, crew, prompt, corpus, new
@@ -133,9 +135,8 @@ Verdicts:
 Downstream: a pack depends only on the core's public contract, never on another
 pack (Step 2); a pack change tests the pack in isolation plus the registry
 invariant, a core change proves every pack still works (Step 3); a new pack
-needs its registry line and per-pack resources (tenant→domain entry, per-intent
-alarm) pinned by a hermetic test, as `tests/artin_brain/test_domains.py` pins
-`DOMAINS` to the pack directories (Step 8).
+needs its registry line and any per-pack resources pinned by a hermetic test
+that asserts the registry contains exactly the expected pack entries (Step 8).
 
 ## Step 0.6 — Surface: is it a Claude Code hook?
 
@@ -156,8 +157,10 @@ skill saying "always do X" is a wish; a hook enforces it.
   which owns `settings.json`. A hook reads a JSON event on stdin; exit 2 blocks
   a blockable event (or JSON stdout sets `decision`, `permissionDecision`,
   `updatedInput`, `additionalContext`), exit 0 allows, other codes are
-  non-blocking errors. The repo's one hook today: `cc_logging` on
-  `PreToolUse`/`PostToolUse`/`Stop` (Step 14).
+  non-blocking errors. This repo has adopted no hooks yet
+  (`.claude/settings.json` sets only `outputStyle`); Step 14's `cc_logging`
+  hook is a target design, not a shipped one — confirm what actually exists
+  before relying on it.
 
 For a hook deliverable:
 - Its script is standalone code — Steps 2–3 and the gates apply. Use a
@@ -191,8 +194,12 @@ behavior-preserving refactors, docs, dependency bumps, or harness-only changes.
   before writing code. `tasks.md` drives Steps 2–8 (tick each task as it
   lands); `design.md` records the plan review and any tournament outcome.
 - Let specs accrete per capability as changes touch them; don't back-fill.
-- No `openspec/` yet? Adopt it first as its own change: `openspec init`, plus
-  setup registration (Step 8).
+- No `openspec/` yet? Adopt it first as its own change: install the OpenSpec
+  CLI (README's link has instructions — a clean clone does not get it for
+  free), run `openspec init`, plus setup registration (Step 8). If
+  `tools/project_setup/registry.json` doesn't exist yet either, stand up the
+  minimal registry in that same change rather than blocking on a step with no
+  prior adopter.
 
 ## Step 2 — Standalone code
 
@@ -315,25 +322,25 @@ deliberate follow-ups).
 
 Each run is one turn of a loop that improves the harness (Claude Code, skills,
 tools, hooks, permissions) from a mechanical signal (logs) and a narrative one
-(reflection):
-- **Log** — the committed `cc_logging` hook records every tool call and run
-  boundary to `.claude/logs/sessions/*.jsonl` (local, uncommitted); it always
-  exits 0 and redacts secrets at write time, so it can't break a session or
-  leak one. Confirm wiring with the `cc-logging-setup` skill / doctor
-  (`python tools/cc_logging_setup/cc_logging_setup.py`), also an optional
-  project-setup unit.
-- **Analyse** — when a pattern is worth chasing (not every change), run
-  `log-analysis` (`python tools/log_analysis/log_analysis.py --json` or the
-  `analyze_cc_logs` MCP tool). Its deterministic counts rank
-  permission-friction (prompted or denied calls), recurring-error,
-  repeated-command (work a helper or hook could absorb), and slow-hook
-  (`cc_logging` p95 over budget or rising).
-- **Reflect** — after a substantial delivery, run `session-reflection` for what
-  counts miss: an undocumented convention, a fix that took several attempts, a
-  misleading CLAUDE.md claim, a tournament winner that didn't hold. Shared
-  lessons → this pipeline (committed), local → memory, mechanical → the
-  analysis. Act once the same friction recurs (~3+ reflections); lessons pay
-  off only when consulted (inner-loop step 2).
+(reflection). None of this step's tooling is adopted in this repo yet — no
+`hooks` key in `.claude/settings.json`, no log-analysis tool, no reflection
+skill. Treat the sub-steps below as the target design: skip each one until its
+tooling exists, and adopt it via Step 8, as its own change, before relying on
+it.
+- **Log** — once adopted, a `cc_logging` hook (or equivalent) records every
+  tool call and run boundary to a local, uncommitted log; it always exits 0
+  and redacts secrets at write time, so it can't break a session or leak one.
+  Confirm wiring with its setup doctor, itself a project-setup unit.
+- **Analyse** — when a pattern is worth chasing (not every change) and a log
+  analysis tool exists, run it. Rank permission-friction (prompted or denied
+  calls), recurring-error, repeated-command (work a helper or hook could
+  absorb), and slow-hook signals.
+- **Reflect** — after a substantial delivery, if a reflection skill exists,
+  run it for what counts miss: an undocumented convention, a fix that took
+  several attempts, a misleading CLAUDE.md claim, a tournament winner that
+  didn't hold. Shared lessons → this pipeline (committed), local → memory,
+  mechanical → the analysis. Act once the same friction recurs (~3+
+  reflections); lessons pay off only when consulted (inner-loop step 2).
 - **Improve** — feed findings back through this pipeline, placed via Steps
   0.5/0.6 and solved ASIT-first (extend an existing skill, hook, or rule before
   adding one): permission-friction → scoped allow-rule (+ PowerShell twin) or a
