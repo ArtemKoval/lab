@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "units": [
+    {
+      "id": "openspec-cli",
+      "kind": "system-tool",
+      "purpose": "Runs the spec-driven workflow. The feature-pipeline skill and the /opsx commands call it.",
+      "check": ["openspec", "--version"],
+      "install": "npm install -g @fission-ai/openspec@latest",
+      "requires": "Node.js 20.19.0 or newer"
+    }
+  ]
+}
