@@ -10,8 +10,8 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 
 ## Specs
 - Behavior specs: `openspec/specs/` (source of truth). In-flight changes: `openspec/changes/`.
-- Make a change with `/opsx:propose`. Build it with `/opsx:apply`. Archive it with `/opsx:archive`.
+- To make an OpenSpec change, run `/opsx:propose`. To build it, run `/opsx:apply`. To archive it, run `/opsx:archive`.
 
 ## Setup
-- A clean clone needs the units in `tools/project_setup/registry.json`. The `project-setup` skill checks them and installs the missing ones.
-- When a change adds an item that a clean clone needs, add a unit to the registry in the same change.
+- A clean clone must have the units in `tools/project_setup/registry.json`. The `project-setup` skill examines them and installs each unit that the clone does not have.
+- If a change adds an item that a clean clone must have, add a unit to the registry.

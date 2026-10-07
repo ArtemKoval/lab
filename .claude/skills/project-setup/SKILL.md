@@ -1,36 +1,43 @@
 ---
 name: project-setup
-description: Set up or repair a clean clone of this repository. Use when a tool is missing, a command is not found, the user asks to set up the project or the machine, or the feature-pipeline skill needs a gate tool. Reads tools/project_setup/registry.json, checks each unit, and installs the missing units after the user agrees.
+description: Prepare or repair a clean clone of this repository. Use this skill when the clone does not have a tool or a command is not found. Also use it when the user asks to prepare the project or the machine. Also use it when the feature-pipeline skill must have a gate tool. The skill reads tools/project_setup/registry.json and examines each unit. It installs each unit that the clone does not have after the user gives permission.
 ---
 
 # Project setup
 
-The file `tools/project_setup/registry.json` lists each item that a clean clone needs. Each item is a unit.
+The file `tools/project_setup/registry.json` names each item that a clean clone must have. Each item is a unit.
 
-## Check and repair a clone
+## Examine and repair a clone
 
 1. Read `tools/project_setup/registry.json`.
-2. Run the `check` command of each unit. The unit passes when the command exits with code 0.
-3. Report each unit that fails.
-4. Show the `install` command of each failed unit. Ask the user to confirm.
-5. After the user confirms, run the `install` command.
-6. Run the `check` command again. Report the result.
+2. Run the `check` command of each unit.
+3. Report each unit whose `check` command exits with a code other than 0.
+4. Show the `install` command of each failed unit to the user.
+5. Ask the user for permission to run each `install` command.
 
-Do not run an `install` command before the user confirms. Some install commands change the whole machine.
+> **CAUTION:** Do not run an `install` command before the user gives permission. Some `install` commands change the whole machine.
+
+6. If the user gives permission, run the `install` command.
+7. Run the `check` command again.
+8. Report the result to the user.
 
 ## Unit fields
 
-| Field | Meaning |
+The `version` key of the file is the version of the file format.
+
+| Field | Description |
 |---|---|
-| `id` | A unique kebab-case name. |
-| `kind` | The type of unit, for example `system-tool`. |
-| `purpose` | The reason that the repository needs the unit. |
+| `id` | A unique name in kebab-case. |
+| `kind` | The type of the unit, for example `system-tool`. |
+| `purpose` | The reason that the repository uses the unit. |
 | `check` | A command as a list of words. Exit code 0 means that the unit is ready. |
 | `install` | The command that installs the unit. |
-| `requires` | What the unit needs before you install it. |
+| `requires` | What you must have before you install the unit. |
 
 ## Add a unit
 
-When a change adds an item that a clean clone needs, add one unit to the registry in the same change. Examples are a dependency file, a system tool, and a gate tool.
+If a change adds an item that a clean clone must have, add one unit to the registry. Do this in the same change.
 
-The registry has no setup doctor script yet. Claude Code does the check and the install with this skill.
+Examples of an item are a dependency file, a system tool, and a gate tool.
+
+The repository has no setup doctor script. Claude Code examines the units and installs them with this skill.
