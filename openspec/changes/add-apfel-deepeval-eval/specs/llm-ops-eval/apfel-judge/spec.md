@@ -82,6 +82,11 @@ The schema that the judge sends MUST NOT contain `$ref` or `$defs`. The judge MU
 - **THEN** the judge raises an error that tells the user the schema is recursive
 - **AND** the judge sends no request
 
+#### Scenario: Reference to an unknown definition
+- **WHEN** a metric gives a schema with a reference to a definition that the schema does not have
+- **THEN** the judge raises an error that names the definition
+- **AND** the judge sends no request
+
 ### Requirement: Judge sends the token and never an OpenAI key
 The judge MUST send the token that the user gives as the bearer token. If the user gives no token, the judge MUST send the placeholder `apfel-no-token`. The judge MUST NOT send the value of `OPENAI_API_KEY`, `OPENAI_ORG_ID`, or `OPENAI_PROJECT_ID`.
 

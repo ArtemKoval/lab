@@ -34,5 +34,5 @@ None.
 - New code in `llm_ops/eval/`: two modules, their tests, and a `pyproject.toml` that holds the gate settings.
 - Dependencies: `deepeval`, `openai`, and `python-dotenv`, each with an exact version. Dev tools: `pytest`, `pytest-cov`, `ruff`, `mutmut`, and the HTTP package that the tests import.
 - The devcontainer installs the dev dependencies.
-- The run must have the apfel server on the macOS host. One run makes 9 model calls, and each call takes about 10 to 40 seconds.
+- The run must have the apfel server on the macOS host. One run makes 8 model calls and 1 call to list the models. Each call takes about 8 to 40 seconds.
 - `tools/project_setup/registry.json` gets two units. `CLAUDE.md` names the project.

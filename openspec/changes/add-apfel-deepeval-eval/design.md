@@ -8,7 +8,7 @@
 - DeepEval 4.2.8 calls `generate_with_schema(prompt, schema=...)` on a custom judge. The base class passes the schema to `generate`. The reply can be a schema object or a JSON string. A custom judge is not a native model, so it returns no cost value.
 - A fresh install of `deepeval` 4.2.8 resolves `openai` 3.26.0. That `openai` version uses the HTTP package `httpx2`, and a fresh install has no `httpx`.
 - DeepEval connects to `us.i.posthog.com` unless `DEEPEVAL_TELEMETRY_OPT_OUT` is `YES`. I measured this with a socket log. DeepEval also loads a `.env` file in the current folder when it loads.
-- One run makes 9 model calls: 4 answers, 1 steps call, and 4 score calls. A call takes about 10 seconds, and up to 40 seconds in my earlier runs. Parallel calls starve the on-device model.
+- One run makes 8 model calls and 1 call to list the models: 4 answers and 4 score calls. A call takes about 8 seconds, and up to 40 seconds in my earlier runs. Parallel calls starve the on-device model.
 - The GEval score is the model reply (an integer from 0 to 10) divided by 10.
 
 ## Goals / Non-Goals
@@ -37,7 +37,7 @@ Alternative: `deepeval set-local-model` with `LocalModel`. I rejected it because
 ### D2. The `openai` client is the transport
 The judge builds an `OpenAI` client with `base_url`, `default_headers`, `max_retries=0`, `timeout=120`, and an optional `http_client`.
 
-The client always gets an explicit `api_key`. It is the token, or the fixed text `apfel-no-token`. The client also gets an empty `organization` and an empty `project`. Without these values, the `openai` client reads `OPENAI_API_KEY`, `OPENAI_ORG_ID`, and `OPENAI_PROJECT_ID`. It then fails with no key, or it sends a real cloud key to the apfel server. I proved both results with a mock transport. The judge never reads an OpenAI variable.
+The client always gets an explicit `api_key`. It is the token, or the fixed text `apfel-no-token`. The client also gets the default headers `OpenAI-Organization` and `OpenAI-Project` with the value `Omit()` from the `openai` package. Without these values, the `openai` client reads `OPENAI_API_KEY`, `OPENAI_ORG_ID`, and `OPENAI_PROJECT_ID`. It then fails with no key, or it sends a real cloud key to the apfel server. I proved both results with a mock transport. I also proved that an empty `organization` and `project` still send two empty headers, and that `Omit()` sends no header. The judge never reads an OpenAI variable.
 
 DeepEval already depends on `openai`. Tests give a mock transport from the HTTP package that `openai` uses (`httpx2` with `openai` 3.26.0). They see the real URL, headers, and body.
 
@@ -63,7 +63,27 @@ A `threading.Lock` surrounds the client call in `generate`. The async method run
 Alternative: `AsyncOpenAI`. I rejected it because it doubles the code, and parallel calls starve apfel.
 
 ### D6. The metric is GEval correctness
-The run builds one GEval metric. The metric compares the actual output with the expected output. The criteria text is: "Is the actual output factually consistent with the expected output?" I measured that the wording matters. The criteria "Ignore the wording" made the judge fail all answers. The parameters are `SingleTurnParams.ACTUAL_OUTPUT` and `SingleTurnParams.EXPECTED_OUTPUT`. The metric uses `async_mode=False` and the user threshold.
+The run builds one GEval metric. The metric compares the actual output with the expected output. The parameters are `SingleTurnParams.ACTUAL_OUTPUT` and `SingleTurnParams.EXPECTED_OUTPUT`. The metric uses `async_mode=False` and the user threshold.
+
+The metric has three fixed evaluation steps and no criteria text. With a criteria text, GEval asks the judge to write the steps first. I measured that these steps drift. The first real run used the criteria "Is the actual output factually consistent with the expected output?" Three of four answers failed. Two of them were equal to the expected text: `366` got 0.1 and `H2O` got 0.0. The steps that the judge wrote were off topic.
+
+I compared four wordings on the real server. Each wording had 5 answers: 4 right and 1 wrong.
+
+| Wording | Scores of the right answers | Score of the wrong answer |
+|---|---|---|
+| Criteria "factually consistent" | 0.5, 0.1, 0.0, 0.0 | 0.0 |
+| Criteria "same answer" | 0.0, 0.3, 0.0, 0.0 | 0.0 |
+| Criteria "high score for the same fact" | 0.0, 1.0, 1.0, 0.0 | 0.0 |
+| Three fixed steps (C) | 0.9, 0.9, 1.0, 0.0 | 0.0 |
+
+The fixed steps won, and they save one call for each run. Variant C gave 0.0 to `Shakespeare` for `William Shakespeare`. I added the sentence "A shorter or longer wording of the same fact is the same fact." to the second step (C2). I then compared C and C2 on nine answers: 6 right and 3 wrong.
+
+| Variant | Scores of the 6 right answers | Scores of the 3 wrong answers |
+|---|---|---|
+| C | 0.9, 0.9, 1.0, 0.0, 0.9, 0.0 | 0.0, 0.0, 0.0 |
+| C2 (in the code) | 0.9, 0.9, 0.9, 0.9, 0.9, 0.0 | 0.0, 0.0, 0.0 |
+
+The sentence in C2 fixes `Shakespeare`, which is one of the four fixed questions. I wrote the sentence to fix that case, so the result for that case is not a fair test. The answer `Da Vinci` for `Leonardo da Vinci` is not one of the four questions. It still fails with C2. The judge is a small model, and the README states this limit.
 
 The call is `measure(test_case, _show_indicator=False)`. `_show_indicator` is the only private argument. DeepEval 4.2.8 has no `_log_metric_to_confident`. The run sets no Confident AI key, so DeepEval logs nothing to the cloud. All DeepEval console output goes to the standard error stream, so the standard output holds only the report.
 
@@ -96,7 +116,7 @@ mutmut mutates only code inside functions. The telemetry default and the questio
 
 ### D10. Tests
 - Judge tests use the real `openai` client with a mock transport.
-- Run tests use the real GEval metric. A fake apfel function in `tests/conftest.py` gives the replies. It reads the schema title in the request body (`Steps`, `ReasonScore`). It returns an integer score from 0 to 10, and the metric divides it by 10. It also reads the question text.
+- Run tests use the real GEval metric. A fake apfel handler in `tests/fake_apfel.py` gives the replies. A subprocess probe can import it too. It reads the schema title in the request body (`Steps`, `ReasonScore`). It returns an integer score from 0 to 10, and the metric divides it by 10. It also reads the question text. A test proves that the run never asks the judge to write steps.
 - A subprocess test examines the telemetry default in a new interpreter. A second subprocess test runs a metric with the mock transport. It records every socket connection and the DNS names, and it asserts that no non-loopback target exists.
 - A `runpy` test runs `apfel_eval.run` as `__main__` with `--threshold 2` and expects exit code 2. It covers the entry guard with a real test.
 - The e2e module has the marker `e2e`. It runs only if `APFEL_E2E=1`. It uses the real apfel server from the devcontainer.

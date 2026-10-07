@@ -8,6 +8,31 @@
       "check": ["openspec", "--version"],
       "install": "npm install -g @fission-ai/openspec@latest",
       "requires": "Node.js 20.19.0 or newer"
+    },
+    {
+      "id": "apfel-cli",
+      "kind": "system-tool",
+      "purpose": "Runs the local Apple on-device model server. The apfel-eval skill and the llm_ops/eval project call it.",
+      "check": ["apfel", "--version"],
+      "install": "brew install apfel",
+      "requires": "A Mac with Apple Intelligence and Homebrew"
+    },
+    {
+      "id": "eval-python-deps",
+      "kind": "dependency-file",
+      "purpose": "Installs the Python packages of llm_ops/eval in its devcontainer. They are the run packages, the test tools, and the gate tools.",
+      "check": [
+        "npx",
+        "@devcontainers/cli",
+        "exec",
+        "--workspace-folder",
+        "llm_ops/eval",
+        "python",
+        "-c",
+        "import deepeval, openai, dotenv, httpx2, pytest, mutmut, ruff"
+      ],
+      "install": "npx @devcontainers/cli up --workspace-folder llm_ops/eval && npx @devcontainers/cli exec --workspace-folder llm_ops/eval pip install -r requirements-dev.txt",
+      "requires": "Node.js 20 or newer, and Docker with a running daemon"
     }
   ]
 }

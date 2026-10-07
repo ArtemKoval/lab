@@ -1,0 +1,28 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["mutants", ".git", ".venv"]
+pythonpath = ["."]
+addopts = "-m 'not e2e'"
+markers = ["e2e: runs against a real apfel server (set APFEL_E2E=1)"]
+
+[tool.coverage.run]
+branch = true
+source = ["apfel_eval"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+
+[tool.ruff]
+extend-exclude = ["mutants"]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "BLE", "C901"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.mutmut]
+paths_to_mutate = ["apfel_eval/"]
+tests_dir = ["tests/"]
