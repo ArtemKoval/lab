@@ -56,6 +56,11 @@ If the reply does not match the schema, the judge MUST raise an error. The judge
 - **WHEN** the server replies with an empty message
 - **THEN** the judge raises an error and returns no object
 
+#### Scenario: Reply has no choices
+- **WHEN** the server replies HTTP 200 with a body that has no choices, or an empty list of choices
+- **THEN** the judge raises an error after exactly one request
+- **AND** a metric that uses the judge sends no second request
+
 ### Requirement: Schema has no references
 The schema that the judge sends MUST NOT contain `$ref` or `$defs`. The judge MUST replace each reference with the definition that it names. A reference with other keys keeps those keys, and they win over the definition.
 
@@ -108,8 +113,16 @@ The judge MUST send the token that the user gives as the bearer token. If the us
 - **WHEN** `OPENAI_ORG_ID` and `OPENAI_PROJECT_ID` are set
 - **THEN** no request carries the headers `OpenAI-Organization` or `OpenAI-Project`
 
+### Requirement: Judge connects directly to the base URL
+The judge MUST send each request straight to the base URL. The judge MUST NOT send a request through a proxy that the environment names, for example with `HTTP_PROXY` or `ALL_PROXY`. A proxy would get the prompt and the token.
+
+#### Scenario: Proxy variable in the environment
+- **WHEN** `HTTP_PROXY` names a proxy and the base URL is `http://127.0.0.1:11434/v1`
+- **THEN** the judge connects to `127.0.0.1:11434`
+- **AND** the proxy gets no request
+
 ### Requirement: Judge sends one request at a time
-The judge MUST have at most one request in flight. A second request MUST start after the reply to the first request arrives.
+The judge MUST have at most one request in flight, and this includes the call that lists the models. A second request MUST start after the reply to the first request arrives.
 
 #### Scenario: Two calls at the same time
 - **WHEN** two calls to the judge start at the same time

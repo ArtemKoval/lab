@@ -1,5 +1,7 @@
+import dataclasses
 import threading
 
+import httpx2
 import pytest
 from fake_apfel import FakeApfel, completion, error
 
@@ -21,6 +23,31 @@ def test_cases_are_the_four_fixed_questions_in_order():
         Case("What is the chemical symbol for water?", "H2O"),
         Case("Who wrote the play Romeo and Juliet?", "William Shakespeare"),
     )
+
+
+def test_answer_prompt_text_is_pinned():
+    assert ANSWER_PROMPT == (
+        "Answer the question with only the answer, in as few words as possible.\n\n"
+        "Question: {question}"
+    )
+
+
+def test_evaluation_steps_text_is_pinned():
+    assert EVALUATION_STEPS == (
+        "Read the expected output and the actual output.",
+        "If the actual output states the same fact as the expected output, give a score "
+        "of 9 or 10. A shorter or longer wording of the same fact is the same fact.",
+        "If the actual output states a different fact, give a score of 0 or 1.",
+    )
+
+
+def test_cases_and_results_are_frozen():
+    case = run.cases()[0]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        case.question = "other"
+    result = run.Result(case.question, case.expected, "a", 1.0, True, "r", None)
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        result.passed = False
 
 
 # --- the score
@@ -60,8 +87,10 @@ def test_the_threshold_of_the_user_decides(make_judge):
 def test_answer_prompt_asks_for_the_answer_only_with_temperature_zero(make_judge):
     fake = FakeApfel()
     run_one(make_judge, fake)
-    assert fake.prompts() == [ANSWER_PROMPT.format(question=PARIS.question)]
-    assert "only the answer" in fake.prompts()[0]
+    assert fake.prompts() == [
+        "Answer the question with only the answer, in as few words as possible.\n\n"
+        "Question: What is the capital of France?"
+    ]
     assert fake.bodies[0]["temperature"] == 0
 
 
@@ -78,6 +107,7 @@ def test_score_prompt_has_the_fixed_steps_and_both_outputs(make_judge):
         assert f"{number}. {step}\n" in score_prompt
     assert "Actual Output:\nLyon" in score_prompt
     assert "Expected Output:\nParis" in score_prompt
+    assert "Parameters:\nActual Output and Expected Output" in score_prompt
 
 
 def test_metric_is_named_correctness_and_runs_in_sync_mode(make_judge):
@@ -96,9 +126,8 @@ def test_metric_makes_every_call_from_the_calling_thread(make_judge):
 def test_metric_never_asks_the_judge_to_write_steps(make_judge):
     fake = FakeApfel()
     judge = make_judge(fake)
-    metric = run.build_metric(judge, 0.5)
     for case in run.cases():
-        run.run_case(judge, metric, case)
+        run.run_case(judge, run.build_metric(judge, 0.5), case)
     assert len(fake.prompts()) == 4
     assert len(fake.prompts("Steps")) == 0
     assert len(fake.prompts("ReasonScore")) == 4
@@ -162,6 +191,24 @@ def test_error_in_the_score_call_is_recorded(make_judge):
     result = run_one(make_judge, handler)
     assert result.error.startswith("InternalServerError: ")
     assert (result.actual, result.score, result.passed) == (None, None, False)
+
+
+@pytest.mark.parametrize("extra", [{}, {"choices": None}, {"choices": []}])
+def test_score_reply_without_choices_makes_no_second_request(make_judge, extra):
+    fake = FakeApfel()
+    scored = []
+
+    def handler(request):
+        if b"ReasonScore" in request.content:
+            scored.append(request)
+            reply = {"id": "x", "object": "chat.completion", "created": 1, "model": "m", **extra}
+            return httpx2.Response(200, json=reply)
+        return fake(request)
+
+    result = run_one(make_judge, handler)
+    assert result.error == "ValueError: The reply from the apfel server has no text."
+    assert len(scored) == 1
+    assert len(fake.requests) == 1
 
 
 def test_error_that_is_not_from_the_server_is_recorded(make_judge):

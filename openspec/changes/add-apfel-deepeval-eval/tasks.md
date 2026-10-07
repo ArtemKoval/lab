@@ -48,9 +48,14 @@
 - [x] 7.1 Run `openspec validate add-apfel-deepeval-eval --strict`. Done when it reports no error.
 - [x] 7.2 Run all the gates one more time. Examine the repository for stray files. Done when all gates pass and `git status` lists only the planned files.
 
+## 8. Pull request examination
+
+- [x] 8.1 Fix each defect that the skeptics reproduced (design section "Pull request examination"). Add a test for each defect. Done when the new tests fail without the fix and pass with it.
+- [x] 8.2 Run all the gates again. Run `mutmut` three times to find a race. Done when the score is 1.0 in each run and the log has no error.
+
 ## Workflow follow-up
 
 - Open the pull request with the gate results, the mutation score, the wall time, and the real-server output.
-- Run the adversarial review. Repair each confirmed finding.
+- Run the adversarial examination. Repair each confirmed finding.
 - Archive the change as the last commit before the squash-merge.
 - Delete the branch and examine the merged `main`.

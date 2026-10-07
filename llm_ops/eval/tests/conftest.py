@@ -1,4 +1,6 @@
 import os
+import tempfile
+from pathlib import Path
 
 import httpx2
 import pytest
@@ -14,7 +16,27 @@ SETTING_NAMES = (
     "OPENAI_PROJECT_ID",
     "APFEL_BASE_URL",
     "APFEL_TOKEN",
+    # A proxy variable changes where a request goes, so no test can rely on it.
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
 )
+
+
+@pytest.fixture
+def tmp_path():
+    """A private folder for one test.
+
+    The folder of pytest is shared by all pytest processes of a user. Parallel mutmut
+    workers delete each other files there, and a worker can then exit with an error.
+    """
+    with tempfile.TemporaryDirectory() as folder:
+        yield Path(folder)
 
 
 @pytest.fixture(autouse=True)

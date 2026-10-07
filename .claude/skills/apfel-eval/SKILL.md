@@ -1,6 +1,6 @@
 ---
 name: apfel-eval
-description: Run or debug the DeepEval check that uses the local apfel server (the Apple on-device model) as the judge. Use this skill when the user asks to test the Apple model as a judge, to run the llm_ops/eval evaluation, or to find the cause of an apfel connection error in the devcontainer. The skill gives the commands, the exit codes, and the known problems.
+description: Run or debug the DeepEval evaluation that uses the local apfel server (the Apple on-device model) as the judge. Use this skill to try the Apple model as a judge. Also use it to run the llm_ops/eval evaluation. Also use it to find the cause of an apfel connection error in the devcontainer. The skill gives the commands, the exit codes, and the known problems.
 ---
 
 # apfel eval
@@ -27,7 +27,7 @@ npx @devcontainers/cli exec --workspace-folder llm_ops/eval python -m apfel_eval
 
 Add `--json` to get one JSON document. The JSON has the keys `base_url`, `model`, `threshold`, `results`, and `summary`.
 
-A run makes 9 calls to the server. A real run took 56 seconds. A slow server can take several minutes. Do not start two runs at the same time. The on-device model slows down.
+A run makes 9 calls to the server. Two real runs took 56 and 40 seconds. A slow server can take several minutes. Do not start two runs at the same time. The on-device model slows down.
 
 ## Read the result
 
@@ -42,7 +42,7 @@ total=4 passed=4 failed=0 errors=0
 |---|---|
 | 0 | All answers pass. |
 | 1 | At least one answer fails. No question has an error. |
-| 2 | The server does not work, the options are wrong, or a question has an error. |
+| 2 | The server does not work, an option is wrong, the `.env` file is not readable, or a question has an error. |
 
 A score is the integer that the judge gives (0 to 10) divided by 10. An answer passes if its score is equal to or higher than the threshold. The default threshold is 0.5.
 

@@ -8,7 +8,7 @@ apfel is a command line tool for macOS. It runs the Apple on-device model as an 
 |---|---|
 | `apfel_eval/judge.py` | `ApfelJudge`, a DeepEval judge model that calls the apfel server. |
 | `apfel_eval/run.py` | The command that asks four questions and scores the answers. |
-| `tests/` | Unit tests that use no network. One file uses the real server. |
+| `tests/` | Unit tests. They open no connection to another computer. One file uses the real server. |
 | `pyproject.toml` | The settings for pytest, coverage, ruff, and mutmut. |
 | `requirements.txt` | The packages that the code uses, with exact versions. |
 | `requirements-dev.txt` | The packages of `requirements.txt` and the test and gate tools. |
@@ -145,7 +145,7 @@ Your scores can be different. The judge is a model, and it is not a proof of cor
 |---|---|
 | 0 | All answers pass. |
 | 1 | At least one answer fails. No question has an error. |
-| 2 | The server does not work, an option is wrong, or a question has an error. |
+| 2 | The server does not work, an option is wrong, the `.env` file is not readable, or a question has an error. |
 
 ### Options and settings
 
@@ -162,7 +162,7 @@ The command reads `APFEL_BASE_URL` and `APFEL_TOKEN` from the file `.env` in the
 
 ### Time
 
-A run makes 1 call to list the models and 8 model calls. The run above took 56 seconds. The e2e tests took 95 seconds.
+A run makes 1 call to list the models and 8 model calls. Two real runs took 56 and 40 seconds. The e2e tests took 95 and 86 seconds.
 
 A call takes 6 to 40 seconds. A slow server can make a run take several minutes. The judge stops a call after 120 seconds.
 
@@ -175,6 +175,10 @@ A socket log of a real run shows one DNS name, `host.docker.internal`, and one c
 The apfel server answers HTTP 403 to a Host name that is not a loopback name. The container reaches the host as `host.docker.internal`. For a host that is not `localhost`, `127.0.0.1`, or `::1`, the judge sends the header `Host: localhost:<port>`. The port is the port of the base URL. The judge changes nothing for a loopback host.
 
 It is not necessary to start apfel with `--no-origin-check`.
+
+### Proxy variables
+
+The judge ignores `HTTP_PROXY`, `ALL_PROXY`, and the other proxy variables. It sends each request straight to the base URL. A proxy would get your prompt and your token. Use a base URL that you reach directly.
 
 ### Limits of the judge
 
@@ -218,11 +222,13 @@ Import `apfel_eval` before you import DeepEval in your own script. DeepEval read
 
 Write the evaluation steps yourself. Do not give only a `criteria` text, because the judge then writes steps that drift.
 
+Run the script in the `llm_ops/eval` folder, or add this folder to `PYTHONPATH`. Python must find the package `apfel_eval`.
+
 The judge sends one request at a time, makes no retry, and stops a request after 120 seconds. It never sends the value of `OPENAI_API_KEY`.
 
 ## Run the tests
 
-Run the unit tests in the container. They use no network and no apfel server:
+Run the unit tests in the container. They open no connection to another computer, and they use no apfel server:
 
 ```bash
 pytest
@@ -251,17 +257,18 @@ Run each gate in the container, in the `llm_ops/eval` folder. Each gate must pas
    ruff check --select C901
    ```
 
-3. Run the mutation tests. They make a copy of the code in `mutants/`.
+3. Delete the old `mutants/` folder. Then run the mutation tests. They make a copy of the code in `mutants/`.
 
    ```bash
+   rm -rf mutants
    mutmut run
    mutmut export-cicd-stats
    ```
 
-4. Compute the mutation score. It must be 0.95 or more.
+4. Compute the mutation score. The command prints the score. It exits with code 1 if the score is below 0.95.
 
    ```bash
-   python -c "import json; d = json.load(open('mutants/mutmut-cicd-stats.json')); print((d['killed'] + d['timeout']) / (d['total'] - d['skipped']))"
+   python -c "import json, sys; d = json.load(open('mutants/mutmut-cicd-stats.json')); s = (d['killed'] + d['timeout']) / (d['total'] - d['skipped']); print(s); sys.exit(s < 0.95)"
    ```
 
 ## Run without a devcontainer

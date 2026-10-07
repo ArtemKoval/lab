@@ -30,7 +30,7 @@ The judge subclasses `DeepEvalBaseLLM`. `LocalModel` sends no `response_format`,
 
 The subclass implements the four abstract methods: `load_model`, `generate`, `a_generate`, and `get_model_name`. The base `__init__` calls `load_model`. The judge sets the attributes that `load_model` reads before it calls `super().__init__`.
 
-The base class calls `generate` again without the schema if `generate` raises `TypeError`. The judge raises only `ValueError`, `ValidationError`, and `openai` errors, so no hidden second request happens.
+The base class calls `generate` again without the schema if `generate` raises `TypeError`. The judge raises only `ValueError`, `ValidationError`, and `openai` errors, so no hidden second request happens. The examination of the pull request found one gap: a reply with `choices` null made `reply.choices[0]` raise `TypeError`. The judge now tests `choices` first and raises `ValueError`. A test with the real metric counts the requests.
 
 Alternative: `deepeval set-local-model` with `LocalModel`. I rejected it because the reply is not constrained and the settings are global.
 
@@ -40,6 +40,8 @@ The judge builds an `OpenAI` client with `base_url`, `default_headers`, `max_ret
 The client always gets an explicit `api_key`. It is the token, or the fixed text `apfel-no-token`. The client also gets the default headers `OpenAI-Organization` and `OpenAI-Project` with the value `Omit()` from the `openai` package. Without these values, the `openai` client reads `OPENAI_API_KEY`, `OPENAI_ORG_ID`, and `OPENAI_PROJECT_ID`. It then fails with no key, or it sends a real cloud key to the apfel server. I proved both results with a mock transport. I also proved that an empty `organization` and `project` still send two empty headers, and that `Omit()` sends no header. The judge never reads an OpenAI variable.
 
 DeepEval already depends on `openai`. Tests give a mock transport from the HTTP package that `openai` uses (`httpx2` with `openai` 3.26.0). They see the real URL, headers, and body.
+
+The default HTTP client of `openai` reads `HTTP_PROXY` and the similar variables. A proxy would then get the prompt and the token, also for `127.0.0.1`. When no `http_client` is given, the judge builds `DefaultHttpxClient(trust_env=False)`. The client keeps the defaults of the SDK and ignores the proxy variables. A test with a loopback server that stands for a proxy proves that the proxy gets no request.
 
 Alternative: `httpx` or `requests` alone. I rejected it because the code must then parse the reply format.
 
@@ -93,9 +95,13 @@ A test with the real metric proves that `measure` accepts the arguments that the
 A function returns a tuple of `Case(question, expected)` for the four questions. The answer prompt asks for the answer only, in as few words as possible. This reduces the length difference between the answer and the expected text. The judge class does the answer call, so the run uses no second client.
 
 ### D8. Errors, settings, and exit codes
-`ApfelJudge.ping()` lists the models on the server. The run calls it first. `main` catches `openai.OpenAIError` around `ping()`. It prints the base URL, the error, and the command `apfel --serve` to the standard error stream, and it returns 2.
+`ApfelJudge.ping()` lists the models on the server. The run calls it first. `main` catches `Exception` around the construction of the judge and around `ping()`. The line has the comment `# noqa: BLE001`. The reason is the exit code rule: any failure here means that the server is not usable. A reply that is not a model list, a base URL with a control character, and a bad port all end here. `main` prints the base URL, the error, and the command `apfel --serve` to the standard error stream, and it returns 2.
+
+`main` also guards `load_dotenv`. A `.env` file that is not text, or that the user cannot read, gives a message and the exit code 2.
 
 A per-question block catches `Exception`. The line has the comment `# noqa: BLE001` with the reason: one bad question must not stop the other questions. The result holds the error text as `ClassName: message`. `KeyboardInterrupt` is not caught.
+
+Each question gets a new metric. A GEval metric keeps its `error` state between calls. The first version used one metric for all questions. One bad reply then turned the verdict of every later question into FAIL.
 
 The exit code is 2 if any error exists, else 1 if any answer fails, else 0.
 
@@ -125,7 +131,7 @@ mutmut mutates only code inside functions. The telemetry default and the questio
 ### D11. Gates
 - Coverage: `pytest --cov=apfel_eval --cov-branch --cov-fail-under=100`. No `exclude_also` setting. The only accepted exclusion is an inline `# pragma: no cover` with a reason.
 - Complexity: `ruff check --select C901` with `max-complexity = 10`. `ruff` is pinned. The code uses `X | None` annotations.
-- Mutation: `mutmut run` in the devcontainer. After the run, `mutmut export-cicd-stats` writes `mutants/mutmut-cicd-stats.json`. The score is (killed + timeout) divided by (total − skipped). Mutants with the status suspicious, segfault, or no tests count as not killed. One `python -c` command in the README computes the score. It must print 0.95 or more.
+- Mutation: `mutmut run` in the devcontainer. After the run, `mutmut export-cicd-stats` writes `mutants/mutmut-cicd-stats.json`. The score is (killed + timeout) divided by (total − skipped). Mutants with the status suspicious, segfault, or no tests count as not killed. One `python -c` command in the README computes the score. It prints the score and exits with code 1 if the score is below 0.95. The README tells the user to delete `mutants/` first, because `mutmut run` reuses old results and can report a stale score.
 - mutmut writes a copy of `apfel_eval/`, `tests/`, and `pyproject.toml` to `llm_ops/eval/mutants/`. The folder is in the tree, but git ignores it, and no source file changes. This meets the pipeline rule "mutate a copy, never the repo". `pyproject.toml` sets `testpaths = ["tests"]` and `norecursedirs = ["mutants"]` for pytest, and `extend-exclude = ["mutants"]` for ruff.
 - A `# pragma: no mutate` comment works only at the end of a one-line statement. It hides all mutants on that line. Each equivalent construct stands alone on a one-line statement. The pull request lists each hidden mutant and its reason. The tool settings do not change to raise the score.
 
@@ -161,7 +167,7 @@ A row is `<VERDICT> <score> | <question> | expected: <expected> | answer: <answe
 
 ## Risks / Trade-offs
 
-- Slow calls: a full run takes about 1.5 to 3 minutes, and up to 6 minutes on a slow server. → The README gives the measured time from task 4.2. The e2e module is opt-in.
+- Slow calls: a full run took 56 seconds in the measured run. It can take several minutes on a slow server. → The README gives the measured time from task 4.2. The e2e module is opt-in.
 - A server that hangs. → The 120 second limit stops the request, and the run records the error.
 - The 4096-token window can overflow on a long answer. → The error goes into the result and the exit code is 2.
 - The judge makes mistakes on a correct answer with more words, and its reasons can be wrong. → The prompt asks for short answers. The e2e test examines the structure and not exact scores. The README states this limit.
@@ -188,3 +194,21 @@ The primary changes:
 - Tasks: the order of the group 1 tasks and the README sections for the gates. Each "done when" statement has a way to examine it.
 
 The skeptics rejected seven findings. Examples are a score outside 0 to 10 and a conflict between the JSON requirement and the error paths. I made the report format exact in the spec (D13). I kept the other items as they are.
+
+## Pull request examination
+
+Five reviewers examined pull request 6 by experiment. Their topics were code correctness, spec conformance, gates and infrastructure, documentation, and tests. Each finding went to two skeptics who tried to disprove it.
+
+The reviewers made 39 findings. The skeptics confirmed 19, split on 6, and rejected 14. Many findings named the same defect from different sides. I fixed each defect that a skeptic reproduced.
+
+The defects and the fixes:
+- A proxy variable sent the prompt and the token to a proxy, also for `127.0.0.1`. The judge now builds a client that ignores the environment. A test with a loopback server that stands for a proxy proves it. The test suite also removes the proxy variables.
+- A reply with `choices` null made DeepEval send a hidden second request. The judge now raises `ValueError`. A test counts the requests.
+- A metric that DeepEval reused kept an error state. A bad reply then turned the verdict of every later question into FAIL. Each question now gets a new metric.
+- A reply that was not a model list ended in a traceback with exit code 1. A base URL with a control character did the same. A `.env` file that was not text did the same. Each case now gives a message and exit code 2. The spec has a scenario for each case.
+- No test pinned the text of the evaluation steps and the answer prompt, and the mutation run cannot mutate a constant. Tests now compare the exact text. Tests also pin the order of the metric parameters, the frozen data classes, the lock of `ping`, and the worker thread of the async call.
+- The README mutation command could print a stale score and never failed. The README now deletes `mutants/` first, and the score command exits with code 1 below 0.95.
+- Parallel mutmut workers shared one temporary folder of pytest. One worker ended with an error after its tests passed. A false kill is possible in this case. The suite now uses its own temporary folder. Three mutation runs gave no error.
+- The `check` command of the unit `eval-python-deps` did not import `pytest_cov`. The e2e tests could not use `APFEL_TOKEN`. The mutmut keys in `pyproject.toml` had old names. The design and the README had old numbers. The skill description had a sentence of 33 words. All are fixed.
+
+The skeptics rejected 14 findings. Examples are a score outside 0 to 1 and an empty `APFEL_BASE_URL`. I kept those items as they are.

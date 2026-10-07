@@ -58,6 +58,14 @@ The base URL MUST come from the option `--base-url`, then from the variable `APF
 - **WHEN** the `.env` file and the shell set `APFEL_BASE_URL` to different values
 - **THEN** the run uses the value of the shell
 
+### Requirement: Run stops when the .env file cannot be read
+If the file `.env` is in the current folder and is not readable text, the run MUST print a message to the standard error stream. The message MUST name the error. The run MUST print nothing to the standard output, ask no question, and exit with code 2.
+
+#### Scenario: File that is not text
+- **WHEN** the `.env` file holds bytes that are not valid text
+- **THEN** the run prints a message with the error to the standard error stream
+- **AND** the server gets no request and the exit code is 2
+
 ### Requirement: Run rejects a threshold outside 0 to 1
 The option `--threshold` MUST hold a number from 0 to 1. Both 0 and 1 are valid. If it does not, the run MUST print a usage error and exit with code 2. The run MUST ask no question.
 
@@ -95,6 +103,16 @@ Before the first question, the run MUST make one call to the server. If the serv
 - **AND** the standard output is empty and the exit code is 2
 - **AND** the server gets no question
 
+#### Scenario: First call gives a reply that is not a model list
+- **WHEN** the server answers HTTP 200 to the first call with text that is not a list of models
+- **THEN** the message holds the base URL and the error
+- **AND** the standard output is empty and the exit code is 2
+
+#### Scenario: Base URL that cannot be used
+- **WHEN** the base URL has a control character, or a port that is not a number
+- **THEN** the message holds the base URL and the error
+- **AND** the standard output is empty and the exit code is 2
+
 ### Requirement: Run continues after an error in one question
 If one question causes an error, the run MUST record the error and continue with the next question. At the end, the run MUST exit with code 2.
 
@@ -103,6 +121,11 @@ If one question causes an error, the run MUST record the error and continue with
 - **THEN** the run records the error for the second question
 - **AND** the run asks the third and the fourth question
 - **AND** the run exits with code 2
+
+#### Scenario: Score reply that is not valid
+- **WHEN** the score call of the first question gives a reply that does not match the schema
+- **THEN** the first question has the verdict `ERROR`
+- **AND** each of the other three questions is scored on its own result
 
 ### Requirement: Run prints one row for each question
 By default, the run MUST print one row for each question to the standard output. A row has the form `<VERDICT> <score> | <question> | expected: <expected> | answer: <answer>`. The verdict is `PASS`, `FAIL`, or `ERROR`. The score has two decimals.

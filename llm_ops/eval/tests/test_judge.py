@@ -1,4 +1,5 @@
 import asyncio
+import http.server
 import json
 import threading
 
@@ -42,6 +43,30 @@ def recording(reply):
 
 def body_of(request):
     return json.loads(request.content)
+
+
+@pytest.fixture
+def proxy():
+    """A loopback server that records each request. It stands for a proxy."""
+    seen = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            seen.append((self.command, self.path, self.headers.get("authorization")))
+            self.send_response(502)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        do_GET = do_POST
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield server.server_port, seen
+    server.shutdown()
+    server.server_close()
 
 
 # --- the request
@@ -135,6 +160,18 @@ def test_reply_without_text_raises(make_judge, content, schema):
         judge.generate("q", schema)
 
 
+BASE_REPLY = {"id": "x", "object": "chat.completion", "created": 1, "model": "m"}
+
+
+@pytest.mark.parametrize("extra", [{}, {"choices": None}, {"choices": []}])
+@pytest.mark.parametrize("schema", [None, Score])
+def test_reply_without_choices_raises_a_value_error(make_judge, extra, schema):
+    handler = recording(httpx2.Response(200, json={**BASE_REPLY, **extra}))
+    with pytest.raises(ValueError, match="no text"):
+        make_judge(handler).generate("q", schema)
+    assert len(handler.requests) == 1
+
+
 # --- the schema
 
 
@@ -224,6 +261,34 @@ def test_two_threads_never_have_two_open_requests(make_judge):
     assert fake.max_open == 1
 
 
+def test_ping_and_a_call_never_have_two_open_requests(make_judge):
+    fake = FakeApfel(delay=0.05)
+    judge = make_judge(fake)
+    start = threading.Barrier(2)
+
+    def call(action):
+        start.wait()
+        action()
+
+    threads = [
+        threading.Thread(target=call, args=(judge.ping,)),
+        threading.Thread(target=call, args=(lambda: judge.generate("hi"),)),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert len(fake.requests) == 2
+    assert fake.max_open == 1
+
+
+def test_async_call_runs_in_a_worker_thread(make_judge):
+    fake = FakeApfel()
+    asyncio.run(make_judge(fake).a_generate("hi"))
+    assert fake.thread_ids
+    assert threading.get_ident() not in fake.thread_ids
+
+
 def test_two_async_calls_never_have_two_open_requests(make_judge):
     fake = FakeApfel(delay=0.05)
     judge = make_judge(fake)
@@ -276,6 +341,21 @@ def test_judge_with_no_http_client_fails_when_nothing_listens():
     judge = ApfelJudge("http://127.0.0.1:1/v1")
     with pytest.raises(openai.APIConnectionError):
         judge.generate("hi")
+
+
+def test_default_http_client_does_not_read_the_environment():
+    # None and False both mean "ignore the environment" for httpx, so the test names the value.
+    assert ApfelJudge("http://127.0.0.1:1/v1").model._client.trust_env is False
+
+
+@pytest.mark.parametrize("name", ["HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"])
+def test_proxy_variable_is_ignored(monkeypatch, proxy, name):
+    port, seen = proxy
+    monkeypatch.setenv(name, f"http://127.0.0.1:{port}")
+    judge = ApfelJudge("http://127.0.0.1:1/v1", token="s3cret")
+    with pytest.raises(openai.APIConnectionError):
+        judge.generate("a private prompt")
+    assert seen == []
 
 
 # --- async and ping

@@ -5,8 +5,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+import httpx2
 import pytest
-from fake_apfel import ANSWERS, FakeApfel
+from fake_apfel import ANSWERS, FakeApfel, completion
 
 from apfel_eval import run
 
@@ -47,6 +48,8 @@ def lines(capsys):
 
 def test_help_text(monkeypatch):
     monkeypatch.setenv("COLUMNS", "80")
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
     assert run.build_parser().format_help() == HELP
 
 
@@ -138,6 +141,40 @@ def test_json_report_for_a_question_with_an_error(serve, capsys):
     item = json.loads(capsys.readouterr().out)["results"][1]
     assert (item["score"], item["passed"], item["actual"]) == (None, False, None)
     assert "400" in item["error"]
+
+
+def test_each_question_gets_its_own_metric(serve, fake, monkeypatch):
+    built = []
+    real = run.build_metric
+
+    def build(*args, **kwargs):
+        built.append(real(*args, **kwargs))
+        return built[-1]
+
+    monkeypatch.setattr(run, "build_metric", build)
+    serve(fake)
+    run.main([])
+    assert len(built) == 4
+    assert len({id(metric) for metric in built}) == 4
+
+
+def test_invalid_score_reply_does_not_change_the_next_question(serve, capsys):
+    fake = FakeApfel()
+    scores = []
+
+    def handler(request):
+        if b"ReasonScore" in request.content:
+            scores.append(request)
+            if len(scores) == 1:
+                return completion("not json")
+        return fake(request)
+
+    serve(handler)
+    assert run.main([]) == 2
+    output = lines(capsys)
+    assert output[0].startswith("ERROR n/a | What is the capital of France? | expected: Paris | ")
+    assert output[1:4] == ALL_PASS_ROWS[1:]
+    assert output[-1] == "total=4 passed=3 failed=0 errors=1"
 
 
 # --- settings
@@ -304,6 +341,35 @@ def test_base_url_with_a_bad_port_stops_the_run(capsys):
     assert captured.out == ""
     assert "http://host:abc/v1" in captured.err
     assert "ValueError" in captured.err
+
+
+def test_reply_that_is_not_a_model_list_stops_the_run(serve, capsys):
+    headers = {"content-type": "text/html"}
+    page = httpx2.Response(200, text="<html>not apfel</html>", headers=headers)
+    serve(lambda request: page)
+    assert run.main([]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith(f"Cannot use the apfel server at {DEFAULT_URL}: ")
+    assert captured.err.endswith("Start the server on the host with: apfel --serve\n")
+
+
+def test_base_url_with_a_control_character_stops_the_run(capsys):
+    assert run.main(["--base-url", "http://127.0.0.1:1/v1\t"]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("Cannot use the apfel server at http://127.0.0.1:1/v1\t: ")
+    assert "apfel --serve" in captured.err
+
+
+def test_env_file_that_is_not_text_stops_the_run(serve, fake, capsys):
+    Path(".env").write_bytes(b"APFEL_TOKEN=caf\xe9\n")
+    serve(fake)
+    assert run.main([]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith("Cannot read the .env file: UnicodeDecodeError: ")
+    assert fake.requests == []
 
 
 # --- started as a module

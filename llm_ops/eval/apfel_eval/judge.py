@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from deepeval.models import DeepEvalBaseLLM
-from openai import Omit, OpenAI
+from openai import DefaultHttpxClient, Omit, OpenAI
 from pydantic import BaseModel
 
 DEFAULT_MODEL = "apple-foundationmodel"
@@ -89,13 +89,18 @@ class ApfelJudge(DeepEvalBaseLLM):
             "OpenAI-Project": Omit(),
             **host_headers(self.base_url),
         }
+        # The default HTTP client reads HTTP_PROXY and similar variables. A proxy would get
+        # the prompt and the token. This client sends each request straight to the base URL.
+        http_client = self.http_client
+        if http_client is None:
+            http_client = DefaultHttpxClient(trust_env=False)
         return OpenAI(
             base_url=self.base_url,
             api_key=self.token or NO_TOKEN,
             default_headers=headers,
             max_retries=0,
             timeout=TIMEOUT_SECONDS,
-            http_client=self.http_client,
+            http_client=http_client,
         )
 
     def generate(self, prompt: str, schema: type[BaseModel] | None = None) -> Any:
@@ -109,7 +114,10 @@ class ApfelJudge(DeepEvalBaseLLM):
                 temperature=0,
                 **extra,
             )
-        text = reply.choices[0].message.content
+        # A TypeError here makes DeepEval send the request again without the schema.
+        # A ValueError makes it stop, so the judge sends no hidden second request.
+        choices = reply.choices
+        text = choices[0].message.content if choices else None
         if not text:
             raise ValueError("The reply from the apfel server has no text.")
         if schema is None:

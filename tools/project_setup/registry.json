@@ -29,7 +29,7 @@
         "llm_ops/eval",
         "python",
         "-c",
-        "import deepeval, openai, dotenv, httpx2, pytest, mutmut, ruff"
+        "import deepeval, openai, dotenv, httpx2, pytest, pytest_cov, mutmut, ruff"
       ],
       "install": "npx @devcontainers/cli up --workspace-folder llm_ops/eval && npx @devcontainers/cli exec --workspace-folder llm_ops/eval pip install -r requirements-dev.txt",
       "requires": "Node.js 20 or newer, and Docker with a running daemon"

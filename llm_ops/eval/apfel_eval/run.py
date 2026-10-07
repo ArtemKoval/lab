@@ -14,7 +14,6 @@ from pathlib import Path
 from deepeval.metrics import GEval
 from deepeval.test_case import LLMTestCase, SingleTurnParams
 from dotenv import load_dotenv
-from openai import OpenAIError
 
 from apfel_eval.judge import DEFAULT_MODEL, ApfelJudge
 
@@ -169,20 +168,24 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     # The call is first: the parser reads APFEL_BASE_URL. The shell has priority over the file.
-    load_dotenv(Path.cwd() / ".env")
+    try:
+        load_dotenv(Path.cwd() / ".env")
+    except (OSError, UnicodeError) as error:
+        print(f"Cannot read the .env file: {type(error).__name__}: {error}", file=sys.stderr)
+        return 2
     args = build_parser().parse_args(argv)
     try:
         judge = ApfelJudge(args.base_url, args.model, os.environ.get("APFEL_TOKEN"))
         judge.ping()
-    except (OpenAIError, ValueError) as error:
+    except Exception as error:  # noqa: BLE001  Any failure here makes the server unusable.
         print(
             f"Cannot use the apfel server at {args.base_url}: {type(error).__name__}: {error}\n"
             "Start the server on the host with: apfel --serve",
             file=sys.stderr,
         )
         return 2
-    metric = build_metric(judge, args.threshold)
-    results = [run_case(judge, metric, case) for case in cases()]
+    # Each question gets a new metric. A metric keeps its error state between questions.
+    results = [run_case(judge, build_metric(judge, args.threshold), case) for case in cases()]
     summary = summarize(results)
     if args.json:
         print(format_json(args, results))
