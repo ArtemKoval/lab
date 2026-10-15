@@ -40,6 +40,20 @@ describe('createHistoryStore', () => {
     expect(listed[0]).not.toHaveProperty('messages')
   })
 
+  it('sorts a newest-first directory back under the oldest first', () => {
+    let ticks = 0
+    const store = createHistoryStore({
+      chatsDir,
+      now: () => new Date(2026, 9, 15, 12, 0, ticks++).toISOString(),
+    })
+    const older = store.create('any')
+    const newer = store.create('any')
+    // Seed the directory newest first, so the sort has work to do.
+    fs.writeFileSync(path.join(chatsDir, `${newer.id}.json`), JSON.stringify(newer))
+    fs.writeFileSync(path.join(chatsDir, `${older.id}.json`), JSON.stringify(older))
+    expect(store.list().map((c) => c.id)).toEqual([newer.id, older.id])
+  })
+
   it('keeps the directory order for equal timestamps', () => {
     const store = createHistoryStore({ chatsDir, now: () => '2026-10-15T09:00:00.000Z' })
     store.create('any')

@@ -33,9 +33,9 @@
 
 ## 5. Renderer
 
-- [ ] 5.1 Implement the preload `contextBridge` API with the narrow method set. Cover with vitest tests over a stubbed `contextBridge`. Verify the tests pass.
-- [ ] 5.2 Implement the chat UI logic: sidebar state, message list assembly, streaming bubble updates, the markdown plus sanitizer pipeline, and title derivation (first line, 40 characters). Cover the pure logic with vitest tests in jsdom, including the three sanitize scenarios. Verify the tests pass with the thresholds green.
-- [ ] 5.3 Implement the wizard UI (two steps, inline errors, retry on list failure, finish with `any` when the list is down) and the settings panel. Cover the logic with vitest tests. Verify the tests pass.
+- [x] 5.1 Implement the preload `contextBridge` API with the narrow method set. Cover with vitest tests over a stubbed `contextBridge`. Verify the tests pass.
+- [x] 5.2 Implement the chat UI logic: sidebar state, message list assembly, streaming bubble updates, the markdown plus sanitizer pipeline, and title derivation (first line, 40 characters). Cover the pure logic with vitest tests in jsdom, including the three sanitize scenarios. Verify the tests pass with the thresholds green.
+- [x] 5.3 Implement the wizard UI (two steps, inline errors, retry on list failure, finish with `any` when the list is down) and the settings panel. Cover the logic with vitest tests. Verify the tests pass.
 
 ## 6. App wiring
 

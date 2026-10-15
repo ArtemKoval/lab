@@ -8,7 +8,7 @@ export default defineConfig({
       reporter: ['text', 'json-summary'],
       include: [
         'src/main/**/*.mjs',
-        'src/preload/**/*.mjs',
+        'src/preload/**/*.cjs',
         'src/renderer/logic/**/*.mjs',
       ],
       // Excluded with reason: src/main/main.mjs is the process entry point.
