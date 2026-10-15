@@ -25,11 +25,11 @@
 
 - [x] 4.1 Implement the backend manager: run-mode selection helper, spawn with a clean key-free environment, ready-line wait with version check, restart with capped backoff and a quitting flag, per-OS quit kill (SIGTERM then SIGKILL on POSIX, tree kill on Windows). Cover with vitest tests that use a stub child script and injected timers. Verify the tests pass.
 - [x] 4.2 Implement the main-side protocol client: line buffering, action on complete lines only, partial-line discard on child exit, malformed-line drop. Cover with vitest tests over chunked byte streams. Verify the tests pass.
-- [ ] 4.3 Implement the config store: safeStorage encrypt and decrypt, the encryption guard with the weak-backend refusal, the undecryptable-ciphertext path, and the masked value. Cover with vitest tests over an injected safeStorage stub. Verify the tests pass.
-- [ ] 4.4 Implement the history store: one JSON file per conversation, whole-file atomic writes, delete, and the setup-done mark. Cover with vitest tests over a temp user data folder, including the crash-mid-write invariant. Verify the tests pass.
-- [ ] 4.5 Implement the wizard state machine and the settings state (repeat wizard, default model change, base URL override, each change persisted at once). Cover with vitest tests. Verify the tests pass.
-- [ ] 4.6 Implement window creation: sandbox, context isolation, no Node in page, CSP header, popup denial, and external links to the system browser. Cover with vitest tests that assert the window options and the link handler. Verify the tests pass.
-- [ ] 4.7 Implement the log writer with 5 MB rotation and at most 5 archives, and the readiness result line for the smoke harness. Cover with vitest tests. Verify the tests pass.
+- [x] 4.3 Implement the config store: safeStorage encrypt and decrypt, the encryption guard with the weak-backend refusal, the undecryptable-ciphertext path, and the masked value. Cover with vitest tests over an injected safeStorage stub. Verify the tests pass.
+- [x] 4.4 Implement the history store: one JSON file per conversation, whole-file atomic writes, delete, and the setup-done mark. Cover with vitest tests over a temp user data folder, including the crash-mid-write invariant. Verify the tests pass.
+- [x] 4.5 Implement the wizard state machine and the settings state (repeat wizard, default model change, base URL override, each change persisted at once). Cover with vitest tests. Verify the tests pass.
+- [x] 4.6 Implement window creation: sandbox, context isolation, no Node in page, CSP header, popup denial, and external links to the system browser. Cover with vitest tests that assert the window options and the link handler. Verify the tests pass.
+- [x] 4.7 Implement the log writer with 5 MB rotation and at most 5 archives, and the readiness result line for the smoke harness. Cover with vitest tests. Verify the tests pass.
 
 ## 5. Renderer
 
