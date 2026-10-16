@@ -62,7 +62,7 @@
 - [x] 9.1 Run the full hermetic suite: `python -m pytest`, branch coverage with `fail_under` at the reached total, ruff `C901`, and the mutmut run at 95% or more from the out-of-tree copy. Verify all four report green and record the numbers.
 - [x] 9.2 Run `npx vitest run --coverage` and verify the thresholds hold at 100 for the covered globs.
 - [x] 9.3 Run `openspec validate add-openrouter-desktop-app --strict` and verify it passes.
-- [ ] 9.4 Walk every spec scenario and confirm at least one test covers it; list any gaps in the PR body and close them. Verify the checklist appears in the PR.
+- [x] 9.4 Walk every spec scenario and confirm at least one test covers it; list any gaps in the PR body and close them. Verify the checklist appears in the PR.
 
 ## Workflow follow-up
 
