@@ -41,7 +41,14 @@ export function createHistoryStore({
   }
 
   function list() {
-    const entries = fs.readdirSync(chatsDir).filter((name) => name.endsWith('.json'))
+    let entries
+    try {
+      entries = fs.readdirSync(chatsDir).filter((name) => name.endsWith('.json'))
+    } catch {
+      // The folder can disappear under a running app (removed user data);
+      // an empty list is the honest answer, never a crash.
+      return []
+    }
     const conversations = []
     for (const name of entries) {
       try {

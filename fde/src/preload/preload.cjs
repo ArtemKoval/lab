@@ -4,6 +4,7 @@
 
 const INVOKE_METHODS = [
   'getState',
+  'getWizardState',
   'validateKey',
   'listModels',
   'finishWizard',

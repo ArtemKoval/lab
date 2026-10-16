@@ -101,6 +101,32 @@ describe('createChannel', () => {
     await expect(promise).rejects.toMatchObject({ message: 'backend exited' })
   })
 
+  it('times a request out when no answer arrives', async () => {
+    const written = []
+    const channel = createChannel({
+      writeLine: (line) => written.push(line),
+      onNotification: () => {},
+      onMalformed: () => {},
+      requestTimeoutMs: 20,
+    })
+    const promise = channel.request('list_models', {})
+    await expect(promise).rejects.toMatchObject({ kind: 'api' })
+    expect(written[0]).toContain('"method":"list_models"')
+  })
+
+  it('leaves an answered request alone when its timeout later expires', async () => {
+    const channel = createChannel({
+      writeLine: () => {},
+      onNotification: () => {},
+      onMalformed: () => {},
+      requestTimeoutMs: 30,
+    })
+    const promise = channel.request('list_models', {})
+    channel.handleData('{"jsonrpc":"2.0","id":1,"result":{"models":[]}}\n')
+    await expect(promise).resolves.toEqual({ models: [] })
+    await new Promise((resolve) => setTimeout(resolve, 60))
+  })
+
   it('exposes handleEnd so the manager can drop the partial tail', () => {
     const { channel, malformed, notifications } = makeChannel()
     channel.handleData('{"partial')

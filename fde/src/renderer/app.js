@@ -12,6 +12,7 @@ import { settingsViewModel, wizardViewModel } from './logic/wizard-view.mjs'
 
 const vendor = globalThis.fdeVendor
 const api = globalThis.fde
+window.__fdeDebug = () => ({ view: appState?.view, backend: appState?.backend, activeId: appState?.active?.id ?? null, messages: appState?.active?.messages?.length ?? -1 })
 
 const app = document.getElementById('app')
 let appState = null
@@ -41,17 +42,22 @@ function chatStateFor(conversation) {
 async function refresh() {
   appState = await api.getState()
   wizardSnap = await api.getWizardState()
+  render()
+  // The model list is a background refresh: the chat window renders with
+  // whatever it has, and the picker fills in when the list lands.
   if (appState.settings.hasStoredKey) {
     try {
       await api.listModels()
       wizardSnap = await api.getWizardState()
       models = wizardSnap.models
+      render()
     } catch {
-      models = wizardSnap.models ?? []
+      models = wizardSnap?.models ?? []
     }
   }
-  render()
 }
+
+let chatLayoutKey = null
 
 function render() {
   if (!appState) {
@@ -63,10 +69,19 @@ function render() {
     return
   }
   if (appState.view === 'wizard') {
+    chatLayoutKey = null
     renderWizard()
     return
   }
-  renderChat()
+  // The chat layout builds once per conversation; broadcasts update only the
+  // dynamic parts, so the composer keeps its draft and focus.
+  const layoutKey = `chat:${appState.active?.id ?? 'none'}`
+  if (chatLayoutKey !== layoutKey) {
+    chatLayoutKey = layoutKey
+    renderChatLayout()
+  } else {
+    updateChatDynamic()
+  }
 }
 
 function renderWizard() {
@@ -105,43 +120,110 @@ function renderWizard() {
   }
 }
 
-function renderChat() {
+function renderChatLayout() {
   const active = appState.active
-  const state = chatStateFor(active)
-  const activeStreamId = liveStreams.get(active?.id)
   app.innerHTML = `
     <div class="layout">
       <aside class="sidebar">
         <button id="new-chat">+ New chat</button>
         <button id="open-settings">⚙ Settings</button>
-        <ul id="chat-list">
-          ${sidebarModel(appState.conversations, active?.id).map((c) => `
-            <li data-id="${escapeText(c.id)}" class="${c.active ? 'active' : ''}">
-              <span class="chat-title">${escapeText(c.title)}</span>
-              <button class="chat-rename" data-id="${escapeText(c.id)}" title="Rename">✎</button>
-              <button class="chat-delete" data-id="${escapeText(c.id)}" title="Delete">✕</button>
-            </li>`).join('')}
-        </ul>
+        <ul id="chat-list"></ul>
       </aside>
       <main class="chat">
         <header class="chat-header">
-          <span>${escapeText(active?.title || 'New chat')}</span>
-          <select id="model-picker">
-            ${models.length ? models.map((m) => `<option value="${escapeText(m.id)}" ${m.id === active?.model ? 'selected' : ''}>${escapeText(m.id)}</option>`).join('') : `<option>model: ${escapeText(active?.model ?? '')}</option>`}
-          </select>
+          <span id="chat-title"></span>
+          <select id="model-picker"></select>
         </header>
         <div class="messages" id="messages"></div>
         <footer class="composer">
           <textarea id="composer-input" rows="2" placeholder="Message…"></textarea>
           <button id="send">Send</button>
-          <button id="stop" ${activeStreamId === undefined ? 'disabled' : ''}>Stop</button>
+          <button id="stop">Stop</button>
         </footer>
-        ${appState.notice ? `<div class="banner">${escapeText(appState.notice)}</div>` : ''}
-        ${appState.backend !== 'ready' ? `<div class="banner">Backend ${escapeText(appState.backend)} — sending is paused.</div>` : ''}
+        <div id="banners"></div>
       </main>
     </div>`
   wireChat()
+  updateChatDynamic()
+}
+
+function updateChatDynamic() {
+  const active = appState.active
+  renderSidebar()
+  renderHeader(active)
+  renderBanners()
   renderMessages()
+}
+
+function renderSidebar() {
+  const list = app.querySelector('#chat-list')
+  if (!list) {
+    return
+  }
+  list.innerHTML = sidebarModel(appState.conversations, appState.active?.id).map((c) => `
+    <li data-id="${escapeText(c.id)}" class="${c.active ? 'active' : ''}">
+      <span class="chat-title">${escapeText(c.title)}</span>
+      <button class="chat-rename" data-id="${escapeText(c.id)}" title="Rename">✎</button>
+      <button class="chat-delete" data-id="${escapeText(c.id)}" title="Delete">✕</button>
+    </li>`).join('')
+  for (const item of list.querySelectorAll('li')) {
+    item.onclick = (event) => {
+      if (event.target.tagName === 'BUTTON') {
+        return
+      }
+      chatStates.delete(item.dataset.id)
+      api.openChat({ id: item.dataset.id })
+    }
+  }
+  for (const button of list.querySelectorAll('.chat-rename')) {
+    button.onclick = (event) => {
+      event.stopPropagation()
+      const id = event.target.dataset.id
+      const title = window.prompt('Rename chat', '')
+      if (title) {
+        api.renameChat({ id, title })
+      }
+    }
+  }
+  for (const button of list.querySelectorAll('.chat-delete')) {
+    button.onclick = (event) => {
+      event.stopPropagation()
+      const id = event.target.dataset.id
+      if (window.confirm('Delete this conversation?')) {
+        chatStates.delete(id)
+        api.deleteChat({ id })
+      }
+    }
+  }
+}
+
+function renderHeader(active) {
+  const picker = app.querySelector('#model-picker')
+  const title = app.querySelector('#chat-title')
+  if (!picker || !title) {
+    return
+  }
+  title.textContent = active?.title || 'New chat'
+  const options = models.length
+    ? models
+    : [{ id: active?.model ?? 'any', name: active?.model ?? 'any' }]
+  picker.innerHTML = options.map((m) => `
+    <option value="${escapeText(m.id)}" ${m.id === active?.model ? 'selected' : ''}>${escapeText(m.id)}</option>`).join('')
+  picker.onchange = (event) => {
+    if (appState.active) {
+      api.changeModel({ id: appState.active.id, model: event.target.value })
+    }
+  }
+}
+
+function renderBanners() {
+  const container = app.querySelector('#banners')
+  if (!container) {
+    return
+  }
+  container.innerHTML = `
+    ${appState.notice ? `<div class="banner">${escapeText(appState.notice)}</div>` : ''}
+    ${appState.backend !== 'ready' ? `<div class="banner">Backend ${escapeText(appState.backend)} — sending is paused.</div>` : ''}`
 }
 
 // Updates only the message list, so the composer keeps its draft and focus
@@ -172,49 +254,15 @@ function renderMessages() {
 }
 
 function wireChat() {
-  const active = appState.active
   app.querySelector('#new-chat').onclick = () => api.newChat()
   app.querySelector('#open-settings').onclick = () => {
     settingsOpen = true
+    chatLayoutKey = null
     render()
   }
-  for (const item of app.querySelectorAll('#chat-list li')) {
-    item.onclick = (event) => {
-      if (event.target.tagName === 'BUTTON') {
-        return
-      }
-      chatStates.delete(item.dataset.id)
-      api.openChat({ id: item.dataset.id })
-    }
-  }
-  for (const button of app.querySelectorAll('.chat-rename')) {
-    button.onclick = (event) => {
-      event.stopPropagation()
-      const id = event.target.dataset.id
-      const title = window.prompt('Rename chat', '')
-      if (title) {
-        api.renameChat({ id, title })
-      }
-    }
-  }
-  for (const button of app.querySelectorAll('.chat-delete')) {
-    button.onclick = (event) => {
-      event.stopPropagation()
-      const id = event.target.dataset.id
-      if (window.confirm('Delete this conversation?')) {
-        chatStates.delete(id)
-        api.deleteChat({ id })
-      }
-    }
-  }
-  app.querySelector('#model-picker')?.addEventListener('change', (event) => {
-    if (active) {
-      api.changeModel({ id: active.id, model: event.target.value })
-    }
-  })
   app.querySelector('#send').onclick = () => sendCurrent()
   app.querySelector('#stop').onclick = () => {
-    const streamId = liveStreams.get(active?.id)
+    const streamId = liveStreams.get(appState.active?.id)
     if (streamId !== undefined) {
       api.stopStream({ streamId })
     }
@@ -229,19 +277,28 @@ function wireChat() {
   const messages = app.querySelector('#messages')
   messages.scrollTop = messages.scrollHeight
 
-  function sendCurrent() {
+  async function sendCurrent() {
     const text = input.value
     if (!text.trim()) {
       return
     }
     input.value = ''
-    if (active) {
-      chatStates.set(active.id, applyUserMessage(chatStateFor(active), text))
-      renderMessages()
+    // Read the active conversation at click time, never from a render
+    // closure: a stale capture silently drops the message.
+    const active = appState.active
+    if (!active) {
+      return
     }
-    const result = api.sendMessage({ id: active?.id, text })
-    if (result && result.error) {
-      chatStates.set(active.id, applyChatEvent(chatStateFor(active), { type: 'error', kind: 'api', message: result.error }))
+    chatStates.set(active.id, applyUserMessage(chatStateFor(active), text))
+    renderMessages()
+    try {
+      const result = await api.sendMessage({ id: active.id, text })
+      if (result && result.error) {
+        chatStates.set(active.id, applyChatEvent(chatStateFor(active), { type: 'error', kind: 'api', message: result.error }))
+        renderMessages()
+      }
+    } catch (err) {
+      chatStates.set(active.id, applyChatEvent(chatStateFor(active), { type: 'error', kind: 'api', message: String(err?.message ?? err) }))
       renderMessages()
     }
   }
