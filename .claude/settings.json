@@ -1,3 +1,10 @@
 {
-    "outputStyle": "ASD-STE100"
+    "outputStyle": "ASD-STE100",
+    "enabledMcpjsonServers": ["zai-routing-audit"],
+    "permissions": {
+        "allow": [
+            "mcp__zai-routing-audit",
+            "Bash(tools/zai_routing_audit/.venv/bin/python -m zai_routing_audit:*)"
+        ]
+    }
 }

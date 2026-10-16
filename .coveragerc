@@ -1,0 +1,5 @@
+[run]
+branch = True
+omit =
+    # The -m entry point only calls cli.main, which the suite tests directly.
+    tools/zai_routing_audit/zai_routing_audit/__main__.py

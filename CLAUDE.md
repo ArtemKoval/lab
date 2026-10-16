@@ -18,3 +18,4 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 
 ## Projects
 - `llm_ops/eval`: a DeepEval script that uses a local apfel server as the judge. It runs in a devcontainer. The README at `llm_ops/eval/README.md` and the `apfel-eval` skill give the commands.
+- `tools/zai_routing_audit`: a stdlib CLI that audits the z.ai GLM model routing behind Claude Code. The README at `tools/zai_routing_audit/README.md` and the `zai-routing-audit` skill give the commands. Its venv interpreter runs the root test suite: `tools/zai_routing_audit/.venv/bin/python -m pytest`.
