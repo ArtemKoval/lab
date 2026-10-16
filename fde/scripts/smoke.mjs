@@ -72,15 +72,20 @@ function startCommand() {
   }
   // Linux: the AppImage runs with the extract-and-run option under a virtual
   // display, because the runner has neither libfuse2 nor a display server.
+  // The extracted AppImage loses the SUID sandbox helper bit, so the CI
+  // harness starts Electron with --no-sandbox; shipped apps keep it.
   // A --dir build has no AppImage, so its unpacked binary runs instead.
   if (paths.linuxAppImage) {
-    return { cmd: 'xvfb-run', args: ['-a', paths.linuxAppImage, '--appimage-extract-and-run'] }
+    return {
+      cmd: 'xvfb-run',
+      args: ['-a', paths.linuxAppImage, '--appimage-extract-and-run', '--no-sandbox'],
+    }
   }
   const unpacked = linuxUnpackedBinary()
   if (!unpacked) {
     fail('no AppImage and no linux-unpacked binary under dist/')
   }
-  return { cmd: 'xvfb-run', args: ['-a', unpacked] }
+  return { cmd: 'xvfb-run', args: ['-a', unpacked, '--no-sandbox'] }
 }
 
 // A PATH with no python entry, so a system Python could never satisfy the
@@ -106,9 +111,13 @@ if (!fs.existsSync(cmd) && cmd !== 'xvfb-run') {
 
 const child = spawn(cmd, args, {
   env: { ...process.env, PATH: pythonFreePath() },
-  stdio: 'ignore',
+  stdio: ['ignore', 'pipe', 'pipe'],
   detached: false,
 })
+const appOutput = []
+for (const stream of [child.stdout, child.stderr]) {
+  stream.on('data', (chunk) => appOutput.push(String(chunk)))
+}
 
 const started = Date.now()
 let done = false
@@ -132,6 +141,8 @@ while (Date.now() - started < TIMEOUT_MS && !done) {
 
 child.kill()
 if (!done) {
+  console.error('--- last app output:')
+  console.error(appOutput.join('').split('\n').slice(-20).join('\n'))
   fail(`no readiness line within ${TIMEOUT_MS / 1000} seconds`)
 }
 process.exit(0)
