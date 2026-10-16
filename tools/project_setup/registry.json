@@ -49,6 +49,14 @@
       "check": ["fde/.venv/bin/python", "-m", "pytest", "--version"],
       "install": "python3 -m venv fde/.venv && fde/.venv/bin/python -m pip install -r fde/backend/requirements-dev.txt",
       "requires": "Python 3.11 or newer; the check path is the macOS and Linux layout"
+    },
+    {
+      "id": "zai-routing-audit-python-deps",
+      "kind": "dependency-file",
+      "purpose": "Installs the run and gate tools of tools/zai_routing_audit (mcp for the wrapper, pytest, pytest-cov, ruff, mutmut) into its .venv. The zai-routing-audit skill and the repo test suite call it.",
+      "check": ["tools/zai_routing_audit/.venv/bin/python", "-c", "import mcp, pytest, pytest_cov, ruff, mutmut"],
+      "install": "python3 -m venv tools/zai_routing_audit/.venv && tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt",
+      "requires": "Python 3.11 or newer"
     }
   ]
 }

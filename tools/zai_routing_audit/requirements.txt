@@ -1,0 +1,3 @@
+# Run-time dependency of the MCP wrapper only. The CLI core is standard library.
+# mcp 2.x renamed FastMCP; the wrapper targets the 1.x API.
+mcp>=1.2.0,<2
