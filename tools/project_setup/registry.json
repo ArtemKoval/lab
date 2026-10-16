@@ -35,6 +35,22 @@
       "requires": "Node.js 20 or newer, and Docker with a running daemon"
     },
     {
+      "id": "fde-node-deps",
+      "kind": "dependency-file",
+      "purpose": "Installs the Node packages of the fde desktop app: Electron, electron-builder, vitest, esbuild, and the renderer libraries.",
+      "check": ["npm", "ls", "--prefix", "fde", "--depth=0", "electron"],
+      "install": "npm ci --prefix fde",
+      "requires": "Node.js 20.19.0 or newer"
+    },
+    {
+      "id": "fde-python-dev",
+      "kind": "dependency-file",
+      "purpose": "Installs the Python dev and gate tools of the fde backend (pytest, pytest-cov, ruff, mutmut, httpx) into fde/.venv.",
+      "check": ["fde/.venv/bin/python", "-m", "pytest", "--version"],
+      "install": "python3 -m venv fde/.venv && fde/.venv/bin/python -m pip install -r fde/backend/requirements-dev.txt",
+      "requires": "Python 3.11 or newer; the check path is the macOS and Linux layout"
+    },
+    {
       "id": "zai-routing-audit-python-deps",
       "kind": "dependency-file",
       "purpose": "Installs the run and gate tools of tools/zai_routing_audit (mcp for the wrapper, pytest, pytest-cov, ruff, mutmut) into its .venv. The zai-routing-audit skill and the repo test suite call it.",

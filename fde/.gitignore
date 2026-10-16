@@ -1,0 +1,18 @@
+# Node
+node_modules/
+dist/
+
+# Build inputs and outputs
+build/
+dist/
+src/renderer/vendor.js
+src/renderer/app.bundle.js
+
+# Python dev environment and tool caches
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mutmut-cache/
+.coverage
+coverage/

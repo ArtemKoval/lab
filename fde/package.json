@@ -1,0 +1,36 @@
+{
+  "name": "fde",
+  "productName": "FDE Chat",
+  "version": "0.1.0",
+  "description": "OpenRouter chat desktop app with an embedded Python backend",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "src/main/main.mjs",
+  "scripts": {
+    "vendor": "node scripts/build-vendor.mjs",
+    "predev": "npm run vendor",
+    "dev": "electron .",
+    "prebuild": "npm run vendor",
+    "build": "electron-builder",
+    "build:dir": "electron-builder --dir",
+    "fetch-python": "node scripts/fetch-python.mjs",
+    "install-pylibs": "node scripts/install-pylibs.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "py:setup": "node scripts/setup-python-dev.mjs",
+    "py:test": ".venv/bin/python -m pytest",
+    "py:lint": ".venv/bin/ruff check backend",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.5",
+    "dompurify": "^3.4.17",
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1",
+    "marked": "^18.1.1",
+    "vitest": "^5.0.5"
+  }
+}

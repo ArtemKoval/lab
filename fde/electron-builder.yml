@@ -1,0 +1,30 @@
+appId: chat.fde.app
+productName: FDE Chat
+directories:
+  output: dist
+files:
+  - src/main/**/*.mjs
+  - src/preload/preload.cjs
+  - src/renderer/index.html
+  - src/renderer/style.css
+  - src/renderer/vendor.js
+  - src/renderer/app.bundle.js
+  # The main process imports deriveTitle from the shared pure logic module.
+  - src/renderer/logic/**/*.mjs
+asar: true
+beforePack: scripts/before-pack.cjs
+extraResources:
+  - { from: build/python, to: python }
+  - { from: build/pylibs, to: pylibs }
+  - { from: backend, to: backend, filter: ["**/*.py"] }
+mac:
+  # Ad-hoc signature only for v1: no Developer ID identity, no notarization.
+  # Each macOS runner builds its own architecture into mac-arm64 or mac.
+  identity: "-"
+  hardenedRuntime: false
+  target: [dmg, zip]
+win:
+  target: [nsis]
+linux:
+  target: [AppImage]
+  category: Network
