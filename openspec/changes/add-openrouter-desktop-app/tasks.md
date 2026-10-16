@@ -39,8 +39,8 @@
 
 ## 6. App wiring
 
-- [ ] 6.1 Write `src/main/main.mjs`: single-instance lock, first-launch rule from the setup-done mark and decryptability, IPC glue, and the backend error banner. Cover the wiring with vitest integration tests over stubs. Verify the tests pass.
-- [ ] 6.2 Verify the dev loop by hand: `npm run dev` opens the window, the wizard shows, and `logs/backend.log` appears in the dev user data folder. Record the observed behavior in the PR notes.
+- [x] 6.1 Write `src/main/main.mjs`: single-instance lock, first-launch rule from the setup-done mark and decryptability, IPC glue, and the backend error banner. Cover the wiring with vitest integration tests over stubs. Verify the tests pass.
+- [x] 6.2 Verify the dev loop by hand: `npm run dev` opens the window, the wizard shows, and `logs/backend.log` appears in the dev user data folder. Record the observed behavior in the PR notes.
 
 ## 7. Packaging and CI
 

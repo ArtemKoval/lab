@@ -66,7 +66,13 @@ export function createBackendManager({
       return
     }
     child = null
-    channel = null
+    /* v8 ignore next 3 -- the channel exists from the first spawn moment, so
+       an exit always finds it; the guard only covers a same-tick race. */
+    if (channel) {
+      // A request that outlives its child must fail, never hang.
+      channel.failPending('The backend process is gone')
+      channel = null
+    }
     disposeTimers()
     if (stopSettled) {
       const settle = stopSettled

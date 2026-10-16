@@ -6,6 +6,12 @@ import path from 'node:path'
 
 export const PROTOCOL_VERSION = 1
 
+export function venvPythonPath(appDir, platform = process.platform) {
+  return platform === 'win32'
+    ? path.join(appDir, '.venv', 'Scripts', 'python.exe')
+    : path.join(appDir, '.venv', 'bin', 'python')
+}
+
 export function pythonEnv(modulePaths, platform = process.platform, base = process.env) {
   const env = { ...base }
   delete env.PYTHONHOME

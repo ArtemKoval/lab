@@ -76,7 +76,16 @@ export function createWizardState({ validateKey, listModels, finish, notify }) {
     publish()
   }
 
-  return { submitKey, loadModels, finish: complete, cancel, snapshot }
+  function reset() {
+    state = 'key'
+    keyInMemory = null
+    models = []
+    modelError = null
+    error = null
+    publish()
+  }
+
+  return { submitKey, loadModels, finish: complete, cancel, reset, snapshot }
 }
 
 // The settings panel state: every change persists at once through the store.

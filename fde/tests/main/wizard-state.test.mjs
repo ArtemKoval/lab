@@ -94,6 +94,22 @@ describe('createWizardState', () => {
     wizard.cancel()
     expect(wizard.snapshot().state).toBe('cancelled')
   })
+
+  it('resets to a clean key step after a completed run', async () => {
+    const { wizard } = makeWizard()
+    await wizard.submitKey('sk-key')
+    await wizard.finish('any')
+    expect(wizard.snapshot().state).toBe('done')
+    wizard.reset()
+    const snap = wizard.snapshot()
+    expect(snap).toEqual({
+      state: 'key',
+      keyMasked: null,
+      models: [],
+      modelError: null,
+      error: null,
+    })
+  })
 })
 
 describe('createSettingsState', () => {

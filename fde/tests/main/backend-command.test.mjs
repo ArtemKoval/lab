@@ -2,7 +2,24 @@ import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { PROTOCOL_VERSION, backendCommand, pythonEnv } from '../../src/main/backend-command.mjs'
+import {
+  PROTOCOL_VERSION,
+  backendCommand,
+  pythonEnv,
+  venvPythonPath,
+} from '../../src/main/backend-command.mjs'
+
+describe('venvPythonPath', () => {
+  it('points to bin/python on POSIX', () => {
+    expect(venvPythonPath('/repo/fde', 'darwin')).toBe('/repo/fde/.venv/bin/python')
+  })
+
+  it('points to Scripts/python.exe on Windows', () => {
+    expect(venvPythonPath('C:\\repo\\fde', 'win32')).toBe(
+      path.join('C:\\repo\\fde', '.venv', 'Scripts', 'python.exe'),
+    )
+  })
+})
 
 describe('pythonEnv', () => {
   it('joins module paths with the platform delimiter and cleans the environment', () => {

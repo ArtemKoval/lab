@@ -4,7 +4,9 @@ dist/
 
 # Build inputs and outputs
 build/
+dist/
 src/renderer/vendor.js
+src/renderer/app.bundle.js
 
 # Python dev environment and tool caches
 .venv/
