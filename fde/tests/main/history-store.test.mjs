@@ -65,6 +65,12 @@ describe('createHistoryStore', () => {
     expect(store.list().map((c) => c.id)).toEqual(rawOrder)
   })
 
+  it('lists an empty set when the chats folder is gone', () => {
+    const store = createHistoryStore({ chatsDir })
+    fs.rmSync(chatsDir, { recursive: true, force: true })
+    expect(store.list()).toEqual([])
+  })
+
   it('gets a conversation by id and refuses unsafe ids', () => {
     const store = createHistoryStore({ chatsDir })
     const conversation = store.create('any')

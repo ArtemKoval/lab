@@ -1,6 +1,7 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["e2e: opt-in live API tests; skipped unless FDE_E2E_KEY is set"]
 addopts = "--cov=backend --cov-branch --cov-report=term-missing --cov-fail-under=100"
 
 [tool.coverage.run]

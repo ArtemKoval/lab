@@ -30,6 +30,14 @@ export async function bootstrap(electron, overrides = {}) {
     shell,
   } = electron
 
+  /* v8 ignore next 2 -- the override exists for the e2e driver, which runs
+     the real app against a throwaway user data folder. It must come before
+     the single-instance lock, so a test instance never collides with the
+     lock of the user's real installation. */
+  if (process.env.FDE_USER_DATA) {
+    app.setPath('userData', process.env.FDE_USER_DATA)
+  }
+
   if (!app.requestSingleInstanceLock()) {
     app.quit()
     return null
@@ -45,8 +53,6 @@ export async function bootstrap(electron, overrides = {}) {
   }
   const mainLog = createRotatingLogWriter({ file: paths.mainLog })
   const backendLog = createRotatingLogWriter({ file: paths.backendLog })
-  const config = createConfigStore({ configFile: paths.configFile, safeStorage })
-  const history = createHistoryStore({ chatsDir: paths.chatsDir })
 
   let win = null
   let activeId = null
@@ -54,6 +60,10 @@ export async function bootstrap(electron, overrides = {}) {
   let wizardDone = false
   let readinessWritten = false
   let sessionKeyNotice = null
+  // Both stores bind after the ready event (safeStorage needs it); the
+  // closures below read them at call time.
+  let config
+  let history
   const streams = new Map()
   const streamByConversation = new Map()
 
@@ -124,12 +134,6 @@ export async function bootstrap(electron, overrides = {}) {
       return result
     },
     notify: (snap) => sendToRenderer('fde:wizard-state', snap),
-  })
-
-  const settings = createSettingsState({
-    store: config,
-    startWizard: () =>
-      wizard.reset({ keyMasked: config.snapshot().keyMasked, model: config.snapshot().model }),
   })
 
   function ensureActiveConversation() {
@@ -210,6 +214,7 @@ export async function bootstrap(electron, overrides = {}) {
   }
 
   function sendMessage(conversationId, text) {
+    mainLog.write(`[app] send requested for ${conversationId} (${text.length} chars)`)
     if (manager.state !== 'ready') {
       return { error: 'The backend is starting. Try again in a moment.' }
     }
@@ -308,7 +313,12 @@ export async function bootstrap(electron, overrides = {}) {
   }
 
   for (const [name, handler] of Object.entries(handlers)) {
-    ipcMain.handle(`fde:${name}`, (_event, payload) => handler(payload))
+    ipcMain.handle(`fde:${name}`, (_event, payload) => {
+      if (name === 'sendMessage') {
+        mainLog.write(`[ipc] sendMessage received`)
+      }
+      return handler(payload)
+    })
   }
 
   app.on('second-instance', () => {
@@ -329,6 +339,14 @@ export async function bootstrap(electron, overrides = {}) {
   })
 
   await app.whenReady()
+
+  config = createConfigStore({ configFile: paths.configFile, safeStorage })
+  history = createHistoryStore({ chatsDir: paths.chatsDir })
+  const settings = createSettingsState({
+    store: config,
+    startWizard: () =>
+      wizard.reset({ keyMasked: config.snapshot().keyMasked, model: config.snapshot().model }),
+  })
 
   ensureActiveConversation()
   manager.start()

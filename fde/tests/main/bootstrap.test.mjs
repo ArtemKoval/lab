@@ -320,6 +320,21 @@ describe('bootstrap', () => {
     expect(stubs.electron.app.quit).toHaveBeenCalled()
   })
 
+  it('honors the FDE_USER_DATA override for the user data folder', async () => {
+    const childBox = {}
+    const stubs = makeElectronStub(dir, childBox)
+    const overrideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fde-override-'))
+    stubs.electron.app.setPath = vi.fn()
+    process.env.FDE_USER_DATA = overrideDir
+    try {
+      await bootstrap(stubs.electron, { arm: stubs.arm, spawn: stubs.spawn })
+      await flush()
+      expect(stubs.electron.app.setPath).toHaveBeenCalledWith('userData', overrideDir)
+    } finally {
+      delete process.env.FDE_USER_DATA
+    }
+  })
+
   it('writes the start-failed readiness line when the backend gives up', async () => {
     const childBox = {}
     const stubs = makeElectronStub(dir, childBox)

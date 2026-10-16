@@ -33,7 +33,7 @@ export class LineBuffer {
   }
 }
 
-export function createChannel({ writeLine, onNotification, onMalformed }) {
+export function createChannel({ writeLine, onNotification, onMalformed, requestTimeoutMs = 60000 }) {
   let nextId = 1
   const pending = new Map()
 
@@ -46,8 +46,9 @@ export function createChannel({ writeLine, onNotification, onMalformed }) {
       return
     }
     if (message && message.id != null && pending.has(message.id)) {
-      const { resolve, reject } = pending.get(message.id)
+      const { resolve, reject, cancelTimer } = pending.get(message.id)
       pending.delete(message.id)
+      cancelTimer()
       if (message.error) {
         const kind = (message.error.data && message.error.data.kind) || 'api'
         reject(new BackendError(kind, message.error.message))
@@ -71,12 +72,26 @@ export function createChannel({ writeLine, onNotification, onMalformed }) {
       nextId += 1
       writeLine(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n')
       return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject })
+        const timer = setTimeout(() => {
+          /* v8 ignore next 3 -- the resolve path cancels this timer before it
+             can fire, so the cleared-pending case is unreachable; the guard
+             only covers a same-tick answer race. */
+          if (pending.has(id)) {
+            pending.delete(id)
+            reject(new BackendError('api', `The backend did not answer ${method} within ${requestTimeoutMs} ms`))
+          }
+        }, requestTimeoutMs)
+        pending.set(id, {
+          resolve,
+          reject,
+          cancelTimer: () => clearTimeout(timer),
+        })
       })
     },
     failPending(reason) {
-      for (const { reject } of pending.values()) {
-        reject(new BackendError('api', reason))
+      for (const entry of pending.values()) {
+        clearTimeout(entry.cancelTimer)
+        entry.reject(new BackendError('api', reason))
       }
       pending.clear()
     },
