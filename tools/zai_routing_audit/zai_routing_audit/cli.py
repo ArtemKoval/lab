@@ -189,7 +189,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         payload = args.func(args)
-    except (ValueError, FileNotFoundError, TransportError) as exc:
+    except (ValueError, OSError, TransportError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     if args.json:

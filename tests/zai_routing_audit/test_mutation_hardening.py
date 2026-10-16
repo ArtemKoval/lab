@@ -30,12 +30,12 @@ def test_constants_are_pinned():
 def test_redact_exact():
     assert core.redact(None) == ""
     assert core.redact("") == ""
-    assert core.redact("abcd") == "abcd..."
-    assert core.redact("abcdefgh") == "abcd..."
+    assert core.redact("abcd") == "..."
+    assert core.redact("abcdefgh") == "..."
 
 
 def test_sanitize_exact():
-    assert core.sanitize("aTOKENb", "TOKEN") == "aTOKE...b"
+    assert core.sanitize("aTOKENb", "TOKEN") == "a...b"
     assert core.sanitize("plain", "TOKEN") == "plain"
     assert core.sanitize("plain", "") == "plain"
 

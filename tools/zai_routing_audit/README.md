@@ -34,9 +34,9 @@ $AUDIT throughput glm-5.3-flash glm-5.3
 $AUDIT burn glm-5.3-flash glm-5.3 --spend-credits
 ```
 
-`config` reads `~/.claude/settings.json` by default. `--settings PATH` points at another file. `--base-url URL` overrides the endpoint.
+`config` reads `~/.claude/settings.json` by default. `--settings PATH` points at another file. The network commands (`echo`, `usage`, `throughput`, `burn`) accept `--base-url URL` to override the endpoint.
 
-`burn` without `--spend-credits` prints its plan and sends nothing. With the flag it sends one padded request per name, about 60k input tokens each, and reports the credit pool delta per name.
+`burn` without `--spend-credits` prints its plan and sends nothing. With the flag it sends one padded request per name, about 48k input tokens each, and reports the credit pool delta per name.
 
 ## Costs
 
@@ -44,7 +44,7 @@ $AUDIT burn glm-5.3-flash glm-5.3 --spend-credits
 |---|---|
 | config, transcripts | Nothing |
 | usage | Console reads only |
-| echo | A few hundred tokens per name |
+| echo | About 35 tokens per name |
 | throughput | About 1k output tokens per name |
 | burn | Tens of credits per name |
 
@@ -88,7 +88,7 @@ cd /tmp/zai_mut/zai_audit
 /full/path/to/lab/tools/zai_routing_audit/.venv/bin/python -m mutmut results
 ```
 
-The `[tool.mutmut]` section expects the mirrored layout above. The final run kills 1130 of 1175 mutants, a score of 96.2 percent. The 45 survivors sit in equivalence classes that behave identically by construction:
+The `[tool.mutmut]` section expects the mirrored layout above. The final run kills 1152 of 1197 mutants, a score of 96.2 percent. The 45 survivors sit in equivalence classes that behave identically by construction:
 
 | Class | Where | Why the mutant behaves the same |
 |---|---|---|

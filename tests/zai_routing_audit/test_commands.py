@@ -213,3 +213,46 @@ def test_text_printer_handles_nested_payload(capsys):
     out = capsys.readouterr().out
     assert "a:" in out
     assert "c: 2" in out
+
+
+def test_config_directory_path_exits_two(tmp_path, capsys):
+    code = cli.main(["config", "--settings", str(tmp_path)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "error:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_no_command_output_ever_carries_the_token(
+    settings_file, transcript_dir, monkeypatch, capsys, model_usage_payload, quota_payload
+):
+    fake = FakeTransport(
+        posts=[
+            {"model": "m", "usage": {"input_tokens": 1, "output_tokens": 1}},
+            {"model": "m", "usage": {"output_tokens": 1}},
+            {"model": "m", "usage": {"output_tokens": 1}},
+            {"usage": {"input_tokens": 1}},
+        ],
+        gets=[model_usage_payload, quota_payload, quota_payload, quota_payload, quota_payload],
+    )
+    fake.base_url = "https://api.z.ai/api/anthropic"
+    monkeypatch.setattr(cli, "LiveTransport", lambda *args, **kwargs: fake)
+    monkeypatch.setattr(core.time, "monotonic", FakeClock(step=5.0))
+    monkeypatch.setattr(core.time, "sleep", lambda seconds: None)
+    argv_list = [
+        ["--json", "config", "--settings", str(settings_file)],
+        ["config", "--settings", str(settings_file)],
+        ["--json", "transcripts", "--directory", str(transcript_dir)],
+        ["--json", "echo", "m", "--settings", str(settings_file)],
+        ["echo", "m", "--settings", str(settings_file)],
+        ["--json", "usage", "--settings", str(settings_file)],
+        ["--json", "throughput", "m", "--settings", str(settings_file)],
+        ["--json", "burn", "m", "--spend-credits", "--settings", str(settings_file)],
+        ["burn", "m", "--settings", str(settings_file)],
+    ]
+    for argv in argv_list:
+        code = cli.main(argv)
+        captured = capsys.readouterr()
+        assert code == 0, (argv, captured.err)
+        assert TOKEN not in captured.out, argv
+        assert TOKEN not in captured.err, argv

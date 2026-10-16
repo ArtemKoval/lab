@@ -37,9 +37,15 @@ class TransportError(Exception):
 
 
 def redact(secret):
-    """Return a short redacted prefix of a secret value."""
+    """Return a short redacted prefix of a secret value.
+
+    Secrets of eight characters or fewer stay hidden completely, because a
+    four character prefix would reveal most or all of them.
+    """
     if not secret:
         return ""
+    if len(secret) <= 8:
+        return "..."
     return secret[:4] + "..."
 
 
@@ -53,11 +59,14 @@ def sanitize(text, token):
 
 
 def load_json_file(path):
-    """Read and parse a JSON file."""
+    """Read and parse a JSON file that must hold an object at the root."""
     # pragma: no mutate - the runner locale is UTF-8, so the default and the
     # codec alias read the file identically.
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        raise ValueError(f"settings root is not a JSON object: {path}")
+    return data
 
 
 def routing_facts(settings, settings_path):
@@ -148,10 +157,13 @@ class LiveTransport:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
                 return tolerant_json(response.read().decode("utf-8", "replace"))
         except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", "replace")[:200]
+            body = sanitize(exc.read().decode("utf-8", "replace")[:200], self.token)
             raise TransportError(f"HTTP {exc.code}: {body}") from exc
         except urllib.error.URLError as exc:
             raise TransportError(f"connection failed: {exc.reason}") from exc
+        except OSError as exc:
+            # Timeouts and mid-body disconnects surface as OSError subclasses.
+            raise TransportError(f"request failed: {exc}") from exc
 
 
 def build_message_payload(model, max_tokens, prompt):
@@ -276,6 +288,8 @@ def burn_compare(
         response = transport.post_json(
             "/v1/messages", build_message_payload(name, max_tokens, prompt)
         )
+        if not isinstance(response, dict):
+            raise ValueError("unexpected messages shape")
         usage = response.get("usage") or {}
         sleep(sleep_seconds)
         after = fetch_pools(transport, base_url, token)
@@ -294,16 +308,19 @@ def _pool_deltas(before, after):
     """Pair two pool snapshots by position and compute the consumed delta.
 
     The pool rows can repeat a type, so the position is the only stable key.
+    A row without a consumed value yields a None delta instead of a crash.
     """
     deltas = []
     for index, pool in enumerate(after):
         previous = before[index]["consumed"] if index < len(before) else None
-        delta = None if previous is None else pool["consumed"] - previous
+        current = pool["consumed"]
+        complete = previous is not None and current is not None
+        delta = current - previous if complete else None
         deltas.append(
             {
                 "type": pool["type"],
                 "before": previous,
-                "after": pool["consumed"],
+                "after": current,
                 "delta": delta,
             }
         )
@@ -329,9 +346,13 @@ def fetch_model_rows(transport, base_url, start, end, token):
 
 
 def _shape_message(kind, payload, token):
-    """Build the drift error message with a truncated, redacted body."""
+    """Build the drift error message with a truncated, redacted body.
+
+    The sanitize runs before the cut, so a token that straddles the
+    200 character boundary cannot leak its tail.
+    """
     body = payload if isinstance(payload, str) else json.dumps(payload)
-    return f"unexpected {kind} shape; body starts: {sanitize(body[:200], token)}"
+    return f"unexpected {kind} shape; body starts: {sanitize(body, token)[:200]}"
 
 
 def parse_model_usage(payload):
@@ -439,7 +460,8 @@ def _parse_line(line):
     """Classify one transcript line.
 
     Returns (is_request, model, usage): None means skip the line, True
-    means a request record, False means an assistant record.
+    means a request record, False means an assistant record. Lines with
+    unexpected shapes skip instead of crashing the scan.
     """
     text = line.strip()
     if not text:
@@ -451,11 +473,18 @@ def _parse_line(line):
     if not isinstance(record, dict):
         return (None, None, None)
     if record.get("type") == "api-request":
-        params = record.get("params") or {}
+        params = record.get("params")
+        if not isinstance(params, dict):
+            return (None, None, None)
         return (True, params.get("model"), None)
     if record.get("type") == "assistant":
-        message = record.get("message") or {}
-        return (False, message.get("model"), message.get("usage"))
+        message = record.get("message")
+        if not isinstance(message, dict):
+            return (None, None, None)
+        usage = message.get("usage")
+        if usage is not None and not isinstance(usage, dict):
+            usage = None
+        return (False, message.get("model"), usage)
     return (None, None, None)
 
 

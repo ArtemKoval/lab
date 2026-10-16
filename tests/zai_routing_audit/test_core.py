@@ -7,6 +7,11 @@ import pytest
 from zai_routing_audit import core
 from zai_routing_audit.core import TransportError
 
+import http.server
+import socketserver
+import threading
+import urllib.request
+
 from conftest import TOKEN, FakeClock, FakeTransport
 
 
@@ -19,11 +24,17 @@ def test_redact_none():
 
 
 def test_redact_short_secret():
-    assert core.redact("abc") == "abc..."
+    assert core.redact("abc") == "..."
 
 
 def test_redact_long_secret():
     assert core.redact(TOKEN) == TOKEN[:4] + "..."
+
+
+def test_redact_hides_secrets_up_to_eight_characters():
+    assert core.redact("abcd") == "..."
+    assert core.redact("abcdefgh") == "..."
+    assert core.redact("abcdefghi") == "abcd..."
 
 
 def test_sanitize_replaces_token():
@@ -48,6 +59,14 @@ def test_load_json_file(tmp_path):
 def test_load_json_file_missing(tmp_path):
     with pytest.raises(FileNotFoundError):
         core.load_json_file(tmp_path / "nope.json")
+
+
+def test_load_json_file_rejects_non_object_root(tmp_path):
+    path = tmp_path / "list.json"
+    path.write_text("[1, 2, 3]", encoding="utf-8")
+    with pytest.raises(ValueError) as excinfo:
+        core.load_json_file(path)
+    assert "settings root is not a JSON object" in str(excinfo.value)
 
 
 def test_routing_facts_full(settings_file):
@@ -370,6 +389,31 @@ def test_scan_transcripts_empty_directory(tmp_path):
     assert stats == {"files": 0, "skipped_lines": 0, "requested": {}, "echoed": {}, "usage": {}}
 
 
+def test_parse_line_skips_unexpected_shapes():
+    assert core._parse_line('{"type": "api-request", "params": ["not", "a", "dict"]}') == (None, None, None)
+    assert core._parse_line('{"type": "assistant", "message": "just a string"}') == (None, None, None)
+    kind, model, usage = core._parse_line('{"type": "assistant", "message": {"model": "m", "usage": "oops"}}')
+    assert (kind, model, usage) == (False, "m", None)
+
+
+def test_pool_deltas_handle_missing_consumed_values():
+    before = [{"type": "CREDIT_LIMIT", "consumed": 10}]
+    after = [{"type": "CREDIT_LIMIT", "consumed": None}]
+    assert core._pool_deltas(before, after) == [
+        {"type": "CREDIT_LIMIT", "before": 10, "after": None, "delta": None}
+    ]
+    assert core._pool_deltas([], after)[0]["delta"] is None
+
+
+def test_burn_compare_rejects_non_dict_response(quota_payload):
+    transport = FakeTransport(posts=["nope"], gets=[quota_payload, quota_payload])
+    with pytest.raises(ValueError) as excinfo:
+        core.burn_compare(
+            transport, "https://api.z.ai", ["glm-5.3-flash"], spend=True, token="", sleep=lambda s: None
+        )
+    assert str(excinfo.value) == "unexpected messages shape"
+
+
 def test_parse_line_unknown_and_non_dict():
     assert core._parse_line('{"type": "other"}') == (None, None, None)
     assert core._parse_line("[1]") == (None, None, None)
@@ -407,6 +451,52 @@ def test_live_transport_http_error(local_server):
     with pytest.raises(TransportError) as excinfo:
         transport.post_json("/v1/messages", {})
     assert "HTTP 500" in str(excinfo.value)
+
+
+def test_live_transport_wraps_timeouts(monkeypatch):
+    def fake_urlopen(request, timeout=None):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    transport = core.LiveTransport("https://api.z.ai", "tok")
+    with pytest.raises(core.TransportError) as excinfo:
+        transport.post_json("/v1/messages", {})
+    assert str(excinfo.value) == "request failed: timed out"
+
+
+def test_live_transport_wraps_mid_body_disconnects(local_server):
+    import socket
+
+    class StallingHandler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("content-length", 0))
+            self.rfile.read(length)
+            self.close_connection = True
+
+        def log_message(self, format, *args):
+            pass
+
+    server = socketserver.TCPServer(("127.0.0.1", 0), StallingHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        transport = core.LiveTransport(f"http://127.0.0.1:{server.server_address[1]}", "tok", timeout=5.0)
+        with pytest.raises(core.TransportError) as excinfo:
+            transport.post_json("/v1/messages", {})
+        assert "request failed" in str(excinfo.value)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_live_transport_http_error_redacts_token(local_server):
+    local_server.response = (401, b"bad key " + TOKEN.encode())
+    transport = core.LiveTransport(f"http://127.0.0.1:{local_server.server_address[1]}", TOKEN)
+    with pytest.raises(core.TransportError) as excinfo:
+        transport.get_json(f"http://127.0.0.1:{local_server.server_address[1]}/x")
+    message = str(excinfo.value)
+    assert TOKEN not in message
+    assert core.redact(TOKEN) in message
 
 
 def test_live_transport_connection_error():
