@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "zai-routing-audit": {
+            "command": "tools/zai_routing_audit/.venv/bin/python",
+            "args": ["-m", "zai_routing_audit.mcp_server"],
+            "env": {
+                "PYTHONPATH": "tools/zai_routing_audit"
+            }
+        }
+    }
+}

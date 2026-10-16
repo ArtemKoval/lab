@@ -1,0 +1,8 @@
+# Lint and complexity gate for the zai_routing_audit package.
+target-version = "py312"
+
+[lint]
+select = ["C901", "E", "F", "W"]
+
+[lint.mccabe]
+max-complexity = 10
