@@ -18,3 +18,4 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 
 ## Projects
 - `llm_ops/eval`: a DeepEval script that uses a local apfel server as the judge. It runs in a devcontainer. The README at `llm_ops/eval/README.md` and the `apfel-eval` skill give the commands.
+- `fde`: an Electron chat desktop app for OpenRouter with an embedded Python backend. The README at `fde/README.md` and the `fde-app` skill give the commands.

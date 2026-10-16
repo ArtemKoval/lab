@@ -1,0 +1,58 @@
+name: build
+
+on:
+  pull_request:
+    paths: ['fde/**', '.github/workflows/build.yml']
+  push:
+    tags: ['v*']
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-15, triple: aarch64-apple-darwin }
+          - { os: macos-15-intel, triple: x86_64-apple-darwin }
+          - { os: windows-latest, triple: x86_64-pc-windows-msvc }
+          - { os: ubuntu-24.04, triple: x86_64-unknown-linux-gnu }
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: fde
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fde/package-lock.json
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Bundle the renderer
+        run: npm run vendor
+      - name: Fetch the pinned Python runtime
+        run: npm run fetch-python
+      - name: Install the runtime dependencies
+        run: npm run install-pylibs
+      - name: Pack the app (pull request build)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: npm run build:dir
+      - name: Build the installers (tag build)
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: npm run build
+      - name: Confirm the ad-hoc macOS signature
+        if: ${{ matrix.os == 'macos-15' || matrix.os == 'macos-15-intel' }}
+        run: codesign -dv "dist/mac-arm64/FDE Chat.app" 2>&1 | grep -i "Signature=adhoc"
+      - name: Launch smoke test
+        run: npm run smoke
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fde-${{ matrix.triple }}
+          path: |
+            fde/dist/*.dmg
+            fde/dist/*.zip
+            fde/dist/*.exe
+            fde/dist/*.AppImage
+          if-no-files-found: warn

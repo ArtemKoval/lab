@@ -44,24 +44,24 @@
 
 ## 7. Packaging and CI
 
-- [ ] 7.1 Add `runtime-lock.json` with the pinned CPython 3.13 release tag and per-platform sha256, and implement `scripts/fetch-python.mjs` (download, verify checksum, unpack). Cover the lock parsing and checksum check with vitest tests over a fixture. Verify the script fetches the arm64 macOS runtime locally.
-- [ ] 7.2 Add the target install step that runs pip with the fetched interpreter. Verify locally that the fetched interpreter imports a package from `build/pylibs`.
-- [ ] 7.3 Add `electron-builder.yml` with the targets, the ad-hoc macOS identity, the `beforePack` hook, and `extraResources` for `python/`, `pylibs/`, `backend/`. Verify `npx electron-builder --dir` on macOS produces a `.app` that contains the trees.
-- [ ] 7.4 Add the smoke harness script: per-OS launch mechanics, the PATH-without-python guard, and the readiness line read from the log file. Verify it passes against the local `--dir` build.
-- [ ] 7.5 Add `.github/workflows/build.yml` with the four jobs (`macos-15` arm64, `macos-15-intel`, `windows-latest`, `ubuntu-24.04` under `xvfb-run`), artifact upload, the ad-hoc signature check, and the smoke test. Verify the workflow triggers on the PR and the macOS job builds.
-- [ ] 7.6 Write `fde/README.md`: what and why, dev commands, per-OS install and first-run steps, and the architecture sketch. Verify each documented command runs as written.
+- [x] 7.1 Add `runtime-lock.json` with the pinned CPython 3.13 release tag and per-platform sha256, and implement `scripts/fetch-python.mjs` (download, verify checksum, unpack). Cover the lock parsing and checksum check with vitest tests over a fixture. Verify the script fetches the arm64 macOS runtime locally.
+- [x] 7.2 Add the target install step that runs pip with the fetched interpreter. Verify locally that the fetched interpreter imports a package from `build/pylibs`.
+- [x] 7.3 Add `electron-builder.yml` with the targets, the ad-hoc macOS identity, the `beforePack` hook, and `extraResources` for `python/`, `pylibs/`, `backend/`. Verify `npx electron-builder --dir` on macOS produces a `.app` that contains the trees.
+- [x] 7.4 Add the smoke harness script: per-OS launch mechanics, the PATH-without-python guard, and the readiness line read from the log file. Verify it passes against the local `--dir` build.
+- [x] 7.5 Add `.github/workflows/build.yml` with the four jobs (`macos-15` arm64, `macos-15-intel`, `windows-latest`, `ubuntu-24.04` under `xvfb-run`), artifact upload, the ad-hoc signature check, and the smoke test. Verify the workflow triggers on the PR and the macOS job builds.
+- [x] 7.6 Write `fde/README.md`: what and why, dev commands, per-OS install and first-run steps, and the architecture sketch. Verify each documented command runs as written.
 
 ## 8. Claude surfaces and repo hygiene
 
-- [ ] 8.1 Add `.claude/skills/fde-app/SKILL.md` with the dev, test, and build commands, exit codes, and known problems. Verify the skill appears in the session listing.
-- [ ] 8.2 Add the `fde` project entry to CLAUDE.md Projects. Verify the entry names commands that exist.
-- [ ] 8.3 Check the working copy for strays (`build/`, `dist/`, `vendor.js`, pip artifacts) and make sure the ignore rules cover them. Verify `git status --short` shows only intended files.
+- [x] 8.1 Add `.claude/skills/fde-app/SKILL.md` with the dev, test, and build commands, exit codes, and known problems. Verify the skill appears in the session listing.
+- [x] 8.2 Add the `fde` project entry to CLAUDE.md Projects. Verify the entry names commands that exist.
+- [x] 8.3 Check the working copy for strays (`build/`, `dist/`, `vendor.js`, pip artifacts) and make sure the ignore rules cover them. Verify `git status --short` shows only intended files.
 
 ## 9. Full gates
 
-- [ ] 9.1 Run the full hermetic suite: `python -m pytest`, branch coverage with `fail_under` at the reached total, ruff `C901`, and the mutmut run at 95% or more from the out-of-tree copy. Verify all four report green and record the numbers.
-- [ ] 9.2 Run `npx vitest run --coverage` and verify the thresholds hold at 100 for the covered globs.
-- [ ] 9.3 Run `openspec validate add-openrouter-desktop-app --strict` and verify it passes.
+- [x] 9.1 Run the full hermetic suite: `python -m pytest`, branch coverage with `fail_under` at the reached total, ruff `C901`, and the mutmut run at 95% or more from the out-of-tree copy. Verify all four report green and record the numbers.
+- [x] 9.2 Run `npx vitest run --coverage` and verify the thresholds hold at 100 for the covered globs.
+- [x] 9.3 Run `openspec validate add-openrouter-desktop-app --strict` and verify it passes.
 - [ ] 9.4 Walk every spec scenario and confirm at least one test covers it; list any gaps in the PR body and close them. Verify the checklist appears in the PR.
 
 ## Workflow follow-up
