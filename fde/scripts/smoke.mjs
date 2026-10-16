@@ -10,9 +10,20 @@ import { fileURLToPath } from 'node:url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const TIMEOUT_MS = 60000
 
-function appPaths() {
+function userDataBase() {
+  // The per-OS user data folder of the packaged app (productName FDE Chat).
   const home = process.env.HOME ?? process.env.USERPROFILE
-  const base = path.join(home, 'Library', 'Application Support', 'FDE Chat')
+  if (process.platform === 'darwin') {
+    return path.join(home, 'Library', 'Application Support', 'FDE Chat')
+  }
+  if (process.platform === 'win32') {
+    return path.join(process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming'), 'FDE Chat')
+  }
+  return path.join(home, '.config', 'FDE Chat')
+}
+
+function appPaths() {
+  const base = userDataBase()
   const dist = path.join(root, 'dist')
   // The unpacked macOS layout is mac-arm64 on an arm64 builder and mac on an
   // Intel builder; accept both.

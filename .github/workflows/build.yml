@@ -17,6 +17,10 @@ jobs:
           - { os: windows-latest, triple: x86_64-pc-windows-msvc }
           - { os: ubuntu-24.04, triple: x86_64-unknown-linux-gnu }
     runs-on: ${{ matrix.os }}
+    env:
+      # electron-builder skips macOS signing on pull requests by default; the
+      # ad-hoc signature is part of the shipped v1 contract, so force it.
+      CSC_FOR_PULL_REQUEST: true
     defaults:
       run:
         working-directory: fde
