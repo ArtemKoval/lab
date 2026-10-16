@@ -139,7 +139,14 @@ while (Date.now() - started < TIMEOUT_MS && !done) {
       if (!readiness.includes('"outcome":"ready"')) {
         fail(`readiness line reports a start failure: ${outcome}`)
       }
-      console.log(`SMOKE OK: backend ready in ${(Date.now() - started) / 1000}s`)
+      // The spec scenario "Interpreter path sits in the resources": the ready
+      // log names the interpreter, and it must sit under the app resources.
+      const readyLog = text.split('\n').find((line) => line.includes('backend ready from '))
+      const interpreter = readyLog ? readyLog.split('backend ready from ')[1] : ''
+      if (!/resources/i.test(interpreter)) {
+        fail(`the interpreter did not run from the app resources: ${interpreter}`)
+      }
+      console.log(`SMOKE OK: backend ready in ${(Date.now() - started) / 1000}s from ${interpreter}`)
     }
   } catch {
     // The log file appears when the app first writes; keep waiting.

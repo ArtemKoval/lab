@@ -145,13 +145,14 @@ describe('createBackendManager', () => {
     expect(h.logs.some((line) => line.includes('/runtime/python3'))).toBe(true)
   })
 
-  it('kills the child when the ready line is late', () => {
+  it('shows the error state at once when the ready line is late', () => {
     const h = makeManager()
     h.manager.start()
     h.fireTimers(30000)
     expect(lastChild(h).signals).toEqual(['SIGKILL'])
     lastChild(h).exit()
-    expect(h.states).toContain('restarting')
+    expect(h.states[h.states.length - 1]).toBe('error')
+    expect(h.spawns).toHaveLength(1)
   })
 
   it('arms real timers through the default arm when none is injected', () => {
@@ -213,14 +214,15 @@ describe('createBackendManager', () => {
     await expect(promise).rejects.toMatchObject({ message: 'gone' })
   })
 
-  it('kills the child on a protocol version mismatch', () => {
+  it('shows the error state at once on a protocol version mismatch', () => {
     const h = makeManager()
     h.manager.start()
     lastChild(h).emitStdout(readyLine(99))
     expect(lastChild(h).signals).toEqual(['SIGKILL'])
     lastChild(h).exit()
-    expect(h.states).toContain('restarting')
+    expect(h.states[h.states.length - 1]).toBe('error')
     expect(h.states).not.toContain('ready')
+    expect(h.spawns).toHaveLength(1)
   })
 
   it('drops malformed child lines to the log and keeps the channel', () => {

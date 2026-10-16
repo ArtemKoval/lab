@@ -105,10 +105,20 @@ describe('createWizardState', () => {
     expect(snap).toEqual({
       state: 'key',
       keyMasked: null,
+      storedModel: 'any',
       models: [],
       modelError: null,
       error: null,
     })
+  })
+
+  it('fills the repeat wizard with the stored masked key and model', async () => {
+    const { wizard } = makeWizard()
+    wizard.reset({ keyMasked: '••••cdef', model: 'm1' })
+    const snap = wizard.snapshot()
+    expect(snap.state).toBe('key')
+    expect(snap.keyMasked).toBe('••••cdef')
+    expect(snap.storedModel).toBe('m1')
   })
 })
 

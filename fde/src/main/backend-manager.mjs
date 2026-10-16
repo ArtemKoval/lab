@@ -45,6 +45,7 @@ export function createBackendManager({
   const killTimers = []
   let stopSettled = null
   let restartArm = null
+  let fatalStart = false
 
   function setState(next) {
     state = next
@@ -87,6 +88,11 @@ export function createBackendManager({
     if (quitting) {
       return
     }
+    if (fatalStart) {
+      onLog('backend start failed for good', 'manager')
+      setState('error')
+      return
+    }
     handleUnexpectedExit()
   }
 
@@ -109,10 +115,13 @@ export function createBackendManager({
       return
     }
     if (message.params.version !== protocolVersion) {
+      // The spec demands the error state at once: a mismatched backend is
+      // fatal, and a restart would meet the same mismatch five times.
       onLog(
         `protocol version mismatch: backend ${message.params.version}, main ${protocolVersion}`,
         'manager',
       )
+      fatalStart = true
       killChildNow()
       return
     }
@@ -161,7 +170,10 @@ export function createBackendManager({
       if (!child) {
         return
       }
+      // The spec demands the error state after 30 seconds without a ready
+      // line: a hung child counts straight as the final failure.
       onLog(`ready line did not arrive within ${readyTimeoutMs} ms`, 'manager')
+      fatalStart = true
       killChildNow()
     }, readyTimeoutMs)
   }

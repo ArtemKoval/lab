@@ -6,6 +6,8 @@
 export function createWizardState({ validateKey, listModels, finish, notify }) {
   let state = 'key'
   let keyInMemory = null
+  let storedKeyMasked = null
+  let storedModel = 'any'
   let models = []
   let modelError = null
   let error = null
@@ -17,7 +19,8 @@ export function createWizardState({ validateKey, listModels, finish, notify }) {
   function snapshot() {
     return {
       state,
-      keyMasked: null,
+      keyMasked: storedKeyMasked,
+      storedModel,
       models,
       modelError,
       error,
@@ -76,9 +79,11 @@ export function createWizardState({ validateKey, listModels, finish, notify }) {
     publish()
   }
 
-  function reset() {
+  function reset(prefill = {}) {
     state = 'key'
     keyInMemory = null
+    storedKeyMasked = prefill.keyMasked ?? null
+    storedModel = prefill.model ?? 'any'
     models = []
     modelError = null
     error = null

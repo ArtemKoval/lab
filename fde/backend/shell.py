@@ -73,11 +73,14 @@ class Shell:
         if method == "validate_key":
             self._call(message_id, lambda: self._validate_key(params))
         elif method == "list_models":
-            self._call(message_id, lambda: {"models": self._client.list_models()})
+            self._call(
+                message_id,
+                lambda: {"models": self._client.list_models(params.get("base_url"))},
+            )
         elif method == "chat_start":
-            self._chat_start(message_id, params)
+            self._call(message_id, lambda: self._chat_start(params))
         elif method == "chat_stop":
-            self._chat_stop(message_id, params)
+            self._call(message_id, lambda: self._chat_stop(params))
         elif method == "shutdown":
             self.respond(message_id, {"stopping": True})
             return False
@@ -92,34 +95,35 @@ class Shell:
             self.respond_error(message_id, exc)
 
     def _validate_key(self, params):
-        self._client.validate_key(_required(params, "key"))
+        self._client.validate_key(_required(params, "key"), params.get("base_url"))
         return {"valid": True}
 
-    def _chat_start(self, message_id, params):
+    def _chat_start(self, params):
+        key = _required(params, "key")
+        messages = _required(params, "messages")
         stream_id = next(self._stream_ids)
         stop_event = threading.Event()
         self._stop_events[stream_id] = stop_event
         worker = threading.Thread(
             target=self._run_stream,
-            args=(stream_id, _required(params, "key"), params.get("model", "any"),
-                  _required(params, "messages"), stop_event),
+            args=(stream_id, key, params.get("model", "any"), messages, stop_event,
+                  params.get("base_url")),
             daemon=True,
         )
         worker.start()
-        self.respond(message_id, {"stream_id": stream_id})
+        return {"stream_id": stream_id}
 
-    def _chat_stop(self, message_id, params):
+    def _chat_stop(self, params):
         stop_event = self._stop_events.get(_required(params, "stream_id"))
         if stop_event is None:
-            self.respond_error(message_id, ClientError(KIND_API, "Unknown stream"))
-            return
+            raise ClientError(KIND_API, "Unknown stream")
         stop_event.set()
-        self.respond(message_id, {"stopping": True})
+        return {"stopping": True}
 
-    def _run_stream(self, stream_id, key, model, messages, stop_event):
+    def _run_stream(self, stream_id, key, model, messages, stop_event, base_url=None):
         try:
             for event, data in self._client.chat_stream(
-                key, model, messages, should_stop=stop_event.is_set
+                key, model, messages, should_stop=stop_event.is_set, base_url=base_url
             ):
                 if event == "chunk":
                     self.notify(CHUNK_METHOD, {"stream_id": stream_id, "text": data})

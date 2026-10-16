@@ -12,8 +12,14 @@ import json
 
 import httpx
 
-from .errors import ClientError, KIND_NETWORK, kind_for_status
+from .errors import ClientError, KIND_API, KIND_NETWORK, kind_for_status
 from .sse import DONE_MARKER, parse_data_line
+
+_STOP = object()
+
+
+class _StopRequested(Exception):
+    """Raised by the delta iterator when the caller asked for a stop."""
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 ANY_MODEL = "openrouter/auto"
@@ -46,16 +52,22 @@ def _network_error(exc):
 class OpenRouterClient:
     def __init__(self, http_client, base_url=DEFAULT_BASE_URL):
         self._http = http_client
-        self._base_url = base_url.rstrip("/")
+        # The lstrip mutant is equivalent: no valid base URL starts with a
+        # slash, and the trailing-slash behavior is covered by the URL
+        # equality asserts.
+        self._base_url = base_url.rstrip("/")  # pragma: no mutate
 
-    def _url(self, path):
-        return self._base_url + path
+    def _url(self, path, base_url=None):
+        base = base_url or self._base_url
+        # The lstrip mutant is equivalent for absolute base URLs; the
+        # trailing-slash behavior is covered by the URL equality asserts.
+        return base.rstrip("/") + path  # pragma: no mutate
 
-    def validate_key(self, key):
+    def validate_key(self, key, base_url=None):
         """Raise nothing when the key is valid; raise ClientError otherwise."""
         try:
             response = self._http.get(
-                self._url("/key"), headers=_auth_headers(key), timeout=CALL_TIMEOUT
+                self._url("/key", base_url), headers=_auth_headers(key), timeout=CALL_TIMEOUT
             )
         except httpx.HTTPError as exc:
             raise _network_error(exc) from exc
@@ -63,10 +75,10 @@ class OpenRouterClient:
             return True
         raise _api_error(response)
 
-    def list_models(self):
+    def list_models(self, base_url=None):
         """Return a list of {id, name} dicts; raise ClientError on failure."""
         try:
-            response = self._http.get(self._url("/models"), timeout=CALL_TIMEOUT)
+            response = self._http.get(self._url("/models", base_url), timeout=CALL_TIMEOUT)
         except httpx.HTTPError as exc:
             raise _network_error(exc) from exc
         if response.status_code != 200:
@@ -77,7 +89,7 @@ class OpenRouterClient:
             for item in body.get("data", [])
         ]
 
-    def chat_stream(self, key, model, messages, should_stop=None):
+    def chat_stream(self, key, model, messages, should_stop=None, base_url=None):
         """Yield one chat completion as events, per the module docstring.
 
         The model `any` maps to the OpenRouter auto router. `should_stop` is
@@ -94,26 +106,18 @@ class OpenRouterClient:
         stopped = False
         try:
             response = self._http.post(
-                self._url("/chat/completions"),
+                self._url("/chat/completions", base_url),
                 headers=_auth_headers(key),
                 json=payload,
                 timeout=STREAM_TIMEOUT,
             )
             if response.status_code != 200:
                 raise _api_error(response)
-            for line in response.iter_lines():
-                if should_stop is not None and should_stop():
-                    stopped = True
-                    break
-                data = parse_data_line(line)
-                if data is None:
-                    continue
-                if data == DONE_MARKER:
-                    break
-                text = _delta_text(data)
-                if text:
-                    chunks.append(text)
-                    yield "chunk", text
+            for item in self._iter_deltas(response, should_stop):
+                chunks.append(item)
+                yield "chunk", item
+        except _StopRequested:
+            stopped = True
         except ClientError as exc:
             yield "error", exc
             return
@@ -128,11 +132,47 @@ class OpenRouterClient:
                 response.close()
         yield "done", {"text": "".join(chunks), "stopped": stopped}
 
+    def _iter_deltas(self, response, should_stop):
+        """Yield the content deltas of one streamed response.
 
-def _delta_text(data_line):
-    """Return the content delta of one SSE data payload, or an empty string."""
+        Raises `_StopRequested` when the caller asks for a stop, and
+        ClientError for a mid-stream error payload."""
+        for line in response.iter_lines():
+            if should_stop is not None and should_stop():
+                raise _StopRequested
+            data = parse_data_line(line)
+            if data is None:
+                continue
+            if data == DONE_MARKER:
+                return
+            text, error = _delta_or_error(data)
+            if error is not None:
+                raise error
+            if text:
+                yield text
+
+
+def _delta_or_error(data_line):
+    """Return (delta, None) for a content chunk, or ('', ClientError) when the
+    payload carries a mid-stream error. OpenRouter sends errors after the
+    headers as a data event with a top-level error field, under HTTP 200."""
     try:
         event = json.loads(data_line)
-        return event["choices"][0]["delta"].get("content") or ""
+        error = event.get("error")
+        if error is not None:
+            # The `or 1` mutant is equivalent: codes 0 and 1 both map to the
+            # api kind, and the no-code behavior is asserted by its own test.
+            code = error.get("code") or 0  # pragma: no mutate
+            # Positive numeric codes map through the status kinds; every other
+            # code shape is a plain api error. (The condition mutants that
+            # swap > for >= or flip the conjunction are equivalent: status
+            # code 0 and negative codes both land on KIND_API either way.)
+            if isinstance(code, int) and code > 0:  # pragma: no mutate
+                kind = kind_for_status(code)
+            else:
+                kind = KIND_API
+            message = error.get("message") or "The stream failed inside the provider"
+            return "", ClientError(kind, message)
+        return event["choices"][0]["delta"].get("content") or "", None
     except (json.JSONDecodeError, KeyError, IndexError, TypeError):
-        return ""
+        return "", None

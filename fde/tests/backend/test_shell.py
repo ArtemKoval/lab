@@ -25,16 +25,16 @@ class StubClient:
         self.models_result = []
         self.stream_factory = None
 
-    def validate_key(self, key):
+    def validate_key(self, key, base_url=None):
         if isinstance(self.validate_side_effect, Exception):
             raise self.validate_side_effect
         return True
 
-    def list_models(self):
+    def list_models(self, base_url=None):
         return self.models_result
 
-    def chat_stream(self, key, model, messages, should_stop=None):
-        return self.stream_factory(key, model, messages, should_stop)
+    def chat_stream(self, key, model, messages, should_stop=None, base_url=None):
+        return self.stream_factory(key, model, messages, should_stop, base_url)
 
 
 def make_shell(client=None):
@@ -139,6 +139,94 @@ def test_missing_parameter_is_an_api_error():
     assert "key" in error["message"]
 
 
+def test_chat_start_without_messages_is_an_error_not_a_crash():
+    shell, out = make_shell()
+    shell.run([request(6, "chat_start", {"key": "k"}), request(7, "shutdown", {})])
+    messages = out_messages(out)
+    error = messages[1]["error"]
+    assert messages[1]["id"] == 6
+    assert error["data"] == {"kind": "api"}
+    assert "messages" in error["message"]
+    assert messages[2]["id"] == 7  # the loop survived
+
+
+def test_chat_stop_without_stream_id_is_an_error_not_a_crash():
+    shell, out = make_shell()
+    shell.run([request(1, "chat_stop", {}), request(2, "shutdown", {})])
+    messages = out_messages(out)
+    error = messages[1]["error"]
+    assert messages[1]["id"] == 1
+    assert error["data"] == {"kind": "api"}
+    assert "stream_id" in error["message"]
+    assert messages[2]["id"] == 2
+
+
+def test_validate_key_passes_the_base_url_override():
+    seen = {}
+
+    class BaseUrlClient(StubClient):
+        def validate_key(self, key, base_url=None):
+            seen["base_url"] = base_url
+            return True
+
+    shell, out = make_shell(BaseUrlClient())
+    shell.run([request(1, "validate_key", {"key": "k", "base_url": "http://127.0.0.1:9/v1"})])
+    assert seen["base_url"] == "http://127.0.0.1:9/v1"
+
+
+def test_list_models_passes_the_base_url_override():
+    seen = {}
+
+    class BaseUrlClient(StubClient):
+        def list_models(self, base_url=None):
+            seen["base_url"] = base_url
+            return []
+
+    shell, out = make_shell(BaseUrlClient())
+    shell.run([request(1, "list_models", {"base_url": "http://127.0.0.1:9/v1"})])
+    assert seen["base_url"] == "http://127.0.0.1:9/v1"
+
+
+def test_chat_start_passes_the_base_url_to_the_stream():
+    seen = {}
+
+    def factory(key, model, messages, should_stop=None, base_url=None):
+        seen["base_url"] = base_url
+
+        def gen():
+            yield "done", {"text": "", "stopped": False}
+
+        return gen()
+
+    client = StubClient()
+    client.stream_factory = factory
+    shell, out = make_shell(client)
+    shell.run([request(1, "chat_start", {
+        "key": "k", "model": "any", "messages": [], "base_url": "http://127.0.0.1:9/v1",
+    })])
+    assert wait_for(lambda: "chat/done" in methods_of(out_messages(out)))
+    assert seen["base_url"] == "http://127.0.0.1:9/v1"
+
+
+def test_chat_start_without_base_url_passes_none():
+    seen = {}
+
+    def factory(key, model, messages, should_stop=None, base_url=None):
+        seen["base_url"] = base_url
+
+        def gen():
+            yield "done", {"text": "", "stopped": False}
+
+        return gen()
+
+    client = StubClient()
+    client.stream_factory = factory
+    shell, out = make_shell(client)
+    shell.run([request(1, "chat_start", {"key": "k", "messages": []})])
+    assert wait_for(lambda: "chat/done" in methods_of(out_messages(out)))
+    assert seen["base_url"] is None
+
+
 def test_malformed_line_is_dropped_and_logged(caplog):
     shell, out = make_shell()
     with caplog.at_level(logging.WARNING, logger="backend.shell"):
@@ -187,7 +275,7 @@ def test_notification_from_parent_does_not_stop_the_loop():
 
 
 def test_stream_without_terminal_event_cleans_up():
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         return iter(())
 
     client = StubClient()
@@ -233,7 +321,7 @@ def test_shutdown_stops_the_loop():
 
 
 def test_chat_start_streams_chunks_then_done():
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         def gen():
             yield "chunk", "a"
             yield "chunk", "b"
@@ -259,7 +347,7 @@ def test_chat_start_streams_chunks_then_done():
 def test_chat_stop_ends_stream_with_stopped_mark():
     release = threading.Event()
 
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         def gen():
             yield "chunk", "a"
             while not should_stop():
@@ -301,7 +389,7 @@ def test_chat_worker_runs_as_daemon_with_the_request_args(monkeypatch):
 
     monkeypatch.setattr(threading.Thread, "__init__", spy_init)
 
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         def gen():
             yield "done", {"text": "", "stopped": False}
 
@@ -319,7 +407,7 @@ def test_chat_worker_runs_as_daemon_with_the_request_args(monkeypatch):
 def test_chat_start_without_model_uses_any_and_passes_request_args():
     seen = {}
 
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         seen["key"] = key
         seen["model"] = model
         seen["messages"] = messages
@@ -340,7 +428,7 @@ def test_chat_start_without_model_uses_any_and_passes_request_args():
 def test_chat_start_with_model_passes_the_model_through():
     seen = {}
 
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         seen["model"] = model
 
         def gen():
@@ -357,7 +445,7 @@ def test_chat_start_with_model_passes_the_model_through():
 
 
 def test_chat_client_error_reaches_the_window_as_notification():
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         def gen():
             yield "error", ClientError(KIND_NETWORK, "no route")
 
@@ -373,7 +461,7 @@ def test_chat_client_error_reaches_the_window_as_notification():
 
 
 def test_chat_worker_crash_reports_api_error(caplog):
-    def factory(key, model, messages, should_stop=None):
+    def factory(key, model, messages, should_stop=None, base_url=None):
         raise RuntimeError("boom")
 
     client = StubClient()

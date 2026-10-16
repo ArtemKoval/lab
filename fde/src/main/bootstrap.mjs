@@ -53,6 +53,7 @@ export async function bootstrap(electron, overrides = {}) {
   let quitting = false
   let wizardDone = false
   let readinessWritten = false
+  let sessionKeyNotice = null
   const streams = new Map()
   const streamByConversation = new Map()
 
@@ -101,16 +102,24 @@ export async function bootstrap(electron, overrides = {}) {
       if (state === 'error') {
         writeReadiness('start-failed')
       }
+      if (state === 'restarting' || state === 'error') {
+        failLiveStreams()
+      }
       broadcastAppState()
     },
   })
 
   const wizard = createWizardState({
-    validateKey: (key) => manager.request('validate_key', { key }),
-    listModels: () => manager.request('list_models', {}).then((r) => r.models),
+    validateKey: (key) => manager.request('validate_key', { key, base_url: config.snapshot().baseUrl }),
+    listModels: () =>
+      manager.request('list_models', { base_url: config.snapshot().baseUrl }).then((r) => r.models),
     finish: ({ key, model }) => {
       const result = config.storeSetup({ key, model })
       wizardDone = true
+      if (!result.persisted) {
+        sessionKeyNotice =
+          'Encryption is not available here, so the key is kept for this session only. You will be asked again at the next launch.'
+      }
       ensureActiveConversation()
       return result
     },
@@ -119,7 +128,8 @@ export async function bootstrap(electron, overrides = {}) {
 
   const settings = createSettingsState({
     store: config,
-    startWizard: () => wizard.reset(),
+    startWizard: () =>
+      wizard.reset({ keyMasked: config.snapshot().keyMasked, model: config.snapshot().model }),
   })
 
   function ensureActiveConversation() {
@@ -131,12 +141,26 @@ export async function bootstrap(electron, overrides = {}) {
     return conversation
   }
 
+  function failLiveStreams() {
+    // The backend died with streams in flight: end each one with an error so
+    // no conversation stays wedged in a "reply already streaming" state.
+    for (const [streamId, conversationId] of [...streams]) {
+      releaseStream(streamId)
+      pushChatEvent(conversationId, {
+        type: 'error',
+        kind: 'api',
+        message: 'The backend stopped. Send the message again.',
+      })
+    }
+  }
+
   function appState() {
     return {
       view: config.canSkipWizard() || wizardDone ? 'chat' : 'wizard',
       backend: manager.state,
       settings: settings.get(),
       conversations: history.list(),
+      notice: sessionKeyNotice,
       /* v8 ignore next 1 -- every broadcast runs after a conversation exists;
          the null branch covers a same-tick delete-and-broadcast race only. */
       active: activeId ? history.get(activeId) : null,
@@ -154,7 +178,7 @@ export async function bootstrap(electron, overrides = {}) {
     }
     const type = method.slice(5)
     if (type === 'chunk') {
-      pushChatEvent(conversationId, { type: 'chunk', text: params.text })
+      pushChatEvent(conversationId, { type: 'chunk', streamId: params.stream_id, text: params.text })
       return
     }
     if (type === 'error') {
@@ -205,7 +229,8 @@ export async function bootstrap(electron, overrides = {}) {
     }
     history.save(conversation)
     const key = config.snapshot().keyPlaintext
-    manager.request('chat_start', { key, model: conversation.model, messages: conversation.messages })
+    const base_url = config.snapshot().baseUrl
+    manager.request('chat_start', { key, model: conversation.model, messages: conversation.messages, base_url })
       .then(({ stream_id }) => {
         streams.set(stream_id, conversationId)
         streamByConversation.set(conversationId, stream_id)

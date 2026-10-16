@@ -12,9 +12,43 @@ from backend.openrouter_client import (
     DEFAULT_BASE_URL,
     STREAM_TIMEOUT,
     OpenRouterClient,
+    _delta_or_error,
 )
 
 KEY = "sk-test-key"
+
+
+class TestDeltaOrError:
+    def test_content_chunk(self):
+        payload = json.dumps({"choices": [{"delta": {"content": "hi"}}]})
+        assert _delta_or_error(payload) == ("hi", None)
+
+    def test_error_with_rate_code_maps_to_rate(self):
+        payload = json.dumps({"error": {"code": 429, "message": "slow"}})
+        text, error = _delta_or_error(payload)
+        assert text == ""
+        assert error.kind == KIND_RATE
+        assert error.message == "slow"
+
+    def test_error_without_code_maps_to_api(self):
+        payload = json.dumps({"error": {"message": "broke"}})
+        text, error = _delta_or_error(payload)
+        assert text == ""
+        assert error.kind == KIND_API
+        assert error.message == "broke"
+
+    def test_error_with_string_code_maps_to_api(self):
+        payload = json.dumps({"error": {"code": "429", "message": "slow"}})
+        _, error = _delta_or_error(payload)
+        assert error.kind == KIND_API
+
+    def test_error_without_message_uses_the_default(self):
+        payload = json.dumps({"error": {}})
+        _, error = _delta_or_error(payload)
+        assert error.message == "The stream failed inside the provider"
+
+    def test_non_json_payload_is_not_an_error(self):
+        assert _delta_or_error("not json") == ("", None)
 
 
 class RecordingHttp:
@@ -333,3 +367,52 @@ class TestChatStream:
             ("chunk", "x"),
             ("done", {"text": "x", "stopped": False}),
         ]
+
+    def test_mid_stream_error_payload_becomes_an_error_event(self):
+        error_payload = "data: " + json.dumps({
+            "error": {"code": 402, "message": "Not enough credits"},
+        })
+        lines = [chunk_line("partial"), error_payload, "data: [DONE]"]
+        events = collect(make_client(self._handler_ok(lines, {})).chat_stream(
+            KEY, "m1", []
+        ))
+        assert events[0] == ("chunk", "partial")
+        kind, error = events[1]
+        assert kind == "error"
+        assert error.kind == KIND_API
+        assert error.message == "Not enough credits"
+
+    def test_mid_stream_error_without_code_maps_to_api(self):
+        error_payload = "data: " + json.dumps({"error": {"message": "provider broke"}})
+        events = collect(make_client(self._handler_ok([error_payload], {})).chat_stream(
+            KEY, "m1", []
+        ))
+        kind, error = events[0]
+        assert kind == "error"
+        assert error.kind == KIND_API
+        assert error.message == "provider broke"
+
+    def test_chat_start_sends_the_base_url_override(self):
+        http_stub = RecordingHttp(sse_response(["data: [DONE]"]))
+        list(OpenRouterClient(http_stub).chat_stream(KEY, "m1", [], base_url="http://127.0.0.1:9/v1"))
+        assert http_stub.calls[0][1] == "http://127.0.0.1:9/v1/chat/completions"
+
+    def test_validate_key_url_uses_the_base_url_override(self):
+        http_stub = RecordingHttp(httpx.Response(200, json={"data": {}}))
+        OpenRouterClient(http_stub).validate_key(KEY, base_url="http://127.0.0.1:9/v1")
+        assert http_stub.calls[0][1] == "http://127.0.0.1:9/v1/key"
+
+    def test_list_models_url_uses_the_base_url_override(self):
+        http_stub = RecordingHttp(httpx.Response(200, json={"data": []}))
+        OpenRouterClient(http_stub).list_models(base_url="http://127.0.0.1:9/v1")
+        assert http_stub.calls[0][1] == "http://127.0.0.1:9/v1/models"
+
+    def test_base_url_strips_trailing_slashes(self):
+        seen = {}
+
+        def capture(request):
+            seen["url"] = str(request.url)
+            return httpx.Response(200, json={"data": {}})
+
+        make_client(capture, base_url="http://h/v1///").validate_key(KEY)
+        assert seen["url"] == "http://h/v1/key"

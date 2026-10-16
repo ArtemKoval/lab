@@ -451,8 +451,10 @@ describe('bootstrap', () => {
     await stubs.ipc.handlers['fde:finishWizard']()
     expect(fs.existsSync(path.join(dir, 'config.json'))).toBe(false)
     const state = await stubs.ipc.handlers['fde:getState']()
-    // The chat works in this session even though nothing persisted.
+    // The chat works in this session even though nothing persisted, and the
+    // user is told about the session-only key.
     expect(state.view).toBe('chat')
+    expect(state.notice).toContain('session only')
   })
 
   it('drops notifications for streams it no longer tracks', async () => {
@@ -602,6 +604,42 @@ describe('bootstrap', () => {
     const app = await bootstrap(stubs.electron, { arm: stubs.arm, spawn: stubs.spawn })
     await flush()
     expect(app.manager.state).toBe('starting')
+  })
+
+  it('sends the base url with backend requests', async () => {
+    const { stubs, child } = await startConfiguredApp(dir)
+    const state = await stubs.ipc.handlers['fde:getState']()
+    stubs.ipc.handlers['fde:sendMessage']({ id: state.active.id, text: 'hi' })
+    await flush()
+    const startRequest = lastRequest(child)
+    expect(startRequest.method).toBe('chat_start')
+    expect(startRequest.params.base_url).toBe('https://openrouter.ai/api/v1')
+  })
+
+  it('fails the live streams and frees the conversation when the backend dies', async () => {
+    const { stubs, child, conversationId } = await startConfiguredApp(dir)
+    stubs.ipc.handlers['fde:sendMessage']({ id: conversationId, text: 'hi' })
+    await flush()
+    respond(child, lastRequest(child).id, { stream_id: 21 })
+    await flush()
+    // The backend dies while the stream is live.
+    child.exitFn()
+    await flush()
+    const chatEvents = stubs.sent.filter((s) => s.channel === 'fde:chat-event')
+    expect(chatEvents.at(-1).payload).toMatchObject({ conversationId, type: 'error' })
+    // The conversation is no longer wedged: the next send is not refused as
+    // an already-streaming one.
+    const state = await stubs.ipc.handlers['fde:getState']()
+    const again = stubs.ipc.handlers['fde:sendMessage']({ id: state.active.id, text: 'again' })
+    expect(again.error).not.toBe('A reply is already streaming in this chat.')
+  })
+
+  it('prefills the repeated wizard with the stored masked key', async () => {
+    const { stubs } = await startConfiguredApp(dir)
+    await stubs.ipc.handlers['fde:repeatWizard']()
+    const snap = stubs.ipc.handlers['fde:getWizardState']()
+    expect(snap.state).toBe('key')
+    expect(snap.keyMasked).toContain('••••')
   })
 
   it('focuses on a second instance and guards the double quit', async () => {
