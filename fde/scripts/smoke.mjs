@@ -35,21 +35,28 @@ function appPaths() {
     logFile: path.join(base, 'logs', 'main.log'),
     macBinary: macCandidates.find((candidate) => fs.existsSync(candidate)),
     winBinary: path.join(dist, 'win-unpacked', 'FDE Chat.exe'),
-    linuxAppImage: fs.existsSync(path.join(dist, 'FDE Chat.AppImage'))
-      ? path.join(dist, 'FDE Chat.AppImage')
-      : null,
+    linuxAppImage: firstMatch(dist, '.AppImage'),
     linuxUnpacked: null,
   }
 }
 
-// The unpacked Linux binary name follows the package name; pick the first
-// regular file at the top of linux-unpacked.
+function firstMatch(dir, suffix) {
+  try {
+    const hit = fs.readdirSync(dir).find((name) => name.endsWith(suffix))
+    return hit ? path.join(dir, hit) : null
+  } catch {
+    return null
+  }
+}
+
+// The unpacked Linux binary name follows the package name; the other files
+// in linux-unpacked all carry an extension (.pak, .txt, .dat, .so).
 function linuxUnpackedBinary() {
   const dir = path.join(root, 'dist', 'linux-unpacked')
   try {
     for (const name of fs.readdirSync(dir)) {
       const candidate = path.join(dir, name)
-      if (fs.statSync(candidate).isFile()) {
+      if (!name.includes('.') && fs.statSync(candidate).isFile()) {
         return candidate
       }
     }
