@@ -3,8 +3,9 @@
 // outputs are git-ignored; the predev and prebuild hooks run this script, so
 // a clean clone rebuilds them at once.
 import esbuild from 'esbuild'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('..', import.meta.url).pathname
+const root = fileURLToPath(new URL('..', import.meta.url))
 
 const vendorEntry = `
 import { marked } from 'marked';
@@ -15,7 +16,7 @@ globalThis.fdeVendor = { marked, DOMPurify };
 await esbuild.build({
   stdin: {
     contents: vendorEntry,
-    resolveDir: root,
+    resolveDir: fileURLToPath(new URL('..', import.meta.url)),
     sourcefile: 'vendor-entry.js',
     loader: 'js',
   },

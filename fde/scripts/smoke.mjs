@@ -13,28 +13,63 @@ const TIMEOUT_MS = 60000
 function appPaths() {
   const home = process.env.HOME ?? process.env.USERPROFILE
   const base = path.join(home, 'Library', 'Application Support', 'FDE Chat')
+  const dist = path.join(root, 'dist')
+  // The unpacked macOS layout is mac-arm64 on an arm64 builder and mac on an
+  // Intel builder; accept both.
+  const macCandidates = [
+    path.join(dist, 'mac-arm64', 'FDE Chat.app', 'Contents', 'MacOS', 'FDE Chat'),
+    path.join(dist, 'mac', 'FDE Chat.app', 'Contents', 'MacOS', 'FDE Chat'),
+  ]
   return {
     logFile: path.join(base, 'logs', 'main.log'),
-    macBinary: path.join(root, 'dist', 'mac-arm64', 'FDE Chat.app', 'Contents', 'MacOS', 'FDE Chat'),
-    winBinary: path.join(root, 'dist', 'win-unpacked', 'FDE Chat.exe'),
-    linuxBinary: path.join(root, 'dist', 'FDE Chat.AppImage'),
+    macBinary: macCandidates.find((candidate) => fs.existsSync(candidate)),
+    winBinary: path.join(dist, 'win-unpacked', 'FDE Chat.exe'),
+    linuxAppImage: fs.existsSync(path.join(dist, 'FDE Chat.AppImage'))
+      ? path.join(dist, 'FDE Chat.AppImage')
+      : null,
+    linuxUnpacked: null,
   }
 }
 
+// The unpacked Linux binary name follows the package name; pick the first
+// regular file at the top of linux-unpacked.
+function linuxUnpackedBinary() {
+  const dir = path.join(root, 'dist', 'linux-unpacked')
+  try {
+    for (const name of fs.readdirSync(dir)) {
+      const candidate = path.join(dir, name)
+      if (fs.statSync(candidate).isFile()) {
+        return candidate
+      }
+    }
+  } catch {
+    // Missing directory handled by the caller.
+  }
+  return null
+}
+
 function startCommand() {
+  const paths = appPaths()
   if (process.platform === 'darwin') {
-    return { cmd: appPaths().macBinary, args: [], pre: (argv) => argv }
+    if (!paths.macBinary) {
+      fail('no packaged macOS binary under dist/mac-arm64 or dist/mac')
+    }
+    return { cmd: paths.macBinary, args: [] }
   }
   if (process.platform === 'win32') {
-    return { cmd: appPaths().winBinary, args: [], pre: (argv) => argv }
+    return { cmd: paths.winBinary, args: [] }
   }
   // Linux: the AppImage runs with the extract-and-run option under a virtual
   // display, because the runner has neither libfuse2 nor a display server.
-  return {
-    cmd: 'xvfb-run',
-    args: ['-a', appPaths().linuxBinary, '--appimage-extract-and-run'],
-    pre: (argv) => argv,
+  // A --dir build has no AppImage, so its unpacked binary runs instead.
+  if (paths.linuxAppImage) {
+    return { cmd: 'xvfb-run', args: ['-a', paths.linuxAppImage, '--appimage-extract-and-run'] }
   }
+  const unpacked = linuxUnpackedBinary()
+  if (!unpacked) {
+    fail('no AppImage and no linux-unpacked binary under dist/')
+  }
+  return { cmd: 'xvfb-run', args: ['-a', unpacked] }
 }
 
 // A PATH with no python entry, so a system Python could never satisfy the
