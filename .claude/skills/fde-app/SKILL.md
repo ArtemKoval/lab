@@ -42,6 +42,17 @@ npm run smoke            # starts the packaged app; exit 0 on ready, 2 on failur
 
 `runtime-lock.json` pins the python-build-standalone tag and the sha256 of each target archive. `beforePack` runs the two fetch steps, and `extraResources` copies `python/`, `pylibs/`, and `backend/` into the app resources.
 
+## Releases
+
+A release publishes installers for all three operating systems:
+
+1. Make sure `fde/package.json` carries the version you want to release.
+2. Merge the release branch into `main`.
+3. Tag the merge commit and push the tag: `git tag v0.1.0 <sha> && git push origin v0.1.0`.
+4. The `build` workflow runs the four packaging jobs and then a `release` job that creates the GitHub release with the dmg, zip, exe, and AppImage attached.
+
+The tag must match the app version (`v` + `package.json` version) or the release job stops with exit 2. Re-running a tag uploads with `--clobber` instead of failing. Publish the push and the tag with the per-command ArtemKoval token.
+
 ## Known problems
 
 - A packaged app that starts but shows nothing, with empty logs, usually means a module is missing from the asar `files` list. Run the app binary with `ELECTRON_ENABLE_LOGGING=1` or load `Resources/app.asar` with `npx electron` to see the load error. The main process imports `src/renderer/logic/chat-logic.mjs`, so that glob must stay in `files`.

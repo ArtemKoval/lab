@@ -38,6 +38,12 @@ npm run smoke             # start the packaged app and wait for backend readines
 
 `runtime-lock.json` pins the runtime release tag and the sha256 of every target archive; a mismatch fails the build. Tag builds run in GitHub Actions on four jobs: `macos-15` (arm64), `macos-15-intel` (x64), `windows-latest`, and `ubuntu-24.04` (the smoke test runs under `xvfb-run` there).
 
+## Releases
+
+A tag push (`v0.1.0` shape, matching the app version) builds the installers on all four CI jobs and publishes a GitHub release with them attached. Download the installers from the repository's Releases page.
+
+## Install and first run
+
 ## Install and first run
 
 The v1 artifacts carry an ad-hoc macOS signature and no Developer ID identity, so the operating system asks for confirmation on the first launch:
