@@ -7,6 +7,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 ## Workflow
 - Every repository change goes through the `feature-pipeline` skill; questions that change nothing don't.
 - VCS: Git on GitHub. Mainline is `main`; review via pull requests (`gh`); squash-merge, then delete the branch.
+- Worktrees: when an agent or a team of agents works on a feature branch, it must make its own worktree and work in that worktree. In Claude Code, use the `EnterWorktree` tool. Outside Claude Code, use `git worktree add`.
 
 ## Specs
 - Behavior specs: `openspec/specs/` (source of truth). In-flight changes: `openspec/changes/`.
