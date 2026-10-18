@@ -147,7 +147,15 @@ export function createBackendManager({
       onMalformed: handleMalformed,
     })
     channel = ch
-    child.stdout.on('data', (chunk) => ch.handleData(String(chunk)))
+    child.stdout.on('data', (chunk) => {
+      // A dead child can still flush buffered bytes. Drop them once this
+      // child is no longer the current one, so stale lines never drive the
+      // state machine.
+      if (channel !== ch) {
+        return
+      }
+      ch.handleData(String(chunk))
+    })
     child.stdout.on('end', () => ch.handleEnd())
     child.stderr.on('data', (chunk) => onLog(String(chunk).trimEnd(), 'backend'))
     child.on('error', (err) => {

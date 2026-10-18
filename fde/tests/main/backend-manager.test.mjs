@@ -119,6 +119,21 @@ function makeManager(overrides = {}) {
 
 const lastChild = (harness) => harness.children[harness.children.length - 1]
 
+// EventTarget reports a listener throw to the process instead of the
+// dispatchEvent caller, so assert on the process monitor, not on a throw.
+async function withoutUncaught(run) {
+  const errors = []
+  const monitor = (err) => errors.push(err)
+  process.on('uncaughtExceptionMonitor', monitor)
+  try {
+    run()
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(errors).toEqual([])
+  } finally {
+    process.off('uncaughtExceptionMonitor', monitor)
+  }
+}
+
 describe('backoffDelay', () => {
   it('doubles from the base and caps', () => {
     expect(backoffDelay(0)).toBe(1000)
@@ -202,25 +217,77 @@ describe('createBackendManager', () => {
     const stopped = h.manager.stop()
     lastChild(h).exit()
     await stopped
-    expect(() => lastChild(h).stdout.dispatchEvent(new MessageEvent('end'))).not.toThrow()
+    await withoutUncaught(() => lastChild(h).stdout.dispatchEvent(new MessageEvent('end')))
     expect(h.states[h.states.length - 1]).toBe('stopped')
   })
 
-  it('tolerates a stdout end event that arrives after an unexpected exit', () => {
+  it('tolerates a stdout end event that arrives after an unexpected exit', async () => {
     const h = makeManager()
     h.manager.start()
     lastChild(h).emitStdout(readyLine())
     lastChild(h).exit()
-    expect(h.states).toContain('restarting')
-    expect(() => lastChild(h).stdout.dispatchEvent(new MessageEvent('end'))).not.toThrow()
+    expect(h.states[h.states.length - 1]).toBe('restarting')
+    const stateCount = h.states.length
+    await withoutUncaught(() => lastChild(h).stdout.dispatchEvent(new MessageEvent('end')))
+    expect(h.states).toHaveLength(stateCount)
   })
 
-  it('tolerates a stdout data event that arrives after the child exit', () => {
+  it('drops a stale ready line that the dead child flushes after its exit', () => {
     const h = makeManager()
     h.manager.start()
     lastChild(h).exit()
-    expect(() => lastChild(h).emitStdout('{"jsonrpc":"2.0","method":"chat/chunk","params":{"text":"a"}}\n')).not.toThrow()
     expect(h.states).toContain('restarting')
+    lastChild(h).emitStdout(readyLine())
+    expect(h.states).not.toContain('ready')
+    expect(h.notifications).toEqual([])
+  })
+
+  it('drops a stale notification that the dead child flushes after its exit', () => {
+    const h = makeManager()
+    h.manager.start()
+    lastChild(h).exit()
+    lastChild(h).emitStdout('{"jsonrpc":"2.0","method":"chat/chunk","params":{"text":"a"}}\n')
+    expect(h.notifications).toEqual([])
+    expect(h.states).not.toContain('ready')
+  })
+
+  it('drops a stale ready line that the dead child flushes after a stop', async () => {
+    const h = makeManager()
+    h.manager.start()
+    lastChild(h).emitStdout(readyLine())
+    const stopped = h.manager.stop()
+    lastChild(h).exit()
+    await stopped
+    lastChild(h).emitStdout(readyLine())
+    expect(h.states[h.states.length - 1]).toBe('stopped')
+    expect(h.notifications).toEqual([])
+  })
+
+  it('does not let a stale ready line ready the successor child', () => {
+    const h = makeManager()
+    h.manager.start()
+    lastChild(h).exit()
+    h.fireTimers(1000)
+    expect(h.spawns).toHaveLength(2)
+    expect(h.states[h.states.length - 1]).toBe('starting')
+    h.children[0].emitStdout(readyLine())
+    expect(h.states[h.states.length - 1]).toBe('starting')
+    h.children[1].emitStdout(readyLine())
+    expect(h.states[h.states.length - 1]).toBe('ready')
+  })
+
+  it('still gives up after five failed starts when a stale ready line follows each exit', () => {
+    const h = makeManager()
+    h.manager.start()
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      lastChild(h).exit()
+      lastChild(h).emitStdout(readyLine())
+      if (attempt < 5) {
+        h.fireTimers(backoffDelay(attempt))
+      }
+    }
+    expect(h.states[h.states.length - 1]).toBe('error')
+    expect(h.spawns).toHaveLength(5)
   })
 
   it('treats a second ready line as a repeated ready state', () => {
