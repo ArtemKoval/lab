@@ -1,9 +1,11 @@
 // Launch smoke test of the packaged app. Starts the packaged binary the way
-// each operating system needs, with a PATH that holds no python entry, and
-// waits for the readiness result line that the main process writes to its
-// log file in the user data folder. Exits 0 on `ready`, 2 on failure.
+// each operating system needs, with a PATH that holds no python entry and a
+// neutral CWD like a Finder launch, and waits for the readiness result line
+// that the main process writes to its log file in the user data folder.
+// Exits 0 on `ready`, 2 on failure.
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -102,8 +104,29 @@ function pythonFreePath() {
   return entries.filter((entry) => !/python/i.test(entry)).join(path.delimiter)
 }
 
-function fail(message) {
+// Every exit path stops the app first: a leaked or still-dying instance
+// holds the single-instance lock and silently breaks the next smoke run.
+let appChild = null
+const EXIT_GRACE_MS = 5000
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function stopApp() {
+  if (!appChild) {
+    return
+  }
+  appChild.kill()
+  const exited = new Promise((resolve) => appChild.once('exit', resolve))
+  if ((await Promise.race([exited, sleep(EXIT_GRACE_MS)])) === undefined) {
+    appChild.kill('SIGKILL')
+    await exited
+  }
+  appChild = null
+}
+
+async function fail(message) {
   console.error(`SMOKE FAIL: ${message}`)
+  await stopApp()
   process.exit(2)
 }
 
@@ -113,15 +136,21 @@ fs.rmSync(paths.logFile, { force: true })
 
 const { cmd, args } = startCommand()
 if (!fs.existsSync(cmd) && cmd !== 'xvfb-run') {
-  fail(`packaged binary not found at ${cmd} — run electron-builder first`)
+  await fail(`packaged binary not found at ${cmd} — run electron-builder first`)
 }
 
 const child = spawn(cmd, args, {
+  // A neutral CWD: an installed app starts with CWD `/` or the home dir, so
+  // the backend must resolve its package from PYTHONPATH alone. A CWD inside
+  // the repo would hand `python -m backend` the package by accident and mask
+  // a broken PYTHONPATH.
+  cwd: os.tmpdir(),
   env: { ...process.env, PATH: pythonFreePath() },
   stdio: ['ignore', 'pipe', 'pipe'],
   detached: false,
 })
 const appOutput = []
+appChild = child
 for (const stream of [child.stdout, child.stderr]) {
   stream.on('data', (chunk) => appOutput.push(String(chunk)))
 }
@@ -137,14 +166,14 @@ while (Date.now() - started < TIMEOUT_MS && !done) {
       done = true
       const outcome = readiness.includes('"outcome":"ready"') ? 'ready' : readiness
       if (!readiness.includes('"outcome":"ready"')) {
-        fail(`readiness line reports a start failure: ${outcome}`)
+        await fail(`readiness line reports a start failure: ${outcome}`)
       }
       // The spec scenario "Interpreter path sits in the resources": the ready
       // log names the interpreter, and it must sit under the app resources.
       const readyLog = text.split('\n').find((line) => line.includes('backend ready from '))
       const interpreter = readyLog ? readyLog.split('backend ready from ')[1] : ''
       if (!/resources/i.test(interpreter)) {
-        fail(`the interpreter did not run from the app resources: ${interpreter}`)
+        await fail(`the interpreter did not run from the app resources: ${interpreter}`)
       }
       console.log(`SMOKE OK: backend ready in ${(Date.now() - started) / 1000}s from ${interpreter}`)
     }
@@ -153,10 +182,10 @@ while (Date.now() - started < TIMEOUT_MS && !done) {
   }
 }
 
-child.kill()
 if (!done) {
   console.error('--- last app output:')
   console.error(appOutput.join('').split('\n').slice(-20).join('\n'))
-  fail(`no readiness line within ${TIMEOUT_MS / 1000} seconds`)
+  await fail(`no readiness line within ${TIMEOUT_MS / 1000} seconds`)
 }
+await stopApp()
 process.exit(0)
