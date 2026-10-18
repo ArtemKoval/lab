@@ -139,13 +139,16 @@ export function createBackendManager({
   }
 
   function wireChild() {
-    channel = createChannel({
+    // Bind the stdout handlers to this child's own channel. The exit handler
+    // nulls the shared channel while stdout can still emit data and end.
+    const ch = createChannel({
       writeLine: (line) => child.stdin.write(line),
       onNotification: (method, params) => handleMessage({ method, params }),
       onMalformed: handleMalformed,
     })
-    child.stdout.on('data', (chunk) => channel.handleData(String(chunk)))
-    child.stdout.on('end', () => channel.handleEnd())
+    channel = ch
+    child.stdout.on('data', (chunk) => ch.handleData(String(chunk)))
+    child.stdout.on('end', () => ch.handleEnd())
     child.stderr.on('data', (chunk) => onLog(String(chunk).trimEnd(), 'backend'))
     child.on('error', (err) => {
       onLog(`backend spawn error: ${err.message}`, 'manager')
