@@ -68,11 +68,11 @@ function linuxUnpackedBinary() {
   return null
 }
 
-function startCommand() {
+async function startCommand() {
   const paths = appPaths()
   if (process.platform === 'darwin') {
     if (!paths.macBinary) {
-      fail('no packaged macOS binary under dist/mac-arm64 or dist/mac')
+      await fail('no packaged macOS binary under dist/mac-arm64 or dist/mac')
     }
     return { cmd: paths.macBinary, args: [] }
   }
@@ -92,7 +92,7 @@ function startCommand() {
   }
   const unpacked = linuxUnpackedBinary()
   if (!unpacked) {
-    fail('no AppImage and no linux-unpacked binary under dist/')
+    await fail('no AppImage and no linux-unpacked binary under dist/')
   }
   return { cmd: 'xvfb-run', args: ['-a', unpacked, '--no-sandbox'] }
 }
@@ -115,11 +115,16 @@ async function stopApp() {
   if (!appChild) {
     return
   }
-  appChild.kill()
-  const exited = new Promise((resolve) => appChild.once('exit', resolve))
-  if ((await Promise.race([exited, sleep(EXIT_GRACE_MS)])) === undefined) {
-    appChild.kill('SIGKILL')
-    await exited
+  // A child that exited on its own never fires `exit` again, so the guarded
+  // wait below would hang the run on an unsettled await. Exit code and
+  // signal are both null only while the child is still alive.
+  if (appChild.exitCode === null && appChild.signalCode === null) {
+    const exited = new Promise((resolve) => appChild.once('exit', resolve))
+    appChild.kill()
+    if ((await Promise.race([exited, sleep(EXIT_GRACE_MS)])) === undefined) {
+      appChild.kill('SIGKILL')
+      await exited
+    }
   }
   appChild = null
 }
@@ -134,7 +139,7 @@ const paths = appPaths()
 fs.mkdirSync(path.dirname(paths.logFile), { recursive: true })
 fs.rmSync(paths.logFile, { force: true })
 
-const { cmd, args } = startCommand()
+const { cmd, args } = await startCommand()
 if (!fs.existsSync(cmd) && cmd !== 'xvfb-run') {
   await fail(`packaged binary not found at ${cmd} — run electron-builder first`)
 }
