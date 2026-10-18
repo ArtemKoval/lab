@@ -52,8 +52,13 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fde-e2e-'))
 console.log(`user data: ${tmp}`)
 
 const debugPort = await freePort()
-const appProcess = spawn(electronBin, ['.', `--remote-debugging-port=${debugPort}`], {
-  cwd: root,
+// The app path is an absolute argument and the driver CWD is neutral, so the
+// backend can never pick up its package from the CWD of this run: an
+// installed app starts with an unrelated CWD, and the run must match that.
+// The CWD is not tmp: the driver removes tmp at the end, and on Windows a
+// directory a live backend still holds as its CWD cannot be removed.
+const appProcess = spawn(electronBin, [root, `--remote-debugging-port=${debugPort}`], {
+  cwd: os.tmpdir(),
   env: { ...process.env, FDE_USER_DATA: tmp, ELECTRON_ENABLE_LOGGING: '1' },
   stdio: ['ignore', 'pipe', 'pipe'],
 })

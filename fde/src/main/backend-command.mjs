@@ -32,7 +32,10 @@ export function backendCommand({
     return {
       command: venvPython,
       args: ['-m', 'backend'],
-      env: pythonEnv([backendDir], platform, base),
+      // `python -m backend` searches sys.path for a `backend` package, so
+      // PYTHONPATH must hold the parent of the package directory. The child
+      // CWD is not a contract: an installed app launches from Finder.
+      env: pythonEnv([path.dirname(backendDir)], platform, base),
     }
   }
   const pythonBin = platform === 'win32'
@@ -41,8 +44,10 @@ export function backendCommand({
   return {
     command: pythonBin,
     args: ['-m', 'backend'],
+    // Same parent rule as in dev: `backend` is a package under resourcesPath,
+    // so resourcesPath itself exposes it; pylibs holds the dependencies.
     env: pythonEnv(
-      [path.join(resourcesPath, 'pylibs'), path.join(resourcesPath, 'backend')],
+      [path.join(resourcesPath, 'pylibs'), resourcesPath],
       platform,
       base,
     ),

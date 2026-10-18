@@ -47,7 +47,9 @@ describe('backendCommand', () => {
     const command = backendCommand({ ...devOptions, platform: 'darwin', base: {} })
     expect(command.command).toBe('/repo/fde/.venv/bin/python')
     expect(command.args).toEqual(['-m', 'backend'])
-    expect(command.env.PYTHONPATH).toBe('/repo/fde/backend')
+    // `-m backend` searches sys.path for the package, so the path entry is
+    // the parent of backendDir; the child CWD must never matter.
+    expect(command.env.PYTHONPATH).toBe('/repo/fde')
   })
 
   it('runs the embedded interpreter from the resources in a packaged mac app', () => {
@@ -59,7 +61,7 @@ describe('backendCommand', () => {
     })
     expect(command.command).toBe('/app/Resources/python/bin/python3')
     expect(command.args).toEqual(['-m', 'backend'])
-    expect(command.env.PYTHONPATH).toBe('/app/Resources/pylibs:/app/Resources/backend')
+    expect(command.env.PYTHONPATH).toBe('/app/Resources/pylibs:/app/Resources')
   })
 
   it('runs python.exe from the tree root in a packaged Windows app', () => {
@@ -77,7 +79,7 @@ describe('backendCommand', () => {
     expect(command.env.PYTHONPATH).toBe(
       [
         path.join('C:\\app\\resources', 'pylibs'),
-        path.join('C:\\app\\resources', 'backend'),
+        'C:\\app\\resources',
       ].join(';'),
     )
   })
