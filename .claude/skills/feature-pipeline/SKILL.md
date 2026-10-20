@@ -204,10 +204,10 @@ behavior-preserving refactors, docs, dependency bumps, or harness-only changes.
 ## Step 2 — Standalone code
 
 The core deliverable runs without Claude Code or any LLM.
-- Prefer a tool to a prompt. When the work needs computation, data processing,
-  or analysis, write the procedure as a versioned tool. Call the LLM only for
-  the steps that need judgment: plan review, vision, analysis of results, and
-  code writing.
+- Prefer a tool to a prompt. When the work includes computation, data
+  processing, or analysis, write the procedure as a versioned tool. Call the
+  LLM only for the steps where judgment is necessary: plan review, vision,
+  analysis of results, and code writing.
 - Keep artifacts that you will use again under version control. Put logs,
   metrics, reports, and scripts in the repository at a stable path. Use `/tmp`
   only for output that no one will read again.
@@ -344,8 +344,10 @@ it.
 - **Analyse** — when a pattern is worth chasing (not every change) and a log
   analysis tool exists, run it. Rank permission-friction (prompted or denied
   calls), recurring-error, repeated-command (work a helper or hook could
-  absorb), and slow-hook signals. Read the `handover` issues for observations
-  from earlier runs.
+  absorb), and slow-hook signals.
+- **Handover** — the `handover` issues hold observations from earlier runs.
+  Read them on GitHub when a pattern is worth chasing. This sub-step uses only
+  `gh`, so it works now.
 - **Reflect** — after a substantial delivery, if a reflection skill exists,
   run it for what counts miss: an undocumented convention, a fix that took
   several attempts, a misleading CLAUDE.md claim, a tournament winner that
