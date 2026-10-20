@@ -22,4 +22,4 @@
 - [x] 4.1 Run the full hermetic suite, branch coverage of the new code, and the `C901` complexity check with the root venv
 - [x] 4.2 Run the mutation gate with mutmut on a flattened out-of-tree copy. Write a reason for each equivalent-mutant exclusion
 - [x] 4.3 Run `openspec validate add-devcontainer-init`. Make sure every spec scenario has a test
-- [ ] 4.4 Commit, open the pull request, run the adversarial review, fix the findings that survive the skeptics, and merge
+- [x] 4.4 Commit, open the pull request, run the adversarial review, fix the findings that survive the skeptics, and merge
