@@ -87,7 +87,10 @@ class FakeOpenAI:
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        return self.scripted.pop(0)
+        item = self.scripted.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
 
 
 class FakeResponse:
@@ -145,6 +148,21 @@ FREE_CATALOG = [
     catalog_entry("strong/big:free", intelligence=90, context=128000),
     catalog_entry("queued/small:free", intelligence=10),
     catalog_entry("no/bench:free", context=32000),
+]
+
+# Two scored models and a third: the runner's heat fills exactly.
+RUN_CATALOG = [
+    catalog_entry("a/one:free", intelligence=30),
+    catalog_entry("b/two:free", intelligence=20),
+    catalog_entry("c/three:free", intelligence=10),
+]
+
+# The strongest model refuses the ping, so the queued model steps up.
+REFUSAL_CATALOG = [
+    catalog_entry("gated/one:free", intelligence=40),
+    catalog_entry("b/two:free", intelligence=30),
+    catalog_entry("c/three:free", intelligence=20),
+    catalog_entry("d/four:free", intelligence=10),
 ]
 
 
@@ -217,6 +235,15 @@ def tournament_ns(nb, monkeypatch, catalog):
     ns = {"USAGE": {"requests": 0}, "_cap": cap}
     run_cells(nb, ["import json", "GAME_CSS", "# Nothing hardcoded"], ns)
     run_cells(nb, ["import time"], ns, stop_marker="results = []")
+    return ns
+
+
+def runner_ns(nb, monkeypatch, catalog):
+    """A namespace with the game and tournament setup cells, ready for the runner cell."""
+    ns = game_ns(nb, monkeypatch)
+    ns["_cap"]["catalog"][:] = catalog
+    run_cells(nb, ["# Nothing hardcoded"], ns)
+    monkeypatch.setitem(sys.modules, "time", types.SimpleNamespace(sleep=lambda seconds: None))
     return ns
 
 
@@ -479,3 +506,111 @@ def test_leaderboard_draws_a_plain_text_table(nb, monkeypatch):
     assert flagged_chars(html) == []
     assert "Rank</th>" in html
     assert "requests spent by the agent loop" in html
+
+
+# --- review-round regressions ----------------------------------------
+
+
+def test_submit_answer_matches_names_regardless_of_case(nb, monkeypatch):
+    ns = game_ns(nb, monkeypatch)
+    ns["get_riddle"]()
+    result = ns["submit_answer"](1, "a: knave; B: knave")
+    assert result["judged_wrong"] == ["A"]
+    assert result["hint"] == "The island elder whispers: A is a knight."
+
+
+def test_submit_answer_accepts_a_json_string_verdict(nb, monkeypatch):
+    ns = game_ns(nb, monkeypatch)
+    ns["get_riddle"]()
+    result = ns["submit_answer"](1, '{"A": "knight", "B": "knave"}')
+    assert result["solved"] is True
+
+
+def test_submit_answer_counts_a_riddle_as_solved_once(nb, monkeypatch):
+    ns = game_ns(nb, monkeypatch)
+    ns["get_riddle"]()
+    ns["submit_answer"](1, {"A": "knight", "B": "knave"})
+    again = ns["submit_answer"](1, {"A": "knight", "B": "knave"})
+    assert again["solved"] is True
+    assert ns["_score"]["solved"] == 1
+    assert ns["_score"]["attempts"] == 2
+
+
+def test_esc_neutralizes_double_quotes(nb, monkeypatch):
+    ns = game_ns(nb, monkeypatch)
+    assert ns["esc"]('He said "no"') == "He said &quot;no&quot;"
+
+
+def test_leaderboard_keeps_the_error_title_intact(nb, monkeypatch):
+    ns = tournament_ns(nb, monkeypatch, FREE_CATALOG)
+    html = _rendered_board(ns, [
+        {"model": "gated:free", "solved": False, "attempts": 0, "hints": 0, "steps": 0,
+         "error": 'The model said "no"'},
+    ])
+    assert 'title="The model said &quot;no&quot;"' in html
+
+
+def test_the_agent_task_is_defined_once(nb):
+    text = "".join(cell_text(c) for c in nb["cells"])
+    assert text.count("Call get_riddle to hear the island's riddle") == 1
+    assert "run_agent(TASK)" in text
+    assert "run_agent(TASK, max_steps=STEPS_ALLOWED, model=name)" in text
+
+
+def test_the_demo_loop_survives_a_text_reply(nb, monkeypatch):
+    ns = game_ns(nb, monkeypatch)
+    ns["openrouter"].scripted = [reply(text="I will call the tool soon."), reply(text="All set.")]
+    run_cells(nb, [
+        'messages = [{"role": "user", "content": "Please call get_riddle',
+        "messages.append(message)",
+    ], ns)
+    assert ns["_cap"]["displayed"][-1].markdown == "All set."
+
+
+def _script_one_solved_run(client, name):
+    verdict = json.dumps({"riddle_id": 1, "assignment": {"A": "knight", "B": "knave"}})
+    client.scripted += [
+        reply(tool_calls=[tool_call("get_riddle", "{}")]),
+        reply(tool_calls=[tool_call("submit_answer", verdict)]),
+        reply(text="Solved.", model=name),
+    ]
+
+
+def test_tournament_runs_the_heat_and_spends_the_budget(nb, monkeypatch):
+    ns = runner_ns(nb, monkeypatch, RUN_CATALOG)
+    for _ in ns["heat"]:
+        ns["openrouter"].scripted.append(reply(text="ok"))
+    for name in ("a/one:free", "b/two:free", "c/three:free"):
+        _script_one_solved_run(ns["openrouter"], name)
+    run_cells(nb, ["import time"], ns)
+    assert [r["model"] for r in ns["results"]] == ["a/one:free", "b/two:free", "c/three:free"]
+    assert all(r["solved"] for r in ns["results"])
+    assert ns["USAGE"]["requests"] == 12
+    html = ns["_cap"]["displayed"][-1].html
+    assert html.index("a/one:free") < html.index("b/two:free") < html.index("c/three:free")
+    assert "1st" in html
+
+
+def test_tournament_steps_up_when_a_model_refuses(nb, monkeypatch):
+    ns = runner_ns(nb, monkeypatch, REFUSAL_CATALOG)
+    ns["openrouter"].scripted.append(FakeHTTPError(403))
+    for _ in range(3):
+        ns["openrouter"].scripted.append(reply(text="ok"))
+    for name in ("b/two:free", "c/three:free", "d/four:free"):
+        _script_one_solved_run(ns["openrouter"], name)
+    run_cells(nb, ["import time"], ns)
+    assert ns["results"][0]["model"] == "gated/one:free"
+    assert "403" in ns["results"][0]["error"]
+    assert [r["model"] for r in ns["results"] if r["solved"]] == [
+        "b/two:free", "c/three:free", "d/four:free",
+    ]
+    assert ns["USAGE"]["requests"] == 12
+
+
+def test_tournament_stops_before_the_day_is_overdrawn(nb, monkeypatch):
+    ns = runner_ns(nb, monkeypatch, RUN_CATALOG)
+    ns["USAGE"]["requests"] = 36
+    ns["openrouter"].scripted = [reply(text="ok")]
+    run_cells(nb, ["import time"], ns)
+    assert ns["USAGE"]["requests"] == 37
+    assert ns["results"] == []
