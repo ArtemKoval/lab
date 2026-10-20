@@ -1,5 +1,5 @@
-"""Pin the argparse surface as data, so help text, defaults, and flags
-die under mutation instead of drifting silently."""
+"""Pin the argparse surface as data, so the suite kills mutants of the
+help text, the defaults, and the flag definitions."""
 
 from devcontainer_init.cli import build_parser
 

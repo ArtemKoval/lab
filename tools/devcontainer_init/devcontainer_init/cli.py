@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -59,11 +60,19 @@ def scaffold(target, os_version, extensions, force):
     if not target_path.is_dir():
         return None, f"target directory does not exist: {target}"
     config_path = target_path / CONFIG_RELATIVE_PATH
-    if config_path.exists() and not force:
-        return None, f"refusing to overwrite an existing config without --force: {config_path}"
+    # lexists does not follow symlinks, so a dangling config symlink also
+    # counts as an existing config and the refusal path protects its target.
+    if os.path.lexists(config_path) and not force:
+        return None, (
+            "refusing to overwrite an existing config without --force: "
+            f"{config_path}"
+        )
     config = build_config(target_path.resolve().name, os_version, extensions)
-    config_path.parent.mkdir(exist_ok=True)
-    config_path.write_text(render(config), encoding="utf-8")
+    try:
+        config_path.parent.mkdir(exist_ok=True)
+        config_path.write_text(render(config), encoding="utf-8")
+    except OSError as error:
+        return None, f"cannot write the config: {error}"
     return config_path, None
 
 

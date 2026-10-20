@@ -1,5 +1,5 @@
 """Live checks of the generated configuration. Opt-in through
-DEVCONTAINER_INIT_E2E=1 with a running Docker daemon; the default suite
+DEVCONTAINER_INIT_E2E=1 with a running Docker daemon. The default suite
 never builds anything."""
 
 import json
@@ -7,6 +7,8 @@ import os
 import subprocess
 
 import pytest
+
+from devcontainer_init.cli import main
 
 pytestmark = [
     pytest.mark.e2e,
@@ -16,12 +18,12 @@ pytestmark = [
     ),
 ]
 
-from devcontainer_init.cli import main  # noqa: E402
-
 
 def _run_devcontainer(args, timeout):
     command = ["npx", "--yes", "@devcontainers/cli", *args]
-    return subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    return subprocess.run(
+        command, check=False, capture_output=True, text=True, timeout=timeout
+    )
 
 
 def _parse_cli_json(text):

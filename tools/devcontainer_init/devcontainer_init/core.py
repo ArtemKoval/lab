@@ -6,8 +6,8 @@ import json
 # constant when a new LTS releases, and update the tests with it.
 DEFAULT_UBUNTU_LTS = "26.04"
 
-# Feature references verified against ghcr on 2026-10-20. The majors are
-# pinned; the version options float, so each build takes the current
+# Feature references examined against ghcr on 2026-10-20. The majors
+# have pins. The version options float, so each build takes the current
 # node LTS and the current uv stable release.
 COMMON_UTILS_FEATURE = "ghcr.io/devcontainers/features/common-utils:2"
 GIT_FEATURE = "ghcr.io/devcontainers/features/git:1"

@@ -71,7 +71,10 @@ def test_refuses_overwrite_without_force(tmp_path, capsys):
     config_path = _existing_config(target)
     assert main([str(target)]) == 2
     assert config_path.read_text(encoding="utf-8") == '{"name": "demo"}\n'
-    assert "refusing" in capsys.readouterr().err
+    assert capsys.readouterr().err == (
+        "error: refusing to overwrite an existing config without --force: "
+        f"{config_path}\n"
+    )
 
 
 def test_force_overwrites_an_existing_config(tmp_path):
@@ -105,3 +108,22 @@ def test_default_target_is_the_current_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main([]) == 0
     assert (tmp_path / ".devcontainer" / "devcontainer.json").exists()
+
+
+def test_devcontainer_file_in_target_fails_cleanly(tmp_path, capsys):
+    target = tmp_path / "demo"
+    target.mkdir()
+    (target / ".devcontainer").write_text("not a directory\n", encoding="utf-8")
+    assert main([str(target)]) == 2
+    assert "cannot write" in capsys.readouterr().err
+
+
+def test_broken_config_symlink_counts_as_existing(tmp_path):
+    target = tmp_path / "demo"
+    target.mkdir()
+    outside = tmp_path / "outside.txt"
+    config_path = target / ".devcontainer" / "devcontainer.json"
+    config_path.parent.mkdir()
+    config_path.symlink_to(outside)
+    assert main([str(target)]) == 2
+    assert not outside.exists()

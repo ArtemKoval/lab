@@ -2,18 +2,23 @@
 
 ## Purpose
 
-The `devcontainer-init` capability is the scaffold of a devcontainer configuration. One command writes a complete `devcontainer.json` into an existing project directory, with a latest-LTS Ubuntu base and the git, node, and uv features wired up for VS Code.
+The `devcontainer-init` capability is the scaffold of a devcontainer configuration. One command writes a complete `devcontainer.json` into an existing project directory. The config has a latest-LTS Ubuntu base with the git, node, and uv features for VS Code.
 
 ## ADDED Requirements
 
 ### Requirement: Scaffold into an existing directory
 
-The tool SHALL write `.devcontainer/devcontainer.json` into the target directory. The tool SHALL create the `.devcontainer` directory when it does not exist. The tool SHALL exit with code 0 after it writes the file.
+The tool SHALL write `.devcontainer/devcontainer.json` into the target directory. The target argument is optional. The tool SHALL use the current directory when the user omits the target. The tool SHALL create the `.devcontainer` directory when it does not exist. The tool SHALL exit with code 0 after it writes the file.
 
 #### Scenario: Scaffold into an empty project
 
 - **WHEN** the user runs the tool with a target directory that exists and holds no `.devcontainer` directory
 - **THEN** the tool writes `devcontainer.json` under `<target>/.devcontainer/` and exits with code 0
+
+#### Scenario: Default target
+
+- **WHEN** the user runs the tool with no target argument in a directory without `.devcontainer`
+- **THEN** the tool writes the config for the current directory and exits with code 0
 
 #### Scenario: Reject a missing target
 
@@ -77,7 +82,7 @@ With `--json`, the tool SHALL print one JSON object to stdout. The object SHALL 
 
 ### Requirement: Built container carries the wired tools
 
-When the environment gate `DEVCONTAINER_INIT_E2E=1` is set, the e2e suite SHALL build a container from the generated configuration and SHALL check the tools inside. The check SHALL assert that `node`, `uv`, and `git` run inside the container and that the OS release reports the pinned Ubuntu version. The default test run SHALL NOT build anything.
+When the environment gate `DEVCONTAINER_INIT_E2E=1` is set, the e2e suite SHALL build a container from the generated configuration and SHALL examine the tools inside. The check SHALL assert that `node`, `uv`, and `git` run inside the container and that the OS release reports the pinned Ubuntu version. The default test run SHALL NOT build anything.
 
 #### Scenario: Live build check
 
