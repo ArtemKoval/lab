@@ -8,3 +8,6 @@ To install OpenSpec from the command line, run `npm install -g @fission-ai/opens
 
 ## Prepare a clean clone
 The file `tools/project_setup/registry.json` names the units that a clean clone must have. In Claude Code, use the `project-setup` skill. The skill examines each unit. It installs each unit that the clone does not have after you give permission.
+
+## Notebooks
+The `notebooks/` directory holds standalone teaching notebooks. The test module `tests/notebooks/` guards each notebook's structure and logic with the standard library only. Run it with the root suite command in CLAUDE.md.
