@@ -1,0 +1,15 @@
+[project]
+name = "devcontainer-init"
+version = "1.0.0"
+description = "Scaffold a devcontainer configuration with Ubuntu LTS, git, node, and uv."
+requires-python = ">=3.11"
+
+# Mutation gate. Run mutmut on an out-of-tree copy of this directory,
+# never inside the repository. See README.md, section "Mutation run".
+[tool.mutmut]
+source_paths = ["devcontainer_init/"]
+# Run the whole suite for every mutant. The trampoline-hit mapping that
+# picks a subset misses cross-module killers, and a missed kill is worse
+# than a slower run.
+pytest_add_cli_args_test_selection = ["tests/"]
+pytest_add_cli_args = ["tests/"]
