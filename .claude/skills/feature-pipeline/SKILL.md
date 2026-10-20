@@ -204,6 +204,13 @@ behavior-preserving refactors, docs, dependency bumps, or harness-only changes.
 ## Step 2 — Standalone code
 
 The core deliverable runs without Claude Code or any LLM.
+- Prefer a tool to a prompt. When the work includes computation, data
+  processing, or analysis, write the procedure as a versioned tool. Call the
+  LLM only for the steps where judgment is necessary: plan review, vision,
+  analysis of results, and code writing.
+- Keep artifacts that you will use again under version control. Put logs,
+  metrics, reports, and scripts in the repository at a stable path. Use `/tmp`
+  only for output that no one will read again.
 - Placement per Step 0.5, else CLAUDE.md's Layout: application code in
   `backend/` or `frontend/`; tooling in `tools/<task_name>/` (snake_case) with a
   module and CLI (`argparse`, `--json` for machine output, exit 0 on success /
@@ -314,9 +321,12 @@ so the mainline gets code and specs together. Merge through the review platform
 subject `<type>: <summary> (<review ref>)`. Delete the branch locally and
 remotely; resync the mainline, pruning stale remote references. Verify: request
 merged, only the mainline remains, suite and gates pass on the merged mainline,
-the shipped command or tool still runs. Report what was built, what review
-found, gate results, and anything the user should know (new dependencies,
-deliberate follow-ups).
+the shipped command or tool still runs. When the run produces logs, metrics, or
+observations that later work can use, open a handover issue. Use the `handover`
+template at `.github/ISSUE_TEMPLATE/handover.md` after the merge. Remove
+secrets before you put artifacts in the issue. Report what was built, what
+review found, gate results, and anything the user should know (new
+dependencies, deliberate follow-ups).
 
 ## Step 14 — Close the loop
 
@@ -335,6 +345,9 @@ it.
   analysis tool exists, run it. Rank permission-friction (prompted or denied
   calls), recurring-error, repeated-command (work a helper or hook could
   absorb), and slow-hook signals.
+- **Handover** — the `handover` issues hold observations from earlier runs.
+  Read them on GitHub when a pattern is worth chasing. This sub-step uses only
+  `gh`, so it works now.
 - **Reflect** — after a substantial delivery, if a reflection skill exists,
   run it for what counts miss: an undocumented convention, a fix that took
   several attempts, a misleading CLAUDE.md claim, a tournament winner that

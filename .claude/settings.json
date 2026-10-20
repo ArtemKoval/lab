@@ -4,7 +4,8 @@
     "permissions": {
         "allow": [
             "mcp__zai-routing-audit",
-            "Bash(tools/zai_routing_audit/.venv/bin/python:*)"
+            "Bash(tools/zai_routing_audit/.venv/bin/python:*)",
+            "Bash(gh issue create:*)"
         ]
     }
 }

@@ -9,6 +9,11 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 - VCS: Git on GitHub. Mainline is `main`; review via pull requests (`gh`); squash-merge, then delete the branch.
 - Worktrees: when an agent or a team of agents works on a feature branch, it must make its own worktree and work in that worktree. In Claude Code, use the `EnterWorktree` tool. Outside Claude Code, use `git worktree add`.
 
+## Working rules
+- Build a tool first. When a task includes computation, data processing, or analysis, write a script that does the work without an LLM. Call the LLM only for the steps where judgment is necessary: plan review, vision, analysis of results, and code writing.
+- Keep reusable artifacts under version control. Put logs, metrics, scripts, and reports in the repository at a stable path. Do not put them in `/tmp` or another scratch location. A scratch file is only for output that no one will read again.
+- Open a handover issue after you solve a task. When the run produces logs, metrics, or observations that later work can use, open a handover issue. Use the `handover` issue template on GitHub after the merge. Remove secrets before you put artifacts in the issue.
+
 ## Specs
 - Behavior specs: `openspec/specs/` (source of truth). In-flight changes: `openspec/changes/`.
 - To make an OpenSpec change, run `/opsx:propose`. To build it, run `/opsx:apply`. To archive it, run `/opsx:archive`.
