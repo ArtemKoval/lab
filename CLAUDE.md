@@ -6,6 +6,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 
 ## Workflow
 - Every repository change goes through the `feature-pipeline` skill; questions that change nothing don't.
+- Change discipline: the proposal PR merges to `main` before implementation starts; the implementation PR merges before the archive PR. The `openspec-git-discipline` skill owns the gates. Durable decisions go to `adr/NNNN-kebab-title.md`; an accepted ADR changes only through a superseding ADR.
 - VCS: Git on GitHub. Mainline is `main`; review via pull requests (`gh`); squash-merge, then delete the branch.
 - Worktrees: when an agent or a team of agents works on a feature branch, it must make its own worktree and work in that worktree. In Claude Code, use the `EnterWorktree` tool. Outside Claude Code, use `git worktree add`.
 
@@ -15,7 +16,8 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 - Open a handover issue after you solve a task. When the run produces logs, metrics, or observations that later work can use, open a handover issue. Use the `handover` issue template on GitHub after the merge. Remove secrets before you put artifacts in the issue.
 
 ## Specs
-- Behavior specs: `openspec/specs/` (source of truth). In-flight changes: `openspec/changes/`.
+- Behavior specs: `openspec/specs/` (source of truth). In-flight changes: `openspec/changes/`. Active schema: `intent-driven` (`openspec/schemas/intent-driven/`).
+- Harness surfaces: skills in `.claude/skills/`, agents in `.claude/agents/` (ported from the intent-driven template at `b5bda460a2180a55fc508fdedc4ef058d95355db`). Glossary terms: `glossary/`. Upstream template: `github.com/intent-driven-dev/intent-driven-template`.
 - To make an OpenSpec change, run `/opsx:propose`. To build it, run `/opsx:apply`. To archive it, run `/opsx:archive`.
 
 ## Setup

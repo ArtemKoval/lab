@@ -1,32 +1,31 @@
-schema: spec-driven
+schema: intent-driven
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+# Project context
+context: |
+  Harness: Claude Code only. Skills live in .claude/skills/, agents in .claude/agents/.
+  Prose follows ASD-STE100 (CLAUDE.md), except vendored upstream files.
+  Discipline: the proposal PR merges to main before apply starts; the
+  implementation PR merges before the archive PR. openspec-git-discipline
+  owns the gates.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Must use grill-me skill
+    - Must use adversarial-authoring skill
+  specs:
+    - Must use gherkin-authoring skill
+    # - Must use spec-as-source skill
+  design:
+    - Must use c4-diagrams skill
+    # - Must use glossary skill
+  adr:
+    - Must use architectural-decision-records skill
+  tasks: [] # Must use spec-as-source skill once enabled
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Must use test-driven-development skill
+  archive:
+    guidance:
+      - Must run OpenSpec Sync before archiving
