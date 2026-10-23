@@ -12,6 +12,7 @@ rules:
   proposal:
     - Must use grill-me skill
     - Must use adversarial-authoring skill
+    # - Must use glossary skill
   specs:
     - Must use gherkin-authoring skill
     # - Must use spec-as-source skill

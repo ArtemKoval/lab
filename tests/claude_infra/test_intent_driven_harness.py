@@ -84,9 +84,9 @@ def test_rules_resolve_to_skills_and_layers_stay_disabled():
     for name in rules:
         assert (REPO_ROOT / ".claude" / "skills" / name / "SKILL.md").is_file(), name
     for line in config.splitlines():
-        if "spec-as-source" in line:
-            before_comment = line.split("#", 1)[0]
-            assert "spec-as-source" not in before_comment.split("tasks")[0], line
+        for disabled in ("spec-as-source", "glossary"):
+            if disabled in line:
+                assert disabled not in line.split("#", 1)[0], line
     # the schema switch is live
     assert config.splitlines()[0] == "schema: intent-driven"
 

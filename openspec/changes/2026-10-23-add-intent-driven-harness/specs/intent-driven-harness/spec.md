@@ -44,3 +44,10 @@ The harness SHALL keep accepted ADRs in `adr/NNNN-kebab-title.md` at the repo ro
 #### Scenario: Seed records exist
 - **WHEN** a reader lists `adr/`
 - **THEN** records `0001-add-intent-driven-harness.md` and `0002-claude-code-single-harness.md` exist with accepted status and no `Supersedes:` field
+
+### Requirement: The glossary seeds live where the glossary skill reads
+The harness SHALL seed `glossary/business.md` and `glossary/technical.md` at the repo root with the process and harness terms the glossary skill reads.
+
+#### Scenario: Seed files resolve
+- **WHEN** a reader lists `glossary/`
+- **THEN** `business.md` and `technical.md` exist and name the seeded terms

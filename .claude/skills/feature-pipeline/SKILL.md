@@ -31,7 +31,7 @@ config, hook, docs) runs:
    numeric eval exists and the search space is large. Use the matching skill
    (`decision-tournament`, `evolutionary-optimization`, `session-reflection`)
    when this session's skill listing offers it; otherwise run the pattern
-   inline. For clarification, use `grill-me`; for the review round, draft with
+   inline. For clarification, use `grill-me`. For the review round, draft with
    the `adversarial-author` agent and challenge with `adversarial-reviewer`.
    Surface directions that are the user's call (ExitPlanMode).
 3. **Implement** the corrected plan.
@@ -310,8 +310,7 @@ and record its outcome in the integration commit.
 
 ## Step 12 — Adversarial review, then fix
 
-- Multi-agent review of the diff (Workflow tool or the `adversarial-reviewer` agent when available, `/code-review` otherwise
-  otherwise): correctness, config/infra validity, the guarantees the code claims
+- Multi-agent review of the diff (Workflow tool or the `adversarial-reviewer` agent when available, `/code-review` otherwise): correctness, config/infra validity, the guarantees the code claims
   (standalone, non-destructive, hermetic tests), doc-vs-code consistency, spec
   conformance (every scenario tested, nothing beyond the delta), the gates, and
   entropy (every new component justified by the ASIT pass). Verify each raw

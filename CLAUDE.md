@@ -6,7 +6,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 
 ## Workflow
 - Every repository change goes through the `feature-pipeline` skill; questions that change nothing don't.
-- Change discipline: the proposal PR merges to `main` before implementation starts; the implementation PR merges before the archive PR. The `openspec-git-discipline` skill owns the gates. Durable decisions go to `adr/NNNN-kebab-title.md`; an accepted ADR changes only through a superseding ADR.
+- Change discipline: the proposal PR merges to `main` before implementation starts. The implementation PR merges before the archive PR. The `openspec-git-discipline` skill owns the gates. Durable decisions go to `adr/NNNN-kebab-title.md`. An accepted ADR changes only through a superseding ADR.
 - VCS: Git on GitHub. Mainline is `main`; review via pull requests (`gh`); squash-merge, then delete the branch.
 - Worktrees: when an agent or a team of agents works on a feature branch, it must make its own worktree and work in that worktree. In Claude Code, use the `EnterWorktree` tool. Outside Claude Code, use `git worktree add`.
 

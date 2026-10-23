@@ -11,7 +11,7 @@ The harness runs every repository change through one pipeline. The pipeline reco
 - Add four Claude Code subagents under `.claude/agents/`: `adversarial-author`, `adversarial-reviewer`, `senior-dev`, `senior-qa`.
 - Add eleven skills under `.claude/skills/`: `grill-me`, `adversarial-authoring`, `architectural-decision-records`, `c4-diagrams`, `gherkin-authoring`, `glossary`, `openspec-git-discipline`, `verify-change` (renamed from upstream `openspec-verify-change`, which the CLI owns), `spec-as-source`, `acceptance-test-authoring`, and `test-driven-development`.
 - Turn on git discipline: proposal artifacts merge to `main` before apply starts, and implementation merges before archive runs. Record the flow in the `feature-pipeline` skill and in CLAUDE.md.
-- Install the eleven skills as independent directories. Disable only `spec-as-source` through commented config rules, like the template default. `acceptance-test-authoring` is its own skill, not a sub-skill.
+- Install the eleven skills as independent directories. Disable `spec-as-source` and `glossary` through commented config rules, like the template default. `acceptance-test-authoring` is its own skill, not a sub-skill.
 - Seed `glossary/business.md` and `glossary/technical.md` at the repo root with the terms the glossary skill reads.
 
 ## Capabilities

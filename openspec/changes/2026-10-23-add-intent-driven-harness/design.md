@@ -54,6 +54,7 @@ Ported skill and agent files keep upstream wording and structure. Each ported `S
 - `openspec-git-discipline`: the gate table keeps its ordering gates verbatim. Lines that ask the user to commit or merge become checkpoints the pipeline executes, because the user's task-level approval is the explicit ask the skill requires. This resolves the clash with the pipeline's autonomous branch, commit, and merge steps.
 - `openspec-verify-change`: ported under the new name `verify-change` (directory and frontmatter `name:`), because `openspec-verify-change` is a CLI-owned directory name the CLI can regenerate. The stale `generatedBy: "1.14.0"` metadata drops out; the provenance block replaces it. The D10 provenance test is the real clobber detector.
 - `acceptance-test-authoring`: the `stack:` key in `openspec/config.yaml` is a skill-internal convention, not a CLI-parsed key. The references stay; the skill README documents the convention. Cross-references to `spec-as-source` gain a note that the layer is disabled in this harness.
+- `acceptance-test-authoring`: example command paths `.agents/skills/...` become `.claude/skills/...`, because this harness installs skills under `.claude/`.
 
 All prose we author ourselves follows ASD-STE100 per CLAUDE.md. CLAUDE.md exempts quoted text and names; vendored upstream files are the quoted-text case. This keeps upstream diffs meaningful.
 
@@ -62,8 +63,10 @@ All prose we author ourselves follows ASD-STE100 per CLAUDE.md. CLAUDE.md exempt
 Four files in `.claude/agents/`: `adversarial-author.md`, `adversarial-reviewer.md`, `senior-dev.md`, `senior-qa.md`. Frontmatter mapping from OpenCode:
 
 - Add `name:` matching the file stem. Upstream has no name field; Claude Code silently skips a nameless agent file.
-- Keep `description:`.
-- The adversarial pair has upstream `permission: {edit: allow, bash: deny}`. Claude Code has no `permission` field, and an omitted `tools:` means all tools. The pair gets an explicit `tools:` allowlist that omits Bash and Edit. `senior-dev` and `senior-qa` get allowlists that keep Bash and Edit, matching their upstream `bash: allow`.
+- Rewrite the adversarial pair's `description:` into trigger-rich form (house skill style). The senior pair keeps the upstream description byte-verbatim.
+- The adversarial pair gets different `tools:` lists on purpose: the author may research drafts on the web; the reviewer judges the provided draft and reads the repo only.
+- The senior pair carries no `tools:` line on purpose. The default grants all tools, which keeps Bash and Edit and survives harness tool changes.
+- The adversarial pair has upstream `permission: {edit: allow, bash: deny}`. Claude Code has no `permission` field, and an omitted `tools:` means all tools. The pair gets an explicit `tools:` allowlist that omits Bash and Edit.
 - Drop `mode:`. Do not set `permissionMode:`. No model pin; agents inherit the session model, as upstream intends (upstream comments the model line out).
 
 D7's edits add the `grill-me`, `adversarial-author`, and `adversarial-reviewer` references to the pipeline; they exist nowhere today.

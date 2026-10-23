@@ -18,6 +18,6 @@ The repo runs on the intent-driven schema: each change carries proposal, Gherkin
 
 Discipline: the proposal PR merges to `main` first. Implementation merges next. The archive PR runs last. The `openspec-git-discipline` skill and the `feature-pipeline` skill own the gates. Durable decisions live in `adr/`.
 
-Surfaces: eleven skills and four agents under `.claude/`, the `grill-me` questions skill, the `adversarial-authoring` skill with its author and reviewer agents, `verify-change` before each archive, and the glossary under `glossary/`. The `spec-as-source` layer ships installed but disabled.
+Surfaces: eleven ported skills and four agents under `.claude/`, the `grill-me` questions skill, the `adversarial-authoring` skill with its author and reviewer agents, `verify-change` before each archive, and the glossary under `glossary/`. The `spec-as-source` layer ships installed but disabled.
 
 Adopt it for a new repo: copy `openspec/schemas/intent-driven/`, switch `openspec/config.yaml` to `schema: intent-driven`, port the skills and agents from the pinned commit, seed `adr/0001`, and read `openspec/schemas/intent-driven/README.md`.
