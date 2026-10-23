@@ -31,7 +31,9 @@ config, hook, docs) runs:
    numeric eval exists and the search space is large. Use the matching skill
    (`decision-tournament`, `evolutionary-optimization`, `session-reflection`)
    when this session's skill listing offers it; otherwise run the pattern
-   inline. Surface directions that are the user's call (ExitPlanMode).
+   inline. For clarification, use `grill-me`. For the review round, draft with
+   the `adversarial-author` agent and challenge with `adversarial-reviewer`.
+   Surface directions that are the user's call (ExitPlanMode).
 3. **Implement** the corrected plan.
 4. **Review the result** — run it, read the diff, check the gates; fix. At most
    2 refinement rounds, each driven by a new external signal (failing test,
@@ -192,7 +194,13 @@ questions. It doesn't for fixes restoring intended behavior,
 behavior-preserving refactors, docs, dependency bumps, or harness-only changes.
 - Run `/opsx:propose` on the branch and get the user's approval (ExitPlanMode)
   before writing code. `tasks.md` drives Steps 2–8 (tick each task as it
-  lands); `design.md` records the plan review and any tournament outcome.
+  lands); `design.md` records the plan review and any tournament outcome;
+  `adr.md` records the ADR review.
+- **Discipline, first merge**: when the artifacts are green
+  (`openspec validate <change> --type change --strict`), merge the proposal
+  branch to `main` as its own squash-merge PR. Implementation starts only
+  after that merge, on a new branch cut from it, in its own worktree when an
+  agent drives it. The `openspec-git-discipline` skill owns the gates.
 - Let specs accrete per capability as changes touch them; don't back-fill.
 - No `openspec/` yet? Adopt it first as its own change: install the OpenSpec
   CLI (README's link has instructions — a clean clone does not get it for
@@ -302,8 +310,7 @@ and record its outcome in the integration commit.
 
 ## Step 12 — Adversarial review, then fix
 
-- Multi-agent review of the diff (Workflow tool when available, `/code-review`
-  otherwise): correctness, config/infra validity, the guarantees the code claims
+- Multi-agent review of the diff (Workflow tool or the `adversarial-reviewer` agent when available, `/code-review` otherwise): correctness, config/infra validity, the guarantees the code claims
   (standalone, non-destructive, hermetic tests), doc-vs-code consistency, spec
   conformance (every scenario tested, nothing beyond the delta), the gates, and
   entropy (every new component justified by the ASIT pass). Verify each raw
@@ -315,10 +322,13 @@ and record its outcome in the integration commit.
 
 ## Step 13 — Merge and clean up
 
-If Step 1.5 opened a change, archive it (`/opsx:archive`) as the last commit,
-so the mainline gets code and specs together. Merge through the review platform
-(or integrate locally if there is none), squashing where the project allows,
-subject `<type>: <summary> (<review ref>)`. Delete the branch locally and
+If Step 1.5 opened a change, archive it after the implementation merge. Run
+`/opsx:archive` on a small archive branch (`chore/archive-<change>`), then
+merge that branch as its own squash-merge PR, so the mainline gets code and
+specs together. The `openspec-git-discipline` skill owns the gate: archive
+runs on `main` only after the implementation merge is in. Merge through the
+review platform (or integrate locally if there is none), squashing where the
+project allows, subject `<type>: <summary> (<review ref>)`. Delete the branch locally and
 remotely; resync the mainline, pruning stale remote references. Verify: request
 merged, only the mainline remains, suite and gates pass on the merged mainline,
 the shipped command or tool still runs. When the run produces logs, metrics, or
