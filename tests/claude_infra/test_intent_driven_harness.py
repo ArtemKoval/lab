@@ -134,3 +134,23 @@ def test_glossary_lives_where_the_skill_reads_it():
         assert term in business, term
     for term in ("ASIT:", "ADR:", "Council notes:", "Spec delta:", "Supersession:", "Harness:"):
         assert term in technical, term
+
+
+ADOPTION_SKILLS = (
+    "systematic-debugging",
+    "verification-before-completion",
+    "writing-skills",
+)
+UPSTREAM_COMMIT = "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b"
+
+
+def test_adoption_skills_resolve_with_upstream_provenance():
+    for name in ADOPTION_SKILLS:
+        frontmatter = _frontmatter(REPO_ROOT / ".claude" / "skills" / name / "SKILL.md")
+        assert f"name: {name}" in frontmatter, name
+        assert "Use when" in frontmatter, name
+        assert "from: obra/superpowers" in frontmatter, name
+        assert f"commit: {UPSTREAM_COMMIT}" in frontmatter, name
+        assert "license: MIT" in frontmatter, name
+    # The template-pinned tuple stays untouched by the adoption skills.
+    assert not set(ADOPTION_SKILLS) & set(PORTED_SKILLS)

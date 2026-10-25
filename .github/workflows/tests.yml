@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore: ['fde/**', 'llm_ops/**']
+  push:
+    branches: [main]
+    paths-ignore: ['fde/**', 'llm_ops/**']
+
+jobs:
+  suite:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the shared repository venv
+        run: |
+          python -m venv tools/zai_routing_audit/.venv
+          tools/zai_routing_audit/.venv/bin/python -m pip install --upgrade pip
+          tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt
+      - name: Run the root test suite
+        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov-branch --cov-fail-under=100 --cov-config .coveragerc
+      - name: Lint plan_exec
+        run: tools/zai_routing_audit/.venv/bin/ruff check tools/plan_exec

@@ -104,6 +104,21 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 6. **Implement tasks (loop until done or blocked)**
 
+   **plan_exec ledger (long runs).** For a run that can outlive its
+   context, track progress with `tools/plan_exec` (see its README; the
+   gate tools run with the shared zai venv interpreter):
+   - At apply start: `ledger ... init` for this change's tasks file.
+   - Before each task: `brief ... --task X.Y` to a scratch out directory
+     and work from the brief's exact values.
+   - After a task's tests pass: `ledger ... complete --task X.Y --tests
+     "<command>" --result "<result>"`.
+   - When a decision deviates from the artifacts: `ledger ... task-rule
+     --task X.Y --what "..." --why "..." --cost "..."`.
+   - After a compaction: `ledger ... show` and trust it plus `git log`
+     over recollection.
+   - Before review: `package ... --base <merge-base>` and hand the
+     reviewer the printed file.
+
    For each pending task:
    - Show which task is being worked on
    - Make the code changes required

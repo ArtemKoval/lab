@@ -150,3 +150,7 @@ __pycache__/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# plan_exec execution ledgers (per-run scratch)
+.plan_exec/
+.ruff_cache/

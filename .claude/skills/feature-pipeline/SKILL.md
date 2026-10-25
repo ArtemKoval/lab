@@ -33,6 +33,9 @@ config, hook, docs) runs:
    when this session's skill listing offers it; otherwise run the pattern
    inline. For clarification, use `grill-me`. For the review round, draft with
    the `adversarial-author` agent and challenge with `adversarial-reviewer`.
+   Name the model on every agent dispatch when the harness allows it. Give
+   the final whole-diff review to the strongest available model. Judge cost
+   by turn count, not token price.
    Surface directions that are the user's call (ExitPlanMode).
 3. **Implement** the corrected plan.
 4. **Review the result** — run it, read the diff, check the gates; fix. At most
@@ -159,10 +162,10 @@ skill saying "always do X" is a wish; a hook enforces it.
   which owns `settings.json`. A hook reads a JSON event on stdin; exit 2 blocks
   a blockable event (or JSON stdout sets `decision`, `permissionDecision`,
   `updatedInput`, `additionalContext`), exit 0 allows, other codes are
-  non-blocking errors. This repo has adopted no hooks yet
-  (`.claude/settings.json` sets only `outputStyle`); Step 14's `cc_logging`
-  hook is a target design, not a shipped one — confirm what actually exists
-  before relying on it.
+  non-blocking errors. This repo runs one hook: the SessionStart charter
+  (`.claude/hooks/harness-charter.sh`, wired under `hooks` in
+  `.claude/settings.json`). Step 14's `cc_logging` hook is a target design,
+  not a shipped one — confirm what actually exists before relying on it.
 
 For a hook deliverable:
 - Its script is standalone code — Steps 2–3 and the gates apply. Use a
@@ -195,7 +198,10 @@ behavior-preserving refactors, docs, dependency bumps, or harness-only changes.
 - Run `/opsx:propose` on the branch and get the user's approval (ExitPlanMode)
   before writing code. `tasks.md` drives Steps 2–8 (tick each task as it
   lands); `design.md` records the plan review and any tournament outcome;
-  `adr.md` records the ADR review.
+  `adr.md` records the ADR review. Builder check before the proposal PR: one
+  fresh agent reads only the change artifacts and asks a builder's questions.
+  Sort them into answered (in the artifacts), minor (settle and mark), and
+  theirs (one message to the user).
 - **Discipline, first merge**: when the artifacts are green
   (`openspec validate <change> --type change --strict`), merge the proposal
   branch to `main` as its own squash-merge PR. Implementation starts only
@@ -315,7 +321,11 @@ and record its outcome in the integration commit.
   conformance (every scenario tested, nothing beyond the delta), the gates, and
   entropy (every new component justified by the ASIT pass). Verify each raw
   finding with independent skeptics before accepting it.
-- Fix every confirmed finding; skip rejected taste-only ones. Re-run the suite
+- Fix every confirmed finding; skip rejected taste-only ones. Receiving
+  findings: verify each one against the code before you implement it. Push
+  back with technical reasons when a finding is wrong. No performative
+  agreement. Clarify every unclear item before you fix any item. Reply in
+  the review thread, not as a top-level comment. Re-run the suite
   and gates, including former survivors to prove them killed; commit and
   publish the fixes before merging.
 - Check the working copy for residue; restore any file a review agent touched.
@@ -329,7 +339,10 @@ specs together. The `openspec-git-discipline` skill owns the gate: archive
 runs on `main` only after the implementation merge is in. Merge through the
 review platform (or integrate locally if there is none), squashing where the
 project allows, subject `<type>: <summary> (<review ref>)`. Delete the branch locally and
-remotely; resync the mainline, pruning stale remote references. Verify: request
+remotely; resync the mainline, pruning stale remote references. Destroy work
+only after the user types discard. Remove only worktrees this pipeline
+created; on a removal refusal, show the user the file list first and never
+force; leave worktrees other tools created in place. Verify: request
 merged, only the mainline remains, suite and gates pass on the merged mainline,
 the shipped command or tool still runs. When the run produces logs, metrics, or
 observations that later work can use, open a handover issue. Use the `handover`
@@ -342,11 +355,11 @@ dependencies, deliberate follow-ups).
 
 Each run is one turn of a loop that improves the harness (Claude Code, skills,
 tools, hooks, permissions) from a mechanical signal (logs) and a narrative one
-(reflection). None of this step's tooling is adopted in this repo yet — no
-`hooks` key in `.claude/settings.json`, no log-analysis tool, no reflection
-skill. Treat the sub-steps below as the target design: skip each one until its
-tooling exists, and adopt it via Step 8, as its own change, before relying on
-it.
+(reflection). No log-analysis tool or reflection skill is adopted in this repo
+yet; the SessionStart charter hook exists (Step 0.6), the rest of this step's
+tooling does not. Treat the sub-steps below as the target design: skip each one
+until its tooling exists, and adopt it via Step 8, as its own change, before
+relying on it.
 - **Log** — once adopted, a `cc_logging` hook (or equivalent) records every
   tool call and run boundary to a local, uncommitted log; it always exits 0
   and redacts secrets at write time, so it can't break a session or leak one.
