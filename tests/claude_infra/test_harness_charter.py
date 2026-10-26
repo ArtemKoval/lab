@@ -144,3 +144,12 @@ def test_charter_stays_within_the_line_bound():
 def test_drift_pins_appear_in_both_charter_and_skill(pin):
     assert pin in CHARTER.read_text(encoding="utf-8"), pin
     assert pin in PIPELINE_SKILL.read_text(encoding="utf-8"), pin
+
+
+def test_charter_holds_no_stray_control_characters():
+    """The hook escapes LF, CR, and TAB only; strict JSON breaks on any
+    other C0 byte, so the charter itself must not carry one."""
+    text = CHARTER.read_text(encoding="utf-8")
+    allowed = {"\n", "\r", "\t"}
+    bad = sorted({ch for ch in text if ord(ch) < 32 and ch not in allowed})
+    assert not bad, [hex(ord(ch)) for ch in bad]

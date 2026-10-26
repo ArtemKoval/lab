@@ -118,7 +118,11 @@ def test_discipline_gates_are_documented():
 
 
 def test_adr_seeds_exist_and_supersede_nothing():
-    for name in ("0001-add-intent-driven-harness.md", "0002-claude-code-single-harness.md"):
+    for name in (
+        "0001-add-intent-driven-harness.md",
+        "0002-claude-code-single-harness.md",
+        "0003-adopt-superpowers-execution-mechanics.md",
+    ):
         text = _read("adr", name)
         assert "- Status: accepted" in text, name
         assert not any(

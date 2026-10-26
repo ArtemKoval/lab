@@ -3,7 +3,6 @@ and the default scratch directory."""
 
 import json
 
-from plan_exec import ledger
 from plan_exec.cli import main
 
 
@@ -318,3 +317,56 @@ def test_non_json_init_prints_the_path_exactly(tmp_path, capsys):
     out = tmp_path / "led"
     assert main(["ledger", "--plan", str(plan), "--dir", str(out), "init"]) == 0
     assert capsys.readouterr().out == f"{out / 'progress.md'}\n"
+
+
+def test_init_with_a_dir_that_is_a_file_exits_two(tmp_path, capsys):
+    plan = _plan(tmp_path)
+    blocker = tmp_path / "led"
+    blocker.write_text("not a directory\n", encoding="utf-8")
+    code = main(["--json", "ledger", "--plan", str(plan), "--dir", str(blocker), "init"])
+    assert code == 2
+    data = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert data["error"].startswith("cannot write ledger")
+
+
+def test_append_to_a_readonly_ledger_exits_two(tmp_path, capsys):
+    import os
+    import stat
+
+    if os.geteuid() == 0:
+        import pytest
+
+        pytest.skip("root ignores file modes")
+    plan = _plan(tmp_path)
+    out = tmp_path / "led"
+    main(["ledger", "--plan", str(plan), "--dir", str(out), "init"])
+    path = out / "progress.md"
+    path.chmod(stat.S_IRUSR)
+    try:
+        code = main(
+            [
+                "--json", "ledger", "--plan", str(plan), "--dir", str(out),
+                "complete", "--task", "1", "--tests", "t", "--result", "r",
+            ]
+        )
+    finally:
+        path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    assert code == 2
+    data = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert data["error"].startswith("cannot write ledger")
+
+
+def test_append_to_a_foreign_ledger_refuses(tmp_path, capsys):
+    plan = _plan(tmp_path, "plan.md")
+    other = _plan(tmp_path, "other.md")
+    out = tmp_path / "led"
+    main(["ledger", "--plan", str(plan), "--dir", str(out), "init"])
+    code = main(
+        [
+            "--json", "ledger", "--plan", str(other), "--dir", str(out),
+            "complete", "--task", "1", "--tests", "t", "--result", "r",
+        ]
+    )
+    assert code == 2
+    assert "belongs to" in json.loads(capsys.readouterr().out.splitlines()[-1])["error"]
+

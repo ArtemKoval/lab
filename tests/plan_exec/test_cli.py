@@ -5,7 +5,6 @@ string literal must not still match a substring check."""
 import re
 
 import pytest
-
 from plan_exec.cli import _build_parser
 
 MAIN_DESCRIPTION = "Task briefs, review packages, and execution ledgers for plan runs."
@@ -146,3 +145,27 @@ def test_path_typed_options_parse_to_path_objects():
     assert isinstance(args.out_dir, pathlib.Path)
     args = _build_parser().parse_args(["ledger", "--plan", "p", "show"])
     assert args.out_dir is None
+
+
+def test_json_after_the_subcommand_is_rejected():
+    with pytest.raises(SystemExit) as excinfo:
+        _build_parser().parse_args(["brief", "--json", "--plan", "p", "--task", "1", "--out", "o"])
+    assert excinfo.value.code == 2
+
+
+def test_abbreviated_flags_are_rejected():
+    with pytest.raises(SystemExit) as excinfo:
+        _build_parser().parse_args(["--js", "brief", "--plan", "p", "--task", "1", "--out", "o"])
+    assert excinfo.value.code == 2
+    with pytest.raises(SystemExit) as excinfo:
+        _build_parser().parse_args(["brief", "--ta", "1", "--plan", "p", "--out", "o"])
+    assert excinfo.value.code == 2
+
+
+def test_abbreviations_rejected_on_every_subparser():
+    with pytest.raises(SystemExit) as excinfo:
+        _build_parser().parse_args(["package", "--ba", "x", "--repo", "r", "--out", "o"])
+    assert excinfo.value.code == 2
+    with pytest.raises(SystemExit) as excinfo:
+        _build_parser().parse_args(["ledger", "--pla", "p", "init"])
+    assert excinfo.value.code == 2

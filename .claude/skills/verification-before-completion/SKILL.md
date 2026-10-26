@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Use when you want to claim that work is complete, fixed, or passing, before you commit, push, or open a pull request, or before you trust an agent success report - run the proof command fresh, read its full output, and state the claim only with evidence.
+description: "Use when you want to claim that work is complete, fixed, or passing, before you commit, push, or open a pull request, or before you trust an agent success report."
 metadata:
   ported:
     from: obra/superpowers
@@ -12,11 +12,13 @@ metadata:
 
 Use the repository's own test, lint, and build commands. Run them yourself. An earlier run is not evidence.
 
-## Principle
+## The Iron Law
 
-Evidence comes before claims. Always.
+```
+NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
+```
 
-**No completion claim without fresh verification evidence.** If you did not run the proof command in the current session, you cannot claim that it passes.
+Evidence comes before claims. Always. If you did not run the proof command in this reply, you cannot claim that it passes.
 
 A breach of the letter of this rule is a breach of its spirit.
 

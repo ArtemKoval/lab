@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: "Use when a test fails, a build breaks, production code gives an unexpected result, or you plan a fix before you know the cause: find the root cause first, then fix it with the four-phase process."
+description: "Use when a test fails, a build breaks, production code gives an unexpected result, a fix did not fix it, or you plan a fix before you know the cause."
 metadata:
   ported:
     from: obra/superpowers
@@ -207,7 +207,8 @@ But 95% of the "no root cause" results come from an incomplete investigation. Re
 
 ## Further reading
 
-These techniques are part of this skill's method:
+Three techniques from the upstream source of this skill support its
+method. This repo ports the summary only, not the upstream files:
 
 - `root-cause-tracing` — trace a bug backward through the call stack to the first trigger. Fix at that trigger.
 - `defense-in-depth` — after you find the root cause, examine the data at every layer that it crosses. One examination point is not enough, because other code paths can miss it.

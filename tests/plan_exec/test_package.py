@@ -7,7 +7,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from plan_exec.cli import main
 
 GIT_IDENTITY = ["-c", "user.email=plan-exec@example.test", "-c", "user.name=plan-exec"]
@@ -120,7 +119,7 @@ def test_unknown_revision_error_carries_the_git_verbatim(repo, tmp_path, capsys)
     code = main(["--json", "package", "--repo", str(root), "--base", "nosuchref", "--head", second, "--out", str(out)])
     assert code == 2
     data = json.loads(capsys.readouterr().out)
-    assert "git rev-parse" in data["error"]
+    assert "git rev-parse --verify nosuchref" in data["error"]
     assert "^{commit}" in data["error"]
 
 
@@ -198,3 +197,13 @@ def test_wide_context_merges_distant_hunks(tmp_path):
     headers = [line for line in diff.splitlines() if line.startswith("@@ ")]
     assert len(headers) == 1
     assert "line 1 changed" in diff and "line 12 changed" in diff
+
+
+def test_out_dir_that_is_a_file_exits_two(repo, tmp_path, capsys):
+    root, first, second = repo
+    blocker = tmp_path / "out"
+    blocker.write_text("not a directory\n", encoding="utf-8")
+    code = main(["--json", "package", "--repo", str(root), "--base", first, "--head", second, "--out", str(blocker)])
+    assert code == 2
+    data = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert data["error"].startswith("cannot write package")

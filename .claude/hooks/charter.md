@@ -18,10 +18,10 @@ these gates. Durable decisions go to adr/ as immutable records.
 ## Quality gates
 
 Run the full hermetic suite before you claim a green run. The gates are
-coverage, complexity, and mutation: 100 percent line and branch coverage
-of new code, cyclomatic complexity of 10 or lower, and a mutation score
-of 95 percent or higher on changed code. Mutate an out-of-tree copy,
-never the repository. Nothing proceeds on red.
+coverage, complexity, and mutation. Coverage means 100 percent line and
+branch coverage of new and changed code. Complexity stays at 10 or lower.
+The mutation score stays at 95 percent or higher on changed code. Mutate
+an out-of-tree copy, never the repository. Nothing proceeds on red.
 
 ## Skills first
 
@@ -35,8 +35,8 @@ allows it. Give the final whole-diff review to the strongest model.
 
 ## Review and merge discipline
 
-Verify each review finding before you implement it. Push back with
-technical reasons when a finding is wrong. No performative agreement.
+Verify each review finding before you implement it. Answer a wrong
+finding with technical reasons. No performative agreement.
 Clarify every unclear item before you fix any item. Reply in the review
 thread, not as a top-level comment. Destroy work only after the user
 types discard. Remove only worktrees this pipeline created.

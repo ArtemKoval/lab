@@ -320,13 +320,14 @@ and record its outcome in the integration commit.
   (standalone, non-destructive, hermetic tests), doc-vs-code consistency, spec
   conformance (every scenario tested, nothing beyond the delta), the gates, and
   entropy (every new component justified by the ASIT pass). Verify each raw
-  finding with independent skeptics before accepting it.
-- Fix every confirmed finding; skip rejected taste-only ones. Receiving
-  findings: verify each one against the code before you implement it. Push
-  back with technical reasons when a finding is wrong. No performative
-  agreement. Clarify every unclear item before you fix any item. Reply in
-  the review thread, not as a top-level comment. Re-run the suite
-  and gates, including former survivors to prove them killed; commit and
+  finding with independent skeptics before accepting it. The model-selection
+  rule of the inner loop applies to every review dispatch.
+- Fix every confirmed finding. Skip rejected taste-only ones. For each
+  finding: verify it against the code before you implement it. Answer a
+  wrong finding with technical reasons. No performative agreement. Clarify
+  every unclear item before you fix any item. Reply in the review thread,
+  not as a top-level comment. Re-run the suite
+  and gates, including former survivors to prove them killed, then commit and
   publish the fixes before merging.
 - Check the working copy for residue; restore any file a review agent touched.
 
@@ -339,10 +340,11 @@ specs together. The `openspec-git-discipline` skill owns the gate: archive
 runs on `main` only after the implementation merge is in. Merge through the
 review platform (or integrate locally if there is none), squashing where the
 project allows, subject `<type>: <summary> (<review ref>)`. Delete the branch locally and
-remotely; resync the mainline, pruning stale remote references. Destroy work
-only after the user types discard. Remove only worktrees this pipeline
-created; on a removal refusal, show the user the file list first and never
-force; leave worktrees other tools created in place. Verify: request
+remotely, then resync the mainline and prune stale remote references. Deleting
+a merged branch and its worktree is cleanup, not destruction. Destroy other
+work only after the user types discard. Remove only worktrees this pipeline
+created. On a removal refusal, show the user the file list first and never
+force. Leave worktrees other tools created in place. Verify: request
 merged, only the mainline remains, suite and gates pass on the merged mainline,
 the shipped command or tool still runs. When the run produces logs, metrics, or
 observations that later work can use, open a handover issue. Use the `handover`

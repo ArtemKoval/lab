@@ -2,7 +2,7 @@
 
 A stdlib CLI for long plan-execution runs. It extracts one task as a
 brief, packages a commit range for review, and keeps an append-only
-ledger that survives compaction. The OpenSpec apply flow uses it; see
+ledger that survives compaction. The OpenSpec apply flow uses it. See
 the plan_exec section of the `openspec-apply-change` skill.
 
 ## Why
@@ -11,20 +11,20 @@ A long apply run keeps progress in conversation memory, and memory does
 not survive compaction. The ledger is the record that does. The brief
 keeps each task's exact values out of a dispatch prompt that would
 otherwise carry the whole plan. The package hands a reviewer one file
-instead of a diff pasted into context.
+instead of a diff pasted into the reviewer's context.
 
 ## Commands
 
 The gate tools come from the shared repository venv. The unit is
-`zai-routing-audit-python-deps` in `tools/project_setup/registry.json`;
-its interpreter runs every gate in this repository, including this one.
+`zai-routing-audit-python-deps` in `tools/project_setup/registry.json`.
+Its interpreter runs every gate in this repository, including this one.
 
 ```bash
 VENV=tools/zai_routing_audit/.venv/bin/python
 ```
 
 Extract a task brief (accepts `N` and dotted `X.Y`; reads section plans
-and OpenSpec checkbox plans):
+and OpenSpec checkbox plans; fenced blocks protect their content):
 
 ```bash
 $VENV -m plan_exec brief --plan openspec/changes/<id>/tasks.md --task 2.3 --out .plan_exec/<id>
@@ -46,11 +46,19 @@ $VENV -m plan_exec ledger --plan <plan.md> --dir .plan_exec/<id> task-rule --tas
 $VENV -m plan_exec ledger --plan <plan.md> --dir .plan_exec/<id> show
 ```
 
-Every command takes a global `--json` for machine-readable output.
-Exit code 0 means success; exit 2 means an operational failure (unknown
-task, missing plan, not a repository, base equals head, foreign ledger
-identity). The command writes only under the given `--out` directory
-(or the default ledger directory below) and never deletes.
+Put the global `--json` flag before the subcommand for machine-readable
+output:
+
+```bash
+$VENV -m plan_exec --json ledger --plan <plan.md> --dir .plan_exec/<id> show
+```
+
+Exit code 0 means success. Exit code 2 means an operational failure, for
+example an unknown task, a missing plan, a non-repository target, base
+equal to head, a foreign ledger identity, an unknown git revision, a
+missing action flag, or an output path that cannot be written. The
+command writes only under the given `--out` directory (or the default
+ledger directory below) and never deletes.
 
 ## The ledger
 
@@ -59,9 +67,11 @@ identity). The command writes only under the given `--out` directory
 ledger sits at `<repo-root>/.plan_exec/<plan file name>/progress.md`,
 which is git-ignored: the ledger is per-run scratch. The durable record
 of a change stays in its `tasks.md` ticks and in git history. Run
-`show` after a compaction; trust the ledger and `git log` over
-recollection. One agent works one plan, so concurrent appends are out
-of scope.
+`show` after a compaction. Trust the ledger and `git log` over
+recollection. When the default directory already holds another plan's
+ledger, pass `--dir .plan_exec/<change-id>`. One agent works one plan,
+so concurrent appends are out of scope. Appends verify the identity
+value, so an append through a wrong directory refuses.
 
 ## Tests and gates
 
@@ -92,17 +102,20 @@ cd /tmp/pe_mut/pe
 The unmutated copy passes first (`PYTHONPATH=/tmp/pe_mut/pe $VENV -m
 pytest tests/`). Each survivor is a missing assertion: add a test until
 it dies, or exclude it with a written reason. Target: 95 percent or
-higher.
+higher. `__main__.py` carries a `do_not_mutate_patterns` exclusion: the
+two-line shim holds no logic, the same reason the coverage omit lists
+it.
 
 ### Equivalent-mutant classes (written reasons)
 
-The run settles at 31 survivors, all in measured equivalence classes.
-No tool config is loosened; every mutant keeps its name here.
+The final run settles at 36 survivors of 725 mutants, a score of 95.0
+percent. Every survivor sits in a measured equivalence class. No tool
+config is loosened; every mutant keeps its name here.
 
-- Encoding kwargs set to `None` or `"UTF-8"`, or removed (16 mutants:
+- Encoding kwargs set to `None` or `"UTF-8"`, or removed (17 mutants:
   `x_write_package__mutmut_68,70,89`, `x__read_ledger__mutmut_4,6`,
-  `x_init__mutmut_21,23,28`, `x__append__mutmut_8,10,14`,
-  `x_write_brief__mutmut_2,4,25,27,29`): the repository and the CI image
+  `x_init__mutmut_21,23,28`, `x__append__mutmut_13,15,17,21`,
+  `x_write_brief__mutmut_2,4,27,29,31`): the repository and the CI image
   pin UTF-8 locales. `None` resolves to UTF-8 under them, and `"UTF-8"`
   names the same codec.
 - `subprocess.run(check=False)` set to `None` or removed (4 mutants:
@@ -115,14 +128,6 @@ No tool config is loosened; every mutant keeps its name here.
 - `rstrip()` replaced with `lstrip()` on git output (3 mutants:
   `x_write_package__mutmut_79,83,87`): `git log` and `git diff` output
   carries no leading or trailing whitespace.
-- `--verify` dropped from `git rev-parse` (1 mutant:
-  `package.x__resolve__mutmut_7`): both forms reject the invalid and
-  ambiguous references the tests use, because the range suffix
-  `^{commit}` pins the object type either way.
-- The failure-message join separator mutated (1 mutant:
-  `package.x__git__mutmut_22`): the message stays truthful (every
-  argument survives); its exact stderr text varies across git versions,
-  so an exact match would pin the wrong thing.
 - `_repo_root`'s `and` swapped to `or` (1 mutant:
   `ledger.x__repo_root__mutmut_19`): the branches differ only when git
   fails with non-empty standard output, which real git does not produce.
@@ -130,10 +135,17 @@ No tool config is loosened; every mutant keeps its name here.
   `ledger.x_ledger_path__mutmut_13,15`): same case-insensitive macOS
   filesystem as above.
 - The `--dir` default `None` removed (1 mutant:
-  `cli.x__build_parser__mutmut_130`): argparse's own default is `None`.
+  `cli.x__build_parser__mutmut_142`): argparse's own default is `None`.
+- `allow_abbrev=False` set to `None` (4 mutants:
+  `cli.x__build_parser__mutmut_3,36,73,118`): `None` is falsy like
+  `False`, so the abbreviation rejection behaves identically.
+- The fence-state initializer `False` set to `None` (2 mutants:
+  `brief.x__section_body__mutmut_2`, `brief.x__checkbox_body__mutmut_2`):
+  both values are falsy, and `_in_fence` normalizes the state on the
+  next fence marker.
 
 ## Status
 
 Windows support for the SessionStart hook this tool accompanies is
 out of scope for now (repo development is macOS; CI is ubuntu). TBD if
-the harness ever grows a Windows surface.
+the harness ever adds a Windows surface.

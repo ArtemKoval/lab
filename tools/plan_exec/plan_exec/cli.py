@@ -12,6 +12,7 @@ from plan_exec import package as package_mod
 def _build_parser():
     parser = argparse.ArgumentParser(
         prog="plan_exec",
+        allow_abbrev=False,
         description=(
             "Task briefs, review packages, and execution ledgers for plan runs."
         ),
@@ -21,18 +22,24 @@ def _build_parser():
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_brief = sub.add_parser("brief", help="extract one task as a brief")
+    p_brief = sub.add_parser(
+        "brief", allow_abbrev=False, help="extract one task as a brief"
+    )
     p_brief.add_argument("--plan", required=True, type=Path)
     p_brief.add_argument("--task", required=True)
     p_brief.add_argument("--out", required=True, type=Path)
 
-    p_pkg = sub.add_parser("package", help="package a commit range for review")
+    p_pkg = sub.add_parser(
+        "package", allow_abbrev=False, help="package a commit range for review"
+    )
     p_pkg.add_argument("--repo", required=True, type=Path)
     p_pkg.add_argument("--base", required=True)
     p_pkg.add_argument("--head", default="HEAD")
     p_pkg.add_argument("--out", required=True, type=Path)
 
-    p_led = sub.add_parser("ledger", help="append-only execution ledger")
+    p_led = sub.add_parser(
+        "ledger", allow_abbrev=False, help="append-only execution ledger"
+    )
     p_led.add_argument("--plan", required=True, type=Path)
     p_led.add_argument("--dir", dest="out_dir", default=None, type=Path)
     p_led.add_argument("action", choices=["init", "complete", "task-rule", "show"])
@@ -70,7 +77,7 @@ def _run_ledger(args):
         path = ledger_mod.init(args.plan, args.out_dir)
         _emit(args, {"path": str(path)})
     elif args.action == "complete":
-        if not args.task_id or args.tests is None or args.result is None:
+        if not args.task_id or not args.tests or not args.result:
             raise ledger_mod.LedgerError(
                 "complete needs --task, --tests, and --result"
             )

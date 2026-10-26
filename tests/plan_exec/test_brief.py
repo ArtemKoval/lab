@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from plan_exec import brief
 from plan_exec.cli import main
 
@@ -245,3 +244,107 @@ def test_non_numeric_task_id_message_is_pinned():
     with pytest.raises(brief.TaskNotFound) as excinfo:
         brief._task_key("one")
     assert str(excinfo.value) == "non-numeric task id: 'one'"
+
+
+FENCED_SECTION_PLAN = (
+    "### Task 4: Shell steps\n"
+    "\n"
+    "Run this:\n"
+    "\n"
+    "```sh\n"
+    "# not a heading\n"
+    "deploy --force\n"
+    "```\n"
+    "\n"
+    "#### A deeper sub-heading stays\n"
+    "\n"
+    "Done.\n"
+)
+
+
+def test_fenced_comment_does_not_end_a_section_body(tmp_path):
+    code, out = _brief(tmp_path, FENCED_SECTION_PLAN, "4")
+    assert code == 0
+    text = (out / "task-4-brief.md").read_text(encoding="utf-8")
+    assert "# not a heading" in text
+    assert "deploy --force" in text
+    assert "A deeper sub-heading stays" in text
+    assert "Done." in text
+
+
+FENCED_CHECKBOX_PLAN = (
+    "- [ ] 6.1 Fenced body\n"
+    "```sh\n"
+    "# literal task text below\n"
+    "- [ ] 9.9 not a task\n"
+    "```\n"
+    "after the fence\n"
+)
+
+
+def test_fenced_checkbox_text_does_not_end_a_body(tmp_path):
+    code, out = _brief(tmp_path, FENCED_CHECKBOX_PLAN, "6.1")
+    assert code == 0
+    text = (out / "task-6.1-brief.md").read_text(encoding="utf-8")
+    assert "- [ ] 9.9 not a task" in text
+    # The dedented line after the closing fence ends the body, per the
+    # documented dedent rule.
+    assert "after the fence" not in text
+
+
+def test_out_dir_that_is_a_file_exits_two(tmp_path, capsys):
+    plan = tmp_path / "tasks.md"
+    plan.write_text(CHECKBOX_PLAN, encoding="utf-8")
+    blocker = tmp_path / "out"
+    blocker.write_text("not a directory\n", encoding="utf-8")
+    code = main(["--json", "brief", "--plan", str(plan), "--task", "1.1", "--out", str(blocker)])
+    assert code == 2
+    payload = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert payload["error"].startswith("cannot write brief")
+
+
+TILDE_SECTION_PLAN = (
+    "### Task 5: Tilde fence\n"
+    "\n"
+    "~~~sh\n"
+    "# still not a heading\n"
+    "~~~\n"
+)
+
+
+def test_tilde_fences_protect_the_body_too(tmp_path):
+    code, out = _brief(tmp_path, TILDE_SECTION_PLAN, "5")
+    assert code == 0
+    text = (out / "task-5-brief.md").read_text(encoding="utf-8")
+    assert "# still not a heading" in text
+
+
+def test_blank_line_inside_a_fence_keeps_the_fence_alive(tmp_path):
+    plan = (
+        "- [ ] 7.1 Fenced with blanks\n"
+        "```sh\n"
+        "echo hi\n"
+        "\n"
+        "# heading-ish after a blank\n"
+        "- [ ] 8.8 not a task\n"
+        "```\n"
+    )
+    code, out = _brief(tmp_path, plan, "7.1")
+    assert code == 0
+    text = (out / "task-7.1-brief.md").read_text(encoding="utf-8")
+    assert "# heading-ish after a blank" in text
+    assert "- [ ] 8.8 not a task" in text
+
+
+def test_comment_after_content_inside_a_fence_stays(tmp_path):
+    plan = (
+        "### Task 9: Echo then comment\n"
+        "\n"
+        "```sh\n"
+        "echo hi\n"
+        "# heading-ish after content\n"
+        "```\n"
+    )
+    code, out = _brief(tmp_path, plan, "9")
+    assert code == 0
+    assert "# heading-ish after content" in (out / "task-9-brief.md").read_text(encoding="utf-8")

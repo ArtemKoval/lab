@@ -12,6 +12,12 @@ metadata:
 
 ## Overview
 
+Create a skill when a technique was not obvious, when you will reference
+it again, and when the pattern reaches past one project. Do not create
+one for a one-off solution, for a practice that other documents already
+cover, or for a mechanical constraint that a regex or a validation rule
+enforces.
+
 You write a skill with test-driven development. The product is a document that records a process, not code.
 
 The cycle:
@@ -83,7 +89,7 @@ This step is "watch the test fail". You must see the natural behavior before you
 
 ## Refactor: Close the Loopholes
 
-The agent found a new rationalization? Add an explicit counter. Re-run the scenario until no new rationalization appears.
+When the agent finds a new rationalization, add an explicit counter. Re-run the scenario until no new rationalization appears.
 
 ## Skill Types and Their Tests
 

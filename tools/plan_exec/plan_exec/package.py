@@ -35,17 +35,20 @@ def write_package(repo, base, head, out_dir):
     stat_summary = _git(repo, "diff", "--stat", f"{base_sha}..{head_sha}")
     diff = _git(repo, "diff", "-U10", f"{base_sha}..{head_sha}")
     out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / f"review-package-{base_sha[:7]}-{head_sha[:7]}.md"
-    target.write_text(
-        "# Review package "
-        f"{base_sha[:7]}..{head_sha[:7]}\n\n"
-        "## Commits\n\n```\n"
-        f"{log.rstrip()}\n```\n\n"
-        "## Stat\n\n```\n"
-        f"{stat_summary.rstrip()}\n```\n\n"
-        "## Diff\n\n```diff\n"
-        f"{diff.rstrip()}\n```\n",
-        encoding="utf-8",
-    )
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            "# Review package "
+            f"{base_sha[:7]}..{head_sha[:7]}\n\n"
+            "## Commits\n\n```\n"
+            f"{log.rstrip()}\n```\n\n"
+            "## Stat\n\n```\n"
+            f"{stat_summary.rstrip()}\n```\n\n"
+            "## Diff\n\n```diff\n"
+            f"{diff.rstrip()}\n```\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise PackageError(f"cannot write package {target}: {exc}") from exc
     return target

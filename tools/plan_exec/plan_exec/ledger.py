@@ -58,16 +58,27 @@ def init(plan_file, out_dir):
             f"ledger at {path} belongs to {lines[0][len(IDENTITY_PREFIX):]!r},"
             f" not {str(plan_abs)!r}"
         )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(_identity(plan_abs) + "\n", encoding="utf-8")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_identity(plan_abs) + "\n", encoding="utf-8")
+    except OSError as exc:
+        raise LedgerError(f"cannot write ledger {path}: {exc}") from exc
     return path
 
 
 def _append(plan_file, out_dir, line):
     plan_abs, path = ledger_path(plan_file, out_dir)
-    _read_ledger(path)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(line + "\n")
+    lines = _read_ledger(path)
+    if lines[0] != _identity(plan_abs):
+        raise LedgerError(
+            f"ledger at {path} belongs to {lines[0][len(IDENTITY_PREFIX):]!r},"
+            f" not {str(plan_abs)!r}"
+        )
+    try:
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError as exc:
+        raise LedgerError(f"cannot write ledger {path}: {exc}") from exc
     return path
 
 

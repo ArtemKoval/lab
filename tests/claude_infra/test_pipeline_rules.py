@@ -15,8 +15,9 @@ def _collapsed(path):
 
 def test_review_reception_rules_present():
     text = _collapsed(PIPELINE)
-    assert "verify each one against the code before you implement it" in text
+    assert "verify it against the code before you implement it" in text
     assert "No performative agreement" in text
+    assert "Answer a wrong finding with technical reasons" in text
     assert "Clarify every unclear item before you fix any item" in text
     assert "Reply in the review thread, not as a top-level comment" in text
 
@@ -29,14 +30,15 @@ def test_model_selection_rule_present():
 
 
 def test_discard_contract_present():
-    assert "Destroy work only after the user types discard" in _collapsed(PIPELINE)
+    assert "Destroy other work only after the user types discard" in _collapsed(PIPELINE)
+    assert "Deleting a merged branch and its worktree is cleanup, not destruction" in _collapsed(PIPELINE)
 
 
 def test_worktree_provenance_rule_present():
     text = _collapsed(PIPELINE)
     assert "Remove only worktrees this pipeline created" in text
     assert "show the user the file list first and never force" in text
-    assert "leave worktrees other tools created in place" in text
+    assert "Leave worktrees other tools created in place" in text
 
 
 def test_builder_check_present():
@@ -60,3 +62,8 @@ def test_apply_skill_carries_the_plan_exec_section():
     assert "ledger ... show" in text
     assert "package ... --base" in text
     assert "trust it plus `git log` over recollection" in text
+
+
+def test_gitignore_keeps_the_plan_exec_ledger_out_of_version_control():
+    gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert ".plan_exec/" in gitignore
