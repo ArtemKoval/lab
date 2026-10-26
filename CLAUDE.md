@@ -17,7 +17,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 
 ## Specs
 - Behavior specs: `openspec/specs/` (source of truth). In-flight changes: `openspec/changes/`. Active schema: `intent-driven` (`openspec/schemas/intent-driven/`).
-- Harness surfaces: skills in `.claude/skills/`, agents in `.claude/agents/` (ported from the intent-driven template at `b5bda460a2180a55fc508fdedc4ef058d95355db`). Glossary terms: `glossary/`. Upstream template: `github.com/intent-driven-dev/intent-driven-template`.
+- Harness surfaces: skills in `.claude/skills/`, agents in `.claude/agents/` (ported from the intent-driven template at `b5bda460a2180a55fc508fdedc4ef058d95355db`). The charter hook `.claude/hooks/harness-charter.sh` injects the harness charter at every session start, clear, and compaction (wired under `hooks` in `.claude/settings.json`). Glossary terms: `glossary/`. Upstream template: `github.com/intent-driven-dev/intent-driven-template`.
 - To make an OpenSpec change, run `/opsx:propose`. To build it, run `/opsx:apply`. To archive it, run `/opsx:archive`.
 
 ## Setup
@@ -29,4 +29,5 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 - `fde`: an Electron chat desktop app for OpenRouter with an embedded Python backend. The README at `fde/README.md` and the `fde-app` skill give the commands.
 - `tools/zai_routing_audit`: a stdlib CLI that audits the z.ai GLM model routing behind Claude Code. The README at `tools/zai_routing_audit/README.md` and the `zai-routing-audit` skill give the commands. Its venv interpreter runs the root test suite: `tools/zai_routing_audit/.venv/bin/python -m pytest`.
 - `tools/devcontainer_init`: a stdlib CLI that scaffolds a devcontainer with the latest Ubuntu LTS, git, node, and uv configured for VS Code. The README at `tools/devcontainer_init/README.md` and the `devcontainer-init` skill give the commands. Its e2e build check runs only with `DEVCONTAINER_INIT_E2E=1` and a running Docker daemon.
+- `tools/plan_exec`: a stdlib CLI that extracts task briefs, packages review diffs, and keeps append-only execution ledgers for long apply runs. The README at `tools/plan_exec/README.md` and the plan_exec section of the `openspec-apply-change` skill give the commands. Its gates run with the shared zai venv interpreter.
 - `notebooks`: standalone teaching notebooks. Tests in `tests/notebooks/` read each notebook as JSON and run its cells against stubs. They use the standard library only. Notebooks that go to a public course repo must pass that repo's checklist: cleared outputs, no secrets, no emojis.

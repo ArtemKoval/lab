@@ -118,7 +118,11 @@ def test_discipline_gates_are_documented():
 
 
 def test_adr_seeds_exist_and_supersede_nothing():
-    for name in ("0001-add-intent-driven-harness.md", "0002-claude-code-single-harness.md"):
+    for name in (
+        "0001-add-intent-driven-harness.md",
+        "0002-claude-code-single-harness.md",
+        "0003-adopt-superpowers-execution-mechanics.md",
+    ):
         text = _read("adr", name)
         assert "- Status: accepted" in text, name
         assert not any(
@@ -134,3 +138,23 @@ def test_glossary_lives_where_the_skill_reads_it():
         assert term in business, term
     for term in ("ASIT:", "ADR:", "Council notes:", "Spec delta:", "Supersession:", "Harness:"):
         assert term in technical, term
+
+
+ADOPTION_SKILLS = (
+    "systematic-debugging",
+    "verification-before-completion",
+    "writing-skills",
+)
+UPSTREAM_COMMIT = "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b"
+
+
+def test_adoption_skills_resolve_with_upstream_provenance():
+    for name in ADOPTION_SKILLS:
+        frontmatter = _frontmatter(REPO_ROOT / ".claude" / "skills" / name / "SKILL.md")
+        assert f"name: {name}" in frontmatter, name
+        assert "Use when" in frontmatter, name
+        assert "from: obra/superpowers" in frontmatter, name
+        assert f"commit: {UPSTREAM_COMMIT}" in frontmatter, name
+        assert "license: MIT" in frontmatter, name
+    # The template-pinned tuple stays untouched by the adoption skills.
+    assert not set(ADOPTION_SKILLS) & set(PORTED_SKILLS)
