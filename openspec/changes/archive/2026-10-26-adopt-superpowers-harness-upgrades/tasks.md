@@ -46,5 +46,5 @@
 - [x] 7.1 Run the full hermetic suite and the claude_infra contract tests through the repo venv interpreter; both green
 - [x] 7.2 Run the plan_exec gates (coverage floor, ruff, mutation) and record the scores
 - [x] 7.3 Dogfood: run this change's `tasks.md` through `brief`, track the implementation in the `ledger`, package the implementation diff with `package` for review
-- [ ] 7.4 Run the adversarial diff review round on the implementation branch; fix confirmed findings
+- [x] 7.4 Run the adversarial diff review round on the implementation branch; fix confirmed findings
 - [ ] 7.5 Open the handover issue after the merge (template sections, PR link, merged commit, hook runtime, gate scores, secrets removed)
