@@ -117,5 +117,7 @@ def main():
     return evaluate(event, root)
 
 
-if __name__ == "__main__":
+# The -m entry point; the subprocess tests drive it across the process
+# boundary, which the coverage tracer cannot see.
+if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())

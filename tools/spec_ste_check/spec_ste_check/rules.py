@@ -79,7 +79,10 @@ def prose_sentences(text):
         line = _SPAN_RE.sub("CODE", line)
         for piece in _SENTENCE_SPLIT_RE.split(line):
             piece = piece.strip()
-            if piece:
+            # The false branch is defensive: no split input yields an
+            # empty or whitespace-only piece, so the branch stays open
+            # only against future splitter changes.
+            if piece:  # pragma: no branch
                 sentences.append(Sentence(lineno, piece))
     return sentences
 

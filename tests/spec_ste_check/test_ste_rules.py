@@ -44,6 +44,10 @@ class TestProseSentences:
         sentences = rules.prose_sentences("The **gate** fails the suite.")
         assert [s.text for s in sentences] == ["The gate fails the suite."]
 
+    def test_a_leading_letter_x_survives_the_marker_strip(self):
+        sentences = rules.prose_sentences("XHTML rules apply.")
+        assert [s.text for s in sentences] == ["XHTML rules apply."]
+
 
 class TestWordCount:
     def test_a_hyphenated_group_is_one_word(self):
@@ -66,6 +70,9 @@ class TestImperative:
     def test_the_first_word_compares_in_lowercase(self):
         assert rules.is_imperative("Examine the report.") is True
 
+    def test_a_comma_after_the_first_verb_still_counts_as_imperative(self):
+        assert rules.is_imperative("Stop, look, and listen.") is True
+
 
 class TestSentenceCap:
     LONG_IMPERATIVE = (
@@ -79,6 +86,15 @@ class TestSentenceCap:
         "opens."
     )
     SHORT_DESCRIPTIVE = "The gate runs the suite on every pull request."
+    EXACT_IMPERATIVE = (
+        "Run the full suite on a clean clone of the repository and push the "
+        "branch to the remote server today."
+    )
+    EXACT_DESCRIPTIVE = (
+        "The gate on the remote server runs the whole suite on every pull "
+        "request that touches the harness surface before the merge window "
+        "opens today."
+    )
 
     def test_a_22_word_imperative_sentence_is_an_error(self):
         assert rules.word_count(self.LONG_IMPERATIVE) == 22
@@ -96,6 +112,27 @@ class TestSentenceCap:
 
     def test_a_short_descriptive_sentence_is_clean(self):
         assert rules.check_cap(rules.Sentence(1, self.SHORT_DESCRIPTIVE)) is None
+
+    def test_a_20_word_imperative_sentence_is_clean(self):
+        assert rules.word_count(self.EXACT_IMPERATIVE) == 20
+        assert rules.check_cap(rules.Sentence(1, self.EXACT_IMPERATIVE)) is None
+
+    def test_a_25_word_descriptive_sentence_is_clean(self):
+        assert rules.word_count(self.EXACT_DESCRIPTIVE) == 25
+        assert rules.check_cap(rules.Sentence(1, self.EXACT_DESCRIPTIVE)) is None
+
+    def test_the_cap_violation_carries_the_sentence_text(self):
+        violation = rules.check_cap(rules.Sentence(4, self.LONG_IMPERATIVE))
+        assert violation["text"] == self.LONG_IMPERATIVE
+
+
+class TestCheckSentenceCap:
+    def test_an_over_cap_sentence_reports_sentence_length(self):
+        hits = rules.check_sentence(
+            rules.Sentence(3, TestSentenceCap.LONG_IMPERATIVE)
+        )
+        assert [v["rule"] for v in hits] == ["sentence-length"]
+        assert hits[0]["line"] == 3
 
 
 class TestSemicolon:
@@ -149,6 +186,18 @@ class TestBannedWords:
             rules.Sentence(1, "Network checks stay opt-in.")
         ) == []
 
+    def test_a_hit_after_a_skipped_noun_check_is_still_reported(self):
+        hits = rules.check_sentence(
+            rules.Sentence(1, "Examine the check, and then check the logs.")
+        )
+        assert [v["rule"] for v in hits] == ["banned-word"]
+
+    def test_a_hit_after_an_allowlisted_phrase_is_still_reported(self):
+        hits = rules.check_sentence(
+            rules.Sentence(1, "The builder check runs, then check the logs.")
+        )
+        assert [v["rule"] for v in hits] == ["banned-word"]
+
 
 class TestTenses:
     def test_a_progressive_tense_is_an_error(self):
@@ -171,6 +220,11 @@ class TestTenses:
 
 
 class TestCheckText:
+    def test_a_missing_file_name_defaults_to_an_empty_string(self):
+        hits = rules.check_text("Run it; then stop.")
+        assert hits
+        assert all(v["file"] == "" for v in hits)
+
     def test_violations_carry_the_file_name(self):
         hits = rules.check_text("Run it; then stop.", "specs/a.md")
         assert hits
@@ -214,3 +268,12 @@ class TestGaps:
 
     def test_an_empty_sentence_is_not_imperative(self):
         assert rules.is_imperative("") is False
+
+
+class TestSentenceSplitEdges:
+    def test_a_punctuation_gap_becomes_its_own_fragment(self):
+        assert [s.text for s in rules.prose_sentences("A. ? B.")] == [
+            "A.",
+            "?",
+            "B.",
+        ]

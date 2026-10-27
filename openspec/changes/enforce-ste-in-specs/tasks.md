@@ -24,7 +24,7 @@
 ## 4. The durable record and the gates
 
 - [x] 4.1 Write `adr/0004-enforce-ste-in-specs.md` in the house format of `adr/0001`.
-- [ ] 4.2 Run the full suite, the branch-coverage gate, the complexity checker, and the out-of-tree mutation run. Add tests until the mutation score reaches 95 percent on the new code.
+- [x] 4.2 Run the full suite, the branch-coverage gate, the complexity checker, and the out-of-tree mutation run. Add tests until the mutation score reaches 95 percent on the new code.
 - [x] 4.3 Update CLAUDE.md: the tools list gains the checker, and the Specs section names the gate.
 - [x] 4.4 Add the `spec-ste-check` skill with the CLI usage and the report reading.
-- [ ] 4.5 Run `openspec validate enforce-ste-in-specs --type change --strict` before archive.
+- [x] 4.5 Run `openspec validate enforce-ste-in-specs --type change --strict` before archive.
