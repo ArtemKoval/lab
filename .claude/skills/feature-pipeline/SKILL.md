@@ -207,6 +207,10 @@ behavior-preserving refactors, docs, dependency bumps, or harness-only changes.
   branch to `main` as its own squash-merge PR. Implementation starts only
   after that merge, on a new branch cut from it, in its own worktree when an
   agent drives it. The `openspec-git-discipline` skill owns the gates.
+- **Apply follows the merge by default**: the proposal approval authorizes the
+  whole delivery. When the proposal PR merges, start `/opsx:apply` on the new
+  branch without a second user request. The planning-only boundary in the
+  propose workflow yields to this bullet.
 - Let specs accrete per capability as changes touch them; don't back-fill.
 - No `openspec/` yet? Adopt it first as its own change: install the OpenSpec
   CLI (README's link has instructions — a clean clone does not get it for
