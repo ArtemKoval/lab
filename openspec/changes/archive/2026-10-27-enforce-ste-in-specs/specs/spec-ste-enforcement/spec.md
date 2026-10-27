@@ -1,5 +1,9 @@
 # spec-ste-enforcement Specification (Delta)
 
+## Purpose
+
+The mechanical ASD-STE100 gate for spec text. One CLI owns the rules. The pytest gate and the write-time hook enforce them.
+
 ## ADDED Requirements
 
 ### Requirement: The checker reports mechanical STE violations
