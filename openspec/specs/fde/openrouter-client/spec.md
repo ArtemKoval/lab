@@ -55,7 +55,7 @@ The default model choice MUST be `any`. The `any` choice MUST map to the OpenRou
 - **THEN** the request carries `openai/gpt-4o-mini`
 
 ### Requirement: API failures map to distinct error kinds
-The client MUST map failures to error kinds: `auth` for 401, `rate` for 429, `api` for other 4xx and 5xx answers, and `network` for connection failures. Each error result MUST carry a user-readable message.
+The client MUST map failures to error kinds: `auth` for 401, `rate` for 429, and `api` for other 4xx and 5xx answers. The client MUST map connection failures to the `network` error kind. Each error result MUST carry a user-readable message.
 
 #### Scenario: Rate limit answer
 - **WHEN** the API answers 429 on a chat completion

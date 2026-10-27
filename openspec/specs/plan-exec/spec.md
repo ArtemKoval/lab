@@ -6,7 +6,7 @@ TBD - created by archiving change adopt-superpowers-harness-upgrades. Update Pur
 ## Requirements
 
 ### Requirement: The tool extracts one task brief
-The CLI at `tools/plan_exec` SHALL provide a `brief` subcommand that reads a plan file, extracts one task, and writes it to `task-<ID>-brief.md` under the given output directory. The task selector SHALL accept a plain number and a dotted `X.Y` number. The parser SHALL support section headings (`### Task N:`) and OpenSpec checkbox tasks (`- [ ] X.Y` with indented body lines).
+The CLI at `tools/plan_exec` SHALL give a `brief` subcommand. The subcommand reads a plan file, extracts one task, and writes it to `task-<ID>-brief.md` under the given output directory. The task selector SHALL accept a plain number and a dotted `X.Y` number. The parser SHALL support section headings (`### Task N:`) and OpenSpec checkbox tasks (`- [ ] X.Y` with indented body lines).
 
 #### Scenario: A dotted task extracts from a checkbox plan
 - **WHEN** the command `brief --plan tasks.md --task 2.3 --out DIR` runs against a plan whose task `2.3` sits in a checkbox list with indented body lines
@@ -22,7 +22,7 @@ The `brief` subcommand SHALL exit 2 with a message and no traceback for an unkno
 - **AND** no file appears under `DIR`
 
 ### Requirement: The tool packages a review diff
-The CLI SHALL provide a `package` subcommand that runs `git log --oneline`, `git diff --stat`, and `git diff -U10` for a `BASE..HEAD` range in a repository and writes them to one file named `review-package-<base7>-<head7>.md` under the given output directory, where `<base7>` and `<head7>` are the first seven characters of the resolved commit ids. The subcommand SHALL treat the repository as read-only, SHALL require `--base`, and SHALL create the output directory when missing.
+The CLI SHALL give a `package` subcommand. The subcommand runs `git log --oneline`, `git diff --stat`, and `git diff -U10` for a `BASE..HEAD` range in a repository. It writes them to one file named `review-package-<base7>-<head7>.md` under the given output directory. The placeholders `<base7>` and `<head7>` are the first seven characters of the resolved commit ids. The subcommand SHALL treat the repository as read-only, SHALL require `--base`, and SHALL create the output directory when missing.
 
 #### Scenario: A commit range packages to one file
 - **WHEN** the command `package --repo ROOT --base a1b2c3d --head e4f5a6b --out DIR` runs in a git repository that holds both commits
@@ -30,14 +30,14 @@ The CLI SHALL provide a `package` subcommand that runs `git log --oneline`, `git
 - **AND** the repository working tree is unchanged
 
 ### Requirement: The package subcommand refuses invalid ranges
-The `package` subcommand SHALL exit 2 when the target is not a git repository, when base equals head, or when a named revision does not resolve.
+The `package` subcommand SHALL exit 2 in three cases. The target is not a git repository, base equals head, or a named revision does not resolve.
 
 #### Scenario: An invalid range fails cleanly
 - **WHEN** the command `package --repo ROOT --base X --head X --out DIR` runs with equal base and head
 - **THEN** the command exits 2 and names the problem
 
 ### Requirement: The tool keeps an append-only execution ledger
-The CLI SHALL provide a `ledger` subcommand with the actions `init`, `complete`, `task-rule`, and `show`. The ledger file sits at `<dir>/progress.md` and starts with the identity line `# plan_exec ledger - plan: <absolute plan path>`. The subcommand SHALL resolve the plan path to an absolute path before any comparison and SHALL never delete or rewrite ledger lines. `init` SHALL exit 0 without writing when the identity matches, and `show` SHALL print the ledger content.
+The CLI SHALL give a `ledger` subcommand with the actions `init`, `complete`, `task-rule`, and `show`. The ledger file sits at `<dir>/progress.md` and starts with the identity line `# plan_exec ledger - plan: <absolute plan path>`. The subcommand SHALL resolve the plan path to an absolute path before any comparison and SHALL never delete or rewrite ledger lines. `init` SHALL exit 0 without writing when the identity matches, and `show` SHALL print the ledger content.
 
 #### Scenario: A completed task appends one line
 - **WHEN** `ledger --plan plan.md --dir DIR complete --task 1.2 --tests "pytest -k task12" --result "3 passed"` runs against a ledger whose identity names `plan.md`

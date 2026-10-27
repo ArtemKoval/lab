@@ -28,7 +28,7 @@ The spec text in this repo must follow ASD-STE100, but no mechanical gate stops 
 
 ## Impact
 
-- New files: the `tools/spec_ste_check/` package with a README and a `ruff.toml`; `tests/spec_ste_check/` with a `conftest.py` that puts the package parent on the test path; `.claude/hooks/spec-ste-gate.sh`; `tests/claude_infra/test_spec_ste_hook.py`.
+- New files: the `tools/spec_ste_check/` package with a README and a `ruff.toml`. `tests/spec_ste_check/` carries a `conftest.py` that puts the package parent on the test path. The hook script `.claude/hooks/spec-ste-gate.sh` gets a subprocess test at `tests/claude_infra/test_spec_ste_hook.py`.
 - Edited files: `.claude/settings.json`, `.coveragerc`, `.github/workflows/tests.yml`, and the `spec.md` files that the rewrite pass touches.
 - Commands: `python -m spec_ste_check <path> [--json]`. The gate test and the hook call the same CLI, so the repo has one rule authority.
 - Dependencies: none. The CLI uses the standard library only. The suite runs with the shared repository venv. No new unit in `tools/project_setup/registry.json`.

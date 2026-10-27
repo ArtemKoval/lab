@@ -5,3 +5,4 @@ omit =
     tools/zai_routing_audit/zai_routing_audit/__main__.py
     tools/devcontainer_init/devcontainer_init/__main__.py
     tools/plan_exec/plan_exec/__main__.py
+    tools/spec_ste_check/spec_ste_check/__main__.py

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lets the user rerun the z.ai GLM routing audit: which model name Claude Code sends, which name the endpoint echoes and reports, and what each name costs in credits.
+Lets the user rerun the z.ai GLM routing audit. It shows which model name Claude Code sends, which name the endpoint echoes and reports, and what each name costs in credits.
 
 ## Requirements
 
@@ -19,7 +19,7 @@ The `config` command SHALL read a Claude Code settings file and print the base U
 - **THEN** the command exits with code 2 and prints an error that names the missing path
 
 ### Requirement: The transcripts command counts requested and echoed models
-The `transcripts` command SHALL scan transcript files in a directory, count records per requested model and per echoed model, and sum the usage fields per model. It SHALL skip lines that do not parse and SHALL finish with exit code 0 when the directory holds no transcript files.
+The `transcripts` command SHALL scan transcript files in a directory. It SHALL count records per requested model and per echoed model, and sum the usage fields per model. It SHALL skip lines that do not parse and SHALL finish with exit code 0 when the directory holds no transcript files.
 
 #### Scenario: Counts both directions
 - **WHEN** the directory holds a transcript with a request record for model `glm-5.3-flash` and an assistant record whose echoed model is `glm-5.3-flash`
@@ -56,14 +56,14 @@ The `usage` command SHALL read the console per-model usage report for a time win
 - **THEN** the command exits 2 and prints a short body excerpt with the token redacted
 
 ### Requirement: The throughput command reports generation speed per name
-The `throughput` command SHALL run one bounded generation per model name and SHALL print the output token count, the elapsed time, and the tokens per second for each name.
+The `throughput` command SHALL run one bounded generation per model name. It SHALL print the output token count, the elapsed time, and the tokens per second for each name.
 
 #### Scenario: Computes the rate
 - **WHEN** a generation returns 1024 output tokens and the injected clock measures 20.0 seconds
 - **THEN** the report shows 51.2 tokens per second for that name
 
 ### Requirement: The burn command spends credits only on an explicit flag
-The `burn` command SHALL, without `--spend-credits`, print what it would send and exit 0 without any request to the messages endpoint. With `--spend-credits`, it SHALL read the credit pools, send one identical bounded request per model name, read the pools again, and print the pool delta per name.
+The `burn` command SHALL, without `--spend-credits`, print what it would send and exit 0 without any request to the messages endpoint. With `--spend-credits`, it SHALL read the credit pools and send one identical bounded request per model name. It SHALL read the pools again and print the pool delta per name.
 
 #### Scenario: Refuses to spend by default
 - **WHEN** the command runs without `--spend-credits`
@@ -85,7 +85,7 @@ Every command SHALL print human-readable text by default and parseable JSON with
 - **THEN** the command exits 2 and prints the cause
 
 ### Requirement: Live network checks stay opt-in
-The test suite SHALL run hermetic by default with no network access. Tests that call the real endpoint SHALL carry the `e2e` marker and SHALL run only when the environment provides the gate variable `ZAI_ROUTING_AUDIT_E2E`.
+The test suite SHALL run hermetic by default with no network access. Tests that call the real endpoint SHALL carry the `e2e` marker and SHALL run only when the environment gives the gate variable `ZAI_ROUTING_AUDIT_E2E`.
 
 #### Scenario: Default run touches no network
 - **WHEN** the test suite runs without the gate variable

@@ -138,7 +138,7 @@ The renderer MUST insert only sanitized output into the page. The sanitizer MUST
 - **THEN** the rendered link does not carry that URL
 
 ### Requirement: The chat window runs sandboxed
-The app MUST create the window with the sandbox on, context isolation on, and Node access in the page off. The page MUST receive a content security policy that blocks inline scripts. A popup request MUST open no window. A link with an `http` or `https` URL in a reply MUST open in the system browser, and the app window MUST NOT navigate to it.
+The app MUST create the window with the sandbox on, context isolation on, and Node access in the page off. The page MUST receive a content security policy that blocks inline scripts. A popup request MUST open no window. A link with an `http` or `https` URL in a reply MUST open in the system browser. The app window MUST NOT navigate to that link.
 
 #### Scenario: Window flags hold
 - **WHEN** the app creates the chat window

@@ -40,7 +40,7 @@ A lock file MUST pin the runtime release tag and its sha256 for every target pla
 - **THEN** the build stops with a checksum error
 
 ### Requirement: Each build runs a launch smoke test
-After packaging, the build MUST start the packaged app and MUST confirm that the backend reports readiness within 60 seconds. The main process MUST write one readiness result line, with the outcome `ready` or the start failure, to its log file in the user data folder. The harness MUST read that line from the log file. A build whose smoke test fails MUST fail the job.
+After packaging, the build MUST start the packaged app and MUST confirm that the backend reports readiness within 60 seconds. The main process MUST write one readiness result line, with the outcome `ready` or the start failure, to its log file. The log file sits in the user data folder. The harness MUST read that line from the log file. A build whose smoke test fails MUST fail the job.
 
 #### Scenario: Smoke test passes
 - **WHEN** the packaged app starts and the log file holds the readiness line with the outcome `ready` within 60 seconds
@@ -67,7 +67,7 @@ After packaging, the build MUST start the packaged app and MUST confirm that the
 - **THEN** the backend still starts from the embedded tree
 
 ### Requirement: The v1 artifacts carry an ad-hoc signature only
-The v1 build MUST use no Developer ID identity and no notarization. The macOS bundle MUST carry an ad-hoc signature, and the build MUST pin the macOS identity to the ad-hoc value. The packaging job MUST examine each macOS artifact and MUST confirm the ad-hoc signature state. The README MUST give the exact first-run steps per OS: the Gatekeeper `Open Anyway` path on macOS, the SmartScreen `More info` path on Windows, and the execute permission step on Linux.
+The v1 build MUST use no Developer ID identity and no notarization. The macOS bundle MUST carry an ad-hoc signature, and the build MUST pin the macOS identity to the ad-hoc value. The packaging job MUST examine each macOS artifact and MUST confirm the ad-hoc signature state. The README MUST give the exact first-run steps per OS. These steps are: the Gatekeeper `Open Anyway` path on macOS, the SmartScreen `More info` path on Windows, and the execute permission step on Linux.
 
 #### Scenario: Ad-hoc signature state is checked
 - **WHEN** the packaging job finishes a macOS build

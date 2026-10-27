@@ -2,7 +2,7 @@
 
 ## Context
 
-Facts from the proposal round on 2026-10-27 (grill-me interview, adversarial author, adversarial reviewer, one reconciliation by the primary agent; no tournament ran, because the user's three answers left no architecture fork):
+Facts from the proposal round on 2026-10-27: a grill-me interview, an adversarial author, an adversarial reviewer, and one reconciliation by the primary agent. No tournament ran, because the user's three answers left no architecture fork:
 
 - `openspec/specs/` holds 11 `spec.md` files. The corpus holds long sentences, 7 uses of `provide`, and verb uses of `check`. The true census comes from the checker at implementation time.
 - The house hook precedent is `.claude/hooks/harness-charter.sh`: stdlib script, root resolution through `CLAUDE_PROJECT_DIR` with a `$0` fallback, wiring under `hooks` in `.claude/settings.json`, subprocess tests in `tests/claude_infra/`.
@@ -29,7 +29,7 @@ Non-Goals:
 
 ## Wiring
 
-Lightweight C4-inspired component view; ASCII, the format the 2026-10-26 design records as its assumption. One container: the checker CLI. The gate test and the hook are thin callers around it.
+Lightweight C4-inspired component view, in ASCII. The 2026-10-26 design records that format as its assumption, and this design follows it. One container: the checker CLI. The gate test and the hook are thin callers around it.
 
 ```
               +------------------------------------------+
@@ -59,7 +59,7 @@ Lightweight C4-inspired component view; ASCII, the format the 2026-10-26 design 
         gate test fails the suite; hook blocks the write
 ```
 
-- The boundary sits at the CLI. Callers filter paths and resolve the interpreter; only the CLI reads rules.
+- The boundary sits at the CLI. Callers filter paths and resolve the interpreter. Only the CLI reads rules.
 - The hook owns the edit reconstruction: it applies `old_string` to `new_string` on the file text from disk.
 - The gate test owns scope: it passes the gate paths to the CLI and fails on the error severity.
 - Assumption: `Write|Edit` covers the tools that write spec files today.
@@ -74,8 +74,8 @@ The rules live once, in the CLI package. The hook script holds no rules: it reso
 
 One rule turns text into sentences:
 
-1. Replace fenced code blocks and code spans with one `CODE` token each.
-2. Drop heading lines. Strip list markers and bold markers.
+1. Replace fenced code blocks, backtick code spans, and double-quoted spans with one `CODE` token each. A code span may open at a line end and close on a later line. A double-quoted span stays within one line.
+2. Drop heading lines. Strip blockquote markers, list markers, and bold markers, in that order.
 3. Split on `.`, `!`, and `?` at a line end or before whitespace. A sentence never crosses a line boundary.
 
 The no-cross-boundary rule trades a small evasion path (a wrapped sentence) for determinism. House specs keep one sentence on one line, so the trade costs nothing today.
@@ -94,7 +94,7 @@ The checker flags `perform`, `utilize`, `ensure`, and `provide` in their inflect
 
 ### D6. Tense heuristics
 
-A progressive tense is an auxiliary (`is`, `are`, `was`, `were`, `be`, `been`, `being`) before an `-ing` word: an error. A perfect tense is `has`, `have`, or `had` before a participle-looking word: a warning, because the pattern carries more risk of a false hit. Both rules keep allowlists for attested exceptions.
+A progressive tense is an auxiliary (`is`, `are`, `was`, `were`, `be`, `been`, `being`) before an `-ing` word: an error. A perfect tense is `has`, `have`, or `had` before a participle-looking word: a warning, because the pattern carries more risk of a false hit. The progressive rule keeps an allowlist of attested adjectival participles. The perfect rule needs none yet.
 
 ### D7. Hook mechanics
 
@@ -118,11 +118,11 @@ The violation record is `{file, line, rule, severity, text}`. Rule ids: `sentenc
 
 ### D9. Gates and CI
 
-`.coveragerc` gains the omit line for the new `__main__.py`. `tests.yml` adds `--cov spec_ste_check` and lints `tools/spec_ste_check`. The coverage floor stays at 100 for both packages. Mutation runs in an out-of-tree copy per the pipeline rules; the suite must pass there before the mutant run starts.
+`.coveragerc` gains the omit line for the new `__main__.py`. `tests.yml` adds `--cov spec_ste_check` and lints `tools/spec_ste_check`. The coverage floor stays at 100 for both packages. Mutation runs in an out-of-tree copy per the pipeline rules. The suite must pass there before the mutant run starts.
 
 ### D10. The gate test and the bootstrap
 
-`tests/spec_ste_check/test_gate.py` walks the gate scope and fails on the first error severity, with the CLI's own report in the assert message. The scope includes this change's documents, so every implementation commit keeps them clean. The rewrite pass runs the CLI over the corpus and fixes what it reports.
+`tests/spec_ste_check/test_ste_gate.py` walks the gate scope and fails on the first error severity, with the CLI's own report in the assert message. The scope includes this change's documents, so every implementation commit keeps them clean. The rewrite pass runs the CLI over the corpus and fixes what it reports.
 
 ## Risks / Trade-offs
 

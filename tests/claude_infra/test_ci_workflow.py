@@ -1,6 +1,7 @@
 """Pin the tests CI workflow: it runs the root suite through the shared
-repository venv, enforces the plan_exec coverage floor, and lints the
-tool. Mutation stays a local gate and appears nowhere here."""
+repository venv, enforces the plan_exec and spec_ste_check coverage
+floors, and lints both tools. Mutation stays a local gate and appears
+nowhere here."""
 
 from pathlib import Path
 
@@ -27,13 +28,17 @@ def test_workflow_runs_the_suite_through_the_repo_venv():
     assert "pip install -r tools/zai_routing_audit/requirements-dev.txt" in text
     assert (
         "tools/zai_routing_audit/.venv/bin/python -m pytest "
-        "--cov plan_exec --cov-branch --cov-fail-under=100" in text
+        "--cov plan_exec --cov spec_ste_check --cov-branch "
+        "--cov-fail-under=100" in text
     )
 
 
-def test_workflow_lints_plan_exec():
+def test_workflow_lints_the_tools():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "tools/zai_routing_audit/.venv/bin/ruff check tools/plan_exec" in text
+    assert (
+        "tools/zai_routing_audit/.venv/bin/ruff check tools/spec_ste_check" in text
+    )
 
 
 def test_workflow_pins_python_3_12():
