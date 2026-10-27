@@ -14,9 +14,10 @@ Sentence = namedtuple("Sentence", ["line", "text"])
 _FENCE_MARKERS = ("```", "~~~")
 _LIST_RE = re.compile(r"^(?:[-*+]|\d+[.)])\s+")
 _BOLD_RE = re.compile(r"\*\*([^*]*)\*\*")
-_SPAN_RE = re.compile(r"`[^`]*`")
+_DQUOTE_RE = re.compile(r'"[^"]*"')
+_CURLY_DQUOTE_RE = re.compile(r"“[^”]*”")
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
-_NUMBER_UNIT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s+(?=[A-Za-z])")
+_NUMBER_UNIT_RE = re.compile(r"\b(\d+(?:[.,]\d+)?)\s+([A-Za-z]+)\b")
 
 # Approved STE verbs that start an imperative sentence. A sentence whose
 # first word sits here counts against the 20-word cap; every other
@@ -35,7 +36,8 @@ PROCEDURAL_CAP = 20
 DESCRIPTIVE_CAP = 25
 
 _CONTRACTION_RE = re.compile(
-    r"\b\w+(?:n't|'re|'ve|'ll|'m)\b|\b(?:it|that|there|what|let|who|he|she|one)'s\b",
+    r"\b\w+(?:n['’]t|['’]re|['’]ve|['’]ll|['’]m|['’]d)\b"
+    r"|\b(?:it|that|there|what|let|who|he|she|one)['’]s\b",
     re.I,
 )
 _BANNED_RE = re.compile(
@@ -54,29 +56,64 @@ _DETERMINERS = frozenset(
 # Attested noun phrases that the determiner heuristic cannot see.
 _BANNED_NOUN_ALLOWLIST = frozenset(("network checks", "builder check"))
 # Attested adjectival participles that the progressive pattern cannot
-# tell from a verb.
-_TENSE_ALLOWLIST = frozenset(("is missing", "are missing"))
+# tell from a verb. The set holds the participle, so the phrase agrees
+# with every auxiliary.
+_TENSE_ALLOWLIST = frozenset(("missing",))
+# Words that read as measurement units after a number; one number with
+# its unit is one word in the count.
+_UNIT_WORDS = frozenset(
+    """bits bytes characters credits days files gb hours kb lines mb
+    minutes ms months percent seconds steps tokens weeks words years""".split()
+)
+
+
+def _strip_quote_markers(line):
+    """Remove leading blockquote markers and one space, repeatedly."""
+    while line.startswith(">"):
+        line = line[1:].lstrip()
+    return line
+
+
+def _hide_spans(line, in_span):
+    """Replace backtick span content with one CODE token per span. A
+    span may open at a line end and close on a later line."""
+    out = []
+    for ch in line:
+        if ch == "`":
+            if not in_span:
+                out.append("CODE")
+            in_span = not in_span
+            continue
+        if not in_span:
+            out.append(ch)
+    return "".join(out), in_span
 
 
 def prose_sentences(text):
     """Split markdown prose into sentences with their line numbers.
 
     Headings, blank lines, and fenced blocks give nothing. A sentence
-    never crosses a line boundary. A code span becomes one CODE token.
+    never crosses a line boundary. A code span, a double-quoted span,
+    and a number's unit each collapse to one token.
     """
     sentences = []
     in_fence = False
+    in_span = False
     for lineno, raw in enumerate(text.splitlines(), 1):
         stripped = raw.strip()
-        if stripped.startswith(_FENCE_MARKERS):
+        if not stripped:
+            continue
+        line = _strip_quote_markers(stripped)
+        if line.startswith(_FENCE_MARKERS):
             in_fence = not in_fence
             continue
-        if in_fence or not stripped or stripped.startswith("#"):
+        if in_fence or line.startswith("#"):
             continue
-        line = _LIST_RE.sub("", stripped)
-        line = line.lstrip("> ").strip()
+        line = _LIST_RE.sub("", line)
+        line, in_span = _hide_spans(line, in_span)
+        line = _DQUOTE_RE.sub("CODE", line)
+        line = _CURLY_DQUOTE_RE.sub("CODE", line)
         line = _BOLD_RE.sub(r"\1", line)
-        line = _SPAN_RE.sub("CODE", line)
         for piece in _SENTENCE_SPLIT_RE.split(line):
             piece = piece.strip()
             # The false branch is defensive: no split input yields an
@@ -90,8 +127,12 @@ def prose_sentences(text):
 def word_count(sentence_text):
     """Count words: one hyphenated group, one number with its unit, and
     one code element are one word each."""
-    joined = _NUMBER_UNIT_RE.sub(r"\1-", sentence_text)
-    return len(joined.split())
+    def _join(match):
+        if match.group(2).lower() in _UNIT_WORDS:
+            return f"{match.group(1)}-{match.group(2)}"
+        return match.group(0)
+
+    return len(_NUMBER_UNIT_RE.sub(_join, sentence_text).split())
 
 
 def is_imperative(sentence_text):
@@ -147,7 +188,8 @@ def check_tenses(sentence):
     allowlisted adjectival participle stays clean."""
     hits = []
     for match in _PROGRESSIVE_RE.finditer(sentence.text):
-        if match.group(0).lower() not in _TENSE_ALLOWLIST:
+        participle = match.group(0).split()[-1].lower()
+        if participle not in _TENSE_ALLOWLIST:
             hits.append(_violation("progressive-tense", sentence))
             break
     if _PERFECT_RE.search(sentence.text):

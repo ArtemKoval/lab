@@ -74,8 +74,8 @@ The rules live once, in the CLI package. The hook script holds no rules: it reso
 
 One rule turns text into sentences:
 
-1. Replace fenced code blocks and code spans with one `CODE` token each.
-2. Drop heading lines. Strip list markers and bold markers.
+1. Replace fenced code blocks, backtick code spans, and double-quoted spans with one `CODE` token each. A code span may open at a line end and close on a later line. A double-quoted span stays within one line.
+2. Drop heading lines. Strip blockquote markers, list markers, and bold markers, in that order.
 3. Split on `.`, `!`, and `?` at a line end or before whitespace. A sentence never crosses a line boundary.
 
 The no-cross-boundary rule trades a small evasion path (a wrapped sentence) for determinism. House specs keep one sentence on one line, so the trade costs nothing today.
@@ -94,7 +94,7 @@ The checker flags `perform`, `utilize`, `ensure`, and `provide` in their inflect
 
 ### D6. Tense heuristics
 
-A progressive tense is an auxiliary (`is`, `are`, `was`, `were`, `be`, `been`, `being`) before an `-ing` word: an error. A perfect tense is `has`, `have`, or `had` before a participle-looking word: a warning, because the pattern carries more risk of a false hit. Both rules keep allowlists for attested exceptions.
+A progressive tense is an auxiliary (`is`, `are`, `was`, `were`, `be`, `been`, `being`) before an `-ing` word: an error. A perfect tense is `has`, `have`, or `had` before a participle-looking word: a warning, because the pattern carries more risk of a false hit. The progressive rule keeps an allowlist of attested adjectival participles. The perfect rule needs none yet.
 
 ### D7. Hook mechanics
 
@@ -122,7 +122,7 @@ The violation record is `{file, line, rule, severity, text}`. Rule ids: `sentenc
 
 ### D10. The gate test and the bootstrap
 
-`tests/spec_ste_check/test_gate.py` walks the gate scope and fails on the first error severity, with the CLI's own report in the assert message. The scope includes this change's documents, so every implementation commit keeps them clean. The rewrite pass runs the CLI over the corpus and fixes what it reports.
+`tests/spec_ste_check/test_ste_gate.py` walks the gate scope and fails on the first error severity, with the CLI's own report in the assert message. The scope includes this change's documents, so every implementation commit keeps them clean. The rewrite pass runs the CLI over the corpus and fixes what it reports.
 
 ## Risks / Trade-offs
 

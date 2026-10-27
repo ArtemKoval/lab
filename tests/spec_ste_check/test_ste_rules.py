@@ -277,3 +277,102 @@ class TestSentenceSplitEdges:
             "?",
             "B.",
         ]
+
+
+class TestQuotedText:
+    def test_a_double_quoted_message_is_exempt(self):
+        hits = rules.check_text(
+            'It prints "Don\'t panic; run away" once.', "a.md"
+        )
+        assert hits == []
+
+    def test_the_hidden_quote_becomes_one_code_token(self):
+        sentences = rules.prose_sentences('It prints "x y" once.')
+        assert [s.text for s in sentences] == ["It prints CODE once."]
+
+    def test_the_hidden_curly_quote_becomes_one_code_token(self):
+        sentences = rules.prose_sentences("The message says “x y” only.")
+        assert [s.text for s in sentences] == ["The message says CODE only."]
+
+    def test_curly_double_quotes_are_exempt(self):
+        hits = rules.check_text(
+            "The message says “ensure the state” only.", "a.md"
+        )
+        assert hits == []
+
+    def test_an_unpaired_quote_stays_prose(self):
+        hits = rules.check_text('He said "check it now, then leave.', "a.md")
+        assert [v["rule"] for v in hits] == ["banned-word"]
+
+    def test_single_quotes_stay_prose(self):
+        hits = rules.check_text("It is a 'ensure' case.", "a.md")
+        assert [v["rule"] for v in hits] == ["banned-word"]
+
+
+class TestMultilineSpans:
+    def test_a_span_across_lines_hides_its_content(self):
+        hits = rules.check_text("Use `ensure\nit` now.", "a.md")
+        assert hits == []
+
+    def test_a_span_open_at_the_end_of_a_line_closes_later(self):
+        sentences = rules.prose_sentences("The `run\nx` span hides one token.")
+        assert [s.text for s in sentences] == [
+            "The CODE",
+            "span hides one token.",
+        ]
+
+    def test_prose_between_spans_stays_examined(self):
+        hits = rules.check_text("Use `run x` and ensure y` z` now.", "a.md")
+        assert [v["rule"] for v in hits] == ["banned-word"]
+
+
+class TestBlockquoteProse:
+    def test_a_blockquoted_fence_hides_its_lines(self):
+        text = "> ```\n> ensure foo; perform bar\n> ```\nAfter."
+        hits = rules.check_text(text, "a.md")
+        assert hits == []
+        assert [s.text for s in rules.prose_sentences(text)] == ["After."]
+
+    def test_a_blockquoted_list_item_strips_both_markers(self):
+        hits = rules.check_text(
+            "> - " + "Run every test " * 10 + "today.",
+            "a.md",
+        )
+        assert [v["rule"] for v in hits] == ["sentence-length"]
+
+
+class TestContractionForms:
+    def test_the_d_contraction_is_an_error(self):
+        hits = rules.check_sentence(rules.Sentence(1, "They'd run it."))
+        assert [v["rule"] for v in hits] == ["contraction"]
+
+    def test_a_curly_apostrophe_contraction_is_an_error(self):
+        hits = rules.check_sentence(rules.Sentence(1, "It’s ready."))
+        assert [v["rule"] for v in hits] == ["contraction"]
+
+
+class TestTenseAllowlist:
+    def test_missing_agrees_with_every_auxiliary(self):
+        for aux in ("is", "are", "was", "were"):
+            hits = rules.check_sentence(rules.Sentence(1, f"The ledger {aux} missing."))
+            assert hits == [], aux
+
+    def test_a_real_progressive_still_fails(self):
+        hits = rules.check_sentence(rules.Sentence(1, "The job is running."))
+        assert [v["rule"] for v in hits] == ["progressive-tense"]
+
+
+class TestNumberUnits:
+    def test_a_number_before_a_non_unit_stays_two_words(self):
+        assert rules.word_count("The 401 error stays.") == 4
+
+    def test_a_number_before_a_unit_joins(self):
+        assert rules.word_count("It runs 20 seconds.") == 3
+
+
+class TestQuoteMarkerStripping:
+    def test_a_marker_without_a_space_strips_cleanly(self):
+        assert rules._strip_quote_markers(">quoted") == "quoted"
+
+    def test_double_markers_strip_cleanly(self):
+        assert rules._strip_quote_markers("> > quoted") == "quoted"

@@ -17,12 +17,12 @@ tense is a warning. Warnings never fail the gate.
 The suite and CI run the tool through the shared repository venv:
 
 ```bash
-tools/zai_routing_audit/.venv/bin/python -m spec_ste_check docs/notes.md
-tools/zai_routing_audit/.venv/bin/python -m spec_ste_check openspec/
-tools/zai_routing_audit/.venv/bin/python -m spec_ste_check --json openspec/specs/
+PYTHONPATH=tools/spec_ste_check tools/zai_routing_audit/.venv/bin/python -m spec_ste_check docs/notes.md
+PYTHONPATH=tools/spec_ste_check tools/zai_routing_audit/.venv/bin/python -m spec_ste_check openspec/
+PYTHONPATH=tools/spec_ste_check tools/zai_routing_audit/.venv/bin/python -m spec_ste_check --json openspec/specs/
 ```
 
-- With paths, the tool scans those files and trees and reads only `*.md`.
+- With paths, the tool scans trees for `*.md` files and reads named files as given.
 - With no paths, the tool scans the gate scope: `openspec/specs/**` and
   the active directories under `openspec/changes/**`. It always skips
   `openspec/changes/archive/`.
@@ -35,8 +35,8 @@ tools/zai_routing_audit/.venv/bin/python -m spec_ste_check --json openspec/specs
 
 ## The gate and the hook
 
-- The pytest gate `tests/spec_ste_check/test_gate.py` runs the tool over
-  the gate scope and fails the suite on an error.
+- The pytest gate `tests/spec_ste_check/test_ste_gate.py` runs the tool
+  over the gate scope and fails the suite on an error.
 - The hook `.claude/hooks/spec-ste-gate.sh` runs before `Write` and
   `Edit` on a spec path. An error blocks the write. If the checker
   cannot run, the hook allows the write and prints a note on stderr.
@@ -70,3 +70,26 @@ it dies, or exclude it with a written reason. Target: 95 percent or
 higher. `__main__.py` carries a `do_not_mutate_patterns` exclusion: the
 two-line shim holds no logic, the same reason the coverage omit lists
 it.
+
+### Equivalent-mutant classes (written reasons)
+
+The final run settles at a handful of survivors, each in a measured
+equivalence class:
+
+- `prose_sentences` `in_fence = None` and `in_span = None`: both values
+  are falsy like the original, and the code only reads their truth.
+- `word_count` unit join with padding: the padding adds no whitespace,
+  and the count reads whitespace-separated tokens only.
+- `is_imperative` strip-set widening with `X`: the first word is
+  lowercased before the strip, so an `X` can never sit at either end.
+- `_check_word_hits` fallback word `XXXX`: the value sits outside the
+  determiner set and outside the noun allowlist, like the original.
+- `check_tenses` index `[-1]` to `[1]`: the match always holds exactly
+  two words, so both indexes read the participle.
+- `cli.scan` encoding aliases: `UTF-8` is a registered alias of
+  `utf-8`, and the locale encoding prefers UTF-8 on every platform the
+  gate runs on.
+- `hook.evaluate` dot-dot prefix check: the check is redundant, because
+  every path outside the root fails the earlier first-segment test.
+- `hook._post_edit_text` join branch for absolute targets:
+  `os.path.join` returns an absolute second argument unchanged.

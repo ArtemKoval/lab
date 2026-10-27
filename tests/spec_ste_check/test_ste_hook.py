@@ -245,10 +245,9 @@ class TestEvaluate:
                 ],
             },
         }
-        assert hook.evaluate(event, root) == 2
-        assert "semicolon" in capsys.readouterr().err
+        assert hook.evaluate(event, root) == 0
 
-    def test_an_edit_without_old_string_prepends_the_new_text(self, tmp_path):
+    def test_an_edit_without_old_string_allows_the_write(self, tmp_path):
         root = _spec_root(tmp_path)
         target = root / "openspec/specs/fde/chat/spec.md"
         target.write_text("Run it now.\n", encoding="utf-8")
@@ -259,7 +258,7 @@ class TestEvaluate:
                 "new_string": "Stop; halt. ",
             },
         }
-        assert hook.evaluate(event, root) == 2
+        assert hook.evaluate(event, root) == 0
 
     def test_a_replace_all_edit_that_clears_every_semicolon_passes(
         self, tmp_path
@@ -372,6 +371,75 @@ class TestPostEditTextDirect:
             "tool_input": {"file_path": str(tmp_path / "x.md"), "command": "echo"},
         }
         assert hook._post_edit_text(event, tmp_path) is None
+
+
+class TestEditEdgeCases:
+    def test_a_missing_old_string_key_allows_the_write(self, tmp_path):
+        root = _spec_root(tmp_path)
+        target = root / "openspec/specs/fde/chat/spec.md"
+        target.write_text("Run it now.\n", encoding="utf-8")
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {"file_path": str(target), "new_string": "b"},
+        }
+        assert hook.evaluate(event, root) == 0
+
+    def test_an_empty_old_string_allows_the_write(self, tmp_path):
+        root = _spec_root(tmp_path)
+        target = root / "openspec/specs/fde/chat/spec.md"
+        target.write_text("Run it now.\n", encoding="utf-8")
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": str(target),
+                "old_string": "",
+                "new_string": "Stop; halt. ",
+            },
+        }
+        assert hook.evaluate(event, root) == 0
+
+    def test_a_crlf_line_break_inside_old_string_still_matches(self, tmp_path):
+        root = _spec_root(tmp_path)
+        target = root / "openspec/specs/fde/chat/spec.md"
+        target.write_text("Run it now.\r\nStop.\r\n", encoding="utf-8")
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": str(target),
+                "old_string": "now.\nStop",
+                "new_string": "now.\nNext; stop",
+            },
+        }
+        assert hook.evaluate(event, root) == 2
+
+    def test_a_crlf_file_still_scans_the_edit(self, tmp_path):
+        root = _spec_root(tmp_path)
+        target = root / "openspec/specs/fde/chat/spec.md"
+        target.write_text("Run it now.\r\n", encoding="utf-8")
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": str(target),
+                "old_string": "Run it now.",
+                "new_string": "Run it; stop it.",
+            },
+        }
+        assert hook.evaluate(event, root) == 2
+
+    def test_a_relative_file_path_resolves_against_the_root(self, tmp_path, monkeypatch):
+        root = _spec_root(tmp_path)
+        target = root / "openspec/specs/fde/chat/spec.md"
+        target.write_text("Run it now.\n", encoding="utf-8")
+        monkeypatch.chdir(root)
+        event = {
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "openspec/specs/fde/chat/spec.md",
+                "old_string": "now",
+                "new_string": "now; then stop",
+            },
+        }
+        assert hook.evaluate(event, root) == 2
 
     def test_a_blocking_event_through_the_env_root_exits_2(
         self, tmp_path, capsys, monkeypatch

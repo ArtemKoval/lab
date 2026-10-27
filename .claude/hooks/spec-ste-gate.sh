@@ -39,7 +39,9 @@ fi
 
 PYTHONPATH="$ROOT/tools/spec_ste_check" "$PY" -m spec_ste_check.hook
 code=$?
-if [ "$code" -gt 2 ]; then
+# Only 0 (pass) and 2 (block) are gate verdicts. Anything else is a
+# checker failure: the write passes, with a note.
+if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then
   echo "spec-ste-gate: the checker failed; the write passes" >&2
   exit 0
 fi

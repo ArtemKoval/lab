@@ -30,7 +30,7 @@ The CLI SHALL give a `package` subcommand. The subcommand runs `git log --onelin
 - **AND** the repository working tree is unchanged
 
 ### Requirement: The package subcommand refuses invalid ranges
-The `package` subcommand SHALL exit 2 when the target is not a git repository, when base equals head, or when a named revision does not resolve.
+The `package` subcommand SHALL exit 2 in three cases. The target is not a git repository, base equals head, or a named revision does not resolve.
 
 #### Scenario: An invalid range fails cleanly
 - **WHEN** the command `package --repo ROOT --base X --head X --out DIR` runs with equal base and head

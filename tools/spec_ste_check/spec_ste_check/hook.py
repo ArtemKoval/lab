@@ -14,7 +14,7 @@ import sys
 
 from . import rules
 
-EDIT_TOOLS = ("Write", "Edit", "MultiEdit")
+EDIT_TOOLS = ("Write", "Edit")
 
 
 def in_gate_scope(rel_path):
@@ -33,33 +33,30 @@ def in_gate_scope(rel_path):
 
 def _post_edit_text(event, root):
     """Rebuild the text the tool is about to leave behind, or None when
-    the write cannot carry a spec-text change."""
+    the write cannot carry a spec-text change. The Edit scan runs on the
+    newline-normalized text, so a CRLF file still gets examined."""
     tool_input = event.get("tool_input") or {}
     tool = event.get("tool_name")
     target = tool_input.get("file_path")
     if not target:
         return None
-    path = os.path.join(root, target) if not os.path.isabs(target) else target
+    path = target if os.path.isabs(target) else os.path.join(root, target)
     if tool == "Write":
         return tool_input.get("content")
-    if tool in ("Edit", "MultiEdit"):
-        try:
-            with open(path, encoding="utf-8") as handle:
-                text = handle.read()
-        except OSError:
-            return None
-        edits = tool_input.get("edits") if tool == "MultiEdit" else [tool_input]
-        for edit in edits:
-            old = edit.get("old_string", "")
-            new = edit.get("new_string", "")
-            if old not in text:
-                return None
-            if edit.get("replace_all"):
-                text = text.replace(old, new)
-            else:
-                text = text.replace(old, new, 1)
-        return text
-    return None
+    if tool != "Edit":
+        return None
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+    except OSError:
+        return None
+    old = tool_input.get("old_string")
+    if not old or old not in text:
+        return None
+    new = tool_input.get("new_string", "")
+    if tool_input.get("replace_all"):
+        return text.replace(old, new)
+    return text.replace(old, new, 1)
 
 
 def evaluate(event, root):

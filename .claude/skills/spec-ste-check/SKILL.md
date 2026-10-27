@@ -18,12 +18,12 @@ Exempt: code spans, fenced code blocks, headings, commands, paths, identifiers, 
 Run the checker through the shared repository venv:
 
 ```bash
-tools/zai_routing_audit/.venv/bin/python -m spec_ste_check openspec/specs/
-tools/zai_routing_audit/.venv/bin/python -m spec_ste_check --json --repo-root .
+PYTHONPATH=tools/spec_ste_check tools/zai_routing_audit/.venv/bin/python -m spec_ste_check openspec/specs/
+PYTHONPATH=tools/spec_ste_check tools/zai_routing_audit/.venv/bin/python -m spec_ste_check --json --repo-root .
 ```
 
 - With no paths, the tool scans the gate scope and skips `openspec/changes/archive/`.
-- Exit 0 means a clean scan. Exit 2 means at least one error.
+- Exit 0 means a clean scan. Exit 2 means at least one error, or a file that the tool cannot read.
 - `--json` prints one JSON object with the violations, the error count, and the warning count.
 
 ## Fix a blocked write
