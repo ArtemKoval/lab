@@ -22,6 +22,8 @@ jobs:
           tools/zai_routing_audit/.venv/bin/python -m pip install --upgrade pip
           tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt
       - name: Run the root test suite
-        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov-branch --cov-fail-under=100 --cov-config .coveragerc
-      - name: Lint plan_exec
-        run: tools/zai_routing_audit/.venv/bin/ruff check tools/plan_exec
+        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov-branch --cov-fail-under=100 --cov-config .coveragerc
+      - name: Lint the tools
+        run: |
+          tools/zai_routing_audit/.venv/bin/ruff check tools/plan_exec
+          tools/zai_routing_audit/.venv/bin/ruff check tools/spec_ste_check

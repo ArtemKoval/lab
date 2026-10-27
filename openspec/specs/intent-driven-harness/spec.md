@@ -9,7 +9,7 @@ TBD - created by archiving change 2026-10-23-add-intent-driven-harness. Update P
 The harness SHALL carry the `intent-driven` schema as project-local files under `openspec/schemas/intent-driven/` and SHALL resolve it as the active schema in `openspec/config.yaml`. The schema SHALL define the five artifacts proposal, specs, design, adr, and tasks with their templates.
 
 #### Scenario: Schema validates
-- **WHEN** the command `openspec schema validate intent-driven` runs at the repository root on a clone with the openspec CLI installed (the schema commands use the working directory as the project root)
+- **WHEN** the command `openspec schema validate intent-driven` runs at the repository root on a clone with the openspec CLI installed. The schema commands use the working directory as the project root
 - **THEN** the command reports a valid schema and exits 0
 
 #### Scenario: Config names the schema
@@ -17,14 +17,14 @@ The harness SHALL carry the `intent-driven` schema as project-local files under 
 - **THEN** the first line sets `schema: intent-driven`
 
 ### Requirement: The harness ships the four review and build subagents
-The harness SHALL provide `adversarial-author`, `adversarial-reviewer`, `senior-dev`, and `senior-qa` as Claude Code subagents under `.claude/agents/`, ported from the pinned template commit with provenance metadata.
+The harness SHALL carry `adversarial-author`, `adversarial-reviewer`, `senior-dev`, and `senior-qa` as Claude Code subagents under `.claude/agents/`, ported from the pinned template commit with provenance metadata.
 
 #### Scenario: Agents resolve
 - **WHEN** the harness lists `.claude/agents/`
 - **THEN** the four agent files exist and each carries a non-empty name that matches its file name
 
 ### Requirement: The harness ships the eleven ported skills
-The harness SHALL provide the eleven ported skills under `.claude/skills/`, each with a `SKILL.md` that carries provenance metadata for the pinned template commit.
+The harness SHALL carry the eleven ported skills under `.claude/skills/`, each with a `SKILL.md` that carries provenance metadata for the pinned template commit.
 
 #### Scenario: Enabled rules resolve to skills
 - **WHEN** the harness reads each uncommented `Must use <name> skill` line in `openspec/config.yaml`
@@ -35,7 +35,7 @@ The harness SHALL provide the eleven ported skills under `.claude/skills/`, each
 - **THEN** every occurrence sits in a commented line
 
 ### Requirement: Changes cross main between lifecycle phases
-The harness SHALL enforce the two-merge discipline: proposal artifacts merge to the mainline before apply starts, implementation merges before archive runs, and archive runs on the mainline. The `feature-pipeline` skill and CLAUDE.md SHALL document the gates.
+The harness SHALL enforce the two-merge discipline: proposal artifacts merge to the mainline before apply starts. Implementation merges before archive runs. Archive runs on the mainline. The `feature-pipeline` skill and CLAUDE.md SHALL document the gates.
 
 #### Scenario: Pipeline states both gates
 - **WHEN** a reader scans the `feature-pipeline` skill and CLAUDE.md for the discipline
@@ -78,14 +78,14 @@ The script `.claude/hooks/harness-charter.sh` SHALL read `.claude/hooks/charter.
 - **AND** it exits 0
 
 ### Requirement: The harness ships the three adoption skills
-The harness SHALL provide `systematic-debugging`, `verification-before-completion`, and `writing-skills` under `.claude/skills/`. Each `SKILL.md` SHALL start its `description` with `Use when` and SHALL carry provenance metadata that names `obra/superpowers`, the pinned upstream commit, and the MIT license.
+The harness SHALL carry `systematic-debugging`, `verification-before-completion`, and `writing-skills` under `.claude/skills/`. Each `SKILL.md` SHALL start its `description` with `Use when` and SHALL carry provenance metadata that names `obra/superpowers`, the pinned upstream commit, and the MIT license.
 
 #### Scenario: The adoption skills resolve
 - **WHEN** a reader lists `.claude/skills/`
 - **THEN** the three directories exist, each with a `SKILL.md` whose `name` matches its directory and whose provenance names the upstream source
 
 ### Requirement: The pipeline governs review reception, model selection, and branch finish
-The `feature-pipeline` skill SHALL carry: rules for receiving review findings (verify before fix, reasoned pushback, no performative agreement, clarify before fix), a model-selection rule for agent dispatch and the final review, a discard contract that destroys work only after an explicit user confirmation, worktree provenance cleanup rules, and a builder check in the proposal flow. The skill SHALL NOT state that the repo has no hooks after this change lands.
+The `feature-pipeline` skill SHALL carry rules for receiving review findings (verify before fix, reasoned pushback, no performative agreement, clarify before fix). The skill SHALL carry a model-selection rule for agent dispatch and the final review. The skill SHALL carry a discard contract that destroys work only after an explicit user confirmation. The skill SHALL carry worktree provenance cleanup rules. The skill SHALL carry a builder check in the proposal flow. The skill SHALL NOT state that the repo has no hooks after this change lands.
 
 #### Scenario: A reader finds the new pipeline rules
 - **WHEN** a reader scans the `feature-pipeline` skill
@@ -103,7 +103,7 @@ The record `adr/0003-adopt-superpowers-execution-mechanics.md` SHALL exist with 
 - **THEN** it carries an accepted status line and no `Supersedes:` line
 
 ### Requirement: The root suite runs in CI
-A CI workflow SHALL run the root test suite and the `plan_exec` lint gate on pull requests that touch the harness, the tests, or the tools, and SHALL NOT run for `fde/**` and `llm_ops/**` changes alone. The workflow SHALL run the suite through the registered repository venv interpreter and SHALL enforce branch coverage of `plan_exec` at a 100 percent floor.
+A CI workflow SHALL run the root test suite and the `plan_exec` lint gate on pull requests touching the harness, the tests, or the tools. It SHALL NOT run for `fde/**` and `llm_ops/**` changes alone. The workflow SHALL run the suite through the registered repository venv interpreter and SHALL enforce branch coverage of `plan_exec` at a 100 percent floor.
 
 #### Scenario: A pull request triggers the suite
 - **WHEN** a pull request changes a file under `tests/`, `tools/`, or `.claude/`

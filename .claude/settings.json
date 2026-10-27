@@ -9,6 +9,20 @@
         ]
     },
     "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Write|Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/spec-ste-gate.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            }
+        ],
         "SessionStart": [
             {
                 "matcher": "startup|clear|compact",

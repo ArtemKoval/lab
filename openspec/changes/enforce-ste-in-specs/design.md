@@ -2,7 +2,7 @@
 
 ## Context
 
-Facts from the proposal round on 2026-10-27 (grill-me interview, adversarial author, adversarial reviewer, one reconciliation by the primary agent; no tournament ran, because the user's three answers left no architecture fork):
+Facts from the proposal round on 2026-10-27: a grill-me interview, an adversarial author, an adversarial reviewer, and one reconciliation by the primary agent. No tournament ran, because the user's three answers left no architecture fork:
 
 - `openspec/specs/` holds 11 `spec.md` files. The corpus holds long sentences, 7 uses of `provide`, and verb uses of `check`. The true census comes from the checker at implementation time.
 - The house hook precedent is `.claude/hooks/harness-charter.sh`: stdlib script, root resolution through `CLAUDE_PROJECT_DIR` with a `$0` fallback, wiring under `hooks` in `.claude/settings.json`, subprocess tests in `tests/claude_infra/`.
@@ -29,7 +29,7 @@ Non-Goals:
 
 ## Wiring
 
-Lightweight C4-inspired component view; ASCII, the format the 2026-10-26 design records as its assumption. One container: the checker CLI. The gate test and the hook are thin callers around it.
+Lightweight C4-inspired component view, in ASCII. The 2026-10-26 design records that format as its assumption, and this design follows it. One container: the checker CLI. The gate test and the hook are thin callers around it.
 
 ```
               +------------------------------------------+
@@ -59,7 +59,7 @@ Lightweight C4-inspired component view; ASCII, the format the 2026-10-26 design 
         gate test fails the suite; hook blocks the write
 ```
 
-- The boundary sits at the CLI. Callers filter paths and resolve the interpreter; only the CLI reads rules.
+- The boundary sits at the CLI. Callers filter paths and resolve the interpreter. Only the CLI reads rules.
 - The hook owns the edit reconstruction: it applies `old_string` to `new_string` on the file text from disk.
 - The gate test owns scope: it passes the gate paths to the CLI and fails on the error severity.
 - Assumption: `Write|Edit` covers the tools that write spec files today.
@@ -118,7 +118,7 @@ The violation record is `{file, line, rule, severity, text}`. Rule ids: `sentenc
 
 ### D9. Gates and CI
 
-`.coveragerc` gains the omit line for the new `__main__.py`. `tests.yml` adds `--cov spec_ste_check` and lints `tools/spec_ste_check`. The coverage floor stays at 100 for both packages. Mutation runs in an out-of-tree copy per the pipeline rules; the suite must pass there before the mutant run starts.
+`.coveragerc` gains the omit line for the new `__main__.py`. `tests.yml` adds `--cov spec_ste_check` and lints `tools/spec_ste_check`. The coverage floor stays at 100 for both packages. Mutation runs in an out-of-tree copy per the pipeline rules. The suite must pass there before the mutant run starts.
 
 ### D10. The gate test and the bootstrap
 

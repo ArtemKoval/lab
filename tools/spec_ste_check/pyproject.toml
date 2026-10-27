@@ -1,0 +1,11 @@
+[tool.mutmut]
+# Mutation gate. Run mutmut on an out-of-tree copy of this directory,
+# never inside the repository. See README.md, section "Mutation run".
+source_paths = ["spec_ste_check/"]
+pytest_add_cli_args_test_selection = ["tests/"]
+# Run the whole suite for every mutant: a scoped selection misses
+# cross-module killers, and a missed kill is worse than a slower run.
+pytest_add_cli_args = ["tests/"]
+# __main__.py is a two-line shim with no logic of its own, mirroring the
+# .coveragerc omit; its mutants only rename the raise.
+do_not_mutate_patterns = ["__main__.py"]

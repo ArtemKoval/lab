@@ -70,7 +70,7 @@ The app MUST store the key only as ciphertext from the OS keychain-backed storag
 - **THEN** only the last four characters are readable
 
 ### Requirement: The app checks encryption before it stores the key
-Before the first store, the app MUST ask the OS storage whether encryption is available, and MUST refuse weak storage. If encryption is not available, or the storage backend is the weak fallback, the app MUST keep the key for the current session only, MUST tell the user, and MUST store no key and no setup-done mark. The next launch MUST show the wizard at step 1.
+Before the first store, the app MUST ask the OS storage whether encryption is available, and MUST refuse weak storage. If encryption is not available, or the storage backend is the weak fallback, the app MUST keep the key for the current session only. The app MUST tell the user. The app MUST store no key and no setup-done mark. The next launch MUST show the wizard at step 1.
 
 #### Scenario: Encryption unavailable
 - **WHEN** the OS reports that encrypted storage is not available and the user finishes the wizard
@@ -85,7 +85,7 @@ Before the first store, the app MUST ask the OS storage whether encryption is av
 - **THEN** the app shows the wizard at step 1
 
 ### Requirement: An undecryptable key counts as absent
-If the stored ciphertext fails to decrypt, the app MUST treat the key as absent, MUST delete the ciphertext, and MUST show the wizard at step 1.
+If the stored ciphertext fails to decrypt, the app MUST treat the key as absent. The app MUST delete the ciphertext. The app MUST show the wizard at step 1.
 
 #### Scenario: Ciphertext no longer decrypts
 - **WHEN** the app starts and the stored ciphertext fails to decrypt
