@@ -8,5 +8,5 @@ def get(key):
         return os.environ[key]
     except KeyError:
         raise KeyError(
-            f"Secret {key!r} is not in the environment. Add it to lab/.env on the host."
+            f"Secret {key!r} is not in the environment. Add it to the .env file at the repo root."
         )

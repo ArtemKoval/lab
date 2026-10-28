@@ -37,7 +37,7 @@ def test_get_raises_key_error_with_guidance(userdata, monkeypatch):
     with pytest.raises(KeyError) as excinfo:
         userdata.get("OPENROUTER_API_KEY")
     assert excinfo.value.args[0] == (
-        "Secret 'OPENROUTER_API_KEY' is not in the environment. Add it to lab/.env on the host."
+        "Secret 'OPENROUTER_API_KEY' is not in the environment. Add it to the .env file at the repo root."
     )
 
 
@@ -47,6 +47,6 @@ def test_get_reads_any_secret_name(userdata, monkeypatch):
 
 
 def test_get_leaves_type_errors_alone(userdata):
-    # An unhashable name is a caller bug. It must not masquerade as a missing secret.
+    # An unhashable name is a caller bug. It must not look like a missing secret.
     with pytest.raises(TypeError):
         userdata.get({"a": 1})

@@ -5,10 +5,11 @@ This folder holds the recipe that runs the `notebooks/knights-and-knaves-agent.i
 - `google/colab/userdata.py` reads the API key from the environment.
 - `run_notebook.sh` sources the key, installs the packages, and executes the notebook.
 
-The executed copy lands next to the source as `notebooks/executed-knights-and-knaves-agent.ipynb`. The source notebook stays clean, so the notebook tests keep passing.
+The runner writes the executed copy next to the source as `notebooks/executed-knights-and-knaves-agent.ipynb`. The source notebook stays clean, so the notebook tests pass.
 
 ## Before you start
 
+- A Linux host. The `sg` command and the `docker` group are Linux tools.
 - Docker with a running daemon, and your user in the `docker` group
 - A file `.env` at the repo root with the line `OPENROUTER_API_KEY=sk-or-v1-...`
 
@@ -20,7 +21,7 @@ The executed copy lands next to the source as `notebooks/executed-knights-and-kn
    The `sg` prefix gives the command the `docker` group when the shell session lacks it.
 3. Read the result at `notebooks/executed-knights-and-knaves-agent.ipynb`.
 
-A full run makes about 15 OpenRouter requests. The notebook caps itself at its own `DAILY_BUDGET` of 50 requests a day. A full run takes about 5 minutes.
+A full run makes 18 successful OpenRouter requests. The notebook's counter tracks 15 of them. Two refused 403 pings add two more attempts. The notebook caps itself at its own `DAILY_BUDGET` of 50 requests a day. A full run takes about 5 minutes.
 
 ## Provenance
 
