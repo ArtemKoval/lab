@@ -40,12 +40,15 @@ export interface Decision {
   section: string;
   reason: string;
   decided_at: string;
+  signed_off_by: string | null;
+  signed_off_at: string | null;
 }
 
 export interface Payment {
   amount: number;
   paid_at: string;
   signed_off_by: string | null;
+  signed_off_at: string | null;
 }
 
 export interface Case {
@@ -162,12 +165,14 @@ function post<T>(path: string, body: object): Promise<T> {
   });
 }
 
-const casePath = (caseId: string) => `/api/cases/${encodeURIComponent(caseId)}`;
+const casePath = (caseId: string) =>
+  `/api/cases/${encodeURIComponent(caseId)}`;
 
 export const api = {
   listCases: () => request<CaseSummary[]>("/api/cases"),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
-  listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
+  listSteps: (caseId: string) =>
+    request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>
     request<Contract>(`/api/contracts/${encodeURIComponent(contractId)}`),
   getCaseHistory: (customerId: string) =>

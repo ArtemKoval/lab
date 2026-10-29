@@ -15,8 +15,8 @@ def test_case_tools_are_named_after_backend_operations(client):
         "get_case_history",
         "search_documents",
         "read_section",
+        "calculate_award",
         "record_decision",
-        "pay_case",
     ]
     assert set(names) <= operations(client)
 

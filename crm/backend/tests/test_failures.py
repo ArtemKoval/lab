@@ -33,11 +33,18 @@ def test_a_second_failure_leaves_the_case_for_a_worker(client):
     assert errors == ["The model timed out", "The agent went round in circles"]
 
 
-def test_failure_needs_a_case_in_progress(client):
+def test_failure_needs_a_case_in_progress_without_a_decision(client):
     assert fail(client, "CLM-1001").status_code == 409
     start(client, "CLM-1001")
     decide(client, "CLM-1001", "approve", 420.0)
-    assert fail(client, "CLM-1001").status_code == 409
+    response = fail(client, "CLM-1001")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Case CLM-1001 has already been decided"
+    case = client.get("/api/cases/CLM-1001").json()
+    assert (case["status"], case["attempts"]) == ("in_progress", 1)
+    start(client, "CLM-1003")
+    decide(client, "CLM-1003", "decline", 0)
+    assert fail(client, "CLM-1003").status_code == 409
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 1350.0)
     assert fail(client, "CLM-1002").status_code == 409

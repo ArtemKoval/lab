@@ -1,13 +1,13 @@
 """Work the queue with the CRM Agent: uv run -m agent [--cap 5 | CLM-1001]"""
 
 import argparse
-import logging
 import sys
 
 from dotenv import load_dotenv
 
 from agent import api
-from agent.harness import case_agent, model, run_queue, work_case
+from agent.console import show_reports
+from agent.harness import case_graph, checkpointer, model, run_queue, work_case
 
 
 def positive(text: str) -> int:
@@ -27,17 +27,18 @@ def main(args: list[str]) -> None:
     choice.add_argument("case_id", nargs="?", help="work this one case")
     choice.add_argument("--cap", type=positive, help="the most cases the run works")
     options = parser.parse_args(args)
-    if not options.case_id:
-        run_queue(options.cap, model(), model())
-        return
-    try:
-        work_case(options.case_id, case_agent(model()))
-    except api.Refused as refusal:
-        parser.exit(1, f"{options.case_id}  not started: {refusal}\n")
+    with checkpointer() as saver:
+        graph = case_graph(model(), saver)
+        if not options.case_id:
+            run_queue(options.cap, model(), graph)
+            return
+        try:
+            work_case(options.case_id, graph)
+        except api.Refused as refusal:
+            parser.exit(1, f"{options.case_id}  not started: {refusal}\n")
 
 
 if __name__ == "__main__":
     load_dotenv(override=True)
-    logging.basicConfig(format="%(message)s", stream=sys.stdout)
-    logging.getLogger("agent").setLevel(logging.INFO)
+    show_reports()
     main(sys.argv[1:])

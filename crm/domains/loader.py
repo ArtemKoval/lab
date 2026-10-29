@@ -65,6 +65,13 @@ class Pack:
         """Read one instruction text by name, such as case or queue."""
         return self._read(self.instructions, name, "pack instruction")
 
+    def rules_module(self):
+        """Import the pack's deterministic rules module by its manifest name."""
+        import importlib
+
+        name = self.manifest.get("rules", "rules")
+        return importlib.import_module(f"domains.{self.name}.{name}")
+
     def _read(self, folder: Path, name: str, kind: str) -> str:
         """Read one markdown file of the pack, or name it in an error."""
         path = folder / f"{name}.md"

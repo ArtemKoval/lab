@@ -1,27 +1,37 @@
-import type { Case } from "../api";
+import type { Case, Payment } from "../api";
 import { money, time } from "../format";
 import { DecisionChip } from "./Chips";
 import { SignOffForm } from "./SignOffForm";
 
-function progress(entry: Case): string {
-  if (entry.status === "in_progress")
+type SignOff = Pick<Payment, "signed_off_by" | "signed_off_at">;
+
+function whoAndWhen({ signed_off_by, signed_off_at }: SignOff): string | null {
+  return signed_off_by && signed_off_at
+    ? `${signed_off_by} at ${time(signed_off_at)}`
+    : null;
+}
+
+function progress(case: Case): string {
+  if (case.status === "in_progress")
     return "The agent is working on this case.";
-  if (entry.status === "left_for_worker")
-    return `The agent couldn't finish this case in ${String(entry.attempts)} attempts, so it's left for a worker.`;
-  if (entry.attempts > 0) return "Back in the queue after a failed attempt.";
+  if (case.status === "left_for_worker")
+    return `The agent couldn't finish this case in ${String(case.attempts)} attempts, so it's left for a worker.`;
+  if (case.attempts > 0) return "Back in the queue after a failed attempt.";
   return "The agent hasn't started on this case.";
 }
 
 export function DecisionPanel({
-  entry,
+  case,
   onSignedOff,
-}: Readonly<{ entry: Case; onSignedOff: () => void }>) {
-  const { decision, payment } = entry;
+}: Readonly<{ case: Case; onSignedOff: () => void }>) {
+  const { decision, payment } = case;
+  const signedOff = decision && whoAndWhen(decision);
+  const paidSignedOff = payment && whoAndWhen(payment);
 
   return (
     <section className="panel" aria-labelledby="decision-title">
       <h2 id="decision-title">Decision</h2>
-      {!decision && <p className="muted">{progress(entry)}</p>}
+      {!decision && <p className="muted">{progress(case)}</p>}
       {decision && (
         <>
           <div className="decision-line">
@@ -38,19 +48,25 @@ export function DecisionPanel({
       {payment && (
         <p className="payment">
           Paid <span className="mono">{money(payment.amount)}</span>
-          {payment.signed_off_by && `, signed off by ${payment.signed_off_by}`}
+          {paidSignedOff && `, signed off by ${paidSignedOff}`}
         </p>
       )}
       {decision?.decision === "approve" &&
         !payment &&
-        entry.status === "decided" && <p className="payment">Not paid yet</p>}
-      {decision && entry.status === "waiting_for_sign_off" && (
+        case.status === "in_progress" && (
+          <p className="payment">
+            {signedOff && `Signed off by ${signedOff}. `}
+            Waiting for the agent to pay it.
+          </p>
+        )}
+      {decision && case.status === "waiting_for_sign_off" && (
         <div className="sign-off">
           <p>
-            The payment of <span className="mono">{money(decision.award)}</span>{" "}
-            is over the approval limit and waits for a worker's sign-off.
+            The payment of{" "}
+            <span className="mono">{money(decision.award)}</span> is over the
+            approval limit and waits for a worker's sign-off.
           </p>
-          <SignOffForm caseId={entry.case_id} onSignedOff={onSignedOff} />
+          <SignOffForm caseId={case.case_id} onSignedOff={onSignedOff} />
         </div>
       )}
     </section>

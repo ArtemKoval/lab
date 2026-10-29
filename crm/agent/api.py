@@ -1,17 +1,46 @@
 """The CRM backend's API: one function for each operation the agent uses."""
 
 import os
+from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
 import httpx
+from pydantic import BaseModel, Field
 
-BACKEND_URL = os.getenv("CRM_AGENT_API", "http://127.0.0.1:8000")
+BACKEND_URL = os.getenv("CRM_API", "http://127.0.0.1:8000")
 
 backend = httpx.Client(base_url=f"{BACKEND_URL}/api", timeout=30)
 
 DecisionKind = Literal["approve", "decline", "refer"]
+APPROVE: DecisionKind = "approve"
 DocumentName = Literal["wording", "manual"]
 StepKind = Literal["tool_call", "tool_result", "message", "reading"]
+Benefit = Literal[
+    "trip_cancellation",
+    "trip_interruption",
+    "trip_delay",
+    "baggage_delay",
+    "baggage",
+    "passport",
+    "emergency_medical",
+]
+
+
+class Status(StrEnum):
+    """Where a case stands."""
+
+    WAITING = "waiting"
+    IN_PROGRESS = "in_progress"
+    WAITING_FOR_SIGN_OFF = "waiting_for_sign_off"
+    DECIDED = "decided"
+    LEFT_FOR_WORKER = "left_for_worker"
+
+
+class RunStatus(StrEnum):
+    """Where a run of the queue agent stands."""
+
+    RUNNING = "running"
+    FINISHED = "finished"
 
 
 class Todo(TypedDict):
@@ -19,15 +48,56 @@ class Todo(TypedDict):
     status: Literal["to_do", "in_progress", "done", "left_for_worker"]
 
 
+LineKind = Literal[
+    "item", "electronics", "cash", "expense", "hotel", "meals_without_receipts"
+]
+
+
+class Line(BaseModel):
+    """One covered item or expense on a case."""
+
+    description: str = Field(description="What the item or expense is")
+    amount: float = Field(
+        description="The total claimed for the line in US dollars, before any limits. "
+        "For several items, the total for all of them"
+    )
+    quantity: int = Field(
+        ge=1,
+        description="How many separate items the line holds, such as 3 for three "
+        "shirts. A pair or a set is one item, and an expense is 1",
+    )
+    kind: LineKind = Field(
+        description="item: a belonging, or a pair or set that counts as one item. "
+        "electronics: only a phone, tablet, laptop, camera or its lens, e-reader or "
+        "smartwatch; any other device is an item. "
+        "cash: cash that was lost or stolen. "
+        "expense: any other cost with a receipt, such as a medical bill, a meal, a "
+        "taxi, a fee or a prepaid trip cost. "
+        "hotel: a hotel during a trip delay. "
+        "meals_without_receipts: meals during a trip delay with no receipts."
+    )
+    nights: int = Field(
+        description="For a hotel, the number of nights, and 0 otherwise"
+    )
+    hours: float = Field(
+        description="For meals without receipts, the length of the delay in hours, "
+        "and 0 otherwise"
+    )
+
+
 class Refused(Exception):
     """The backend refused a request, with its status code and reason."""
+
+    def __init__(self, status_code: int, detail: str) -> None:
+        super().__init__(f"{status_code}: {detail}")
+        self.status_code, self.detail = status_code, detail
 
 
 def _call(method: str, path: str, **request: Any) -> Any:
     """Send one request to the backend and return its JSON, or raise Refused."""
     response = backend.request(method, path, **request)
     if response.is_error:
-        raise Refused(f"{response.status_code}: {response.json()['detail']}")
+        raise Refused(response.status_code, response.json()["detail"])
     return response.json()
 
 
@@ -57,6 +127,17 @@ def search_documents(query: str) -> list[dict[str, Any]]:
 
 def read_section(document: DocumentName, number: int) -> dict[str, Any]:
     return _call("GET", f"/documents/{document}/sections/{number}")
+
+
+def calculate_award(
+    case_id: str, benefit: Benefit, lines: list[Line], paid_by_others: float
+) -> dict[str, Any]:
+    body = {
+        "benefit": benefit,
+        "lines": [line.model_dump() for line in lines],
+        "paid_by_others": paid_by_others,
+    }
+    return _call("POST", f"/cases/{case_id}/award", json=body)
 
 
 def start_case(case_id: str, thread_id: str) -> dict[str, Any]:
@@ -90,6 +171,10 @@ def fail_case(case_id: str, reason: str) -> dict[str, Any]:
 
 def start_run(cap: int) -> dict[str, Any]:
     return _call("POST", "/runs", json={"cap": cap})
+
+
+def get_latest_run() -> dict[str, Any] | None:
+    return _call("GET", "/runs/latest")
 
 
 def write_todos(run_id: str, todos: list[Todo]) -> dict[str, Any]:

@@ -14,7 +14,7 @@ The case agent's instructions, model, and reasoning effort SHALL make up one con
 - **THEN** the page shows the current version, every version, and the diff to the one before
 
 ### Requirement: The judge
-Each graded claim SHALL carry a grade from F to A with a score from 0 to 3, and two matches for the same grounds and the same section. The judge's cost SHALL be recorded with its evaluation apart from the case agents' cost.
+Each graded claim SHALL carry a grade from F to A with a score from 0 to 3. It SHALL also carry two matches: the same grounds, and the same section. The judge's cost SHALL be recorded with its evaluation apart from the case agents' cost.
 
 #### Scenario: The judge grades an explanation
 - **GIVEN** an evaluation claim with the worker's reason and reference

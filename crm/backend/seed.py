@@ -1,16 +1,16 @@
-"""Rebuild the database from the pack, with: uv run -m backend.seed"""
+"""Rebuild the database from data/, with: uv run -m backend.seed"""
 
-from backend.database import database_path, seed
+from backend.database import engine, location, seed
 
 
 def main() -> None:
     """Rebuild the database and say what it holds."""
-    path = database_path()
-    counts = seed(path)
+    db = engine()
+    counts = seed(db)
     print(
         f"Seeded {counts['cases']} cases, {counts['contracts']} contracts, "
         f"{counts['customers']} customers and {counts['workers']} workers "
-        f"into {path.name}"
+        f"into {location(db)}"
     )
 
 

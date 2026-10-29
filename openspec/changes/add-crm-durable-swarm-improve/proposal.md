@@ -2,16 +2,16 @@
 
 ## Why
 
-The crm engine pilot holds one case agent that loses its work on a restart, works one case at a time, and has no measure of its own accuracy. The upstream week two milestones solve all three: durable checkpoints, a dispatcher with parallel case agents and a scoreboard, and an improver with versions and a judge. Porting them turns the pilot into an operations platform.
+The crm engine pilot has three gaps. Its case agent loses its work on a restart, it works one case at a time, and it has no measure of its own accuracy. The upstream week two milestones solve all three. They bring durable checkpoints, a dispatcher with parallel case agents and a scoreboard, and an improver with versions and a judge. Porting them turns the pilot into an operations platform.
 
 ## What Changes
 
-- Port milestone `week2day3` as durable state: the deterministic award engine in the pack as `rules.py`, a calculation the decision must match, a hand-written case-agent graph, checkpoints that survive a restart through a saver factory, an agent service on port 8002, sign-off that resumes the case, and idempotent decision and payment repeats.
-- Port milestone `week2day4` as the swarm: a model-free dispatcher with up to 25 case agents at once, cost and time per model call, evaluations on the queue set and the held-out set, and a scoreboard page.
-- Port milestone `week2day5` as self-improvement: agent configurations in versions, a judge for explanations, improver rounds with recipes, spending limits, the keep-or-rollback verdict, worker sign-in with roles, and the settings page.
-- Replace Supabase Auth with a small local auth service that issues signed JWTs and serves JWKS, on the same contract the backend already verifies. The AWS rollout later points the same variables at Cognito.
+- Port milestone `week2day3` as durable state. The deterministic award engine lands in the pack as `rules.py`, behind a calculation the decision must match. The case agent becomes a hand-written graph whose checkpoints survive a restart through a saver factory. An agent service on port 8002 resumes a case after sign-off, and decision and payment repeats are idempotent.
+- Port milestone `week2day4` as the swarm. A model-free dispatcher runs up to 25 case agents at once and records cost and time per model call. Evaluations score the queue set and the held-out set on a scoreboard page.
+- Port milestone `week2day5` as self-improvement. Agent configurations live in versions, a judge grades explanations, and improver rounds follow recipes under spending limits. The port adds the keep-or-rollback verdict, worker sign-in with roles, and the settings page.
+- Replace Supabase Auth with a small local auth service. It issues signed JWTs and serves JWKS on the contract the backend already verifies. The AWS rollout later points the same variables at Cognito.
 - Move `data/models.json` and `data/improvement.json` into the pack, and read the seeded settings through the manifest.
-- Keep every test hermetic: SQLite stays the test database, the stub model stands in for OpenRouter, and the e2e boots its own auth stand-in.
+- Keep every test hermetic. SQLite stays the test database, the stub model stands in for OpenRouter, and the e2e boots its own auth stand-in.
 - Extend `crm/port/port.py` passes and keep the two ported docs (`docs/SWARM.md`, `docs/IMPROVE.md`) in the house style.
 
 ## Capabilities
@@ -24,7 +24,7 @@ The crm engine pilot holds one case agent that loses its work on a restart, work
 
 ### Modified Capabilities
 
-- `crm-engine`: The case agent becomes a hand-written graph, the case agent loses its pay tool, a sign-off records the worker instead of paying, and decision repeats are idempotent.
+- `crm-engine`: The case agent becomes a hand-written graph and loses its pay tool. A sign-off records the worker instead of paying. Decision repeats are idempotent.
 
 ## Impact
 

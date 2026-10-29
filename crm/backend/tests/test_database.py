@@ -1,37 +1,43 @@
-"""Tests of the database helpers."""
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.pool import QueuePool
 
-import threading
+from backend.database import engine, location
+from backend.main import app
 
-from backend.database import connect, seed
-
-
-def test_one_connection_serves_two_threads(database):
-    """The connection opts out of SQLite's same-thread check."""
-    connection = connect()
-    seen = []
-
-    def read():
-        row = connection.execute("SELECT award_approval_limit FROM settings")
-        seen.append(row.fetchone()[0])
-
-    thread = threading.Thread(target=read)
-    thread.start()
-    thread.join()
-    assert seen == [1000.0]
+SUPABASE = "postgresql://postgres.ref:secret@pooler.example.com:5432/db"
 
 
-def test_a_seed_over_a_seeded_database_rebuilds_the_same_queue(database):
-    """The seed rebuilds the pack queue, so a second run holds the same rows."""
+def test_postgres_is_used_when_database_url_is_set(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", SUPABASE)
+    db = engine()
+    assert db.url.drivername == "postgresql+psycopg"
+    assert db.url.query["options"] == "-c search_path=crm"
+    assert isinstance(db.pool, QueuePool)
+    assert (db.pool.size(), db.pool._max_overflow, db.pool._pre_ping) == (4, 0, True)
+    assert location(db) == "the crm schema on Postgres"
 
-    def queue_rows():
-        rows = (
-            connect()
-            .execute("SELECT case_id, record, status FROM cases ORDER BY case_id")
-            .fetchall()
-        )
-        return [(row["case_id"], row["record"], row["status"]) for row in rows]
 
-    first = queue_rows()
-    counts = seed(database)
-    assert counts["cases"] == 25
-    assert queue_rows() == first
+def test_the_settings_in_database_url_are_kept(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", f"{SUPABASE}?sslmode=require")
+    query = engine().url.query
+    assert (query["sslmode"], query["options"]) == (
+        "require",
+        "-c search_path=crm",
+    )
+
+
+def test_sqlite_is_used_otherwise(database):
+    db = engine()
+    assert db.url.drivername == "sqlite"
+    assert db.url.database == str(database)
+    assert location(db) == "crm.db"
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_startup_seeds_a_missing_or_empty_database(database, empty):
+    database.unlink()
+    if empty:
+        database.touch()
+    with TestClient(app) as client:
+        assert len(client.get("/api/cases").json()) == 25

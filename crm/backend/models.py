@@ -11,6 +11,18 @@ DecisionKind = Literal["approve", "decline", "refer"]
 StepKind = Literal["tool_call", "tool_result", "message", "reading", "error"]
 TodoStatus = Literal["to_do", "in_progress", "done", "left_for_worker"]
 DocumentName = Literal["wording", "manual"]
+Benefit = Literal[
+    "trip_cancellation",
+    "trip_interruption",
+    "trip_delay",
+    "baggage_delay",
+    "baggage",
+    "passport",
+    "emergency_medical",
+]
+LineKind = Literal[
+    "item", "electronics", "cash", "expense", "hotel", "meals_without_receipts"
+]
 
 
 class Item(BaseModel):
@@ -31,12 +43,15 @@ class Decision(BaseModel):
     section: str
     reason: str
     decided_at: str
+    signed_off_by: str | None
+    signed_off_at: str | None
 
 
 class Payment(BaseModel):
     amount: float
     paid_at: str
     signed_off_by: str | None
+    signed_off_at: str | None
 
 
 class CaseSummary(BaseModel):
@@ -159,9 +174,9 @@ class DecisionRequest(BaseModel):
     def check_award(self) -> Self:
         """An approval pays something, and a decline or referral pays nothing."""
         if self.decision == "approve" and self.award == 0:
-            raise ValueError("An approval needs an award above zero")
+            raise ValueError("An approval needs a award above zero")
         if self.decision != "approve" and self.award != 0:
-            raise ValueError("A decline or a referral has an award of zero")
+            raise ValueError("A decline or a referral has a award of zero")
         return self
 
 
@@ -171,6 +186,64 @@ class PaymentRequest(BaseModel):
 
 class SignOffRequest(BaseModel):
     worker_id: str
+
+
+class Plan(BaseModel):
+    plan: str
+    name: str
+    trip_cancellation_max: float
+    trip_delay_waiting_hours: int
+    trip_delay_max: float
+    baggage_delay_waiting_hours: int
+    baggage_delay_max: float
+    baggage_max: float
+    per_item_limit: float
+    passport_max: float
+    emergency_medical_max: float
+    deductible: float
+
+
+class AddOn(BaseModel):
+    add_on: str
+    name: str
+    effect: str
+    electronics_per_item_limit: float | None = None
+
+
+class Plans(BaseModel):
+    plans: list[Plan]
+    deductible_applies_to: list[Benefit]
+    add_ons: list[AddOn]
+
+
+class Line(BaseModel):
+    description: str = Field(min_length=1)
+    amount: float = Field(ge=0, description="The total claimed, before limits")
+    quantity: int = Field(ge=1, description="How many separate items")
+    kind: LineKind
+    nights: int = Field(ge=0, description="For a hotel, and 0 otherwise")
+    hours: float = Field(
+        ge=0, description="For meals without receipts, and 0 otherwise"
+    )
+
+
+class AwardRequest(BaseModel):
+    benefit: Benefit
+    lines: list[Line] = Field(
+        description="The covered lines, with any excluded left out"
+    )
+    paid_by_others: float = Field(ge=0, description="Paid or refunded by others")
+
+
+class CalculationStep(BaseModel):
+    step: str
+    amount: float
+
+
+class Award(BaseModel):
+    calculation: list[CalculationStep]
+    award: float
+    needs_sign_off: bool
 
 
 class FailureRequest(BaseModel):

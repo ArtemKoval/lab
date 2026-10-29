@@ -5,7 +5,7 @@
 
 ## Review Summary
 
-The change introduces no new durable decision beyond ADR 0007, which already owns the seam. The auth replacement, the saver factory, and the rules contract are change-local decisions recorded in design.md, and a later change that ports the AWS rollout may promote the auth contract to a durable record when Cognito lands.
+The change introduces no new durable decision beyond ADR 0007, which already owns the seam. The auth replacement, the saver factory, and the rules contract are change-local decisions recorded in design.md. A later change that ports the AWS rollout may promote the auth contract to a durable record when Cognito lands.
 
 ## In-Force ADRs Reviewed
 
