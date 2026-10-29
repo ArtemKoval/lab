@@ -101,6 +101,7 @@ def rename_words(text: str) -> str:
         text = re.sub(rf"{old}_", f"{new}_", text)
         text = re.sub(rf"{old.upper()}_", f"{new.upper()}_", text)
         text = re.sub(rf"_{old}\b", f"_{new}", text)
+        text = re.sub(rf"_{old.upper()}\b", f"_{new.upper()}", text)
         text = re.sub(rf"_{old}s\b", f"_{new}s", text)
     return text
 

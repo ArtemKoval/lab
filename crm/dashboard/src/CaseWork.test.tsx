@@ -196,7 +196,7 @@ it("shows an approval that hasn't been paid yet", async () => {
   expect(panel.getByText("Not paid yet")).toBeDefined();
 });
 
-it("shows a decline without a award", async () => {
+it("shows a decline without an award", async () => {
   showCase({
     ...approved,
     decision: { ...approval, decision: "decline", award: 0 },

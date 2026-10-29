@@ -314,5 +314,5 @@ def test_the_queue_call_budget_grows_with_the_cap():
     """Each case in the cap adds its share of calls to the planning budget."""
     assert harness.queue_call_budget(0) == harness.QUEUE_MODEL_CALLS_TO_PLAN
     assert harness.queue_call_budget(3) == (
-        harness.QUEUE_MODEL_CALLS_PER_CLAIM * 3 + harness.QUEUE_MODEL_CALLS_TO_PLAN
+        harness.QUEUE_MODEL_CALLS_PER_CASE * 3 + harness.QUEUE_MODEL_CALLS_TO_PLAN
     )

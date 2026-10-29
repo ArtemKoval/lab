@@ -20,7 +20,7 @@
 - [x] 3.2 Port the harness: the queue agent and one fresh subagent per case. Add the to-do list, the model call caps, and the refusals as text.
 - [x] 3.3 Port the failure path. A failed case returns to waiting. A second failure leaves it for a worker. The run examines the queue for missed cases at the end.
 - [x] 3.4 Port the stub model and the harness tests to full coverage of the new code.
-- [x] 3.5 Add the run routes and the agent entrypoint service on port 8080.
+- [x] 3.5 Add the run routes and the agent entry point on the command line.
 
 ## 4. Dashboard and e2e
 

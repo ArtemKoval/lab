@@ -18,7 +18,7 @@ repository root README gives the commands. The complexity cap is 10.
 
 ## Rules
 
-- Add tests with each change. Tests never call a model; use the stub model.
+- Add tests with each change. Tests never call a model. Use the stub model.
 - Run `npm run check` before you hand work over.
 - Keep `docs/STATUS.md` up to date.
 - Engine code carries no domain noun. The pack carries all of them. The

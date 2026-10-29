@@ -7,10 +7,10 @@
   },
   "documents": ["wording", "manual"],
   "seed": {
-    "cases": "data/cases.json",
-    "customers": "data/customers.json",
-    "contracts": "data/contracts.json",
-    "workers": "data/workers.json",
-    "company": "data/company.json"
+    "cases": "cases.json",
+    "customers": "customers.json",
+    "contracts": "contracts.json",
+    "workers": "workers.json",
+    "company": "company.json"
   }
 }

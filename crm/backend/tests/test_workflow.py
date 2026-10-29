@@ -131,7 +131,7 @@ def test_over_the_limit_waits_for_sign_off(client):
     response = pay(client, "CLM-1002", 1350.0)
     assert response.status_code == 403
     assert response.json()["detail"] == (
-        "A award over $1,000.00 needs a worker's sign-off"
+        "An award over $1,000.00 needs a worker's sign-off"
     )
     assert client.get("/api/cases/CLM-1002").json()["payment"] is None
 

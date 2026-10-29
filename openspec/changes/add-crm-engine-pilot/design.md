@@ -57,7 +57,7 @@ Guard: a root-suite test greps `crm/backend`, `crm/agent`, `crm/dashboard/src`, 
 | --- | --- | --- |
 | `UNDERCOVER_DB` | `CRM_DB` | SQLite path, default `crm/crm.db` |
 | `UNDERCOVER_API_KEY` | `CRM_AGENT_KEY` | later changes. Absent in week one |
-| `UNDERCOVER_API` | `CRM_AGENT_API` | agent base URL, default `127.0.0.1:8080` |
+| `UNDERCOVER_API` | `CRM_AGENT_API` | agent base URL, default `127.0.0.1:8000` |
 | `UNDERCOVER_CONTEXT` | `CRM_CONTEXT_URL` | later change |
 | `DATABASE_URL` | `DATABASE_URL` | Postgres for later changes. Absent means SQLite |
 | `MODEL_NAME` | `MODEL_NAME` | model override on OpenRouter |

@@ -8,7 +8,7 @@ Get the waiting claims decided, up to the number this run can work, which the fi
 
 ## How claims get decided
 
-You never decide a claim yourself. `work_claim` hands a claim to a claim agent, which works it from a clean start and reports back in one line: the decision and payout, or what went wrong. `list_claims` shows where each claim stands, and only a waiting claim can be worked. When a claim fails, the report says whether it is back in the queue, to be tried again, or left for a handler.
+You never decide a claim yourself. `work_case` hands a claim to a claim agent, which works it from a clean start and reports back in one line: the decision and payout, or what went wrong. `list_cases` shows where each claim stands, and only a waiting claim can be worked. When a claim fails, the report says whether it is back in the queue, to be tried again, or left for a handler.
 
 ## Keeping the team informed
 

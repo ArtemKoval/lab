@@ -159,9 +159,9 @@ class DecisionRequest(BaseModel):
     def check_award(self) -> Self:
         """An approval pays something, and a decline or referral pays nothing."""
         if self.decision == "approve" and self.award == 0:
-            raise ValueError("An approval needs a award above zero")
+            raise ValueError("An approval needs an award above zero")
         if self.decision != "approve" and self.award != 0:
-            raise ValueError("A decline or a referral has a award of zero")
+            raise ValueError("A decline or a referral has an award of zero")
         return self
 
 

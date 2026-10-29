@@ -14,7 +14,7 @@ handler to worker, policy to contract, and the two document names
 `policy_wording` to `wording` and `claims_manual` to `manual`. Upstream
 variable names map first: `UNDERCOVER_DB` to `CRM_DB` and its siblings in
 the table in `port.py`. The brand strings become `CRM` in engine code.
-Pack content under `crm/domains/` keeps its text verbatim; pack JSON gets
+Pack content under `crm/domains/` keeps its text verbatim. Pack JSON gets
 schema-key renames only, and values stay untouched.
 
 ## Passes
@@ -38,5 +38,5 @@ The passes skip the upstream course folders, the docs that this repository
 rewrites, and the lockfiles, which a fresh `npm install` and `uv sync`
 regenerate. A file that a later milestone deletes is removed by hand in that
 change. Give `--dry-run` to print the mapping without writing. The
-`UPSTREAM_REPO` variable moves the upstream clone; the default is
+`UPSTREAM_REPO` variable moves the upstream clone. The default is
 `/home/repos/undercover-upstream`.

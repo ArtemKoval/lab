@@ -300,7 +300,7 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Payment:
     if case["status"] == "waiting_for_sign_off":
         raise HTTPException(
             403,
-            f"A award over {dollars(approval_limit(db))} needs a worker's sign-off",
+            f"An award over {dollars(approval_limit(db))} needs a worker's sign-off",
         )
     if round(request.amount, 2) != case["award"]:
         raise HTTPException(

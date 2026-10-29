@@ -18,16 +18,16 @@ ENGINE_DIRS = ("backend", "agent", "dashboard/src", "e2e")
 BANNED_NOUNS = re.compile(
     r"\b(claims?|payouts?|handlers?|polic(?:y|ies)|undercover)\b", re.IGNORECASE
 )
-# Hits that are ordinary English or agreed spellings, one path fragment each.
-# `e2e/pages.spec.ts`, `backend/tests/test_documents.py`, and
-# `agent/tests/test_case_agent.py` pin the served text of the insurance pack,
-# which keeps the pack's own words. The `agent/harness.py` middleware
-# override keeps the framework's own parameter name.
-ALLOWLIST: tuple[str, ...] = (
-    "crm/e2e/pages.spec.ts",
-    "crm/backend/tests/test_documents.py",
-    "crm/agent/tests/test_case_agent.py",
-    "crm/agent/harness.py",
+# Hits that are ordinary English, agreed spellings, or pinned pack text.
+# Each entry is a path fragment and a line substring. `pages.spec.ts`,
+# `test_documents.py`, and `test_case_agent.py` pin the served text of the
+# insurance pack, which keeps the pack's own words. The `harness.py`
+# middleware override keeps the framework's own parameter name.
+ALLOWLIST: tuple[tuple[str, str], ...] = (
+    ("crm/e2e/pages.spec.ts", ""),
+    ("crm/backend/tests/test_documents.py", ""),
+    ("crm/agent/tests/test_case_agent.py", ""),
+    ("crm/agent/harness.py", "handler"),
 )
 
 
@@ -97,4 +97,8 @@ def _allowed(path: Path, line: str) -> bool:
     lowered = line.lower()
     if "claimed" in lowered:
         return True
-    return any(str(path.relative_to(ROOT)).startswith(allow) for allow in ALLOWLIST)
+    relative = str(path.relative_to(ROOT))
+    return any(
+        relative.startswith(fragment) and needle in line
+        for fragment, needle in ALLOWLIST
+    )

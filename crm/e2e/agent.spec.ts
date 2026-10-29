@@ -48,7 +48,10 @@ test("the case page shows the agent at work", async ({ page, request }) => {
   await expect(page.getByText("Approved and paid $500.00.")).toBeVisible();
 });
 
-test("a worker signs off a award over the limit", async ({ page, request }) => {
+test("a worker signs off an award over the limit", async ({
+  page,
+  request,
+}) => {
   await post(request, "/api/cases/CLM-1020/start", { thread_id: "e2e-2" });
   await post(request, "/api/cases/CLM-1020/decision", {
     decision: "approve",

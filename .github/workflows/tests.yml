@@ -38,6 +38,7 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv sync --project crm
       - name: Build the gate tool venvs
+        if: github.event_name == 'pull_request'
         run: |
           python -m venv tools/crapper/.venv
           tools/crapper/.venv/bin/python -m pip install -e 'tools/crapper[dev]' coverage
@@ -69,9 +70,6 @@ jobs:
           ../tools/crapper/.venv/bin/python -m crapper --threshold 10 --use-existing-coverage backend agent domains
           ../tools/dryer/.venv/bin/python -m dryer --threshold 0.8 --fail-above backend agent domains
 
-  suite:
-
-jobs:
   suite:
     runs-on: ubuntu-24.04
     steps:

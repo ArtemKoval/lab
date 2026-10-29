@@ -73,3 +73,10 @@ def test_startup_seeds_a_missing_database(database):
     database.unlink()
     with TestClient(app) as client:
         assert len(client.get("/api/cases").json()) == 25
+
+
+def test_the_queue_holds_no_held_out_cases(client):
+    """The seed never carries the pack's held-out cases into the queue."""
+    ids = [case["case_id"] for case in client.get("/api/cases").json()]
+    assert len(ids) == 25
+    assert all(case_id.startswith("CLM-10") for case_id in ids)

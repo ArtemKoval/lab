@@ -7,7 +7,7 @@ description: Build, test, and run the crm engine with its insurance domain pack.
 
 The crm project lives at `crm/`. It is a CRM engine with domain packs. The
 active pack is `insurance` unless `CRM_DOMAIN` names another. Engine code
-carries no domain noun; the pack carries all of them.
+carries no domain noun. The pack carries all of them.
 
 ## Set up
 
@@ -24,7 +24,7 @@ A clean clone needs `uv`, Python 3.12 or newer, and Node 22 or newer. The
 
 ```bash
 cd crm
-cp .env.example .env   # once; the OPENROUTER_API_KEY line is optional
+cp .env.example .env   # once. The OPENROUTER_API_KEY line is optional
 npm run seed           # build crm.db from the active pack
 npm run dev            # backend on 8000, dashboard on 5173
 uv run -m agent CLM-1001   # work one case on the command line
@@ -66,23 +66,22 @@ interpreter, then run the gates on the module you changed:
   --data-file=target/coverage/python/.coverage -o target/coverage/python/lcov.info
 ../tools/crapper/.venv/bin/python -m crapper --threshold 10 --use-existing-coverage backend agent domains
 ../tools/dryer/.venv/bin/python -m dryer --threshold 0.8 --fail-above backend agent domains
-# mutation, one module at a time; expect no survivor but the documented one
+# mutation, one module at a time. Expect no survivor but the documented one
 ../tools/mutator/.venv/bin/python -m mutator --use-existing-coverage --max-workers 4 \
   --test-command "$PWD/.venv/bin/python -m pytest -q <module tests> -o addopts=" <module>
 ```
 
 The mutation gate keeps one documented equivalent survivor: the
 `strict=True` flag in `backend/documents.py`, whose two lists always have
-equal length. CI runs the CRAP and duplication gates for `crm/`; the
+equal length. CI runs the CRAP and duplication gates for `crm/`. The
 mutation gate runs per change on this host.
 
 ## Know
 
 - The pack lives at `crm/domains/insurance/`. `crm/domains/loader.py` is
-  the one seam; no other engine module names a pack.
-- The behavior specs live at `openspec/specs/crm-engine/` and
-  `openspec/specs/crm-domain-pack/` in the repository root.
+  the one seam. No other engine module names a pack.
+- The behavior specs live under `openspec/specs/` in the repository root.
 - The port tool for the next upstream milestones lives at `crm/port/`.
 - The dev container lives at `crm/.devcontainer/`.
-- A failed check prints the failing tool first; fix that tool's finding,
+- A failed check prints the failing tool first. Fix that tool's finding,
   then run `npm run check` again.

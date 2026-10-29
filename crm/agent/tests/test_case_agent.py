@@ -71,7 +71,7 @@ def test_payment_over_the_limit_is_refused(client):
     assert isinstance(refusal, ToolMessage)
     assert refusal.status == "error"
     assert refusal.text == (
-        "Refused with status 403: A award over $1,000.00 needs a worker's sign-off"
+        "Refused with status 403: An award over $1,000.00 needs a worker's sign-off"
     )
     assert client.get("/api/cases/CLM-1002").json()["payment"] is None
 

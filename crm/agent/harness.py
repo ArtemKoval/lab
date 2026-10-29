@@ -38,7 +38,7 @@ QueueAgent = CompiledStateGraph[Any, RunContext, Any, Any]
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
 CASE_MODEL_CALLS = 30
-QUEUE_MODEL_CALLS_PER_CLAIM = 6
+QUEUE_MODEL_CALLS_PER_CASE = 6
 QUEUE_MODEL_CALLS_TO_PLAN = 12
 REMINDERS = 2
 NO_DECISION = "The agent finished without recording a decision"
@@ -182,7 +182,7 @@ def missed(run: RunContext) -> list[str]:
 
 def queue_call_budget(cap: int) -> int:
     """Return the queue agent's model call limit for a run of this cap."""
-    return QUEUE_MODEL_CALLS_PER_CLAIM * cap + QUEUE_MODEL_CALLS_TO_PLAN
+    return QUEUE_MODEL_CALLS_PER_CASE * cap + QUEUE_MODEL_CALLS_TO_PLAN
 
 
 def queue_agent(llm: BaseChatModel, cap: int) -> QueueAgent:

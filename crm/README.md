@@ -1,11 +1,11 @@
 # crm
 
-A CRM engine with domain packs. The engine runs a backoffice queue: AI case
-workers read each case, decide it against the policy documents, and pay the
-awards that a human signs off. One domain pack, `domains/insurance/`, holds
-the words, the rules, and the seed data of the first domain, a fictional
-travel insurer. A later change adds the skill that onboards a new domain
-from a free-form description.
+A CRM engine with domain packs. The engine runs a backoffice queue. AI case
+workers read each case and decide it against the policy documents. A human
+signs off large awards, and then the engine pays them. One domain pack,
+`domains/insurance/`, holds the words, the rules, and the seed data of the
+first domain, a fictional travel insurer. A later change adds the skill
+that onboards a new domain from a free-form description.
 
 The project ports the week one milestones of `github.com/ed-donner/undercover`.
 The engine carries generic names: case, contract, award, worker, decision.
@@ -31,9 +31,9 @@ uv run -m agent CLM-1001
 
 The `OPENROUTER_API_KEY` variable names no key in a fresh clone. The tests
 and the e2e never call a model. A dev run without a key fails on the first
-decision; put a key in `.env` to work real cases.
+decision. Put a key in `.env` to work real cases.
 
-## Check it
+## Examine it
 
 ```bash
 npm run check   # ruff, pyright, pytest, prettier, eslint, tsc, vitest, e2e

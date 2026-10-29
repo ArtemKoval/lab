@@ -17,5 +17,5 @@ The contents of both documents are at the end of these instructions. Rely on wha
 ## When you are done
 
 - You have recorded one decision with `record_decision`, which can't be changed afterwards. For a referral, the reason says what is needed and who should look at it.
-- If you approved the claim, you have paid it with `pay_claim`. A payout over the approval limit waits for a handler's sign-off, so a refusal saying so is expected, and the payment should not be tried again.
+- If you approved the claim, you have paid it with `pay_case`. A payout over the approval limit waits for a handler's sign-off, so a refusal saying so is expected, and the payment should not be tried again.
 - Your last reply is short, in plain text, and gives the decision, the payout and the reason.

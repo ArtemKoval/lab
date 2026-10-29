@@ -5,7 +5,6 @@ import os
 import sqlite3
 from contextlib import closing
 from pathlib import Path
-from typing import Any
 
 from domains import loader
 
@@ -108,18 +107,14 @@ def connect() -> sqlite3.Connection:
     return connection
 
 
-def load(name: str) -> Any:
-    """Read one of the JSON files in the pack data folder."""
-    return loader.pack().load_json(name)
-
-
 def seed(path: Path) -> dict[str, int]:
     """Build a fresh database at path from the pack and count what it holds."""
     active = loader.pack()
-    workers = active.load_json("workers.json")
-    customers = active.load_json("customers.json")
-    contracts = active.load_json("contracts.json")
-    cases = active.load_json("cases.json")
+    seed_files = active.manifest.get("seed", {})
+    workers = active.load_json(seed_files.get("workers", "workers.json"))
+    customers = active.load_json(seed_files.get("customers", "customers.json"))
+    contracts = active.load_json(seed_files.get("contracts", "contracts.json"))
+    cases = active.load_json(seed_files.get("cases", "cases.json"))
     path.unlink(missing_ok=True)
     with closing(sqlite3.connect(path)) as connection, connection:
         connection.executescript(SCHEMA)
