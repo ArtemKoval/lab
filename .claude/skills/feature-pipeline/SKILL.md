@@ -188,10 +188,12 @@ skill saying "always do X" is a wish; a hook enforces it.
   which owns `settings.json`. A hook reads a JSON event on stdin; exit 2 blocks
   a blockable event (or JSON stdout sets `decision`, `permissionDecision`,
   `updatedInput`, `additionalContext`), exit 0 allows, other codes are
-  non-blocking errors. This repo runs one hook: the SessionStart charter
-  (`.claude/hooks/harness-charter.sh`, wired under `hooks` in
-  `.claude/settings.json`). Step 14's `cc_logging` hook is a target design,
-  not a shipped one — confirm what actually exists before relying on it.
+  non-blocking errors. This repo runs three hooks: the SessionStart charter
+  (`.claude/hooks/harness-charter.sh`), the Write and Edit spec STE gate
+  (`.claude/hooks/spec-ste-gate.sh`), and the cc-logging hook
+  (`.claude/hooks/cc-logging.sh`), all wired under `hooks` in
+  `.claude/settings.json`. The `handover-telemetry-hook` setup doctor
+  confirms the wiring.
 
 For a hook deliverable:
 - Its script is standalone code — Steps 2–3 and the gates apply. Use a
@@ -382,7 +384,10 @@ force. Leave worktrees other tools created in place. Verify: request
 merged, only the mainline remains, suite and gates pass on the merged mainline,
 the shipped command or tool still runs. When the run produces logs, metrics, or
 observations that later work can use, open a handover issue. Use the `handover`
-template at `.github/ISSUE_TEMPLATE/handover.md` after the merge. Remove
+template at `.github/ISSUE_TEMPLATE/handover.md` after the merge. Build the
+Telemetry section with the handover-telemetry tool (the `handover-telemetry`
+skill gives the commands), and paste its redacted block into the issue. The
+block is mandatory in every handover issue. Remove
 secrets before you put artifacts in the issue. Report what was built, what
 review found, gate results, and anything the user should know (new
 dependencies, deliberate follow-ups).
@@ -391,15 +396,18 @@ dependencies, deliberate follow-ups).
 
 Each run is one turn of a loop that improves the harness (Claude Code, skills,
 tools, hooks, permissions) from a mechanical signal (logs) and a narrative one
-(reflection). No log-analysis tool or reflection skill is adopted in this repo
-yet; the SessionStart charter hook exists (Step 0.6), the rest of this step's
-tooling does not. Treat the sub-steps below as the target design: skip each one
+(reflection). The `cc-logging` hook and the `handover_telemetry` CLI are
+shipped (Step 13 and the `handover-telemetry` skill). No log-analysis tool or
+reflection skill is adopted in this repo yet; treat the Analyse and Reflect
+sub-steps below as the target design: skip each one
 until its tooling exists, and adopt it via Step 8, as its own change, before
 relying on it.
-- **Log** — once adopted, a `cc_logging` hook (or equivalent) records every
-  tool call and run boundary to a local, uncommitted log; it always exits 0
-  and redacts secrets at write time, so it can't break a session or leak one.
-  Confirm wiring with its setup doctor, itself a project-setup unit.
+- **Log** — shipped: the cc-logging hook records every tool call, boundary,
+  and permission event to a local, uncommitted log at `.cc_logging/`; it
+  always exits 0 and redacts secrets at write time, so it can't break a
+  session or leak one. The `handover-telemetry-hook` setup doctor confirms
+  the wiring. The `handover_telemetry` CLI reads the log plus the session
+  transcripts.
 - **Analyse** — when a pattern is worth chasing (not every change) and a log
   analysis tool exists, run it. Rank permission-friction (prompted or denied
   calls), recurring-error, repeated-command (work a helper or hook could

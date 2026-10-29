@@ -5,7 +5,10 @@
       "id": "openspec-cli",
       "kind": "system-tool",
       "purpose": "Runs the spec-driven workflow. The feature-pipeline skill and the /opsx commands call it.",
-      "check": ["openspec", "--version"],
+      "check": [
+        "openspec",
+        "--version"
+      ],
       "install": "npm install -g @fission-ai/openspec@latest",
       "requires": "Node.js 20.19.0 or newer"
     },
@@ -13,7 +16,10 @@
       "id": "apfel-cli",
       "kind": "system-tool",
       "purpose": "Runs the local Apple on-device model server. The apfel-eval skill and the llm_ops/eval project call it.",
-      "check": ["apfel", "--version"],
+      "check": [
+        "apfel",
+        "--version"
+      ],
       "install": "brew install apfel",
       "requires": "A Mac with Apple Intelligence and Homebrew"
     },
@@ -38,7 +44,14 @@
       "id": "fde-node-deps",
       "kind": "dependency-file",
       "purpose": "Installs the Node packages of the fde desktop app: Electron, electron-builder, vitest, esbuild, and the renderer libraries.",
-      "check": ["npm", "ls", "--prefix", "fde", "--depth=0", "electron"],
+      "check": [
+        "npm",
+        "ls",
+        "--prefix",
+        "fde",
+        "--depth=0",
+        "electron"
+      ],
       "install": "npm ci --prefix fde",
       "requires": "Node.js 20.19.0 or newer"
     },
@@ -46,7 +59,12 @@
       "id": "fde-python-dev",
       "kind": "dependency-file",
       "purpose": "Installs the Python dev and gate tools of the fde backend (pytest, pytest-cov, ruff, mutmut, httpx) into fde/.venv.",
-      "check": ["fde/.venv/bin/python", "-m", "pytest", "--version"],
+      "check": [
+        "fde/.venv/bin/python",
+        "-m",
+        "pytest",
+        "--version"
+      ],
       "install": "python3 -m venv fde/.venv && fde/.venv/bin/python -m pip install -r fde/backend/requirements-dev.txt",
       "requires": "Python 3.11 or newer; the check path is the macOS and Linux layout"
     },
@@ -54,7 +72,11 @@
       "id": "zai-routing-audit-python-deps",
       "kind": "dependency-file",
       "purpose": "Installs the run and gate tools of tools/zai_routing_audit (mcp for the wrapper, pytest, pytest-cov, ruff, mutmut) into its .venv. The zai-routing-audit skill and the repo test suite call it.",
-      "check": ["tools/zai_routing_audit/.venv/bin/python", "-c", "import mcp, pytest, pytest_cov, ruff, mutmut"],
+      "check": [
+        "tools/zai_routing_audit/.venv/bin/python",
+        "-c",
+        "import mcp, pytest, pytest_cov, ruff, mutmut"
+      ],
       "install": "python3 -m venv tools/zai_routing_audit/.venv && tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt",
       "requires": "Python 3.11 or newer"
     },
@@ -62,7 +84,11 @@
       "id": "crapper-python-deps",
       "kind": "dependency-file",
       "purpose": "Installs the vendored crapper CRAP gate (tree-sitter, pytest, coverage) into tools/crapper/.venv. The ub-mode skill, the feature-pipeline gates, and CI call it.",
-      "check": ["tools/crapper/.venv/bin/python", "-c", "import crapper, pytest, coverage"],
+      "check": [
+        "tools/crapper/.venv/bin/python",
+        "-c",
+        "import crapper, pytest, coverage"
+      ],
       "install": "python3 -m venv tools/crapper/.venv && tools/crapper/.venv/bin/python -m pip install -e 'tools/crapper[dev]' coverage",
       "requires": "Python 3.11 or newer"
     },
@@ -70,7 +96,11 @@
       "id": "dryer-python-deps",
       "kind": "dependency-file",
       "purpose": "Installs the vendored dryer duplication gate (tree-sitter, pytest, coverage) into tools/dryer/.venv. The ub-mode skill, the feature-pipeline gates, and CI call it.",
-      "check": ["tools/dryer/.venv/bin/python", "-c", "import dryer, pytest, coverage"],
+      "check": [
+        "tools/dryer/.venv/bin/python",
+        "-c",
+        "import dryer, pytest, coverage"
+      ],
       "install": "python3 -m venv tools/dryer/.venv && tools/dryer/.venv/bin/python -m pip install -e 'tools/dryer[dev]' coverage",
       "requires": "Python 3.11 or newer"
     },
@@ -78,8 +108,25 @@
       "id": "mutator-python-deps",
       "kind": "dependency-file",
       "purpose": "Installs the vendored mutator mutation gate (tree-sitter, pytest, coverage) into tools/mutator/.venv. It reads function names from the sibling tools/crapper. The ub-mode skill, the feature-pipeline gates, and CI call it.",
-      "check": ["tools/mutator/.venv/bin/python", "-c", "import mutator, pytest, coverage"],
+      "check": [
+        "tools/mutator/.venv/bin/python",
+        "-c",
+        "import mutator, pytest, coverage"
+      ],
       "install": "python3 -m venv tools/mutator/.venv && tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage",
+      "requires": "Python 3.11 or newer"
+    },
+    {
+      "id": "handover-telemetry-hook",
+      "kind": "hook-wiring",
+      "purpose": "Wires the cc-logging hook into project settings and ships the shim. The doctor examines the shim, the settings groups, and the interpreter. The handover-telemetry skill and the feature-pipeline Step 13 rule call the reporter.",
+      "check": [
+        "python3",
+        "tools/handover_telemetry_setup/handover_telemetry_setup.py",
+        "--repo-root",
+        "."
+      ],
+      "install": "python3 tools/handover_telemetry_setup/handover_telemetry_setup.py --repo-root . --install",
       "requires": "Python 3.11 or newer"
     }
   ]

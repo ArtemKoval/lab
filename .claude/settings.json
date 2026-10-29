@@ -21,6 +21,43 @@
                         "shell": "bash"
                     }
                 ]
+            },
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/cc-logging.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/cc-logging.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            }
+        ],
+        "PermissionRequest": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/cc-logging.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
             }
         ],
         "SessionStart": [
@@ -30,6 +67,43 @@
                     {
                         "type": "command",
                         "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/harness-charter.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            },
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/cc-logging.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            }
+        ],
+        "SessionEnd": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/cc-logging.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/cc-logging.sh\"",
                         "timeout": 10,
                         "async": false,
                         "shell": "bash"

@@ -6,3 +6,4 @@ omit =
     tools/devcontainer_init/devcontainer_init/__main__.py
     tools/plan_exec/plan_exec/__main__.py
     tools/spec_ste_check/spec_ste_check/__main__.py
+    tools/handover_telemetry/handover_telemetry/__main__.py

@@ -6,11 +6,17 @@ labels:
 ---
 
 <!-- Open this issue after you merge the pull request. Remove secrets before
-     you paste any artifact. -->
+     you paste any artifact. Build the Telemetry block with the
+     handover-telemetry tool (see the handover-telemetry skill). -->
 
 ## Task
 
 <!-- What the task was. Give the pull request link and the merged commit. -->
+
+## Telemetry
+
+<!-- Paste the tool output here: handover_telemetry build --out report.md.
+     The block is redacted, and its numbers are estimates with source dates. -->
 
 ## Logs
 
@@ -18,7 +24,8 @@ labels:
 
 ## Metrics
 
-<!-- Numbers from the run: coverage, mutation score, timings, costs, sizes. -->
+<!-- Numbers from the run that the tool does not carry: coverage,
+     mutation score, sizes. -->
 
 ## Observations
 

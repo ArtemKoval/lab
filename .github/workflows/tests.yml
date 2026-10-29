@@ -32,7 +32,7 @@ jobs:
           python -m venv tools/mutator/.venv
           tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage
       - name: Run the root test suite
-        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov-branch --cov-fail-under=100 --cov-config .coveragerc
+        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov handover_telemetry --cov-branch --cov-fail-under=100 --cov-config .coveragerc
       - name: Run the vendored gate suites
         run: |
           tools/crapper/.venv/bin/python -m pytest -q tools/crapper/tests
@@ -42,11 +42,12 @@ jobs:
         run: |
           tools/zai_routing_audit/.venv/bin/ruff check tools/plan_exec
           tools/zai_routing_audit/.venv/bin/ruff check tools/spec_ste_check
+          tools/zai_routing_audit/.venv/bin/ruff check tools/handover_telemetry
       - name: Derive the changed gated paths
         if: github.event_name == 'pull_request'
         run: |
           changed=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" -- '*.py' \
-            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)' || true)
+            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init|handover_telemetry|handover_telemetry_setup)/|tests/)' || true)
           echo "GATED_PATHS<<EOF" >> "$GITHUB_ENV"
           echo "$changed" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
@@ -59,7 +60,7 @@ jobs:
           fi
           tools/zai_routing_audit/.venv/bin/python -m coverage run \
             --data-file=target/coverage/python/.coverage \
-            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init,tests \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tests \
             -m pytest -q tests
           tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
             --data-file=target/coverage/python/.coverage \

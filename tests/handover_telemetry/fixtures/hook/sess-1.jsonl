@@ -1,0 +1,6 @@
+{"ts": "2026-10-29T10:00:05.050Z", "event": "PreToolUse", "session_id": "sess-1", "tool": "Bash", "tool_use_id": "toolu_1", "hook_ms": 3, "redactions": {}}
+{"ts": "2026-10-29T10:00:07.010Z", "event": "PostToolUse", "session_id": "sess-1", "tool": "Bash", "tool_use_id": "toolu_1", "hook_ms": 4, "outcome": "exit_1", "redactions": {"home_path": 1}}
+{"ts": "2026-10-29T10:00:09.010Z", "event": "PreToolUse", "session_id": "sess-1", "tool": "Agent", "tool_use_id": "toolu_2", "hook_ms": 3, "redactions": {}}
+{"ts": "2026-10-29T10:00:10.010Z", "event": "PostToolUse", "session_id": "sess-1", "tool": "Agent", "tool_use_id": "toolu_2", "hook_ms": 4, "outcome": "ok", "redactions": {}}
+{"ts": "2026-10-29T10:00:16.000Z", "event": "PermissionRequest", "session_id": "sess-1", "tool": "Bash", "tool_use_id": null, "hook_ms": 2, "redactions": {}}
+{"ts": "2026-10-29T10:00:20.000Z", "event": "Stop", "session_id": "sess-1", "hook_ms": 2, "redactions": {}}

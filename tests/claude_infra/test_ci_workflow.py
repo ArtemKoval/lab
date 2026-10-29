@@ -31,8 +31,8 @@ def test_workflow_runs_the_suite_through_the_repo_venv():
     assert "pip install -r tools/zai_routing_audit/requirements-dev.txt" in text
     assert (
         "tools/zai_routing_audit/.venv/bin/python -m pytest "
-        "--cov plan_exec --cov spec_ste_check --cov-branch "
-        "--cov-fail-under=100" in text
+        "--cov plan_exec --cov spec_ste_check --cov handover_telemetry "
+        "--cov-branch --cov-fail-under=100" in text
     )
 
 
@@ -42,6 +42,7 @@ def test_workflow_lints_the_tools():
     assert (
         "tools/zai_routing_audit/.venv/bin/ruff check tools/spec_ste_check" in text
     )
+    assert "tools/zai_routing_audit/.venv/bin/ruff check tools/handover_telemetry" in text
 
 
 def test_workflow_pins_python_3_12():
@@ -69,7 +70,8 @@ def test_workflow_gates_the_changed_python_with_explicit_paths():
 def test_workflow_whitelists_the_gated_roots():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert (
-        "grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)'"
+        "grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init"
+        "|handover_telemetry|handover_telemetry_setup)/|tests/)'"
         in text
     )
     # The whitelist is the only exclusion mechanism in the derive step.
@@ -80,7 +82,8 @@ def test_workflow_measures_coverage_over_the_gated_roots():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert (
         "--source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,"
-        "tools/devcontainer_init,tests" in text
+        "tools/devcontainer_init,tools/handover_telemetry,"
+        "tools/handover_telemetry_setup,tests" in text
     )
     assert "coverage lcov" in text
     assert "-o target/coverage/python/lcov.info" in text
