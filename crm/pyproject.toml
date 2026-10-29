@@ -20,7 +20,7 @@ dev = [
 ]
 
 [tool.ruff]
-include = ["backend/**/*.py", "agent/**/*.py", "domains/**/*.py"]
+include = ["backend/**/*.py", "agent/**/*.py", "domains/**/*.py", "conftest.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "SIM", "UP", "PL", "S", "PT", "FAST", "C90", "PLR1702"]
@@ -34,7 +34,7 @@ max-complexity = 10
 "*/tests/*" = ["S101", "PLR2004"]
 
 [tool.pytest.ini_options]
-testpaths = ["backend", "agent"]
+testpaths = ["backend", "agent", "domains"]
 pythonpath = ["."]
 addopts = "--import-mode=importlib --cov --cov-report=term-missing"
 
@@ -43,10 +43,10 @@ source = ["backend", "agent", "domains"]
 omit = ["*/tests/*"]
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 98.8
 
 [tool.pyright]
-include = ["backend", "agent", "domains"]
+include = ["backend", "agent", "domains", "conftest.py"]
 venvPath = "."
 venv = ".venv"
 pythonVersion = "3.12"

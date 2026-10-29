@@ -12,9 +12,9 @@ import { REFRESH_MS, useLoad } from "../useLoad";
 export function CasePage() {
   const { caseId = "" } = useParams();
   const load = useCallback(() => api.getCase(caseId), [caseId]);
-  const { data: case, error, reload } = useLoad(load, REFRESH_MS);
+  const { data: entry, error, reload } = useLoad(load, REFRESH_MS);
 
-  if (!case) {
+  if (!entry) {
     if (error instanceof ApiError && error.status === 404)
       return <p className="message">Case not found</p>;
     return <Message error={error} />;
@@ -23,63 +23,63 @@ export function CasePage() {
   return (
     <>
       <div className="case-heading">
-        <p className="mono muted">{case.case_id}</p>
-        <h1>{case.summary}</h1>
-        <StatusChip status={case.status} />
+        <p className="mono muted">{entry.case_id}</p>
+        <h1>{entry.summary}</h1>
+        <StatusChip status={entry.status} />
       </div>
       <div className="case-layout">
         <div className="column">
-          <CaseDetails case={case} />
-          <ItemsPanel case={case} />
-          <DocumentsPanel case={case} />
+          <CaseDetails entry={entry} />
+          <ItemsPanel entry={entry} />
+          <DocumentsPanel entry={entry} />
         </div>
         <div className="column">
-          <DecisionPanel case={case} onSignedOff={reload} />
-          <StepList caseId={case.case_id} />
-          <ContractPanel contractId={case.contract_id} />
-          <HistoryPanel customerId={case.customer_id} />
+          <DecisionPanel entry={entry} onSignedOff={reload} />
+          <StepList caseId={entry.case_id} />
+          <ContractPanel contractId={entry.contract_id} />
+          <HistoryPanel customerId={entry.customer_id} />
         </div>
       </div>
     </>
   );
 }
 
-function CaseDetails({ case }: Readonly<{ case: Case }>) {
+function CaseDetails({ entry }: Readonly<{ entry: Case }>) {
   return (
     <section className="panel" aria-labelledby="case-title">
       <h2 id="case-title">Case</h2>
       <dl className="facts">
         <div>
           <dt>Customer</dt>
-          <dd>{case.customer_name}</dd>
+          <dd>{entry.customer_name}</dd>
         </div>
         <div>
           <dt>Type</dt>
-          <dd>{label(case.case_type)}</dd>
+          <dd>{label(entry.case_type)}</dd>
         </div>
         <div>
           <dt>Incident</dt>
           <dd>
-            {date(case.incident_date)}, {case.incident_location}
+            {date(entry.incident_date)}, {entry.incident_location}
           </dd>
         </div>
         <div>
           <dt>Submitted</dt>
-          <dd>{date(case.submitted_on)}</dd>
+          <dd>{date(entry.submitted_on)}</dd>
         </div>
         <div>
           <dt>Amount claimed</dt>
-          <dd className="mono">{money(case.amount_claimed)}</dd>
+          <dd className="mono">{money(entry.amount_claimed)}</dd>
         </div>
       </dl>
       <h3>The customer's story</h3>
-      <p className="story">{case.story}</p>
+      <p className="story">{entry.story}</p>
     </section>
   );
 }
 
-function ItemsPanel({ case }: Readonly<{ case: Case }>) {
-  const total = case.items.reduce((sum, item) => sum + item.amount, 0);
+function ItemsPanel({ entry }: Readonly<{ entry: Case }>) {
+  const total = entry.items.reduce((sum, item) => sum + item.amount, 0);
   return (
     <section className="panel" aria-labelledby="items-title">
       <h2 id="items-title">Items claimed</h2>
@@ -93,7 +93,7 @@ function ItemsPanel({ case }: Readonly<{ case: Case }>) {
             </tr>
           </thead>
           <tbody>
-            {case.items.map((item) => (
+            {entry.items.map((item) => (
               <tr key={item.description}>
                 <td>{item.description}</td>
                 <td>{label(item.category)}</td>
@@ -115,11 +115,11 @@ function ItemsPanel({ case }: Readonly<{ case: Case }>) {
   );
 }
 
-function DocumentsPanel({ case }: Readonly<{ case: Case }>) {
+function DocumentsPanel({ entry }: Readonly<{ entry: Case }>) {
   return (
     <section className="panel" aria-labelledby="documents-title">
       <h2 id="documents-title">Documents</h2>
-      {case.documents.map((document) => (
+      {entry.documents.map((document) => (
         <article className="document" key={document.name}>
           <h3>{document.name}</h3>
           <p className="muted small">{label(document.type)}</p>

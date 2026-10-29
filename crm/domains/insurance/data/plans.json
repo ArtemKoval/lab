@@ -2,53 +2,56 @@
   "plans": [
     {
       "plan": "economy",
-      "name": "CRM Economy",
-      "trip_cancellation_max": 1500.00,
+      "name": "UnderCover Economy",
+      "trip_cancellation_max": 1500.0,
       "trip_delay_waiting_hours": 12,
-      "trip_delay_max": 300.00,
+      "trip_delay_max": 300.0,
       "baggage_delay_waiting_hours": 24,
-      "baggage_delay_max": 100.00,
-      "baggage_max": 750.00,
-      "per_item_limit": 150.00,
-      "passport_max": 150.00,
-      "emergency_medical_max": 25000.00,
-      "deductible": 100.00
+      "baggage_delay_max": 100.0,
+      "baggage_max": 750.0,
+      "per_item_limit": 150.0,
+      "passport_max": 150.0,
+      "emergency_medical_max": 25000.0,
+      "deductible": 100.0
     },
     {
       "plan": "premium",
-      "name": "CRM Premium",
-      "trip_cancellation_max": 5000.00,
+      "name": "UnderCover Premium",
+      "trip_cancellation_max": 5000.0,
       "trip_delay_waiting_hours": 6,
-      "trip_delay_max": 800.00,
+      "trip_delay_max": 800.0,
       "baggage_delay_waiting_hours": 12,
-      "baggage_delay_max": 300.00,
-      "baggage_max": 1500.00,
-      "per_item_limit": 300.00,
-      "passport_max": 250.00,
-      "emergency_medical_max": 100000.00,
-      "deductible": 50.00
+      "baggage_delay_max": 300.0,
+      "baggage_max": 1500.0,
+      "per_item_limit": 300.0,
+      "passport_max": 250.0,
+      "emergency_medical_max": 100000.0,
+      "deductible": 50.0
     },
     {
       "plan": "first",
-      "name": "CRM First",
-      "trip_cancellation_max": 10000.00,
+      "name": "UnderCover First",
+      "trip_cancellation_max": 10000.0,
       "trip_delay_waiting_hours": 3,
-      "trip_delay_max": 1500.00,
+      "trip_delay_max": 1500.0,
       "baggage_delay_waiting_hours": 6,
-      "baggage_delay_max": 500.00,
-      "baggage_max": 3000.00,
-      "per_item_limit": 500.00,
-      "passport_max": 400.00,
-      "emergency_medical_max": 250000.00,
-      "deductible": 0.00
+      "baggage_delay_max": 500.0,
+      "baggage_max": 3000.0,
+      "per_item_limit": 500.0,
+      "passport_max": 400.0,
+      "emergency_medical_max": 250000.0,
+      "deductible": 0.0
     }
   ],
-  "deductible_applies_to": ["baggage", "emergency_medical"],
+  "deductible_applies_to": [
+    "baggage",
+    "emergency_medical"
+  ],
   "add_ons": [
     {
       "add_on": "adventure_sports",
       "name": "Adventure Sports",
-      "effect": "Covers injuries from the adventure sports listed in the contract wording."
+      "effect": "Covers injuries from the adventure sports listed in the policy wording."
     },
     {
       "add_on": "pre_existing_waiver",
@@ -59,7 +62,7 @@
       "add_on": "electronics_plus",
       "name": "Electronics Plus",
       "effect": "Raises the per-item limit for electronics to the amount below.",
-      "electronics_per_item_limit": 1200.00
+      "electronics_per_item_limit": 1200.0
     }
   ]
 }

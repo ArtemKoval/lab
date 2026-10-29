@@ -1,7 +1,7 @@
 {
-  "name": "CRM",
+  "name": "UnderCover Travel Insurance",
   "currency": "USD",
-  "award_approval_limit": 1000.00,
+  "award_approval_limit": 1000.0,
   "case_filing_window_days": 90,
   "pre_existing_look_back_days": 60,
   "repeat_case_review": {
@@ -9,7 +9,7 @@
     "within_months": 12
   },
   "meal_allowance_without_receipts": {
-    "amount": 35.00,
+    "amount": 35.0,
     "per": "traveler per day of covered delay"
   },
   "wording_version": "2026.1",

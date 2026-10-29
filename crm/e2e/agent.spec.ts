@@ -1,12 +1,8 @@
-import { type APIRequestContext, expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { post } from "./api";
 
 // These tests stand in for the agent by calling the API through the
 // dashboard's proxy, and watch the case page update without a reload.
-
-async function send(request: APIRequestContext, path: string, data: object) {
-  const response = await request.post(path, { data });
-  expect(response.ok()).toBe(true);
-}
 
 test("the case page shows the agent at work", async ({ page, request }) => {
   await page.goto("/cases/CLM-1003");
@@ -14,12 +10,12 @@ test("the case page shows the agent at work", async ({ page, request }) => {
   await expect(heading.getByText("Waiting")).toBeVisible();
   await expect(page.getByText(/No steps yet/)).toBeVisible();
 
-  await send(request, "/api/cases/CLM-1003/start", { thread_id: "e2e-1" });
-  await send(request, "/api/cases/CLM-1003/steps", {
+  await post(request, "/api/cases/CLM-1003/start", { thread_id: "e2e-1" });
+  await post(request, "/api/cases/CLM-1003/steps", {
     kind: "tool_call",
     content: 'get_case(case_id="CLM-1003")',
   });
-  await send(request, "/api/cases/CLM-1003/steps", {
+  await post(request, "/api/cases/CLM-1003/steps", {
     kind: "tool_result",
     content: 'get_case: {"case_id":"CLM-1003"}',
   });
@@ -32,14 +28,14 @@ test("the case page shows the agent at work", async ({ page, request }) => {
     page.getByText('get_case: {"case_id":"CLM-1003"}').first(),
   ).toBeVisible();
 
-  await send(request, "/api/cases/CLM-1003/decision", {
+  await post(request, "/api/cases/CLM-1003/decision", {
     decision: "approve",
     award: 500,
     section: "Section 7, Emergency Medical",
     reason: "The treatment was necessary and covered.",
   });
-  await send(request, "/api/cases/CLM-1003/payment", { amount: 500 });
-  await send(request, "/api/cases/CLM-1003/steps", {
+  await post(request, "/api/cases/CLM-1003/payment", { amount: 500 });
+  await post(request, "/api/cases/CLM-1003/steps", {
     kind: "message",
     content: "Approved and paid $500.00.",
   });
@@ -52,12 +48,9 @@ test("the case page shows the agent at work", async ({ page, request }) => {
   await expect(page.getByText("Approved and paid $500.00.")).toBeVisible();
 });
 
-test("a worker signs off a award over the limit", async ({
-  page,
-  request,
-}) => {
-  await send(request, "/api/cases/CLM-1020/start", { thread_id: "e2e-2" });
-  await send(request, "/api/cases/CLM-1020/decision", {
+test("a worker signs off a award over the limit", async ({ page, request }) => {
+  await post(request, "/api/cases/CLM-1020/start", { thread_id: "e2e-2" });
+  await post(request, "/api/cases/CLM-1020/decision", {
     decision: "approve",
     award: 1350,
     section: "Section 5, Baggage and Personal Effects",

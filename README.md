@@ -26,6 +26,7 @@ A personal lab of Art Koval. The repository holds small projects, tools, and the
 | --- | --- | --- |
 | `fde` | A desktop chat app for OpenRouter. The user interface is Electron. An embedded Python backend talks to OpenRouter. | `fde/README.md`, the `fde-app` skill |
 | `llm_ops/eval` | A DeepEval script that uses a local apfel server as the judge. It runs in a devcontainer. | `llm_ops/eval/README.md`, the `apfel-eval` skill |
+| `crm` | A CRM engine with domain packs, ported from the UnderCover course project one milestone at a time. The insurance domain is the first pack. | `crm/README.md`, the `crm-app` skill |
 | `tools/zai_routing_audit` | A stdlib CLI that audits the model routing of z.ai behind Claude Code. Its venv interpreter runs the root test suite. | `tools/zai_routing_audit/README.md`, the `zai-routing-audit` skill |
 | `tools/devcontainer_init` | A stdlib CLI that scaffolds a devcontainer with an Ubuntu LTS base, git, node, and uv. | `tools/devcontainer_init/README.md`, the `devcontainer-init` skill |
 | `tools/plan_exec` | A stdlib CLI that extracts task briefs, packages review diffs, and keeps append-only execution ledgers. | `tools/plan_exec/README.md`, the `openspec-apply-change` skill |

@@ -1,6 +1,6 @@
-# CRM: Contract Wording, short version
+# UnderCover Travel Insurance: Policy Wording, short version
 
-All amounts are in US dollars. The contract record shows the plan, the add-ons, the trip dates, the trip cost and the travelers.
+All amounts are in US dollars. The policy record shows the plan, the add-ons, the trip dates, the trip cost and the travelers.
 
 ## Limits
 
@@ -17,7 +17,7 @@ All amounts are in US dollars. The contract record shows the plan, the add-ons, 
 | Emergency Medical maximum | 25,000 | 100,000 | 250,000 |
 | Deductible | 100 | 50 | 0 |
 
-The deductible comes off once per case, for Baggage and for Emergency Medical only.
+The deductible comes off once per claim, for Baggage and for Emergency Medical only.
 
 ## Cancellation and Interruption
 
@@ -43,7 +43,7 @@ Replacement fees, photos and local travel to the embassy, up to the maximum. Nee
 
 ## Emergency Medical
 
-Necessary treatment of a sudden sickness or injury, up to the maximum. Needs the itemized bill and the medical records. Not covered: a pre-existing condition (symptoms, a physician visit, treatment or a medication change for it in the 60 days before the contract was bought) unless the contract has the Pre-Existing Condition Waiver; adventure sports injuries unless the contract has the Adventure Sports add-on; treatment that could wait until home.
+Necessary treatment of a sudden sickness or injury, up to the maximum. Needs the itemized bill and the medical records. Not covered: a pre-existing condition (symptoms, a physician visit, treatment or a medication change for it in the 60 days before the policy was bought) unless the policy has the Pre-Existing Condition Waiver; adventure sports injuries unless the policy has the Adventure Sports add-on; treatment that could wait until home.
 
 ## Add-ons
 
@@ -51,7 +51,7 @@ Adventure Sports covers bungee jumping, skydiving, paragliding, scuba below 10 m
 
 ## Never covered
 
-Anything outside the trip dates; events publicly known before the contract was bought; consequential losses such as lost earnings, missed events or penalties; losses while breaking the law or impaired by alcohol or drugs; war, civil unrest and nuclear incidents; false statements or altered documents.
+Anything outside the trip dates; events publicly known before the policy was bought; consequential losses such as lost earnings, missed events or penalties; losses while breaking the law or impaired by alcohol or drugs; war, civil unrest and nuclear incidents; false statements or altered documents.
 
 ## Payment
 
@@ -60,6 +60,6 @@ Anything outside the trip dates; events publicly known before the contract was b
 3. Take off the deductible where it applies.
 4. Pay the result, up to the benefit maximum.
 
-## Cases
+## Claims
 
-File within 90 days of the incident. If a required document is missing, refer the case. A family member is a spouse or partner, child, parent, sibling, grandparent or grandchild. A physician is a licensed doctor who is not the traveler, a companion or a family member. A traveling companion is a traveler named on the contract record.
+File within 90 days of the incident. If a required document is missing, refer the claim. A family member is a spouse or partner, child, parent, sibling, grandparent or grandchild. A physician is a licensed doctor who is not the traveler, a companion or a family member. A traveling companion is a traveler named on the policy record.

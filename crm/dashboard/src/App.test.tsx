@@ -1,21 +1,19 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { App } from "./App";
-import { Refusal, case, history, contract, stubApi, summary } from "./testing";
+import {
+  Refusal,
+  entry,
+  history,
+  contract,
+  renderAt,
+  stubApi,
+  summary,
+} from "./testing";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
-
-function renderAt(path: string) {
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <App />
-    </MemoryRouter>,
-  );
-}
 
 it("shows the queue with counts by state", async () => {
   stubApi({
@@ -28,7 +26,9 @@ it("shows the queue with counts by state", async () => {
         decision: "approve",
         award: 420,
       },
+      { ...summary, case_id: "CLM-1004", status: "left_for_worker" },
     ],
+    "GET /api/runs/latest": null,
   });
   renderAt("/");
   const link = await screen.findByRole("link", { name: "CLM-1002" });
@@ -36,11 +36,15 @@ it("shows the queue with counts by state", async () => {
   expect(screen.getByLabelText("Waiting: 1")).toBeDefined();
   expect(screen.getByLabelText("Decided: 1")).toBeDefined();
   expect(screen.getByLabelText("In progress: 0")).toBeDefined();
+  expect(screen.getByLabelText("Left for a worker: 1")).toBeDefined();
+  const left = screen.getByRole("row", { name: /CLM-1004/ });
+  const chip = within(left).getByText("Left for a worker");
+  expect(chip.className).toBe("chip status-left_for_worker");
   const row = screen.getByRole("row", { name: /CLM-1003/ });
   expect(within(row).getByText("Approved")).toBeDefined();
   expect(within(row).getByText("$420.00")).toBeDefined();
-  expect(screen.getAllByText("$1,150.00")).toHaveLength(2);
-  expect(screen.getAllByText("Jul 20, 2026")).toHaveLength(2);
+  expect(screen.getAllByText("$1,150.00")).toHaveLength(3);
+  expect(screen.getAllByText("Jul 20, 2026")).toHaveLength(3);
 });
 
 it("shows an error when the queue can't load", async () => {
@@ -53,14 +57,14 @@ it("shows an error when the queue can't load", async () => {
 
 it("shows a case in full", async () => {
   stubApi({
-    "GET /api/cases/CLM-1002": case,
+    "GET /api/cases/CLM-1002": entry,
     "GET /api/contracts/POL-2002": contract,
     "GET /api/customers/CUS-3002/cases": history,
   });
   renderAt("/cases/CLM-1002");
-  expect(await screen.findByText(case.story)).toBeDefined();
+  expect(await screen.findByText(entry.story)).toBeDefined();
   expect(
-    screen.getByRole("heading", { name: case.summary, level: 1 }),
+    screen.getByRole("heading", { name: entry.summary, level: 1 }),
   ).toBeDefined();
   expect(screen.getByText("Wool suit")).toBeDefined();
   const total = screen.getByRole("rowheader", { name: "Total" }).closest("tr");
@@ -80,7 +84,7 @@ it("shows a case in full", async () => {
 
 it("shows a contract without add-ons and a customer with no earlier cases", async () => {
   stubApi({
-    "GET /api/cases/CLM-1002": case,
+    "GET /api/cases/CLM-1002": entry,
     "GET /api/contracts/POL-2002": { ...contract, add_ons: [] },
     "GET /api/customers/CUS-3002/cases": [],
   });
@@ -106,9 +110,21 @@ it("shows other errors loading a case", async () => {
 });
 
 it("shows the agent's instructions read only", async () => {
-  stubApi({ "GET /api/instructions": { text: "# CRM Agent" } });
+  stubApi({
+    "GET /api/instructions": {
+      queue: "# Running the queue",
+      case: "# Working a case\n\n## Contents of the cases manual",
+    },
+  });
   renderAt("/instructions");
-  expect(await screen.findByText("# CRM Agent")).toBeDefined();
+  const queue = await screen.findByRole("region", {
+    name: "Running the queue",
+  });
+  expect(within(queue).getByText("# Running the queue")).toBeDefined();
+  const entry = screen.getByRole("region", { name: "Working a case" });
+  expect(
+    within(entry).getByText(/## Contents of the cases manual/),
+  ).toBeDefined();
   expect(screen.queryByRole("textbox")).toBeNull();
   expect(screen.queryByRole("button")).toBeNull();
 });

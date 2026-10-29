@@ -7,7 +7,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-08-26",
     "reason": "Severe weather canceled the flight and the delay was 26 hours, past the 3 hour waiting period on First. The hotel, meals and rebooking fee have receipts and are payable. The forfeited wager is a consequential loss and is not covered.",
-    "reference": "Contract wording, sections 3 and 9",
+    "reference": "Policy wording, sections 3 and 9",
     "calculation": [
       {
         "step": "Hotel, meals and rebooking fee",
@@ -18,7 +18,7 @@
         "amount": 0.0
       }
     ],
-    "tests": "Award arithmetic: one line of the case is excluded and the rest is paid",
+    "tests": "Payout arithmetic: one line of the claim is excluded and the rest is paid",
     "difficulty": "routine",
     "failure_class": "",
     "needs": [],
@@ -33,7 +33,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-09-01",
     "reason": "The bag was on the back seat of the car. Belongings in a vehicle are unattended unless locked in the trunk or the glove compartment and out of sight, so the loss is not covered, even though the car was locked and the bag was under a jacket.",
-    "reference": "Contract wording, section 5",
+    "reference": "Policy wording, section 5",
     "calculation": [],
     "tests": "A clear decline: belongings left in a vehicle",
     "difficulty": "routine",
@@ -50,7 +50,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-07-09",
     "reason": "Damage by the carrier, with its report on file and a statement that nothing can be restored. The per-item limit on Premium is $300 and it applies to each item. The receipts show two sweaters at $350, so each sweater counts at $300. The three shirts at $110 and the four pairs of socks at $24 are separate items under the limit, so those lines are paid in full, although the shirts come to more than $300. The carrier's $450 comes off, then the $50 deductible, and the result is inside the $1,500 maximum.",
-    "reference": "Contract wording, sections 5 and 10",
+    "reference": "Policy wording, sections 5 and 10",
     "calculation": [
       {
         "step": "Suitcase",
@@ -81,7 +81,7 @@
         "amount": -50.0
       }
     ],
-    "tests": "Award arithmetic: the per-item limit applies to items, and a line that holds several items is not capped as one",
+    "tests": "Payout arithmetic: the per-item limit applies to items, and a line that holds several items is not capped as one",
     "difficulty": "hard",
     "failure_class": "items",
     "needs": [],
@@ -96,7 +96,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-08-18",
     "reason": "Accidental loss during the covered trip, confirmed by the ship's incident note. A set of dentures is one item, so it counts at the $300 per-item limit on Premium, and the $50 deductible comes off.",
-    "reference": "Contract wording, sections 5 and 10",
+    "reference": "Policy wording, sections 5 and 10",
     "calculation": [
       {
         "step": "Dentures at the per-item limit",
@@ -107,7 +107,7 @@
         "amount": -50.0
       }
     ],
-    "tests": "Award arithmetic: a set counts as one item at the per-item limit",
+    "tests": "Payout arithmetic: a set counts as one item at the per-item limit",
     "difficulty": "routine",
     "failure_class": "",
     "needs": [],
@@ -121,15 +121,15 @@
     "over_approval_limit": true,
     "worker_id": "HND-01",
     "decided_on": "2026-08-07",
-    "reason": "The customer's own injury, confirmed in writing by a physician who states he is not fit for the trek, is a covered reason. The tour operator confirms that nothing is refunded. The cost is inside both the trip cost on the contract and the $5,000 maximum. The award is over $1,000, so payment needs sign-off.",
-    "reference": "Contract wording, section 2",
+    "reason": "The customer's own injury, confirmed in writing by a physician who states he is not fit for the trek, is a covered reason. The tour operator confirms that nothing is refunded. The cost is inside both the trip cost on the policy and the $5,000 maximum. The payout is over $1,000, so payment needs sign-off.",
+    "reference": "Policy wording, section 2",
     "calculation": [
       {
         "step": "Prepaid trip cost, not refundable",
         "amount": 2400.0
       }
     ],
-    "tests": "A valid case over the approval limit",
+    "tests": "A valid claim over the approval limit",
     "difficulty": "routine",
     "failure_class": "",
     "needs": [],
@@ -143,8 +143,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-07-28",
-    "reason": "The manual treats a loss to a wild animal as accidental loss. It is not theft, so no police report is needed, and a wild bird is not vermin or a pet. The park ranger's statement is acceptable evidence, and the customer was standing beside the camera, so it was not unattended. The contract has no Electronics Plus, so the camera counts at the $300 per-item limit on Premium, and the $50 deductible comes off.",
-    "reference": "Contract wording, sections 5 and 10. Cases manual, section 7",
+    "reason": "The manual treats a loss to a wild animal as accidental loss. It is not theft, so no police report is needed, and a wild bird is not vermin or a pet. The park ranger's statement is acceptable evidence, and the customer was standing beside the camera, so it was not unattended. The policy has no Electronics Plus, so the camera counts at the $300 per-item limit on Premium, and the $50 deductible comes off.",
+    "reference": "Policy wording, sections 5 and 10. Claims manual, section 7",
     "calculation": [
       {
         "step": "Action camera, at the per-item limit",
@@ -155,7 +155,7 @@
         "amount": -50.0
       }
     ],
-    "tests": "A rule found only in the cases manual: losses to wild animals. Under the wording alone it reads as a theft with no police report",
+    "tests": "A rule found only in the claims manual: losses to wild animals. Under the wording alone it reads as a theft with no police report",
     "difficulty": "manual",
     "failure_class": "",
     "needs": [
@@ -172,7 +172,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-08-11",
     "reason": "The delay of 4 hours 20 minutes is past the 3 hour waiting period on First and the carrier confirms the times and the cause. Trip Delay pays only when the delay is caused by a mechanical or crew problem, a canceled service, severe weather or a strike. The carrier says the cause was a swarm of bees and that no fault was found with the aircraft, so the cause is not one the wording covers.",
-    "reference": "Contract wording, section 3",
+    "reference": "Policy wording, section 3",
     "calculation": [],
     "tests": "A clear decline: a documented delay whose cause is not on the wording's list; real-world",
     "difficulty": "routine",
@@ -188,8 +188,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-02",
     "decided_on": "2026-08-04",
-    "reason": "A railway is a carrier, the delay of 7 hours 25 minutes is past the 6 hour waiting period on Premium and the receipts are in order. Trip Delay pays only for the causes the wording lists, and it asks for the carrier's confirmation of the delay and its cause. The letter confirms the times and gives no cause, so the failed locomotive rests on the customer's account alone. Document request: Coastal Rail's confirmation of the reason for the delay. The case appears payable at $66 once it arrives.",
-    "reference": "Contract wording, sections 3 and 11",
+    "reason": "A railway is a carrier, the delay of 7 hours 25 minutes is past the 6 hour waiting period on Premium and the receipts are in order. Trip Delay pays only for the causes the wording lists, and it asks for the carrier's confirmation of the delay and its cause. The letter confirms the times and gives no cause, so the failed locomotive rests on the customer's account alone. Document request: Coastal Rail's confirmation of the reason for the delay. The claim appears payable at $66 once it arrives.",
+    "reference": "Policy wording, sections 3 and 11",
     "calculation": [],
     "tests": "A required document that is present and incomplete: the carrier confirms the delay and leaves out the cause",
     "difficulty": "hard",
@@ -206,7 +206,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-07-01",
     "reason": "The customer's own sickness, confirmed in writing by a physician who advised him to go home, is a covered reason to cut the trip short. Trip Interruption pays the unused prepaid costs that will not be refunded and a one-way economy fare home, and both have documents. The total is inside the $3,200 trip cost and the Premium maximum, and no deductible applies.",
-    "reference": "Contract wording, section 2",
+    "reference": "Policy wording, section 2",
     "calculation": [
       {
         "step": "One-way economy fare home",
@@ -232,7 +232,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-09-08",
     "reason": "The customer reported the theft within 24 hours but has only a reference number, and we need a copy of the police report. Referred with a request for the report.",
-    "reference": "Contract wording, sections 5 and 11. Cases manual, section 5",
+    "reference": "Policy wording, sections 5 and 11. Claims manual, section 5",
     "calculation": [],
     "tests": "A referral for a missing document",
     "difficulty": "routine",
@@ -248,8 +248,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-01",
     "decided_on": "2026-07-21",
-    "reason": "Scuba diving deeper than 10 meters is an adventure sport, and the contract has the Adventure Sports add-on. The diver is certified to 30 meters and the dive log shows 24.3 meters with no violations. The deductible on First is $0. The award is over $1,000, so payment needs sign-off.",
-    "reference": "Contract wording, sections 7 and 8",
+    "reason": "Scuba diving deeper than 10 meters is an adventure sport, and the policy has the Adventure Sports add-on. The diver is certified to 30 meters and the dive log shows 24.3 meters with no violations. The deductible on First is $0. The payout is over $1,000, so payment needs sign-off.",
+    "reference": "Policy wording, sections 7 and 8",
     "calculation": [
       {
         "step": "Hyperbaric clinic bill",
@@ -271,7 +271,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-08-03",
     "reason": "Accidental damage during the covered trip, with a statement that none of the three items can be repaired and receipts for all of them. Electronics Plus raises the per-item limit for the devices the wording lists: phones, tablets, laptops, cameras and their lenses, e-readers and smartwatches. The phone is on the list and is paid in full. Earbuds and a speaker are not on the list, so each counts at the ordinary Economy limit of $150. The $100 deductible comes off, and the result is inside the $750 maximum.",
-    "reference": "Contract wording, sections 5, 8 and 10",
+    "reference": "Policy wording, sections 5, 8 and 10",
     "calculation": [
       {
         "step": "Smartphone, on the Electronics Plus list",
@@ -290,7 +290,7 @@
         "amount": -100.0
       }
     ],
-    "tests": "Award arithmetic: the Electronics Plus limit applies only to the listed devices, whatever the case form's category says",
+    "tests": "Payout arithmetic: the Electronics Plus limit applies only to the listed devices, whatever the claim form's category says",
     "difficulty": "hard",
     "failure_class": "items",
     "needs": [],
@@ -305,7 +305,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-09-02",
     "reason": "Severe weather delayed the flight by 11 hours, past the 3 hour waiting period on First. The hotel has a receipt. The meals have none, so the manual's flat allowance applies: $35 for each of two travelers for one day of delay.",
-    "reference": "Contract wording, section 3. Cases manual, section 10",
+    "reference": "Policy wording, section 3. Claims manual, section 10",
     "calculation": [
       {
         "step": "Hotel with receipt",
@@ -316,7 +316,7 @@
         "amount": 70.0
       }
     ],
-    "tests": "A rule found only in the cases manual: the meal allowance without receipts",
+    "tests": "A rule found only in the claims manual: the meal allowance without receipts",
     "difficulty": "manual",
     "failure_class": "",
     "needs": [
@@ -333,7 +333,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-07-10",
     "reason": "The wording covers a home made uninhabitable by fire, flood or storm. The house was demolished by the town under an order of taking, which is none of those, and the wording pays for cancellation for no other reason. The decline letter should be a kind one.",
-    "reference": "Contract wording, section 2",
+    "reference": "Policy wording, section 2",
     "calculation": [],
     "tests": "A clear decline: the home is uninhabitable, and the cause is not one of the three the wording lists",
     "difficulty": "routine",
@@ -349,8 +349,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-08-26",
-    "reason": "COPD is a pre-existing condition with a medication change inside the look-back window, but the contract has the Pre-Existing Condition Waiver, so the exclusion does not apply. The treatment was necessary. The $50 deductible on Premium comes off.",
-    "reference": "Contract wording, sections 7 and 8",
+    "reason": "COPD is a pre-existing condition with a medication change inside the look-back window, but the policy has the Pre-Existing Condition Waiver, so the exclusion does not apply. The treatment was necessary. The $50 deductible on Premium comes off.",
+    "reference": "Policy wording, sections 7 and 8",
     "calculation": [
       {
         "step": "Hospital bill",
@@ -375,10 +375,10 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-07-28",
-    "reason": "On its own the case is payable at $320: necessary treatment of a sudden sickness during the trip, with the itemized bill and the record, less the $100 deductible on Economy. The customer's history shows case CLM-0979 for the same clinic visit on the same date, filed on June 18, approved and paid at $320. The same loss claimed twice goes to Special Investigations, with no comment to the customer beyond saying the case is being reviewed. A final invoice arriving after the first case was paid is a likely honest explanation.",
-    "reference": "Cases manual, section 8",
+    "reason": "On its own the claim is payable at $320: necessary treatment of a sudden sickness during the trip, with the itemized bill and the record, less the $100 deductible on Economy. The customer's history shows claim CLM-0979 for the same clinic visit on the same date, filed on June 18, approved and paid at $320. The same loss claimed twice goes to Special Investigations, with no comment to the customer beyond saying the claim is being reviewed. A final invoice arriving after the first claim was paid is a likely honest explanation.",
+    "reference": "Claims manual, section 8",
     "calculation": [],
-    "tests": "The customer's case history: the same loss already claimed and paid. Nothing in the case itself shows it",
+    "tests": "The customer's claim history: the same loss already claimed and paid. Nothing in the claim itself shows it",
     "difficulty": "manual",
     "failure_class": "",
     "needs": [
@@ -395,7 +395,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-08-25",
     "reason": "Necessary treatment of a sudden injury during the covered trip, with the itemized bill and the medical record on file. Nothing in the record points to an exclusion, and the cause of an accident does not have to be dignified. The $100 deductible on Economy comes off.",
-    "reference": "Contract wording, sections 7 and 10",
+    "reference": "Policy wording, sections 7 and 10",
     "calculation": [
       {
         "step": "Clinic bill",
@@ -420,8 +420,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-01",
     "decided_on": "2026-07-14",
-    "reason": "The carrier has declared the bag lost and its report is on file. A suit counts as one item, so the jacket and trousers together count at the $500 per-item limit on First, and a camera with its lens is one item too, although each of those four lines is under the limit on its own. The receipts show three shirts at $180 and two ties at $95, which are separate items and all under the limit, so those lines are paid in full. The carrier's $500 comes off and there is no deductible on First. The award is above $1,000, so the payment waits for sign-off.",
-    "reference": "Contract wording, sections 5 and 10",
+    "reason": "The carrier has declared the bag lost and its report is on file. A suit counts as one item, so the jacket and trousers together count at the $500 per-item limit on First, and a camera with its lens is one item too, although each of those four lines is under the limit on its own. The receipts show three shirts at $180 and two ties at $95, which are separate items and all under the limit, so those lines are paid in full. The carrier's $500 comes off and there is no deductible on First. The payout is above $1,000, so the payment waits for sign-off.",
+    "reference": "Policy wording, sections 5 and 10",
     "calculation": [
       {
         "step": "Garment bag",
@@ -452,7 +452,7 @@
         "amount": -500.0
       }
     ],
-    "tests": "Award arithmetic: a pair or a set split over two lines counts as one item, and a line that holds several items is not capped as one",
+    "tests": "Payout arithmetic: a pair or a set split over two lines counts as one item, and a line that holds several items is not capped as one",
     "difficulty": "hard",
     "failure_class": "items",
     "needs": [],
@@ -466,8 +466,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-08-20",
-    "reason": "Bungee jumping is an adventure sport and the contract does not have the Adventure Sports add-on, so the injury is excluded from Emergency Medical.",
-    "reference": "Contract wording, sections 7 and 8",
+    "reason": "Bungee jumping is an adventure sport and the policy does not have the Adventure Sports add-on, so the injury is excluded from Emergency Medical.",
+    "reference": "Policy wording, sections 7 and 8",
     "calculation": [],
     "tests": "An add-on that is missing: Adventure Sports",
     "difficulty": "routine",
@@ -484,7 +484,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-08-31",
     "reason": "Severe weather delayed her by 22 hours, past the 6 hour waiting period on Premium, and the carrier confirms the times and the cause. The wording pays reasonable costs, and the manual sets reasonable accommodation at up to $350 a night for a room. The suite is paid at $350 and the dinner in full.",
-    "reference": "Contract wording, section 3. Cases manual, section 10",
+    "reference": "Policy wording, section 3. Claims manual, section 10",
     "calculation": [
       {
         "step": "Hotel, one night, at the manual's $350 a night",
@@ -495,7 +495,7 @@
         "amount": 54.0
       }
     ],
-    "tests": "A rule found only in the cases manual: the nightly amount for reasonable accommodation during a delay",
+    "tests": "A rule found only in the claims manual: the nightly amount for reasonable accommodation during a delay",
     "difficulty": "manual",
     "failure_class": "",
     "needs": [
@@ -512,7 +512,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-07-30",
     "reason": "An accidental loss during the covered trip, confirmed by the dive operator, with receipts for both items. Both are under the $300 per-item limit on Premium, and the $50 deductible comes off.",
-    "reference": "Contract wording, sections 5 and 10",
+    "reference": "Policy wording, sections 5 and 10",
     "calculation": [
       {
         "step": "Prescription dive mask",
@@ -527,7 +527,7 @@
         "amount": -50.0
       }
     ],
-    "tests": "Routine award arithmetic: two items under the per-item limit, then the deductible",
+    "tests": "Routine payout arithmetic: two items under the per-item limit, then the deductible",
     "difficulty": "routine",
     "failure_class": "",
     "needs": [],
@@ -542,7 +542,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-08-21",
     "reason": "The receipts are dated August 7 from a store in Columbus, two days before the customer left, so they cannot be purchases made while waiting for the bag. The carrier's report also shows the bag delivered after about 26 hours, where the customer says three days. Referred to Special Investigations.",
-    "reference": "Cases manual, section 8",
+    "reference": "Claims manual, section 8",
     "calculation": [],
     "tests": "A referral because the story and the documents conflict",
     "difficulty": "routine",
@@ -558,8 +558,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-07-16",
-    "reason": "A ferry company is a carrier, the delay of 11 hours 15 minutes is well past the 3 hour waiting period on First and the receipts are in order. Trip Delay pays only for the causes the wording lists, and it asks for the carrier's confirmation of the delay and its cause. The certificate confirms the times and gives no cause, so the engine fault rests on the customer's account alone. Document request: Aegean Star Lines' confirmation of the reason for the delay. The case appears payable at $89 once it arrives.",
-    "reference": "Contract wording, sections 3 and 11",
+    "reason": "A ferry company is a carrier, the delay of 11 hours 15 minutes is well past the 3 hour waiting period on First and the receipts are in order. Trip Delay pays only for the causes the wording lists, and it asks for the carrier's confirmation of the delay and its cause. The certificate confirms the times and gives no cause, so the engine fault rests on the customer's account alone. Document request: Aegean Star Lines' confirmation of the reason for the delay. The claim appears payable at $89 once it arrives.",
+    "reference": "Policy wording, sections 3 and 11",
     "calculation": [],
     "tests": "A required document that is present and incomplete: the carrier confirms the delay and leaves out the cause",
     "difficulty": "hard",
@@ -576,7 +576,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-07-21",
     "reason": "The damage happened during the trip and the school confirms it, but Baggage and Personal Effects does not pay for damage caused by moths, vermin, insects or pets, and a rat is vermin. The manual's note on wild animals covers monkeys, gulls, bears and the like and does not reach a rat in a locker room.",
-    "reference": "Contract wording, section 5",
+    "reference": "Policy wording, section 5",
     "calculation": [],
     "tests": "A clear decline: damage by vermin. It also checks that the manual's wild animals note is not stretched",
     "difficulty": "routine",
@@ -592,10 +592,10 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-08-19",
-    "reason": "On its own the case is payable: the bag came 41 hours after arrival, past the 24 hour waiting period on Economy, and the $138 of essentials would be paid at the $100 maximum. It is the customer's third case in 12 months, after cases filed in November 2025 and May 2026. The manual counts every case, including the one that was declined, so it goes to Special Investigations for review before any payment.",
-    "reference": "Cases manual, section 9",
+    "reason": "On its own the claim is payable: the bag came 41 hours after arrival, past the 24 hour waiting period on Economy, and the $138 of essentials would be paid at the $100 maximum. It is the customer's third claim in 12 months, after claims filed in November 2025 and May 2026. The manual counts every claim, including the one that was declined, so it goes to Special Investigations for review before any payment.",
+    "reference": "Claims manual, section 9",
     "calculation": [],
-    "tests": "A rule found only in the cases manual: the third case in 12 months, counting a declined case. It needs the customer's case history",
+    "tests": "A rule found only in the claims manual: the third claim in 12 months, counting a declined claim. It needs the customer's claim history",
     "difficulty": "manual",
     "failure_class": "",
     "needs": [

@@ -14,6 +14,7 @@
   --muted: #4b6f7b;
   --link: #0b6e8f;
   --green-text: #037a5b;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
 
   color-scheme: light;
   font-family: "Instrument Sans", system-ui, sans-serif;
@@ -80,7 +81,7 @@ p {
 }
 
 .mono {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 0.9em;
 }
 
@@ -174,12 +175,16 @@ p {
 }
 
 .status-decided,
-.decision-approve {
+.decision-approve,
+.todo-done,
+.run-finished {
   background: var(--sea-green);
 }
 
 .status-in_progress,
-.decision-refer {
+.decision-refer,
+.todo-in_progress,
+.run-running {
   background: var(--marigold);
 }
 
@@ -188,8 +193,16 @@ p {
   background: var(--coral);
 }
 
-.status-waiting {
+.status-waiting,
+.todo-to_do {
   background: var(--cerulean);
+  color: #ffffff;
+}
+
+.status-left_for_worker,
+.todo-left_for_worker,
+.step-failed {
+  background: var(--raspberry);
   color: #ffffff;
 }
 
@@ -213,6 +226,52 @@ p {
 
 .table-scroll {
   overflow-x: auto;
+}
+
+.run {
+  margin-bottom: 20px;
+}
+
+.run-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.run-heading h2 {
+  margin: 0;
+}
+
+.run h3 {
+  margin: 16px 0 8px;
+}
+
+.todos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.todo {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  background: var(--inset);
+  border-radius: 10px;
+  padding: 7px 12px;
+}
+
+.todo .chip {
+  min-width: 128px;
+  text-align: center;
+}
+
+.summary {
+  white-space: pre-wrap;
+  max-width: 90ch;
 }
 
 .table {
@@ -340,7 +399,7 @@ p {
 .instructions {
   margin: 0;
   white-space: pre-wrap;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 0.82rem;
   line-height: 1.6;
 }
@@ -453,6 +512,18 @@ p {
   font-weight: 600;
 }
 
+.sections-read {
+  background: var(--inset);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.sections-read ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
 .step code {
   overflow-wrap: anywhere;
 }
@@ -465,7 +536,7 @@ p {
   margin: 8px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--mono);
   font-size: 0.8rem;
 }
 

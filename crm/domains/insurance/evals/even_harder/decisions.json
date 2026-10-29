@@ -6,10 +6,10 @@
     "over_approval_limit": false,
     "worker_id": "HND-02",
     "decided_on": "2026-07-29",
-    "reason": "Tropical Storm Marisol was named on July 9, 2026 and forecast to reach the Bahamas on July 12, and the contract was bought on July 10. A named storm that was publicly known before the contract was bought is excluded under section 9, so nothing is payable.",
-    "reference": "Contract wording, section 9",
+    "reason": "Tropical Storm Marisol was named on July 9, 2026 and forecast to reach the Bahamas on July 12, and the policy was bought on July 10. A named storm that was publicly known before the policy was bought is excluded under section 9, so nothing is payable.",
+    "reference": "Policy wording, section 9",
     "calculation": [],
-    "tests": "Severe weather that stops the carrier is a covered reason, but the storm was named the day before the contract was bought",
+    "tests": "Severe weather that stops the carrier is a covered reason, but the storm was named the day before the policy was bought",
     "difficulty": "hard",
     "tempts": "approve",
     "needs": [
@@ -25,8 +25,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-01",
     "decided_on": "2026-09-09",
-    "reason": "Hurricane Tobias stopped Northwind's service to Cancun for more than 24 hours, a covered reason under section 2. Tobias was named on August 18, more than two months after the contract was bought on June 11, so it was not publicly known when the contract was bought. The prepaid costs come to $3,197, less the hotel's refund of $684 and the transfer company's $40 credit, leaving $2,473, inside the trip cost and the Premium maximum. The award needs sign-off.",
-    "reference": "Contract wording, sections 2, 9 and 10",
+    "reason": "Hurricane Tobias stopped Northwind's service to Cancun for more than 24 hours, a covered reason under section 2. Tobias was named on August 18, more than two months after the policy was bought on June 11, so it was not publicly known when the policy was bought. The prepaid costs come to $3,197, less the hotel's refund of $684 and the transfer company's $40 credit, leaving $2,473, inside the trip cost and the Premium maximum. The payout needs sign-off.",
+    "reference": "Policy wording, sections 2, 9 and 10",
     "calculation": [
       {
         "step": "Hotel, seven nights",
@@ -53,7 +53,7 @@
         "amount": -724.0
       }
     ],
-    "tests": "A storm named after the contract was bought: a covered cancellation, with a refund and a credit to take off",
+    "tests": "A storm named after the policy was bought: a covered cancellation, with a refund and a credit to take off",
     "difficulty": "hard",
     "tempts": "refer",
     "needs": [
@@ -69,10 +69,10 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-08-03",
-    "reason": "Portugal's air traffic controllers announced the strike on June 20, 2026, four days before the contract was bought on June 24. A strike that was publicly known before the contract was bought is excluded under section 9, so nothing is payable.",
-    "reference": "Contract wording, section 9",
+    "reason": "Portugal's air traffic controllers announced the strike on June 20, 2026, four days before the policy was bought on June 24. A strike that was publicly known before the policy was bought is excluded under section 9, so nothing is payable.",
+    "reference": "Policy wording, section 9",
     "calculation": [],
-    "tests": "A strike is a covered cause of delay, but it was announced four days before the contract was bought",
+    "tests": "A strike is a covered cause of delay, but it was announced four days before the policy was bought",
     "difficulty": "hard",
     "tempts": "approve",
     "needs": [
@@ -88,8 +88,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-02",
     "decided_on": "2026-08-29",
-    "reason": "Meridian announced the cabin crew strike on August 5, after the contract was bought on July 28, so it was not publicly known when the contract was bought. A strike is a covered cause of delay and the 30 hour delay is past the 12 hour waiting period on Economy. The hotel, meals and taxis come to $339.40, and the missed conference day is a consequential loss. The award is the Economy maximum of $300.",
-    "reference": "Contract wording, sections 3, 9 and 10",
+    "reason": "Meridian announced the cabin crew strike on August 5, after the policy was bought on July 28, so it was not publicly known when the policy was bought. A strike is a covered cause of delay and the 30 hour delay is past the 12 hour waiting period on Economy. The hotel, meals and taxis come to $339.40, and the missed conference day is a consequential loss. The payout is the Economy maximum of $300.",
+    "reference": "Policy wording, sections 3, 9 and 10",
     "calculation": [
       {
         "step": "Airport hotel",
@@ -108,9 +108,9 @@
         "amount": -39.4
       }
     ],
-    "tests": "A strike announced after the contract was bought: a covered delay, a consequential loss to leave out, then the maximum",
+    "tests": "A strike announced after the policy was bought: a covered delay, a consequential loss to leave out, then the maximum",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Meridian Air press release"
     ],
@@ -124,10 +124,10 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-09-22",
-    "reason": "Storm Ysolde was named on September 2, 2026, with ferry crossings on the Irish Sea expected to be canceled from September 4, and the contract was bought on September 3. A named storm that was publicly known before the contract was bought is excluded under section 9, so nothing is payable.",
-    "reference": "Contract wording, section 9",
+    "reason": "Storm Ysolde was named on September 2, 2026, with ferry crossings on the Irish Sea expected to be canceled from September 4, and the policy was bought on September 3. A named storm that was publicly known before the policy was bought is excluded under section 9, so nothing is payable.",
+    "reference": "Policy wording, section 9",
     "calculation": [],
-    "tests": "Severe weather is a covered cause of delay, but the storm was named the day before the contract was bought",
+    "tests": "Severe weather is a covered cause of delay, but the storm was named the day before the policy was bought",
     "difficulty": "hard",
     "tempts": "approve",
     "needs": [
@@ -143,8 +143,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-08-07",
-    "reason": "Italy's rail unions called the strike on July 3, after the contract was bought on June 18, so it was not publicly known when the contract was bought. A strike that cancels a train is a covered cause of delay, and the delay of 22 hours is past the 6 hour waiting period on Premium. The hotel, meals, taxis and the change fee come to $427.60, inside the $800 maximum, and the missed Vatican tour is a consequential loss.",
-    "reference": "Contract wording, sections 3, 9 and 10",
+    "reason": "Italy's rail unions called the strike on July 3, after the policy was bought on June 18, so it was not publicly known when the policy was bought. A strike that cancels a train is a covered cause of delay, and the delay of 22 hours is past the 6 hour waiting period on Premium. The hotel, meals, taxis and the change fee come to $427.60, inside the $800 maximum, and the missed Vatican tour is a consequential loss.",
+    "reference": "Policy wording, sections 3, 9 and 10",
     "calculation": [
       {
         "step": "Hotel in Florence",
@@ -167,9 +167,9 @@
         "amount": 24.0
       }
     ],
-    "tests": "A strike called after the contract was bought: a covered delay by rail, with a consequential loss to leave out",
+    "tests": "A strike called after the policy was bought: a covered delay by rail, with a consequential loss to leave out",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Italy's rail unions"
     ],
@@ -184,7 +184,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-08-18",
     "reason": "The carrier declared the bag lost. The Halden Arc is a pocket projector, which is not on the Electronics Plus list, so it counts at the $300 per-item limit on Premium, and the other lines are within the limit. The items come to $1,012.95, less the carrier's $400 and the $50 deductible, leaving $562.95, inside the $1,500 maximum.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Suitcase",
@@ -225,7 +225,7 @@
     ],
     "tests": "A device off the Electronics Plus list that only the knowledge base identifies, then the carrier's payment and the deductible",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Halden Arc"
     ],
@@ -239,8 +239,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-02",
     "decided_on": "2026-07-24",
-    "reason": "A robbery reported to the police the same night. The Corvane Lumen X2 is a smartwatch, so Electronics Plus raises its limit to $1,200 and it is paid as claimed. The handbag, the sunglasses and the wallet are within the $300 per-item limit on Premium, and cash is covered up to $100. The items come to $1,289, less the $50 deductible, leaving $1,239, inside the $1,500 maximum. The award needs sign-off.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reason": "A robbery reported to the police the same night. The Corvane Lumen X2 is a smartwatch, so Electronics Plus raises its limit to $1,200 and it is paid as claimed. The handbag, the sunglasses and the wallet are within the $300 per-item limit on Premium, and cash is covered up to $100. The items come to $1,289, less the $50 deductible, leaving $1,239, inside the $1,500 maximum. The payout needs sign-off.",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Corvane Lumen X2 smartwatch",
@@ -269,7 +269,7 @@
     ],
     "tests": "A smartwatch listed as an accessory: only the knowledge base shows it is on the Electronics Plus list",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Corvane Lumen X2"
     ],
@@ -284,7 +284,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-07-31",
     "reason": "A theft reported to the police the same day. The Lumora Drift 3 is an e-reader, so Electronics Plus raises its limit and it is paid as claimed. The other lines are within the $150 per-item limit on Economy. The items come to $771.99, less the $100 deductible, leaving $671.99, inside the $750 maximum.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Backpack",
@@ -317,7 +317,7 @@
     ],
     "tests": "An e-reader listed as a personal item: only the knowledge base shows it is on the Electronics Plus list",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Lumora Drift 3"
     ],
@@ -332,7 +332,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-08-14",
     "reason": "A locked apartment is not a place the public can get to, and the police were called the same day. The Vantor Halo is a smart ring, which is not on the Electronics Plus list, so it counts at the $150 per-item limit on Economy. The items come to $534, less the $100 deductible, leaving $434, inside the $750 maximum.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Vantor Halo smart ring, limited to $150.00",
@@ -361,7 +361,7 @@
     ],
     "tests": "A smart ring listed as electronics: only the knowledge base shows it is off the Electronics Plus list",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Vantor Halo"
     ],
@@ -375,8 +375,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-02",
     "decided_on": "2026-09-01",
-    "reason": "Damage by the carrier, with its report and a statement that nothing can be repaired. The Brisa Pocket 2 is a compact camera, so Electronics Plus raises its limit to $1,200 and it is paid as claimed. The binoculars count at the $500 per-item limit on First. The items come to $2,113, less the carrier's $1,000, with no deductible on First. The award of $1,113 is inside the $3,000 maximum and needs sign-off.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reason": "Damage by the carrier, with its report and a statement that nothing can be repaired. The Brisa Pocket 2 is a compact camera, so Electronics Plus raises its limit to $1,200 and it is paid as claimed. The binoculars count at the $500 per-item limit on First. The items come to $2,113, less the carrier's $1,000, with no deductible on First. The payout of $1,113 is inside the $3,000 maximum and needs sign-off.",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Hard-shell case",
@@ -405,7 +405,7 @@
     ],
     "tests": "A camera with an unfamiliar name: only the knowledge base shows it is on the Electronics Plus list",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Brisa Pocket 2"
     ],
@@ -420,7 +420,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-09-06",
     "reason": "The carrier declared the bag lost. The Quillon Wayfinder 5 is a handheld GPS unit, which is not on the Electronics Plus list, so it counts at the $300 per-item limit on Premium, and the other lines are within the limit. The items come to $1,035.90, less the carrier's $300 and the $50 deductible, leaving $685.90, inside the $1,500 maximum.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Duffel bag",
@@ -453,7 +453,7 @@
     ],
     "tests": "A GPS unit listed as electronics: only the knowledge base shows it is off the Electronics Plus list",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Quillon Wayfinder 5"
     ],
@@ -467,8 +467,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-08-11",
-    "reason": "The bags were locked in the trunk and out of sight, so they were not unattended, and the police were told within the hour. The Sorrel Tab S is a tablet, so Electronics Plus raises its limit and it is paid as claimed. The sunglasses count at the $150 per-item limit on Economy. The items come to $1,311.40, less the $100 deductible, which is over the Economy maximum, so the award is $750.",
-    "reference": "Contract wording, sections 1, 5, 8 and 10",
+    "reason": "The bags were locked in the trunk and out of sight, so they were not unattended, and the police were told within the hour. The Sorrel Tab S is a tablet, so Electronics Plus raises its limit and it is paid as claimed. The sunglasses count at the $150 per-item limit on Economy. The items come to $1,311.40, less the $100 deductible, which is over the Economy maximum, so the payout is $750.",
+    "reference": "Policy wording, sections 1, 5, 8 and 10",
     "calculation": [
       {
         "step": "Sorrel Tab S tablet",
@@ -505,7 +505,7 @@
     ],
     "tests": "A tablet with an unfamiliar name: only the knowledge base shows it is on the Electronics Plus list, then the maximum",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Sorrel Tab S"
     ],
@@ -519,8 +519,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-02",
     "decided_on": "2026-08-04",
-    "reason": "The top of the Sentinel Wall is at 14 meters, so every dive on it goes deeper than 10 meters. Scuba diving deeper than 10 meters is an adventure sport under section 8, and the contract has no Adventure Sports add-on, so the injury is excluded under section 7.",
-    "reference": "Contract wording, sections 7 and 8",
+    "reason": "The top of the Sentinel Wall is at 14 meters, so every dive on it goes deeper than 10 meters. Scuba diving deeper than 10 meters is an adventure sport under section 8, and the policy has no Adventure Sports add-on, so the injury is excluded under section 7.",
+    "reference": "Policy wording, sections 7 and 8",
     "calculation": [],
     "tests": "An ear injury that can happen at any depth, on a dive site that only the knowledge base shows is deeper than 10 meters",
     "difficulty": "hard",
@@ -539,7 +539,7 @@
     "worker_id": "HND-03",
     "decided_on": "2026-08-17",
     "reason": "Parrotfish Garden is no deeper than 9 meters, so the dive was not scuba diving deeper than 10 meters and is not an adventure sport under section 8. The treatment comes to $543.75, less the $100 deductible, leaving $443.75.",
-    "reference": "Contract wording, sections 7, 8 and 10",
+    "reference": "Policy wording, sections 7, 8 and 10",
     "calculation": [
       {
         "step": "Clinic consultation",
@@ -578,8 +578,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-07-27",
-    "reason": "Tallow Gorge has grade 4 rapids from start to finish, so rafting it is white-water rafting above grade 3, an adventure sport under section 8. The contract has no Adventure Sports add-on, so the injury is excluded under section 7.",
-    "reference": "Contract wording, sections 7 and 8",
+    "reason": "Tallow Gorge has grade 4 rapids from start to finish, so rafting it is white-water rafting above grade 3, an adventure sport under section 8. The policy has no Adventure Sports add-on, so the injury is excluded under section 7.",
+    "reference": "Policy wording, sections 7 and 8",
     "calculation": [],
     "tests": "A rafting injury on a run that only the knowledge base shows is above grade 3",
     "difficulty": "hard",
@@ -597,8 +597,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-02",
     "decided_on": "2026-09-03",
-    "reason": "The Lantern Run has grade 2 rapids from start to finish, so the trip was not white-water rafting above grade 3 and is not an adventure sport under section 8. The treatment comes to $1,173.90, with no deductible on First, and the lost wages are a consequential loss. The award needs sign-off.",
-    "reference": "Contract wording, sections 7, 8, 9 and 10",
+    "reason": "The Lantern Run has grade 2 rapids from start to finish, so the trip was not white-water rafting above grade 3 and is not an adventure sport under section 8. The treatment comes to $1,173.90, with no deductible on First, and the lost wages are a consequential loss. The payout needs sign-off.",
+    "reference": "Policy wording, sections 7, 8, 9 and 10",
     "calculation": [
       {
         "step": "Emergency room",
@@ -637,8 +637,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-08-21",
-    "reason": "Aerie Adventures runs tandem paragliding flights, and paragliding is an adventure sport under section 8. The contract has no Adventure Sports add-on, so the injury is excluded under section 7.",
-    "reference": "Contract wording, sections 7 and 8",
+    "reason": "Aerie Adventures runs tandem paragliding flights, and paragliding is an adventure sport under section 8. The policy has no Adventure Sports add-on, so the injury is excluded under section 7.",
+    "reference": "Policy wording, sections 7 and 8",
     "calculation": [],
     "tests": "A flight that only the knowledge base shows was paragliding",
     "difficulty": "hard",
@@ -657,7 +657,7 @@
     "worker_id": "HND-01",
     "decided_on": "2026-09-09",
     "reason": "Talon Excursions runs jet-boat rides, which are not on the list of adventure sports in section 8, so the injury is covered. The treatment comes to $682.40. Talon's insurer's $150 comes off, then the $100 deductible, leaving $432.40.",
-    "reference": "Contract wording, sections 7, 8 and 10",
+    "reference": "Policy wording, sections 7, 8 and 10",
     "calculation": [
       {
         "step": "Urgent care visit and stitches",
@@ -686,7 +686,7 @@
     ],
     "tests": "A river trip that only the knowledge base shows was a jet-boat ride, then another party's payment and the deductible",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [
       "Talon Excursions"
     ],
@@ -701,7 +701,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-08-24",
     "reason": "The carrier declared the bag lost. The suitcase, the reading glasses and the necklace count at the $150 per-item limit on Economy, and the other lines are paid as claimed, so the items come to $1,163.67. The carrier's $400 comes off, then the $100 deductible, leaving $663.67, inside the $750 maximum.",
-    "reference": "Contract wording, sections 1, 5 and 10",
+    "reference": "Policy wording, sections 1, 5 and 10",
     "calculation": [
       {
         "step": "Suitcase, limited to $150.00",
@@ -762,7 +762,7 @@
     ],
     "tests": "No outside fact: a long list in cents with the per-item limit, the carrier's payment and the deductible",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [],
     "tone": "plain",
     "tiny": true
@@ -774,8 +774,8 @@
     "over_approval_limit": true,
     "worker_id": "HND-03",
     "decided_on": "2026-08-03",
-    "reason": "A parent is a family member and the physician confirms the stroke, so the interruption is covered. The unused prepaid costs and the fare home come to $3,246.80. The refunds of $142 and $129 and the airline's $100 credit come off, leaving $2,875.80, inside the Premium maximum and the trip cost. The award needs sign-off.",
-    "reference": "Contract wording, sections 2, 10 and 12",
+    "reason": "A parent is a family member and the physician confirms the stroke, so the interruption is covered. The unused prepaid costs and the fare home come to $3,246.80. The refunds of $142 and $129 and the airline's $100 credit come off, leaving $2,875.80, inside the Premium maximum and the trip cost. The payout needs sign-off.",
+    "reference": "Policy wording, sections 2, 10 and 12",
     "calculation": [
       {
         "step": "Unused hotel nights in Buenos Aires",
@@ -816,7 +816,7 @@
     ],
     "tests": "No outside fact: unused costs and the fare home, with refunds and a credit to take off",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [],
     "tone": "plain",
     "tiny": false
@@ -828,8 +828,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-08-27",
-    "reason": "The bag arrived 41 hours late, past the 12 hour waiting period on Premium. The clothing and toiletries come to $303.30, and a phone charger is not essential clothing or toiletries. The award is the Premium maximum of $300.",
-    "reference": "Contract wording, sections 1, 4 and 10",
+    "reason": "The bag arrived 41 hours late, past the 12 hour waiting period on Premium. The clothing and toiletries come to $303.30, and a phone charger is not essential clothing or toiletries. The payout is the Premium maximum of $300.",
+    "reference": "Policy wording, sections 1, 4 and 10",
     "calculation": [
       {
         "step": "Rain jacket",
@@ -858,7 +858,7 @@
     ],
     "tests": "No outside fact: essentials only, then the maximum",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [],
     "tone": "plain",
     "tiny": false
@@ -871,7 +871,7 @@
     "worker_id": "HND-02",
     "decided_on": "2026-08-31",
     "reason": "The passport was stolen during the trip and the theft was reported. The emergency passport fee, the photos and the taxis to the police and the embassy come to $205.40, inside the $250 Premium maximum.",
-    "reference": "Contract wording, sections 1 and 6",
+    "reference": "Policy wording, sections 1 and 6",
     "calculation": [
       {
         "step": "Emergency passport fee",
@@ -886,9 +886,9 @@
         "amount": 28.4
       }
     ],
-    "tests": "No outside fact: a passport case inside its maximum",
+    "tests": "No outside fact: a passport claim inside its maximum",
     "difficulty": "hard",
-    "tempts": "award",
+    "tempts": "payout",
     "needs": [],
     "tone": "plain",
     "tiny": false
@@ -900,8 +900,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-03",
     "decided_on": "2026-08-05",
-    "reason": "Theft needs a copy of the police report under section 5, and the customer says it has not arrived yet. The case waits for the report.",
-    "reference": "Contract wording, sections 5 and 11",
+    "reason": "Theft needs a copy of the police report under section 5, and the customer says it has not arrived yet. The claim waits for the report.",
+    "reference": "Policy wording, sections 5 and 11",
     "calculation": [],
     "tests": "No outside fact: a theft with no police report attached",
     "difficulty": "hard",
@@ -917,8 +917,8 @@
     "over_approval_limit": false,
     "worker_id": "HND-01",
     "decided_on": "2026-08-25",
-    "reason": "Emergency Medical needs the itemized bill under section 7, and the clinic's receipt shows only the total. The case waits for the itemized bill.",
-    "reference": "Contract wording, sections 7 and 11",
+    "reason": "Emergency Medical needs the itemized bill under section 7, and the clinic's receipt shows only the total. The claim waits for the itemized bill.",
+    "reference": "Policy wording, sections 7 and 11",
     "calculation": [],
     "tests": "No outside fact: a receipt with only a total",
     "difficulty": "hard",

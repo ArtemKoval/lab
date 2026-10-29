@@ -1,16 +1,11 @@
 import { Link } from "react-router";
-import { api, type Status } from "../api";
+import { api, statuses } from "../api";
 import { DecisionChip, StatusChip } from "../components/Chips";
 import { Message } from "../components/Message";
+import { RunPanel } from "../components/RunPanel";
 import { date, label, money, statusLabels } from "../format";
+import { casePage } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
-
-const states: Status[] = [
-  "waiting",
-  "in_progress",
-  "waiting_for_sign_off",
-  "decided",
-];
 
 export function QueuePage() {
   const { data: cases, error } = useLoad(api.listCases, REFRESH_MS);
@@ -20,7 +15,7 @@ export function QueuePage() {
     <>
       <h1>Cases queue</h1>
       <section className="tiles" aria-label="Cases by state">
-        {states.map((status) => {
+        {statuses.map((status) => {
           const count = cases.filter((c) => c.status === status).length;
           return (
             <div
@@ -34,6 +29,7 @@ export function QueuePage() {
           );
         })}
       </section>
+      <RunPanel />
       <section className="panel table-scroll">
         <table className="table">
           <thead>
@@ -50,26 +46,26 @@ export function QueuePage() {
             </tr>
           </thead>
           <tbody>
-            {cases.map((case) => (
-              <tr key={case.case_id}>
+            {cases.map((entry) => (
+              <tr key={entry.case_id}>
                 <td className="nowrap">
-                  <Link className="mono" to={`/cases/${case.case_id}`}>
-                    {case.case_id}
+                  <Link className="mono" to={casePage(entry.case_id)}>
+                    {entry.case_id}
                   </Link>
                 </td>
-                <td>{case.customer_name}</td>
-                <td>{label(case.case_type)}</td>
-                <td>{case.summary}</td>
-                <td className="num mono">{money(case.amount_claimed)}</td>
-                <td className="nowrap">{date(case.submitted_on)}</td>
+                <td>{entry.customer_name}</td>
+                <td>{label(entry.case_type)}</td>
+                <td>{entry.summary}</td>
+                <td className="num mono">{money(entry.amount_claimed)}</td>
+                <td className="nowrap">{date(entry.submitted_on)}</td>
                 <td>
-                  <StatusChip status={case.status} />
+                  <StatusChip status={entry.status} />
                 </td>
                 <td>
-                  {case.decision && <DecisionChip decision={case.decision} />}
+                  {entry.decision && <DecisionChip decision={entry.decision} />}
                 </td>
                 <td className="num mono">
-                  {case.award !== null && money(case.award)}
+                  {entry.award !== null && money(entry.award)}
                 </td>
               </tr>
             ))}

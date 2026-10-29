@@ -1,4 +1,7 @@
+import { render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { vi } from "vitest";
+import { App } from "./App";
 import type { Case, CaseSummary, Contract, PreviousCase } from "./api";
 
 // Stands in for the backend: answers "METHOD /path" with the JSON given, or
@@ -29,7 +32,20 @@ export function stubApi(routes: Routes) {
   return fetchMock;
 }
 
-export const case: Case = {
+export function renderAt(path: string) {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>,
+  );
+}
+
+// Finds the panel headed by the given heading, to look inside it.
+export async function panel(heading: string) {
+  return within(await screen.findByRole("region", { name: heading }));
+}
+
+export const entry: Case = {
   case_id: "CLM-1002",
   contract_id: "POL-2002",
   customer_id: "CUS-3002",
@@ -54,6 +70,7 @@ export const case: Case = {
   ],
   status: "waiting",
   thread_id: null,
+  attempts: 0,
   decision: null,
   payment: null,
 };

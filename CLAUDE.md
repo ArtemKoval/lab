@@ -26,6 +26,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 - If a change adds an item that a clean clone must have, add a unit to the registry.
 
 ## Projects
+- `crm`: a CRM engine with domain packs at `crm/domains/`, ported from `github.com/ed-donner/undercover` one milestone at a time. The README at `crm/README.md` and the `crm-app` skill give the commands. The port tool at `crm/port/port.py` ports the next milestones. Its venv runs its suite from `crm/`: `crm/.venv/bin/python -m pytest`.
 - `llm_ops/eval`: a DeepEval script that uses a local apfel server as the judge. It runs in a devcontainer. The README at `llm_ops/eval/README.md` and the `apfel-eval` skill give the commands.
 - `fde`: an Electron chat desktop app for OpenRouter with an embedded Python backend. The README at `fde/README.md` and the `fde-app` skill give the commands.
 - `tools/zai_routing_audit`: a stdlib CLI that audits the z.ai GLM model routing behind Claude Code. The README at `tools/zai_routing_audit/README.md` and the `zai-routing-audit` skill give the commands. Its venv interpreter runs the root test suite: `tools/zai_routing_audit/.venv/bin/python -m pytest`.

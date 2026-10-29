@@ -59,16 +59,17 @@ class Pack:
 
     def read_doc(self, name: str) -> str:
         """Read one policy document by its short name, such as wording."""
-        path = self.policy / f"{name}.md"
-        if not path.is_file():
-            raise PackError(f"missing pack document: {path}")
-        return path.read_text(encoding="utf-8")
+        return self._read(self.policy, name, "pack document")
 
     def instruction(self, name: str) -> str:
         """Read one instruction text by name, such as case or queue."""
-        path = self.instructions / f"{name}.md"
+        return self._read(self.instructions, name, "pack instruction")
+
+    def _read(self, folder: Path, name: str, kind: str) -> str:
+        """Read one markdown file of the pack, or name it in an error."""
+        path = folder / f"{name}.md"
         if not path.is_file():
-            raise PackError(f"missing pack instruction: {path}")
+            raise PackError(f"missing {kind}: {path}")
         return path.read_text(encoding="utf-8")
 
 

@@ -10,11 +10,16 @@ from typing import Any
 from domains import loader
 
 ROOT = Path(__file__).resolve().parent.parent
+DOCUMENTS = {"wording": "Contract wording", "manual": "Cases manual"}
 
 SCHEMA = """
 CREATE TABLE settings (
-    award_approval_limit REAL NOT NULL,
-    wording TEXT NOT NULL
+    award_approval_limit REAL NOT NULL
+);
+CREATE TABLE documents (
+    name TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    text TEXT NOT NULL
 );
 CREATE TABLE workers (
     worker_id TEXT PRIMARY KEY,
@@ -36,7 +41,8 @@ CREATE TABLE cases (
     customer_id TEXT NOT NULL REFERENCES customers,
     record TEXT NOT NULL,
     status TEXT NOT NULL,
-    thread_id TEXT
+    thread_id TEXT,
+    attempts INTEGER NOT NULL
 );
 CREATE TABLE decisions (
     case_id TEXT PRIMARY KEY REFERENCES cases,
@@ -60,9 +66,25 @@ CREATE TABLE steps (
     content TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE runs (
+    run_id TEXT PRIMARY KEY,
+    cap INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    summary TEXT
+);
+CREATE TABLE todos (
+    run_id TEXT NOT NULL REFERENCES runs,
+    position INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    status TEXT NOT NULL,
+    PRIMARY KEY (run_id, position)
+);
 CREATE VIEW case_view AS
 SELECT
     cases.case_id, cases.record, cases.status, cases.thread_id,
+    cases.attempts,
     customers.name AS customer_name,
     decisions.decision, decisions.award, decisions.section, decisions.reason,
     decisions.decided_at,
@@ -98,13 +120,16 @@ def seed(path: Path) -> dict[str, int]:
     customers = active.load_json("customers.json")
     contracts = active.load_json("contracts.json")
     cases = active.load_json("cases.json")
-    wording = active.read_doc("wording")
     path.unlink(missing_ok=True)
     with closing(sqlite3.connect(path)) as connection, connection:
         connection.executescript(SCHEMA)
         connection.execute(
-            "INSERT INTO settings VALUES (?, ?)",
-            (active.settings["award_approval_limit"], wording),
+            "INSERT INTO settings VALUES (?)",
+            (active.settings["award_approval_limit"],),
+        )
+        connection.executemany(
+            "INSERT INTO documents VALUES (?, ?, ?)",
+            [(name, title, active.read_doc(name)) for name, title in DOCUMENTS.items()],
         )
         connection.executemany(
             "INSERT INTO workers VALUES (?, ?, ?, ?)",
@@ -122,7 +147,7 @@ def seed(path: Path) -> dict[str, int]:
             [(p["contract_id"], json.dumps(p)) for p in contracts],
         )
         connection.executemany(
-            "INSERT INTO cases VALUES (?, ?, ?, 'waiting', NULL)",
+            "INSERT INTO cases VALUES (?, ?, ?, 'waiting', NULL, 0)",
             [(c["case_id"], c["customer_id"], json.dumps(c)) for c in cases],
         )
     return {

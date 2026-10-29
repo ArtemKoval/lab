@@ -1,8 +1,8 @@
-# CRM: Contract Wording
+# UnderCover Travel Insurance: Policy Wording
 
-Version 2026.1, for contracts bought on or after January 1, 2026.
+Version 2026.1, for policies bought on or after January 1, 2026.
 
-This document explains what your CRM contract covers, what it leaves out and how we work out what we pay. Your contract record shows your plan, any add-ons you bought, the dates of your covered trip and the travelers on it. All amounts are in US dollars.
+This document explains what your UnderCover policy covers, what it leaves out and how we work out what we pay. Your policy record shows your plan, any add-ons you bought, the dates of your covered trip and the travelers on it. All amounts are in US dollars.
 
 ## 1. Your plan
 
@@ -19,7 +19,7 @@ This document explains what your CRM contract covers, what it leaves out and how
 | Emergency Medical, maximum | $25,000 | $100,000 | $250,000 |
 | Deductible | $100 | $50 | $0 |
 
-The deductible applies once per case to Baggage and Personal Effects and to Emergency Medical. It does not apply to the other benefits.
+The deductible applies once per claim to Baggage and Personal Effects and to Emergency Medical. It does not apply to the other benefits.
 
 ## 2. Trip Cancellation and Interruption
 
@@ -33,7 +33,7 @@ We pay when you have to cancel your trip before it starts, or cut it short, for 
 
 We do not pay for cancellation or interruption for any other reason.
 
-For a cancellation we pay the prepaid trip costs that your suppliers will not refund. For an interruption we pay the unused prepaid costs that will not be refunded, plus a one-way economy fare home. We pay up to the trip cost on your contract record or your plan's maximum, whichever is lower. Refunds and credits from suppliers are taken off first.
+For a cancellation we pay the prepaid trip costs that your suppliers will not refund. For an interruption we pay the unused prepaid costs that will not be refunded, plus a one-way economy fare home. We pay up to the trip cost on your policy record or your plan's maximum, whichever is lower. Refunds and credits from suppliers are taken off first.
 
 ## 3. Trip Delay
 
@@ -73,7 +73,7 @@ We pay for necessary treatment of a sudden sickness or injury during your covere
 
 We do not pay for:
 
-- Pre-existing conditions. A condition is pre-existing if, in the 60 days before you bought the contract, you had symptoms of it, saw a physician about it, received treatment for it or had a change in medication for it. The Pre-Existing Condition Waiver removes this exclusion.
+- Pre-existing conditions. A condition is pre-existing if, in the 60 days before you bought the policy, you had symptoms of it, saw a physician about it, received treatment for it or had a change in medication for it. The Pre-Existing Condition Waiver removes this exclusion.
 - Injuries from adventure sports, unless you bought the Adventure Sports add-on.
 - Treatment that can reasonably wait until you are home.
 
@@ -90,11 +90,11 @@ We do not pay for:
 No benefit pays for:
 
 - Anything that happens outside the dates of your covered trip.
-- Events that were publicly known before you bought the contract, such as a named storm or an announced strike.
+- Events that were publicly known before you bought the policy, such as a named storm or an announced strike.
 - Consequential losses, which are losses that follow indirectly from an incident, such as lost earnings, missed events or contractual penalties.
 - Losses while you are breaking the law or impaired by alcohol or drugs.
 - War, civil unrest and nuclear incidents.
-- Any case supported by false statements or altered documents.
+- Any claim supported by false statements or altered documents.
 
 ## 10. How we work out your payment
 
@@ -103,14 +103,14 @@ No benefit pays for:
 3. We take off the deductible, where it applies.
 4. We pay the result, up to the maximum for the benefit.
 
-## 11. How to case
+## 11. How to claim
 
-File your case within 90 days of the incident. Tell us what happened in your own words, list what you are claiming and attach the documents named in the section for your benefit. If a document is missing we will ask you for it, and the case waits until it arrives.
+File your claim within 90 days of the incident. Tell us what happened in your own words, list what you are claiming and attach the documents named in the section for your benefit. If a document is missing we will ask you for it, and the claim waits until it arrives.
 
 ## 12. Definitions
 
 - **Carrier:** an airline, railway, ferry, cruise or coach company that you have a ticket with.
-- **Covered trip:** the trip on your contract record, from the departure date to the return date.
+- **Covered trip:** the trip on your policy record, from the departure date to the return date.
 - **Family member:** your spouse or partner, child, parent, sibling, grandparent or grandchild.
 - **Physician:** a licensed medical doctor who is not you, a traveling companion or a family member.
-- **Traveling companion:** a person named as a traveler on your contract record.
+- **Traveling companion:** a person named as a traveler on your policy record.

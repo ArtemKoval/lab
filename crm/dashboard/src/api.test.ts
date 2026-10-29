@@ -1,14 +1,14 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { ApiError, api } from "./api";
-import { Refusal, case, stubApi } from "./testing";
+import { Refusal, entry, stubApi } from "./testing";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 it("reads the backend's JSON", async () => {
-  stubApi({ "GET /api/cases/CLM-1002": case });
-  expect((await api.getCase("CLM-1002")).summary).toBe(case.summary);
+  stubApi({ "GET /api/cases/CLM-1002": entry });
+  expect((await api.getCase("CLM-1002")).summary).toBe(entry.summary);
 });
 
 it("raises the backend's reason for refusing", async () => {

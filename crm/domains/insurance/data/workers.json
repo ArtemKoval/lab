@@ -2,22 +2,22 @@
   {
     "worker_id": "HND-01",
     "name": "Dana Whitfield",
-    "role": "Senior Cases Worker",
-    "email": "dana.whitfield@crm.example",
+    "role": "Senior Claims Handler",
+    "email": "dana.whitfield@undercover.example",
     "can_approve_over_limit": true
   },
   {
     "worker_id": "HND-02",
     "name": "Marcus Oyelaran",
-    "role": "Cases Worker",
-    "email": "marcus.oyelaran@crm.example",
+    "role": "Claims Handler",
+    "email": "marcus.oyelaran@undercover.example",
     "can_approve_over_limit": true
   },
   {
     "worker_id": "HND-03",
     "name": "Priya Raman",
-    "role": "Cases Worker",
-    "email": "priya.raman@crm.example",
+    "role": "Claims Handler",
+    "email": "priya.raman@undercover.example",
     "can_approve_over_limit": true
   }
 ]

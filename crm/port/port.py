@@ -123,7 +123,7 @@ def changed_files(upstream: Path, base: str, ref: str) -> list[str]:
     lines = git(upstream, "diff", "--name-status", base, ref).splitlines()
     names = []
     for line in lines:
-        parts = line.split("\t", 1)
+        parts = line.split("\t")
         name = parts[-1].strip()
         if name.startswith(EXCLUDED_PREFIXES):
             continue
@@ -151,13 +151,13 @@ def is_pack(name: str) -> bool:
     return name.startswith("domains/")
 
 
-def transform(name: str, text: str) -> str:
-    if is_pack(name):
-        if name.endswith(".json"):
+def transform(upstream_name: str, mapped_name: str, text: str) -> str:
+    if is_pack(mapped_name):
+        if mapped_name.endswith(".json"):
             data = json.loads(text)
             return json.dumps(rename_json_keys(data), indent=2, ensure_ascii=False) + "\n"
         return text
-    if Path(name).name in VERBATIM_NAMES:
+    if Path(upstream_name).name in VERBATIM_NAMES:
         return text
     return rename_words(text)
 
@@ -180,7 +180,7 @@ def port_files(upstream: Path, ref: str, names: list[str], dest: Path, dry_run: 
         if dry_run:
             print(f"{name} -> {target}")
             continue
-        target.write_text(transform(name, text), encoding="utf-8")
+        target.write_text(transform(name, mapped, text), encoding="utf-8")
         written += 1
     return written
 

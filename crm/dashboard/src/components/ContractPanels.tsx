@@ -4,7 +4,9 @@ import { addOnName, date, label, money } from "../format";
 import { useLoad } from "../useLoad";
 import { Message } from "./Message";
 
-export function ContractPanel({ contractId }: Readonly<{ contractId: string }>) {
+export function ContractPanel({
+  contractId,
+}: Readonly<{ contractId: string }>) {
   const load = useCallback(() => api.getContract(contractId), [contractId]);
   const { data: contract, error } = useLoad(load);
 
@@ -71,16 +73,16 @@ export function HistoryPanel({ customerId }: Readonly<{ customerId: string }>) {
       {history?.length === 0 && <p className="muted">No earlier cases</p>}
       {history && history.length > 0 && (
         <ul className="history">
-          {history.map((case) => (
-            <li key={case.case_id}>
+          {history.map((entry) => (
+            <li key={entry.case_id}>
               <p className="small muted">
-                <span className="mono">{case.case_id}</span>,{" "}
-                {label(case.case_type)}, filed {date(case.filed_on)}
+                <span className="mono">{entry.case_id}</span>,{" "}
+                {label(entry.case_type)}, filed {date(entry.filed_on)}
               </p>
-              <p>{case.summary}</p>
+              <p>{entry.summary}</p>
               <p className="small">
-                {label(case.outcome)}, paid{" "}
-                <span className="mono">{money(case.amount_paid)}</span>
+                {label(entry.outcome)}, paid{" "}
+                <span className="mono">{money(entry.amount_paid)}</span>
               </p>
             </li>
           ))}

@@ -4,9 +4,13 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-Status = Literal["waiting", "in_progress", "waiting_for_sign_off", "decided"]
+Status = Literal[
+    "waiting", "in_progress", "waiting_for_sign_off", "decided", "left_for_worker"
+]
 DecisionKind = Literal["approve", "decline", "refer"]
-StepKind = Literal["tool_call", "tool_result", "message"]
+StepKind = Literal["tool_call", "tool_result", "message", "reading", "error"]
+TodoStatus = Literal["to_do", "in_progress", "done", "left_for_worker"]
+DocumentName = Literal["wording", "manual"]
 
 
 class Item(BaseModel):
@@ -63,6 +67,7 @@ class Case(BaseModel):
     documents: list[Document]
     status: Status
     thread_id: str | None
+    attempts: int
     decision: Decision | None
     payment: Payment | None
 
@@ -112,7 +117,23 @@ class Step(BaseModel):
 
 
 class Instructions(BaseModel):
+    queue: str
+    case: str
+
+
+class Section(BaseModel):
+    document: DocumentName
+    document_title: str
+    number: int
+    title: str
     text: str
+
+
+class SectionMatch(BaseModel):
+    document: DocumentName
+    number: int
+    title: str
+    excerpts: list[str]
 
 
 class StartRequest(BaseModel):
@@ -128,7 +149,7 @@ class DecisionRequest(BaseModel):
     decision: DecisionKind
     award: float = Field(ge=0, description="In US dollars, 0 for a decline or referral")
     section: str = Field(
-        min_length=1, description="The section of the contract wording relied on"
+        min_length=1, description="The sections of the wording and the manual relied on"
     )
     reason: str = Field(
         min_length=1, description="Two or three sentences explaining the decision"
@@ -150,3 +171,34 @@ class PaymentRequest(BaseModel):
 
 class SignOffRequest(BaseModel):
     worker_id: str
+
+
+class FailureRequest(BaseModel):
+    reason: str = Field(min_length=1, description="What went wrong")
+
+
+class Todo(BaseModel):
+    content: str = Field(min_length=1)
+    status: TodoStatus
+
+
+class Run(BaseModel):
+    run_id: str
+    cap: int
+    status: Literal["running", "finished"]
+    started_at: str
+    finished_at: str | None
+    summary: str | None
+    todos: list[Todo]
+
+
+class RunRequest(BaseModel):
+    cap: int = Field(ge=1, description="The most cases the run can work")
+
+
+class TodosRequest(BaseModel):
+    todos: list[Todo]
+
+
+class FinishRequest(BaseModel):
+    summary: str = Field(min_length=1, description="The summary for the workers")

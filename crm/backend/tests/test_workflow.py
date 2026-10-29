@@ -3,29 +3,7 @@ from contextlib import closing
 
 import pytest
 
-
-def start(client, case_id):
-    return client.post(f"/api/cases/{case_id}/start", json={"thread_id": "t-1"})
-
-
-def decide(client, case_id, decision, award):
-    return client.post(
-        f"/api/cases/{case_id}/decision",
-        json={
-            "decision": decision,
-            "award": award,
-            "section": "Section 3, Trip Delay",
-            "reason": "The delay was covered.",
-        },
-    )
-
-
-def pay(client, case_id, amount):
-    return client.post(f"/api/cases/{case_id}/payment", json={"amount": amount})
-
-
-def sign_off(client, case_id, worker_id):
-    return client.post(f"/api/cases/{case_id}/sign-off", json={"worker_id": worker_id})
+from backend.tests.case_requests import decide, pay, sign_off, start
 
 
 def test_start_case(client):
@@ -153,7 +131,7 @@ def test_over_the_limit_waits_for_sign_off(client):
     response = pay(client, "CLM-1002", 1350.0)
     assert response.status_code == 403
     assert response.json()["detail"] == (
-        "An award over $1,000.00 needs a worker's sign-off"
+        "A award over $1,000.00 needs a worker's sign-off"
     )
     assert client.get("/api/cases/CLM-1002").json()["payment"] is None
 

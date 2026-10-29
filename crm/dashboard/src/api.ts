@@ -1,7 +1,14 @@
-export type Status =
-  "waiting" | "in_progress" | "waiting_for_sign_off" | "decided";
+export const statuses = [
+  "waiting",
+  "in_progress",
+  "waiting_for_sign_off",
+  "decided",
+  "left_for_worker",
+] as const;
+export type Status = (typeof statuses)[number];
 export type DecisionKind = "approve" | "decline" | "refer";
-export type StepKind = "tool_call" | "tool_result" | "message";
+export type StepKind =
+  "tool_call" | "tool_result" | "message" | "reading" | "error";
 
 export interface CaseSummary {
   case_id: string;
@@ -57,6 +64,7 @@ export interface Case {
   documents: CaseDocument[];
   status: Status;
   thread_id: string | null;
+  attempts: number;
   decision: Decision | null;
   payment: Payment | null;
 }
@@ -103,6 +111,29 @@ export interface Step {
   created_at: string;
 }
 
+export type TodoStatus = "to_do" | "in_progress" | "done" | "left_for_worker";
+export type RunStatus = "running" | "finished";
+
+export interface Todo {
+  content: string;
+  status: TodoStatus;
+}
+
+export interface Run {
+  run_id: string;
+  cap: number;
+  status: RunStatus;
+  started_at: string;
+  finished_at: string | null;
+  summary: string | null;
+  todos: Todo[];
+}
+
+export interface Instructions {
+  queue: string;
+  case: string;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -131,22 +162,21 @@ function post<T>(path: string, body: object): Promise<T> {
   });
 }
 
-const casePath = (caseId: string) =>
-  `/api/cases/${encodeURIComponent(caseId)}`;
+const casePath = (caseId: string) => `/api/cases/${encodeURIComponent(caseId)}`;
 
 export const api = {
   listCases: () => request<CaseSummary[]>("/api/cases"),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
-  listSteps: (caseId: string) =>
-    request<Step[]>(`${casePath(caseId)}/steps`),
+  listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>
     request<Contract>(`/api/contracts/${encodeURIComponent(contractId)}`),
   getCaseHistory: (customerId: string) =>
     request<PreviousCase[]>(
       `/api/customers/${encodeURIComponent(customerId)}/cases`,
     ),
-  getInstructions: () => request<{ text: string }>("/api/instructions"),
+  getInstructions: () => request<Instructions>("/api/instructions"),
   listWorkers: () => request<Worker[]>("/api/workers"),
+  getLatestRun: () => request<Run | null>("/api/runs/latest"),
   signOff: (caseId: string, workerId: string) =>
     post<Case>(`${casePath(caseId)}/sign-off`, { worker_id: workerId }),
 };
