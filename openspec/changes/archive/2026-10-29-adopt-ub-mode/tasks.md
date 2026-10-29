@@ -51,4 +51,4 @@
 
 ## 9. Close out
 
-- [ ] 9.1 After the merge, open the handover issue. Put in the gate measurements, the mutation budget from the first CI run, and the known local failures.
+- [x] 9.1 After the merge, open the handover issue. Put in the gate measurements, the mutation budget from the first CI run, and the known local failures.
