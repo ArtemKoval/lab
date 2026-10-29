@@ -5,14 +5,16 @@ SQLite otherwise, as in the tests.
 """
 
 import os
+from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from sqlalchemy import (
     JSON,
     Boolean,
     Column,
+    Connection,
     Engine,
     Float,
     ForeignKey,
@@ -29,12 +31,18 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema
 
+from backend.models import EvaluationSet, Status
 from domains import loader
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCUMENTS = {"wording": "Contract wording", "manual": "Cases manual"}
+HELD_OUT_CASES = "held_out_cases.json"
 SCHEMA = "crm"
 CONNECTIONS = 4
+CONNECTION_WAIT = 120
+# Tables of earlier versions, dropped before the others, since on Postgres a foreign
+# key of theirs would stop the tables they refer to being dropped.
+RETIRED = ["todos"]
 
 metadata = MetaData()
 
@@ -82,6 +90,23 @@ cases = Table(
     Column("status", Text, nullable=False),
     Column("thread_id", Text),
     Column("attempts", Integer, nullable=False),
+    Column("evaluation_id", Text, ForeignKey("runs.run_id")),
+    Column("copy_of", Text),
+)
+held_out_cases = Table(
+    "held_out_cases",
+    metadata,
+    Column("case_id", Text, primary_key=True),
+    Column("record", JSON, nullable=False),
+)
+worker_decisions = Table(
+    "worker_decisions",
+    metadata,
+    Column("evaluation_set", Text, primary_key=True),
+    Column("case_id", Text, primary_key=True),
+    Column("decision", Text, nullable=False),
+    Column("award", Float, nullable=False),
+    Column("tiny", Boolean, nullable=False),
 )
 decisions = Table(
     "decisions",
@@ -117,20 +142,61 @@ runs = Table(
     metadata,
     Column("number", Integer, primary_key=True),
     Column("run_id", Text, nullable=False, unique=True),
-    Column("cap", Integer, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("agents", Integer, nullable=False),
+    Column("model", Text, nullable=False),
+    Column("reasoning_effort", Text, nullable=False),
+    Column("evaluation_set", Text),
+    Column("tiny", Boolean),
     Column("status", Text, nullable=False),
     Column("started_at", Text, nullable=False),
     Column("finished_at", Text),
-    Column("summary", Text),
+    Column("summary", JSON),
 )
-todos = Table(
-    "todos",
+run_cases = Table(
+    "run_cases",
     metadata,
     Column("run_id", Text, ForeignKey("runs.run_id"), primary_key=True),
     Column("position", Integer, primary_key=True),
-    Column("content", Text, nullable=False),
-    Column("status", Text, nullable=False),
+    Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
 )
+model_calls = Table(
+    "model_calls",
+    metadata,
+    Column("model_call_id", Integer, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
+    Column("thread_id", Text, nullable=False),
+    Column("run_id", Text, ForeignKey("runs.run_id")),
+    Column("input_tokens", Integer, nullable=False),
+    Column("output_tokens", Integer, nullable=False),
+    Column("cost", Float, nullable=False),
+    Column("created_at", Text, nullable=False),
+)
+work_times = Table(
+    "work_times",
+    metadata,
+    Column("work_time_id", Integer, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
+    Column("thread_id", Text, nullable=False),
+    Column("run_id", Text, ForeignKey("runs.run_id")),
+    Column("started_at", Text, nullable=False),
+    Column("seconds", Float, nullable=False),
+)
+
+
+class LabeledSet(NamedTuple):
+    """A set of cases our workers have decided: the table its cases are kept in,
+    and the eval file with the workers' decisions, which only seeding
+    reads."""
+
+    cases: Table
+    decisions: str
+
+
+LABELED_SETS = {
+    EvaluationSet.EVALUATION: LabeledSet(cases, "decisions.json"),
+    EvaluationSet.HELD_OUT: LabeledSet(held_out_cases, "held_out_decisions.json"),
+}
 
 case_view = (
     select(
@@ -139,6 +205,8 @@ case_view = (
         cases.c.status,
         cases.c.thread_id,
         cases.c.attempts,
+        cases.c.evaluation_id,
+        cases.c.copy_of,
         customers.c.name.label("customer_name"),
         decisions.c.decision,
         decisions.c.award,
@@ -154,6 +222,16 @@ case_view = (
     .outerjoin(decisions, decisions.c.case_id == cases.c.case_id)
     .outerjoin(payments, payments.c.case_id == cases.c.case_id)
 )
+
+
+def stamp(moment: datetime) -> str:
+    """Write a moment in UTC to the second, as every record has it."""
+    return moment.isoformat(timespec="seconds")
+
+
+def now() -> str:
+    """Return the current time in UTC, to the second."""
+    return stamp(datetime.now(UTC))
 
 
 def database_url() -> URL:
@@ -173,11 +251,15 @@ def on_postgres(url: URL) -> bool:
 
 @cache
 def engine_for(url: URL) -> Engine:
-    """Open a database: Postgres with at most CONNECTIONS connections, or SQLite with
-    a connection for each request."""
+    """Open a database: Postgres with at most CONNECTIONS connections, waiting up to
+    CONNECTION_WAIT seconds for one, or SQLite with a connection for each request."""
     if on_postgres(url):
         return create_engine(
-            url, pool_size=CONNECTIONS, max_overflow=0, pool_pre_ping=True
+            url,
+            pool_size=CONNECTIONS,
+            max_overflow=0,
+            pool_timeout=CONNECTION_WAIT,
+            pool_pre_ping=True,
         )
     return create_engine(url, poolclass=NullPool)
 
@@ -204,10 +286,22 @@ def load(name: str) -> Any:
     return loader.pack().load_json(name)
 
 
+def waiting_case(record: dict[str, Any], **columns: Any) -> dict[str, Any]:
+    """Return the row of a case waiting in the queue, never started, with any other
+    columns given."""
+    return {
+        "case_id": record["case_id"],
+        "customer_id": record["customer_id"],
+        "record": record,
+        "status": Status.WAITING,
+        "thread_id": None,
+        "attempts": 0,
+    } | columns
+
+
 def seed(db: Engine) -> dict[str, int]:
     """Build the tables afresh from the pack and count what they hold."""
     active = loader.pack()
-    company = active.load_json("company.json")
     worker_rows = load("workers.json")
     customer_rows = load("customers.json")
     contract_rows = load("contracts.json")
@@ -215,6 +309,8 @@ def seed(db: Engine) -> dict[str, int]:
     with db.begin() as connection:
         if on_postgres(db.url):
             connection.execute(CreateSchema(SCHEMA, if_not_exists=True))
+        for name in RETIRED:
+            Table(name, MetaData()).drop(connection, checkfirst=True)
         metadata.drop_all(connection)
         metadata.create_all(connection)
         connection.execute(
@@ -259,23 +355,34 @@ def seed(db: Engine) -> dict[str, int]:
             insert(contracts),
             [{"contract_id": p["contract_id"], "record": p} for p in contract_rows],
         )
-        connection.execute(
-            insert(cases),
-            [
-                {
-                    "case_id": c["case_id"],
-                    "customer_id": c["customer_id"],
-                    "record": c,
-                    "status": "waiting",
-                    "thread_id": None,
-                    "attempts": 0,
-                }
-                for c in case_rows
-            ],
-        )
+        connection.execute(insert(cases), [waiting_case(c) for c in case_rows])
+        labeled = seed_evaluations(connection)
     return {
         "cases": len(case_rows),
         "contracts": len(contract_rows),
         "customers": len(customer_rows),
         "workers": len(worker_rows),
-    }
+    } | labeled
+
+
+def seed_evaluations(connection: Connection) -> dict[str, int]:
+    """Store the held-out cases, out of the queue, and the workers' decisions on
+    both labeled sets, and count them."""
+    held_out = loader.pack().load_eval(HELD_OUT_CASES)
+    connection.execute(
+        insert(held_out_cases),
+        [{"case_id": c["case_id"], "record": c} for c in held_out],
+    )
+    rows = [
+        {
+            "evaluation_set": evaluation_set,
+            "case_id": d["case_id"],
+            "decision": d["decision"],
+            "award": d["award"],
+            "tiny": d["tiny"],
+        }
+        for evaluation_set, labeled in LABELED_SETS.items()
+        for d in loader.pack().load_eval(labeled.decisions)
+    ]
+    connection.execute(insert(worker_decisions), rows)
+    return {"held_out_cases": len(held_out), "worker_decisions": len(rows)}

@@ -1,10 +1,9 @@
-import { Link } from "react-router";
 import { api, statuses } from "../api";
 import { DecisionChip, StatusChip } from "../components/Chips";
+import { CaseLink } from "../components/CaseLink";
 import { Message } from "../components/Message";
-import { RunPanel } from "../components/RunPanel";
+import { DispatchPanel } from "../components/DispatchPanel";
 import { date, label, money, statusLabels } from "../format";
-import { casePage } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
 
 export function QueuePage() {
@@ -29,7 +28,7 @@ export function QueuePage() {
           );
         })}
       </section>
-      <RunPanel />
+      <DispatchPanel />
       <section className="panel table-scroll">
         <table className="table">
           <thead>
@@ -49,9 +48,7 @@ export function QueuePage() {
             {cases.map((entry) => (
               <tr key={entry.case_id}>
                 <td className="nowrap">
-                  <Link className="mono" to={casePage(entry.case_id)}>
-                    {entry.case_id}
-                  </Link>
+                  <CaseLink caseId={entry.case_id} />
                 </td>
                 <td>{entry.customer_name}</td>
                 <td>{label(entry.case_type)}</td>

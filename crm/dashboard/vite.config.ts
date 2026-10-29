@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [react()],
   server: {
-    proxy: { "/api": process.env.CRM_AGENT_API ?? "http://127.0.0.1:8000" },
+    proxy: { "/api": process.env.CRM_API ?? "http://127.0.0.1:8000" },
   },
   test: {
     environment: "jsdom",

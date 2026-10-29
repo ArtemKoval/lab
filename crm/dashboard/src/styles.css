@@ -176,32 +176,31 @@ p {
 
 .status-decided,
 .decision-approve,
-.todo-done,
-.run-finished {
+.run-finished,
+.score-right {
   background: var(--sea-green);
 }
 
 .status-in_progress,
 .decision-refer,
-.todo-in_progress,
 .run-running {
   background: var(--marigold);
 }
 
 .status-waiting_for_sign_off,
-.decision-decline {
+.decision-decline,
+.run-stopped {
   background: var(--coral);
 }
 
-.status-waiting,
-.todo-to_do {
+.status-waiting {
   background: var(--cerulean);
   color: #ffffff;
 }
 
 .status-left_for_worker,
-.todo-left_for_worker,
-.step-failed {
+.step-failed,
+.score-miss {
   background: var(--raspberry);
   color: #ffffff;
 }
@@ -228,50 +227,66 @@ p {
   overflow-x: auto;
 }
 
-.run {
+.dispatch {
   margin-bottom: 20px;
 }
 
-.run-heading {
+/* A heading with its status chip beside it. */
+.title-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-bottom: 4px;
 }
 
-.run-heading h2 {
+.title-row h1,
+.title-row h2 {
   margin: 0;
 }
 
-.run h3 {
+.dispatch .table {
+  margin-top: 12px;
+}
+
+.stopped {
+  margin-top: 8px;
+}
+
+.facts.measures {
+  margin: 12px 0 0;
+}
+
+.facts.measures dd {
+  font-size: 1.3rem;
+}
+
+.table.scoreboard thead th {
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+.table.scoreboard td:first-child {
+  min-width: 260px;
+}
+
+.copy-note {
+  margin-bottom: 4px;
+}
+
+.dispatch-summary {
+  margin-top: 4px;
+}
+
+.dispatch-summary h3 {
   margin: 16px 0 8px;
 }
 
-.todos {
-  list-style: none;
+.dispatch-summary ul {
   margin: 0;
-  padding: 0;
+  padding-left: 18px;
   display: grid;
-  gap: 6px;
-}
-
-.todo {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  background: var(--inset);
-  border-radius: 10px;
-  padding: 7px 12px;
-}
-
-.todo .chip {
-  min-width: 128px;
-  text-align: center;
-}
-
-.summary {
-  white-space: pre-wrap;
-  max-width: 90ch;
+  gap: 4px;
 }
 
 .table {
@@ -436,23 +451,23 @@ p {
   padding: 14px 16px;
 }
 
-.sign-off-form {
+.action-form {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 10px 12px;
-  margin-top: 12px;
+  margin: 12px 0 16px;
 }
 
-.sign-off-form label {
+.action-form label {
   display: grid;
   gap: 4px;
   font-size: 0.8rem;
   color: var(--muted);
 }
 
-.sign-off-form select,
-.sign-off-form button {
+.action-form select,
+.action-form button {
   font: inherit;
   font-size: 0.95rem;
   border-radius: 999px;
@@ -460,20 +475,26 @@ p {
   border: none;
 }
 
-.sign-off-form select {
-  background: var(--panel);
+.action-form select {
+  background: var(--inset);
   color: var(--ink);
+  min-width: 90px;
+}
+
+/* The sign-off sits on an inset box, so its choice stands out on a panel. */
+.sign-off .action-form select {
+  background: var(--panel);
   min-width: 200px;
 }
 
-.sign-off-form button {
+.action-form button {
   background: var(--sea-green);
   color: var(--midnight);
   font-weight: 600;
   cursor: pointer;
 }
 
-.sign-off-form button:disabled {
+.action-form button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: default;
 }

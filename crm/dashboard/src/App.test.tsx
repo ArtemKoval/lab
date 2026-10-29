@@ -28,7 +28,7 @@ it("shows the queue with counts by state", async () => {
       },
       { ...summary, case_id: "CLM-1004", status: "left_for_worker" },
     ],
-    "GET /api/runs/latest": null,
+    "GET /api/dispatches/latest": null,
   });
   renderAt("/");
   const link = await screen.findByRole("link", { name: "CLM-1002" });
@@ -109,19 +109,16 @@ it("shows other errors loading a case", async () => {
   expect((await screen.findByRole("alert")).textContent).toBe("Server error");
 });
 
-it("shows the agent's instructions read only", async () => {
+it("shows the case agent's instructions read only", async () => {
   stubApi({
     "GET /api/instructions": {
-      queue: "# Running the queue",
       case: "# Working a case\n\n## Contents of the cases manual",
     },
   });
   renderAt("/instructions");
-  const queue = await screen.findByRole("region", {
-    name: "Running the queue",
-  });
-  expect(within(queue).getByText("# Running the queue")).toBeDefined();
-  const entry = screen.getByRole("region", { name: "Working a case" });
+  const entry = await screen.findByRole("region", { name: "Working a case" });
+  expect(await within(entry).findByText(/# Working a case/)).toBeDefined();
+  expect(screen.getAllByRole("region")).toHaveLength(1);
   expect(
     within(entry).getByText(/## Contents of the cases manual/),
   ).toBeDefined();

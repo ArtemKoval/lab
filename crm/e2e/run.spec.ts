@@ -1,52 +1,85 @@
 import { expect, test } from "@playwright/test";
-import { post, put } from "./api";
+import {
+  createDispatch,
+  failCase,
+  finishRun,
+  payCase,
+  recordDecision,
+  recordModelCall,
+  recordRunCases,
+  recordStep,
+  recordWorkTime,
+  startCase,
+} from "./api";
 
-// These tests stand in for the queue agent and a case agent by calling the
-// API through the dashboard's proxy, and watch the pages update without a
-// reload. Only this file starts runs, and it uses cases no other test touches.
+// These tests stand in for the agent's service and its case agents by calling
+// the API through the dashboard's proxy, and watch the pages update without a
+// reload. Only this file records dispatches, and it uses cases no other test
+// touches.
 
-test("the queue shows the agent's to-do list as it works", async ({
+test("the dispatch panel follows a dispatch as it works", async ({
   page,
   request,
 }) => {
   await page.goto("/");
-  const panel = page.locator("section", {
-    has: page.getByRole("heading", { name: "Current run" }),
-  });
+  const panel = page.getByRole("region", { name: "Dispatch" });
   await expect(panel).toBeVisible();
 
-  const response = await post(request, "/api/runs", { cap: 2 });
-  const { run_id } = (await response.json()) as { run_id: string };
-  const write = (first: string, second: string) =>
-    put(request, `/api/runs/${run_id}/todos`, {
-      todos: [
-        { content: "CLM-1013 Seven hour delay leaving Chicago", status: first },
-        { content: "CLM-1014 Duffel bag lost", status: second },
-      ],
-    });
-  const items = panel.getByRole("listitem");
-
-  await write("to_do", "to_do");
+  const { run_id } = await createDispatch(request, 2);
+  await recordRunCases(request, run_id, ["CLM-1013", "CLM-1014"]);
+  const rows = panel.getByRole("row");
   await expect(panel.getByText("Running", { exact: true })).toBeVisible();
-  await expect(items).toHaveText([/^To do.*CLM-1013/, /^To do.*CLM-1014/]);
-
-  await write("in_progress", "to_do");
-  await expect(items).toHaveText([
-    /^In progress.*CLM-1013/,
-    /^To do.*CLM-1014/,
+  await expect(panel.getByText(/with 2 case agents at once/)).toBeVisible();
+  await expect(rows).toHaveText([
+    /^Case/,
+    /^CLM-1013.*Waiting/,
+    /^CLM-1014.*Waiting/,
   ]);
 
-  await write("done", "in_progress");
-  await expect(items).toHaveText([/^Done.*CLM-1013/, /^In progress.*CLM-1014/]);
+  for (const [caseId, thread] of [
+    ["CLM-1013", "e2e-5"],
+    ["CLM-1014", "e2e-6"],
+  ]) {
+    await startCase(request, caseId, thread);
+    await recordModelCall(request, caseId, run_id, 0.005);
+  }
+  await expect(rows).toHaveText([
+    /^Case/,
+    /^CLM-1013.*In progress/,
+    /^CLM-1014.*In progress/,
+  ]);
 
-  await post(request, `/api/runs/${run_id}/finish`, {
-    summary: "Worked 2 cases: 2 approved.",
+  await recordDecision(request, "CLM-1013", {
+    decision: "approve",
+    award: 300,
+    section: "Section 3, Trip Delay",
+    reason: "The delay was covered.",
   });
-  await expect(panel.getByText("Finished", { exact: true })).toBeVisible();
-  await expect(panel.getByText("Summary for the workers")).toBeVisible();
-  await expect(panel.getByText("Worked 2 cases: 2 approved.")).toBeVisible();
+  await payCase(request, "CLM-1013", 300);
+  await recordDecision(request, "CLM-1014", {
+    decision: "refer",
+    award: 0,
+    section: "Manual, section 2",
+    reason: "The airline's report is missing.",
+  });
+  for (const caseId of ["CLM-1013", "CLM-1014"])
+    await recordWorkTime(request, caseId, run_id, 41);
+  await expect(rows).toHaveText([
+    /^Case/,
+    /^CLM-1013.*Decided.*Approved.*\$300\.00.*41 s.*\$0\.0050/,
+    /^CLM-1014.*Decided.*Referred.*41 s.*\$0\.0050/,
+  ]);
 
-  await items.first().getByRole("link", { name: "CLM-1013" }).click();
+  await finishRun(request, run_id);
+  await expect(panel.getByText("Finished", { exact: true })).toBeVisible();
+  await expect(
+    panel.getByText("1 approved, 0 declined and 1 referred."),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(/Model cost \$0\.0100, took \d+ s\./),
+  ).toBeVisible();
+
+  await rows.nth(1).getByRole("link", { name: "CLM-1013" }).click();
   await expect(page).toHaveURL("/cases/CLM-1013");
 });
 
@@ -58,22 +91,24 @@ test("a case that fails twice is left for a worker", async ({
   const heading = page.locator(".case-heading");
   await expect(heading.getByText("Waiting")).toBeVisible();
 
-  await post(request, "/api/cases/CLM-1016/start", { thread_id: "e2e-3" });
-  await post(request, "/api/cases/CLM-1016/steps", {
-    kind: "reading",
-    content: "Contract wording, section 7: Emergency Medical",
-  });
-  await post(request, "/api/cases/CLM-1016/failure", {
-    reason: "RuntimeError: The model timed out",
-  });
+  await startCase(request, "CLM-1016", "e2e-3");
+  await recordStep(
+    request,
+    "CLM-1016",
+    "reading",
+    "Contract wording, section 7: Emergency Medical",
+  );
+  await failCase(request, "CLM-1016", "RuntimeError: The model timed out");
   await expect(
     page.getByText("Back in the queue after a failed attempt."),
   ).toBeVisible();
 
-  await post(request, "/api/cases/CLM-1016/start", { thread_id: "e2e-4" });
-  await post(request, "/api/cases/CLM-1016/failure", {
-    reason: "RuntimeError: The model timed out again",
-  });
+  await startCase(request, "CLM-1016", "e2e-4");
+  await failCase(
+    request,
+    "CLM-1016",
+    "RuntimeError: The model timed out again",
+  );
   await expect(heading.getByText("Left for a worker")).toBeVisible();
   await expect(
     page.getByText(

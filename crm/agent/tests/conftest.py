@@ -1,10 +1,15 @@
+import threading
+from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.callbacks import BaseCallbackHandler
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import RetryPolicy
 
-from agent import api, harness
+from agent import api, dispatcher, harness, service
+from agent.tests.stubs import graph_on
 from backend.main import app
 
 
@@ -16,7 +21,7 @@ def backend(monkeypatch):
 
 
 class RecordRoots(BaseCallbackHandler):
-    """Stands in for Langfuse's handler, keeping the metadata of each root run."""
+    """Stands in for Langfuse's worker, keeping the metadata of each root run."""
 
     def __init__(self, roots: list[dict[str, Any]]) -> None:
         self.roots = roots
@@ -34,3 +39,62 @@ def traces(monkeypatch):
     roots: list[dict[str, Any]] = []
     monkeypatch.setattr(harness, "CallbackHandler", lambda: RecordRoots(roots))
     return roots
+
+
+@pytest.fixture(autouse=True)
+def no_waits(monkeypatch):
+    """Take the waits out of the dispatcher's RetryContract, keeping its tries, so the
+    tests never sleep through the backoff. Returns the real contract."""
+    real = dispatcher.RETRY
+    monkeypatch.setattr(
+        dispatcher,
+        "RETRY",
+        RetryPolicy(
+            max_attempts=real.max_attempts,
+            retry_on=real.retry_on,
+            initial_interval=0,
+            jitter=False,
+        ),
+    )
+    return real
+
+
+@pytest.fixture
+def serve():
+    """Run the agent's service, without its lifespan, with case agents on a stub
+    model whose graphs share a saver."""
+
+    def with_model(model, saver=None):
+        saver = saver or InMemorySaver()
+        agents = service.CaseAgents("stub", "none", lambda: graph_on(model, saver))
+        service.app.dependency_overrides[service.build_case_agents] = lambda: agents
+        return TestClient(service.app)
+
+    yield with_model
+    service.app.dependency_overrides.clear()
+
+
+@dataclass
+class HeldRun:
+    """A run the service is working, held open until the test releases it, and the
+    cases being resumed that the service handed the dispatcher."""
+
+    working: threading.Event = field(default_factory=threading.Event)
+    release: threading.Event = field(default_factory=threading.Event)
+    resuming: list[set[str]] = field(default_factory=list)
+
+
+@pytest.fixture
+def held_run(monkeypatch):
+    """Hold each run the service starts open until the test releases it."""
+    held = HeldRun()
+    work_run = service.work_run
+
+    def hold(run, work, resuming):
+        held.resuming.append(resuming)
+        held.working.set()
+        held.release.wait(5)
+        return work_run(run, work, resuming)
+
+    monkeypatch.setattr(service, "work_run", hold)
+    return held

@@ -11,11 +11,12 @@ import { time } from "./format";
 import {
   Refusal,
   type Routes,
-  case,
+  entry,
   history,
   panel,
   contract,
   renderAt,
+  sent,
   stubApi,
 } from "./testing";
 import { REFRESH_MS } from "./useLoad";
@@ -93,7 +94,7 @@ const approval: Decision = {
 };
 
 const approved: Case = {
-  ...case,
+  ...entry,
   status: "decided",
   thread_id: "t-1",
   decision: approval,
@@ -113,7 +114,7 @@ const held: Case = {
 };
 
 it("says when the agent hasn't started", async () => {
-  showCase(case);
+  showCase(entry);
   const panel = await decisionPanel();
   expect(
     panel.getByText("The agent hasn't started on this case."),
@@ -122,7 +123,7 @@ it("says when the agent hasn't started", async () => {
 });
 
 it("says when a case is back in the queue after a failed attempt", async () => {
-  showCase({ ...case, attempts: 1 });
+  showCase({ ...entry, attempts: 1 });
   const panel = await decisionPanel();
   expect(
     panel.getByText("Back in the queue after a failed attempt."),
@@ -130,7 +131,7 @@ it("says when a case is back in the queue after a failed attempt", async () => {
 });
 
 it("says when a case is left for a worker", async () => {
-  showCase({ ...case, status: "left_for_worker", attempts: 2 });
+  showCase({ ...entry, status: "left_for_worker", attempts: 2 });
   const panel = await decisionPanel();
   expect(
     panel.getByText(
@@ -147,7 +148,7 @@ it("shows the sections read once each, and failed attempts", async () => {
     content,
     created_at: decidedAt,
   });
-  showCase({ ...case, attempts: 1 }, [
+  showCase({ ...entry, attempts: 1 }, [
     read(1, "Contract wording, section 3: Trip Delay"),
     read(2, "Cases manual, section 10: Meals without receipts"),
     read(3, "Contract wording, section 3: Trip Delay"),
@@ -178,14 +179,12 @@ it("shows the sections read once each, and failed attempts", async () => {
 
 it("lists no sections when the agent has read none", async () => {
   showCase(approved, steps);
-  expect(
-    await screen.findByText('get_case(case_id="CLM-1002")'),
-  ).toBeDefined();
+  expect(await screen.findByText('get_case(case_id="CLM-1002")')).toBeDefined();
   expect(screen.queryByText("Sections read")).toBeNull();
 });
 
 it("says when the agent is working", async () => {
-  showCase({ ...case, status: "in_progress", thread_id: "t-1" });
+  showCase({ ...entry, status: "in_progress", thread_id: "t-1" });
   const panel = await decisionPanel();
   expect(panel.getByText("The agent is working on this case.")).toBeDefined();
 });
@@ -220,7 +219,7 @@ it("shows a payment with its sign-off", async () => {
   );
 });
 
-it("shows a decline without a award", async () => {
+it("shows a decline without an award", async () => {
   showCase({
     ...approved,
     decision: { ...approval, decision: "decline", award: 0 },
@@ -234,9 +233,7 @@ it("shows a decline without a award", async () => {
 
 it("shows each kind of step, with results folded", async () => {
   showCase(approved, steps);
-  expect(
-    await screen.findByText('get_case(case_id="CLM-1002")'),
-  ).toBeDefined();
+  expect(await screen.findByText('get_case(case_id="CLM-1002")')).toBeDefined();
   const result = screen.getAllByText(/^get_case: /)[0].closest("details");
   expect(result?.open).toBe(false);
   expect(result?.querySelector("summary")?.textContent).toMatch(/\.\.\.$/);
@@ -247,7 +244,7 @@ it("shows each kind of step, with results folded", async () => {
 it("shows new steps and the decision as the agent works", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   const { routes } = showCase({
-    ...case,
+    ...entry,
     status: "in_progress",
     thread_id: "t-1",
   });
@@ -269,7 +266,9 @@ it("lets a worker sign off a held payment", async () => {
   const panel = await decisionPanel();
   expect(panel.getByText(/waits for a worker's sign-off/)).toBeDefined();
   const button = panel.getByRole("button", { name: "Sign off" });
-  expect(button).toHaveProperty("disabled", true);
+  expect(button.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(button);
+  expect(sent(fetchMock, "POST /api/cases/CLM-1002/sign-off")).toEqual([]);
 
   const select = panel.getByRole("combobox", { name: "Worker" });
   expect(await within(select).findByText("Dana Whitfield")).toBeDefined();
@@ -294,11 +293,9 @@ it("lets a worker sign off a held payment", async () => {
   expect(waiting.textContent).toBe(
     `Signed off by Dana Whitfield at ${time(decidedAt)}. Waiting for the agent to pay it.`,
   );
-  const [, init] = fetchMock.mock.calls.find(
-    ([path, request]) =>
-      path === "/api/cases/CLM-1002/sign-off" && request?.method === "POST",
-  ) ?? [undefined, undefined];
-  expect(init?.body).toBe(JSON.stringify({ worker_id: "HND-01" }));
+  expect(sent(fetchMock, "POST /api/cases/CLM-1002/sign-off")).toEqual([
+    { worker_id: "HND-01" },
+  ]);
 });
 
 it("shows why a sign-off was refused", async () => {

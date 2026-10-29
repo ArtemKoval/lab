@@ -1,22 +1,18 @@
-"""The harness: a queue agent works the run, and a case graph works each case."""
+"""The harness: it builds the case agent's graph and works a case with it."""
 
 import contextvars
 import json
 import logging
 import os
+import time
 import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from functools import partial
 from typing import Any, cast
 
-from langchain.agents import create_agent
-from langchain.agents.middleware import (
-    AgentMiddleware,
-    ModelCallLimitMiddleware,
-    ToolErrorMiddleware,
-)
 from langchain.tools import ToolException
+from langchain_core.exceptions import ModelRateLimitError, ModelTimeoutError
 from langchain_core.language_models import BaseChatModel, LanguageModelInput
 from langchain_core.messages import (
     AIMessage,
@@ -29,7 +25,6 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_openai import ChatOpenAI
 from langfuse.langchain import CallbackHandler
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -43,26 +38,28 @@ from psycopg_pool import ConnectionPool
 from pydantic import SecretStr
 
 from agent import api
-from agent.tools import CASE_TOOLS, QUEUE_TOOLS, CaseContext, CaseState, RunContext
+from agent.console import describe
+from agent.tools import CASE_TOOLS, CaseContext, CaseState
 
 log = logging.getLogger(__name__)
 
 CaseGraph = CompiledStateGraph[CaseState, CaseContext, Any, Any]
-QueueAgent = CompiledStateGraph[Any, RunContext, Any, Any]
+NewGraph = Callable[[], CaseGraph]
+Pool = ConnectionPool[Connection[DictRow]]
 Messages = dict[str, list[BaseMessage]]
 Start = Messages | Command | None
 
+# The model's errors that pass with time: a case that hits one is left in progress,
+# with its progress saved, to carry on later.
+TRANSIENT = (ModelRateLimitError, ModelTimeoutError)
+
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
+DEFAULT_MODEL = "openai/gpt-6-luna"
 SCHEMA = "crm"
 CONNECTIONS = 4
+CONNECTION_WAIT = 120
 CASE_MODEL_CALLS = 30
-QUEUE_MODEL_CALLS_PER_CASE = 6
-QUEUE_MODEL_CALLS_TO_PLAN = 12
-REMINDERS = 2
 NO_DECISION = "The agent finished without recording a decision"
-NO_SUMMARY = "The run finished without a summary."
-RUN_STOPPED = "The run stopped before it finished."
 WORK_CASE = "Work case"
 CARRY_ON = "Carry on"
 AGENT = "agent"
@@ -76,7 +73,7 @@ class TooManyModelCalls(Exception):
 
 
 def model() -> ChatOpenAI:
-    """Return the model named in MODEL_NAME, or DeepSeek V4.1 Flash by default."""
+    """Return the model named in MODEL_NAME, or GPT-6 Luna by default."""
     name = os.getenv("MODEL_NAME")
     return ChatOpenAI(
         model=name or DEFAULT_MODEL,
@@ -89,9 +86,10 @@ def model() -> ChatOpenAI:
 
 
 @contextmanager
-def checkpointer() -> Iterator[PostgresSaver]:
-    """Save the case graph's progress in Postgres at DATABASE_URL, in our own schema,
-    with at most CONNECTIONS connections."""
+def checkpoint_pool() -> Iterator[Pool]:
+    """Open the process's pool of at most CONNECTIONS connections to DATABASE_URL,
+    where case graphs save their progress in our own schema, set up once. A case
+    agent waits up to CONNECTION_WAIT seconds for a connection."""
     settings = {
         "autocommit": True,
         "prepare_threshold": 0,
@@ -102,14 +100,14 @@ def checkpointer() -> Iterator[PostgresSaver]:
         os.environ["DATABASE_URL"],
         min_size=1,
         max_size=CONNECTIONS,
+        timeout=CONNECTION_WAIT,
         kwargs=settings,
     ) as pool:
         with pool.connection() as connection:
             create = sql.SQL("CREATE SCHEMA IF NOT EXISTS {}")
             connection.execute(create.format(sql.Identifier(SCHEMA)))
-        saver = PostgresSaver(pool)
-        saver.setup()
-        yield saver
+        PostgresSaver(pool).setup()
+        yield pool
 
 
 def refusal(error: Exception) -> str:
@@ -149,6 +147,18 @@ def record_result(
     return result
 
 
+def record_call(context: CaseContext, reply: BaseMessage) -> None:
+    """Record the tokens and the cost of one model call, as OpenRouter reports them."""
+    usage = reply.response_metadata["token_usage"]
+    api.record_model_call(
+        context.case_id,
+        context.run_id,
+        usage["prompt_tokens"],
+        usage["completion_tokens"],
+        usage["cost"],
+    )
+
+
 def call_model(
     state: CaseState,
     runtime: Runtime[CaseContext],
@@ -156,12 +166,13 @@ def call_model(
     instructions: SystemMessage,
 ) -> dict[str, Any]:
     """Ask the model for its next step, up to CASE_MODEL_CALLS times in all, and
-    record its reply on the case."""
+    record its cost and its reply on the case."""
     calls = state["model_calls"]
     if calls >= CASE_MODEL_CALLS:
         message = f"The case agent made {calls} model calls without finishing"
         raise TooManyModelCalls(message)
     reply = llm.invoke([instructions, *state["messages"]])
+    record_call(runtime.context, reply)
     record_reply(runtime.context.case_id, reply)
     return {"messages": [reply], "model_calls": 1}
 
@@ -219,36 +230,42 @@ def case_graph(llm: BaseChatModel, saver: BaseCheckpointSaver[Any]) -> CaseGraph
     return builder.compile(checkpointer=saver)
 
 
+def case_graphs(llm: BaseChatModel, pool: Pool) -> NewGraph:
+    """Return how to build a case graph with a saver of its own on the pool, since
+    a saver lets one case at a time read or write."""
+
+    def new_graph() -> CaseGraph:
+        return case_graph(llm, PostgresSaver(pool))
+
+    return new_graph
+
+
 def thread_of(case: dict[str, Any]) -> RunnableConfig:
     """Address the case's thread, where the case graph saves its progress."""
     return {"configurable": {"thread_id": case["thread_id"]}}
 
 
-def case_config(case: dict[str, Any], name: str) -> RunnableConfig:
-    """Run on the case's thread, traced in Langfuse in the session of that thread."""
+def case_config(case: dict[str, Any], name: str, run_id: str | None) -> RunnableConfig:
+    """Run on the case's thread, traced in Langfuse in the session of that thread
+    and tagged with the run, if any."""
     session = f"{case['case_id']}:{case['thread_id']}"
+    metadata: dict[str, Any] = {
+        "langfuse_session_id": session,
+        "langfuse_trace_name": name,
+    }
+    if run_id is not None:
+        metadata["langfuse_tags"] = [run_id]
     return thread_of(case) | {
         "callbacks": [CallbackHandler()],
-        "metadata": {"langfuse_session_id": session, "langfuse_trace_name": name},
+        "metadata": metadata,
         # One tool call at a time, so two decisions in one reply can't race.
         "max_concurrency": 1,
     }
 
 
-def ask(text: str) -> Messages:
-    """Give an agent one message from the user."""
-    return {"messages": [HumanMessage(text)]}
-
-
 def begin(case_id: str) -> Messages:
     """Give a case agent its first message, naming the case it works on."""
-    return ask(f"Case {case_id}")
-
-
-def describe(error: Exception) -> str:
-    """Say in one line what went wrong."""
-    lines = str(error).splitlines()
-    return f"{type(error).__name__}: {lines[0]}" if lines else type(error).__name__
+    return {"messages": [HumanMessage(f"Case {case_id}")]}
 
 
 def report(case: dict[str, Any], reason: str) -> str:
@@ -267,23 +284,40 @@ def report(case: dict[str, Any], reason: str) -> str:
 
 
 def run_case_graph(
-    graph: CaseGraph, start: Start, case: dict[str, Any], name: str
+    graph: CaseGraph,
+    start: Start,
+    case: dict[str, Any],
+    name: str,
+    run_id: str | None,
 ) -> str | None:
     """Run the case graph on the case's thread, saving each step, and say what went
-    wrong, if anything."""
+    wrong, if anything. A rate limit or a timeout is raised again, leaving the case
+    in progress with its progress saved, to carry on later."""
     try:
-        # A fresh context makes this a root run even inside the queue agent's tool,
-        # which Langfuse needs to put it in the case's session.
+        # A fresh context makes this a root run even inside the dispatcher, which
+        # Langfuse needs to put it in the case's session.
         contextvars.Context().run(
             graph.invoke,
             start,
-            case_config(case, name),
-            context=CaseContext(case["case_id"]),
+            case_config(case, name, run_id),
+            context=CaseContext(case["case_id"], run_id),
             durability="sync",
         )
+    except TRANSIENT:
+        raise
     except Exception as error:  # a case that fails must not stop the run
         return describe(error)
     return None
+
+
+@contextmanager
+def spell(case_id: str, run_id: str | None) -> Iterator[None]:
+    """Time one spell of work on a case, and record it however it ends."""
+    started = time.monotonic()
+    try:
+        yield
+    finally:
+        api.record_work_time(case_id, run_id, time.monotonic() - started)
 
 
 def settle(case_id: str, error: str | None) -> str:
@@ -300,14 +334,16 @@ def settle(case_id: str, error: str | None) -> str:
     return line
 
 
-def work_case(case_id: str, graph: CaseGraph) -> str:
-    """Work one case from a clean start, as a new attempt, and report how it ended."""
+def work_case(case_id: str, run_id: str | None, graph: CaseGraph) -> str:
+    """Work one case from a clean start, as a new attempt, in the run given if any,
+    and report how it ended."""
     case = api.start_case(case_id, str(uuid.uuid4()))
-    error = run_case_graph(graph, begin(case_id), case, WORK_CASE)
-    return settle(case_id, error)
+    with spell(case_id, run_id):
+        error = run_case_graph(graph, begin(case_id), case, WORK_CASE, run_id)
+        return settle(case_id, error)
 
 
-def carry_on(case_id: str, graph: CaseGraph) -> str:
+def carry_on(case_id: str, run_id: str | None, graph: CaseGraph) -> str:
     """Carry a case in progress on from its saved progress, as the same attempt, and
     report how it ended. A case at the pause has been signed off, so it resumes past
     it. One with nothing saved, stopped before its first step, starts on its own
@@ -319,93 +355,30 @@ def carry_on(case_id: str, graph: CaseGraph) -> str:
         start = Command(resume=True)
     elif saved.created_at is None and case["decision"] is None:
         start = begin(case_id)
-    error = run_case_graph(graph, start, case, CARRY_ON)
-    return settle(case_id, error)
+    with spell(case_id, run_id):
+        error = run_case_graph(graph, start, case, CARRY_ON, run_id)
+        return settle(case_id, error)
 
 
-def waiting() -> list[str]:
-    """Return the ids of the cases waiting in the queue, oldest submitted first."""
-    cases = sorted(api.list_cases(), key=lambda case: case["submitted_on"])
-    return [c["case_id"] for c in cases if c["status"] == api.Status.WAITING]
+def work_in_run(case_id: str, run_id: str, new_graph: NewGraph) -> str:
+    """Work one case in a run on a case graph of its own, carrying it on if it is
+    in progress or starting it if it is waiting, and report how it ended. A copy in
+    an evaluation held for sign-off is finished."""
+    graph = new_graph()
+    if api.get_case(case_id)["status"] == api.Status.IN_PROGRESS:
+        line = carry_on(case_id, run_id, graph)
+    else:
+        line = work_case(case_id, run_id, graph)
+    finish_held_copy(case_id, graph)
+    return line
 
 
-def finish_stopped_run() -> None:
-    """Finish the latest run if it stopped before it finished."""
-    run = api.get_latest_run()
-    if run is not None and run["status"] == api.RunStatus.RUNNING:
-        api.finish_run(run["run_id"], RUN_STOPPED)
-
-
-def carry_on_stopped(graph: CaseGraph) -> None:
-    """Carry on every case in progress: stopped partway, or signed off while the
-    agent was away."""
-    for case in api.list_cases():
-        if case["status"] == api.Status.IN_PROGRESS:
-            carry_on(case["case_id"], graph)
-
-
-def missed(run: RunContext) -> list[str]:
-    """Return the waiting cases the run should still work: its own, then new ones."""
-    ids = waiting()
-    own = [case_id for case_id in ids if case_id in run.started]
-    new = [case_id for case_id in ids if case_id not in run.started]
-    return own + new[: run.cap - len(run.started)]
-
-
-def queue_agent(llm: BaseChatModel, cap: int) -> QueueAgent:
-    """Build the queue agent for a run, which keeps its conversation between turns."""
-    calls = QUEUE_MODEL_CALLS_PER_CASE * cap + QUEUE_MODEL_CALLS_TO_PLAN
-    middleware: list[AgentMiddleware[Any, Any]] = [
-        ModelCallLimitMiddleware(run_limit=calls, exit_behavior="error"),
-        ToolErrorMiddleware(lambda error, _: refusal(error)),
-    ]
-    return create_agent(
-        llm,
-        tools=QUEUE_TOOLS,
-        system_prompt=api.get_instructions()["queue"],
-        middleware=middleware,
-        context_schema=RunContext,
-        checkpointer=InMemorySaver(),
-    )
-
-
-def work_queue(run: RunContext, agent: QueueAgent) -> str:
-    """Let the queue agent work the run, naming any cases it missed, and summarize."""
-    # One tool call at a time, so the cap holds when several cases are handed over.
-    config: RunnableConfig = {
-        "configurable": {"thread_id": run.run_id},
-        "max_concurrency": 1,
-    }
-    message = f"Please work the queue. This run can work up to {run.cap} cases."
-    state = agent.invoke(ask(message), config, context=run)
-    for _ in range(REMINDERS):
-        left = missed(run)
-        if not left:
-            break
-        reminder = (
-            "These cases are still waiting within the run's cap: "
-            f"{', '.join(left)}. Please work them, then finish with the summary."
-        )
-        state = agent.invoke(ask(reminder), config, context=run)
-    return state["messages"][-1].text or NO_SUMMARY
-
-
-def run_queue(cap: int | None, llm: BaseChatModel, graph: CaseGraph) -> None:
-    """Finish a run that stopped and carry on every case in progress, then work the
-    queue with a queue agent, up to cap cases or every waiting case."""
-    finish_stopped_run()
-    carry_on_stopped(graph)
-    count = len(waiting())
-    if count == 0:
-        log.info("No cases are waiting")
-        return
-    cap = min(cap or count, count)
-    run_id = api.start_run(cap)["run_id"]
-    run = RunContext(run_id, cap, partial(work_case, graph=graph))
-    try:
-        summary = work_queue(run, queue_agent(llm, cap))
-    except Exception as error:
-        api.finish_run(run_id, f"The run stopped: {describe(error)}")
-        raise
-    api.finish_run(run_id, summary)
-    log.info(summary)
+def finish_held_copy(case_id: str, graph: CaseGraph) -> None:
+    """Clear the saved progress of an evaluation's copy held for sign-off: nobody
+    can sign a copy off, so its work is finished."""
+    case = api.get_case(case_id)
+    held = case["status"] == api.Status.WAITING_FOR_SIGN_OFF
+    if case["evaluation_id"] and held:
+        # case_graph always compiles the graph with a saver.
+        saver = cast(BaseCheckpointSaver[Any], graph.checkpointer)
+        saver.delete_thread(case["thread_id"])

@@ -1,15 +1,50 @@
 """The shapes of the backend's requests and responses."""
 
-from typing import Literal, Self
+from enum import StrEnum
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-Status = Literal[
-    "waiting", "in_progress", "waiting_for_sign_off", "decided", "left_for_worker"
-]
-DecisionKind = Literal["approve", "decline", "refer"]
+
+class Status(StrEnum):
+    """Where a case stands."""
+
+    WAITING = "waiting"
+    IN_PROGRESS = "in_progress"
+    WAITING_FOR_SIGN_OFF = "waiting_for_sign_off"
+    DECIDED = "decided"
+    LEFT_FOR_WORKER = "left_for_worker"
+
+
+class DecisionKind(StrEnum):
+    APPROVE = "approve"
+    DECLINE = "decline"
+    REFER = "refer"
+
+
+class RunKind(StrEnum):
+    DISPATCH = "dispatch"
+    EVALUATION = "evaluation"
+
+
+class RunStatus(StrEnum):
+    RUNNING = "running"
+    FINISHED = "finished"
+    STOPPED = "stopped"
+
+
+class EvaluationSet(StrEnum):
+    """The labeled sets of cases an evaluation can work."""
+
+    EVALUATION = "evaluation"
+    HELD_OUT = "held_out"
+
+
 StepKind = Literal["tool_call", "tool_result", "message", "reading", "error"]
-TodoStatus = Literal["to_do", "in_progress", "done", "left_for_worker"]
+MOST_AGENTS = 25
+Agents = Annotated[
+    int, Field(ge=1, le=MOST_AGENTS, description="How many case agents work at once")
+]
 DocumentName = Literal["wording", "manual"]
 Benefit = Literal[
     "trip_cancellation",
@@ -83,6 +118,8 @@ class Case(BaseModel):
     status: Status
     thread_id: str | None
     attempts: int
+    evaluation_id: str | None
+    copy_of: str | None
     decision: Decision | None
     payment: Payment | None
 
@@ -132,7 +169,6 @@ class Step(BaseModel):
 
 
 class Instructions(BaseModel):
-    queue: str
     case: str
 
 
@@ -173,9 +209,9 @@ class DecisionRequest(BaseModel):
     @model_validator(mode="after")
     def check_award(self) -> Self:
         """An approval pays something, and a decline or referral pays nothing."""
-        if self.decision == "approve" and self.award == 0:
+        if self.decision == DecisionKind.APPROVE and self.award == 0:
             raise ValueError("An approval needs a award above zero")
-        if self.decision != "approve" and self.award != 0:
+        if self.decision != DecisionKind.APPROVE and self.award != 0:
             raise ValueError("A decline or a referral has a award of zero")
         return self
 
@@ -250,28 +286,128 @@ class FailureRequest(BaseModel):
     reason: str = Field(min_length=1, description="What went wrong")
 
 
-class Todo(BaseModel):
-    content: str = Field(min_length=1)
-    status: TodoStatus
+class ModelCallRequest(BaseModel):
+    run_id: str | None = Field(description="The run the call was made in, or null")
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    cost: float = Field(ge=0, description="In US dollars, as OpenRouter reports it")
 
 
-class Run(BaseModel):
+class ModelCall(BaseModel):
+    case_id: str
+    thread_id: str
+    run_id: str | None
+    input_tokens: int
+    output_tokens: int
+    cost: float
+    created_at: str
+
+
+class WorkTimeRequest(BaseModel):
+    run_id: str | None = Field(description="The run the work was done in, or null")
+    seconds: float = Field(ge=0, description="How long the agent worked on the case")
+
+
+class WorkTime(BaseModel):
+    case_id: str
+    thread_id: str
+    run_id: str | None
+    started_at: str
+    seconds: float
+
+
+class StartDispatchRequest(BaseModel):
+    agents: Agents
+
+
+class CreateDispatchRequest(StartDispatchRequest):
+    model: str = Field(min_length=1)
+    reasoning_effort: str = Field(min_length=1, description="Or none")
+
+
+class RunCasesRequest(BaseModel):
+    case_ids: list[str] = Field(description="The cases a dispatch works, in order")
+
+
+class HeldAward(BaseModel):
+    case_id: str
+    award: float
+
+
+class DispatchSummary(BaseModel):
+    approved: int
+    declined: int
+    referred: int
+    waiting_for_sign_off: list[HeldAward]
+    left_for_worker: list[str]
+    unfinished: list[str]
+
+
+class RunCase(CaseSummary):
+    started_at: str | None
+    seconds: float
+    model_cost: float
+
+
+class RunDetails(BaseModel):
     run_id: str
-    cap: int
-    status: Literal["running", "finished"]
+    number: int
+    kind: RunKind
+    agents: int
+    model: str
+    reasoning_effort: str
+    status: RunStatus
     started_at: str
     finished_at: str | None
-    summary: str | None
-    todos: list[Todo]
+    seconds: float | None
+    model_cost: float
 
 
-class RunRequest(BaseModel):
-    cap: int = Field(ge=1, description="The most cases the run can work")
+class Run(RunDetails):
+    evaluation_set: EvaluationSet | None
+    tiny: bool | None
+    summary: DispatchSummary | None
+    cases: list[RunCase]
 
 
-class TodosRequest(BaseModel):
-    todos: list[Todo]
+class StartEvaluationRequest(StartDispatchRequest):
+    evaluation_set: EvaluationSet
+    tiny: bool = Field(description="Only the set's five tiny cases")
 
 
-class FinishRequest(BaseModel):
-    summary: str = Field(min_length=1, description="The summary for the workers")
+class CreateEvaluationRequest(StartEvaluationRequest, CreateDispatchRequest):
+    pass
+
+
+class Measures(BaseModel):
+    decision_accuracy: float
+    accuracy: float
+    cost_of_mistakes: float
+    straight_through: float
+    model_cost_per_case: float
+    seconds_per_case: float
+    run_seconds: float | None
+
+
+class ScoredCase(RunCase):
+    copy_of: str
+    reason: str | None
+    worker_decision: DecisionKind
+    worker_award: float
+    right: bool
+    mistake_cost: float
+
+
+class Evaluation(RunDetails):
+    evaluation_set: EvaluationSet
+    tiny: bool
+    size: int
+    measures: Measures
+
+
+class ScoredEvaluation(Evaluation):
+    cases: list[ScoredCase]
+
+
+class Accepted(BaseModel):
+    status: Literal["accepted"] = "accepted"

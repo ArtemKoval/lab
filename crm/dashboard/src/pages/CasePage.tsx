@@ -1,12 +1,13 @@
 import { useCallback } from "react";
-import { useParams } from "react-router";
-import { ApiError, api, type Case } from "../api";
+import { Link, useParams } from "react-router";
+import { api, type Case } from "../api";
 import { StatusChip } from "../components/Chips";
 import { DecisionPanel } from "../components/DecisionPanel";
 import { Message } from "../components/Message";
 import { HistoryPanel, ContractPanel } from "../components/ContractPanels";
 import { StepList } from "../components/StepList";
 import { date, label, money } from "../format";
+import { evaluationPage } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
 
 export function CasePage() {
@@ -14,16 +15,18 @@ export function CasePage() {
   const load = useCallback(() => api.getCase(caseId), [caseId]);
   const { data: entry, error, reload } = useLoad(load, REFRESH_MS);
 
-  if (!entry) {
-    if (error instanceof ApiError && error.status === 404)
-      return <p className="message">Case not found</p>;
-    return <Message error={error} />;
-  }
+  if (!entry) return <Message error={error} notFound="Case not found" />;
 
   return (
     <>
       <div className="case-heading">
         <p className="mono muted">{entry.case_id}</p>
+        {entry.evaluation_id && (
+          <p className="copy-note">
+            A copy of <span className="mono">{entry.copy_of}</span> in an{" "}
+            <Link to={evaluationPage(entry.evaluation_id)}>evaluation</Link>
+          </p>
+        )}
         <h1>{entry.summary}</h1>
         <StatusChip status={entry.status} />
       </div>

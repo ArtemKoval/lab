@@ -2,19 +2,28 @@
 
 import os
 from enum import StrEnum
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel, Field
 
 BACKEND_URL = os.getenv("CRM_API", "http://127.0.0.1:8000")
 
-backend = httpx.Client(base_url=f"{BACKEND_URL}/api", timeout=30)
+# Retries a refused connection for about 7 seconds, while the backend starts.
+backend = httpx.Client(
+    base_url=f"{BACKEND_URL}/api",
+    timeout=30,
+    transport=httpx.HTTPTransport(retries=5),
+)
 
 DecisionKind = Literal["approve", "decline", "refer"]
 APPROVE: DecisionKind = "approve"
 DocumentName = Literal["wording", "manual"]
 StepKind = Literal["tool_call", "tool_result", "message", "reading"]
+EvaluationSet = Literal["evaluation", "held_out"]
+RunKind = Literal["dispatch", "evaluation"]
+DISPATCH: RunKind = "dispatch"
+EVALUATION: RunKind = "evaluation"
 Benefit = Literal[
     "trip_cancellation",
     "trip_interruption",
@@ -34,18 +43,6 @@ class Status(StrEnum):
     WAITING_FOR_SIGN_OFF = "waiting_for_sign_off"
     DECIDED = "decided"
     LEFT_FOR_WORKER = "left_for_worker"
-
-
-class RunStatus(StrEnum):
-    """Where a run of the queue agent stands."""
-
-    RUNNING = "running"
-    FINISHED = "finished"
-
-
-class Todo(TypedDict):
-    content: str
-    status: Literal["to_do", "in_progress", "done", "left_for_worker"]
 
 
 LineKind = Literal[
@@ -169,17 +166,58 @@ def fail_case(case_id: str, reason: str) -> dict[str, Any]:
     return _call("POST", f"/cases/{case_id}/failure", json={"reason": reason})
 
 
-def start_run(cap: int) -> dict[str, Any]:
-    return _call("POST", "/runs", json={"cap": cap})
+def record_model_call(
+    case_id: str,
+    run_id: str | None,
+    input_tokens: int,
+    output_tokens: int,
+    cost: float,
+) -> dict[str, Any]:
+    body = {
+        "run_id": run_id,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cost": cost,
+    }
+    return _call("POST", f"/cases/{case_id}/model-calls", json=body)
 
 
-def get_latest_run() -> dict[str, Any] | None:
-    return _call("GET", "/runs/latest")
+def record_work_time(
+    case_id: str, run_id: str | None, seconds: float
+) -> dict[str, Any]:
+    body = {"run_id": run_id, "seconds": seconds}
+    return _call("POST", f"/cases/{case_id}/work-times", json=body)
 
 
-def write_todos(run_id: str, todos: list[Todo]) -> dict[str, Any]:
-    return _call("PUT", f"/runs/{run_id}/todos", json={"todos": todos})
+def create_dispatch(agents: int, model: str, reasoning_effort: str) -> dict[str, Any]:
+    body = {"agents": agents, "model": model, "reasoning_effort": reasoning_effort}
+    return _call("POST", "/runs/dispatches", json=body)
 
 
-def finish_run(run_id: str, summary: str) -> dict[str, Any]:
-    return _call("POST", f"/runs/{run_id}/finish", json={"summary": summary})
+def create_evaluation(
+    evaluation_set: EvaluationSet,
+    tiny: bool,
+    agents: int,
+    model: str,
+    reasoning_effort: str,
+) -> dict[str, Any]:
+    body = {
+        "evaluation_set": evaluation_set,
+        "tiny": tiny,
+        "agents": agents,
+        "model": model,
+        "reasoning_effort": reasoning_effort,
+    }
+    return _call("POST", "/runs/evaluations", json=body)
+
+
+def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
+    return _call("PUT", f"/runs/{run_id}/cases", json={"case_ids": case_ids})
+
+
+def finish_run(run_id: str) -> dict[str, Any]:
+    return _call("POST", f"/runs/{run_id}/finish")
+
+
+def stop_runs() -> list[str]:
+    return _call("POST", "/runs/stop")

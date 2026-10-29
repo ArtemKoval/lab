@@ -81,9 +81,9 @@ def test_search_with_no_matches(client):
     assert client.get("/api/documents/search").status_code == 422
 
 
-def test_instructions_for_the_queue_and_a_case(client):
+def test_the_case_instructions(client):
     instructions = client.get("/api/instructions").json()
-    assert instructions["queue"].startswith("# UnderCover Agent: running the queue")
+    assert list(instructions) == ["case"]
     case = instructions["case"]
     assert case.startswith("# UnderCover Agent: working a claim")
     contents = case[case.index("## Contents of the contract wording") :]

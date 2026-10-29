@@ -1,4 +1,4 @@
-"""Work the queue with the CRM Agent: uv run -m agent [--cap 5 | CLM-1001]"""
+"""Work one case with the CRM Agent: uv run -m agent CLM-1001"""
 
 import argparse
 import sys
@@ -7,33 +7,20 @@ from dotenv import load_dotenv
 
 from agent import api
 from agent.console import show_reports
-from agent.harness import case_graph, checkpointer, model, run_queue, work_case
-
-
-def positive(text: str) -> int:
-    """Read a whole number of at least 1."""
-    number = int(text)
-    if number < 1:
-        raise argparse.ArgumentTypeError("must be at least 1")
-    return number
+from agent.harness import case_graphs, checkpoint_pool, model, work_case
 
 
 def main(args: list[str]) -> None:
-    """Work the case named on the command line, or the queue up to a cap."""
+    """Work the case named on the command line, with no run."""
     parser = argparse.ArgumentParser(
-        prog="uv run -m agent", description="Work the cases queue."
+        prog="uv run -m agent", description="Work one case in the queue."
     )
-    choice = parser.add_mutually_exclusive_group()
-    choice.add_argument("case_id", nargs="?", help="work this one case")
-    choice.add_argument("--cap", type=positive, help="the most cases the run works")
+    parser.add_argument("case_id", help="the case to work")
     options = parser.parse_args(args)
-    with checkpointer() as saver:
-        graph = case_graph(model(), saver)
-        if not options.case_id:
-            run_queue(options.cap, model(), graph)
-            return
+    with checkpoint_pool() as pool:
+        graph = case_graphs(model(), pool)()
         try:
-            work_case(options.case_id, graph)
+            work_case(options.case_id, None, graph)
         except api.Refused as refusal:
             parser.exit(1, f"{options.case_id}  not started: {refusal}\n")
 

@@ -9,32 +9,19 @@ export function InstructionsPage() {
     <>
       <h1>Agent instructions</h1>
       <p className="lead">
-        What the agent reads before it starts: its instructions for running the
-        queue, and for working each entry, which end with the contents of the
-        contract wording and the cases manual. This page is read only.
+        What each case agent reads before it starts on a case, ending with the
+        contents of the contract wording and the cases manual. The dispatcher
+        that hands out the cases follows fixed rules and has no instructions.
+        This page is read only.
       </p>
-      {data ? (
-        <div className="column">
-          <Instructions title="Running the queue" text={data.queue} />
-          <Instructions title="Working a case" text={data.case} />
-        </div>
-      ) : (
-        <section className="panel">
+      <section className="panel" aria-labelledby="case-instructions-title">
+        <h2 id="case-instructions-title">Working a case</h2>
+        {data ? (
+          <pre className="instructions">{data.case}</pre>
+        ) : (
           <Message error={error} />
-        </section>
-      )}
+        )}
+      </section>
     </>
-  );
-}
-
-function Instructions({
-  title,
-  text,
-}: Readonly<{ title: string; text: string }>) {
-  return (
-    <section className="panel" aria-label={title}>
-      <h2>{title}</h2>
-      <pre className="instructions">{text}</pre>
-    </section>
   );
 }

@@ -1,0 +1,21 @@
+"""Dispatches the tests work, with case graphs on a stub model."""
+
+from functools import partial
+
+from langgraph.checkpoint.memory import InMemorySaver
+
+from agent import api, dispatcher, harness
+from agent.tests.stubs import graph_on
+
+
+def new_dispatch(agents=3):
+    """Record a new dispatch, as the agent's service does."""
+    return api.create_dispatch(agents, "stub", "none")
+
+
+def dispatch(model, saver=None, agents=3, resuming=()):
+    """Work a new dispatch with case graphs on the model, which share a saver as
+    they share the database in the service, and return its report lines."""
+    saver = saver or InMemorySaver()
+    work = partial(harness.work_in_run, new_graph=partial(graph_on, model, saver))
+    return dispatcher.work_run(new_dispatch(agents), work, set(resuming))

@@ -1,4 +1,4 @@
-import type { DecisionKind, RunStatus, Status, TodoStatus } from "./api";
+import type { DecisionKind, EvaluationSet, RunStatus, Status } from "./api";
 
 const dollars = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -12,14 +12,46 @@ const day = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
+const dayAndClock = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 const clock = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
   second: "2-digit",
 });
 
+// Model costs are often under a cent.
+const modelDollars = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4,
+});
+
 export function money(amount: number): string {
   return dollars.format(amount);
+}
+
+// A share, such as 0.8, as a whole percentage: 80%.
+export function percent(share: number): string {
+  return `${String(Math.round(share * 100))}%`;
+}
+
+export function modelCost(amount: number): string {
+  return modelDollars.format(amount);
+}
+
+// A length of time, such as 41 s or 2 min 41 s.
+export function duration(seconds: number): string {
+  const whole = Math.round(seconds);
+  const minutes = Math.floor(whole / 60);
+  const rest = `${String(whole % 60)} s`;
+  return minutes > 0 ? `${String(minutes)} min ${rest}` : rest;
 }
 
 export function date(isoDate: string): string {
@@ -28,6 +60,14 @@ export function date(isoDate: string): string {
 
 export function time(isoTime: string): string {
   return clock.format(new Date(isoTime));
+}
+
+export function dateTime(isoTime: string): string {
+  return dayAndClock.format(new Date(isoTime));
+}
+
+export function agentsAtOnce(agents: number): string {
+  return `${String(agents)} case ${agents === 1 ? "agent" : "agents"} at once`;
 }
 
 export function label(code: string): string {
@@ -43,17 +83,20 @@ export const statusLabels: Record<Status, string> = {
   left_for_worker: "Left for a worker",
 };
 
-export const todoLabels: Record<TodoStatus, string> = {
-  to_do: "To do",
-  in_progress: "In progress",
-  done: "Done",
-  left_for_worker: "Left for a worker",
-};
-
 export const runLabels: Record<RunStatus, string> = {
   running: "Running",
   finished: "Finished",
+  stopped: "Stopped",
 };
+
+export const evaluationSetLabels: Record<EvaluationSet, string> = {
+  evaluation: "Evaluation set",
+  held_out: "Held-out set",
+};
+
+export function evaluationSetName(set: EvaluationSet, size: number): string {
+  return `${evaluationSetLabels[set]}, ${String(size)} cases`;
+}
 
 export const decisionLabels: Record<DecisionKind, string> = {
   approve: "Approved",

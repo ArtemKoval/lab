@@ -17,7 +17,7 @@ export default defineConfig({
       env: {
         CRM_DB: "e2e/crm.db",
         DATABASE_URL: "",
-        CRM_AGENT_API: AGENT_STAND_IN,
+        CRM_AGENT_SERVICE: AGENT_STAND_IN,
       },
     },
     {
@@ -28,7 +28,7 @@ export default defineConfig({
     {
       command: "npx vite dashboard --port 5174 --strictPort",
       url: "http://localhost:5174",
-      env: { CRM_AGENT_API: "http://127.0.0.1:8001" },
+      env: { CRM_API: "http://127.0.0.1:8001" },
     },
   ],
 });

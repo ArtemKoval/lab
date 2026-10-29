@@ -1,4 +1,4 @@
-from agent.tools import CASE_TOOLS, QUEUE_TOOLS
+from agent.tools import CASE_TOOLS
 
 
 def operations(client):
@@ -19,12 +19,6 @@ def test_case_tools_are_named_after_backend_operations(client):
         "record_decision",
     ]
     assert set(names) <= operations(client)
-
-
-def test_queue_tools_are_named_after_backend_operations_or_hand_cases_on(client):
-    names = [t.name for t in QUEUE_TOOLS]
-    assert names == ["list_cases", "write_todos", "work_case"]
-    assert {"list_cases", "write_todos"} <= operations(client)
 
 
 def test_a_case_agent_can_only_act_on_its_own_case():

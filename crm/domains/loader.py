@@ -57,6 +57,13 @@ class Pack:
             raise PackError(f"missing pack file: {path}")
         return json.loads(path.read_text(encoding="utf-8"))
 
+    def load_eval(self, name: str) -> Any:
+        """Read one JSON file from the pack evals folder."""
+        path = self.evals / name
+        if not path.is_file():
+            raise PackError(f"missing pack eval file: {path}")
+        return json.loads(path.read_text(encoding="utf-8"))
+
     def read_doc(self, name: str) -> str:
         """Read one policy document by its short name, such as wording."""
         return self._read(self.policy, name, "pack document")

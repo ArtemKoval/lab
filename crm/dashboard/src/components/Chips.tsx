@@ -1,5 +1,5 @@
-import type { DecisionKind, RunStatus, Status, TodoStatus } from "../api";
-import { decisionLabels, runLabels, statusLabels, todoLabels } from "../format";
+import type { DecisionKind, RunStatus, Status } from "../api";
+import { decisionLabels, money, runLabels, statusLabels } from "../format";
 
 export function StatusChip({ status }: Readonly<{ status: Status }>) {
   return (
@@ -17,10 +17,27 @@ export function DecisionChip({
   );
 }
 
-export function TodoChip({ status }: Readonly<{ status: TodoStatus }>) {
-  return <span className={`chip todo-${status}`}>{todoLabels[status]}</span>;
-}
-
 export function RunChip({ status }: Readonly<{ status: RunStatus }>) {
   return <span className={`chip run-${status}`}>{runLabels[status]}</span>;
+}
+
+// Whether the agent's decision and award match the worker's.
+export function RightChip({ right }: Readonly<{ right: boolean }>) {
+  return right ? (
+    <span className="chip score-right">Right</span>
+  ) : (
+    <span className="chip score-miss">Miss</span>
+  );
+}
+
+export function DecisionAward({
+  decision,
+  award,
+}: Readonly<{ decision: DecisionKind; award: number }>) {
+  return (
+    <>
+      <DecisionChip decision={decision} />{" "}
+      <span className="mono">{money(award)}</span>
+    </>
+  );
 }

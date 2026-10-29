@@ -11,27 +11,27 @@ function whoAndWhen({ signed_off_by, signed_off_at }: SignOff): string | null {
     : null;
 }
 
-function progress(case: Case): string {
-  if (case.status === "in_progress")
+function progress(entry: Case): string {
+  if (entry.status === "in_progress")
     return "The agent is working on this case.";
-  if (case.status === "left_for_worker")
-    return `The agent couldn't finish this case in ${String(case.attempts)} attempts, so it's left for a worker.`;
-  if (case.attempts > 0) return "Back in the queue after a failed attempt.";
+  if (entry.status === "left_for_worker")
+    return `The agent couldn't finish this case in ${String(entry.attempts)} attempts, so it's left for a worker.`;
+  if (entry.attempts > 0) return "Back in the queue after a failed attempt.";
   return "The agent hasn't started on this case.";
 }
 
 export function DecisionPanel({
-  case,
+  entry,
   onSignedOff,
-}: Readonly<{ case: Case; onSignedOff: () => void }>) {
-  const { decision, payment } = case;
+}: Readonly<{ entry: Case; onSignedOff: () => void }>) {
+  const { decision, payment } = entry;
   const signedOff = decision && whoAndWhen(decision);
   const paidSignedOff = payment && whoAndWhen(payment);
 
   return (
     <section className="panel" aria-labelledby="decision-title">
       <h2 id="decision-title">Decision</h2>
-      {!decision && <p className="muted">{progress(case)}</p>}
+      {!decision && <p className="muted">{progress(entry)}</p>}
       {decision && (
         <>
           <div className="decision-line">
@@ -53,22 +53,44 @@ export function DecisionPanel({
       )}
       {decision?.decision === "approve" &&
         !payment &&
-        case.status === "in_progress" && (
+        entry.status === "in_progress" && (
           <p className="payment">
             {signedOff && `Signed off by ${signedOff}. `}
             Waiting for the agent to pay it.
           </p>
         )}
-      {decision && case.status === "waiting_for_sign_off" && (
-        <div className="sign-off">
-          <p>
-            The payment of{" "}
-            <span className="mono">{money(decision.award)}</span> is over the
-            approval limit and waits for a worker's sign-off.
-          </p>
-          <SignOffForm caseId={case.case_id} onSignedOff={onSignedOff} />
-        </div>
+      {decision && entry.status === "waiting_for_sign_off" && (
+        <HeldPayment
+          entry={entry}
+          award={decision.award}
+          onSignedOff={onSignedOff}
+        />
       )}
     </section>
+  );
+}
+
+// A payment over the limit, which waits for a worker's sign-off, unless the
+// case is an evaluation's copy, which nobody can sign off.
+function HeldPayment({
+  entry,
+  award,
+  onSignedOff,
+}: Readonly<{ entry: Case; award: number; onSignedOff: () => void }>) {
+  if (entry.evaluation_id)
+    return (
+      <p className="payment">
+        Held for sign-off. In an evaluation this counts as finished, and a copy
+        can't be signed off.
+      </p>
+    );
+  return (
+    <div className="sign-off">
+      <p>
+        The payment of <span className="mono">{money(award)}</span> is over the
+        approval limit and waits for a worker's sign-off.
+      </p>
+      <SignOffForm caseId={entry.case_id} onSignedOff={onSignedOff} />
+    </div>
   );
 }

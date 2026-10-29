@@ -1,6 +1,7 @@
-import { type SyntheticEvent, useState } from "react";
+import { useState } from "react";
 import { api } from "../api";
 import { useLoad } from "../useLoad";
+import { ActionForm } from "./ActionForm";
 
 export function SignOffForm({
   caseId,
@@ -8,20 +9,13 @@ export function SignOffForm({
 }: Readonly<{ caseId: string; onSignedOff: () => void }>) {
   const { data: workers } = useLoad(api.listWorkers);
   const [workerId, setWorkerId] = useState("");
-  const [error, setError] = useState<string>();
-  const [sending, setSending] = useState(false);
-
-  function submit(event: SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSending(true);
-    api.signOff(caseId, workerId).then(onSignedOff, (reason: unknown) => {
-      setError(reason instanceof Error ? reason.message : "Sign-off failed");
-      setSending(false);
-    });
-  }
 
   return (
-    <form className="sign-off-form" onSubmit={submit}>
+    <ActionForm
+      label="Sign off"
+      ready={workerId !== ""}
+      action={() => api.signOff(caseId, workerId).then(onSignedOff)}
+    >
       <label>
         Worker
         <select
@@ -42,14 +36,6 @@ export function SignOffForm({
             ))}
         </select>
       </label>
-      <button type="submit" disabled={!workerId || sending}>
-        Sign off
-      </button>
-      {error && (
-        <p className="form-error" role="alert">
-          {error}
-        </p>
-      )}
-    </form>
+    </ActionForm>
   );
 }
