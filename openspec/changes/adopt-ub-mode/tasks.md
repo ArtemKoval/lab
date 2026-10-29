@@ -46,7 +46,7 @@
 ## 8. Run the gates and verify
 
 - [x] 8.1 Run the full hermetic suite (`tools/zai_routing_audit/.venv/bin/python -m pytest`) and make it green.
-- [ ] 8.2 Run the three gates with explicit paths on the repository-owned Python. Record the numbers. Fix violations in code this change touches. Record legacy violations with numbers in the handover issue.
+- [x] 8.2 Run the three gates with explicit paths on the repository-owned Python. Record the numbers. Fix violations in code this change touches. Record legacy violations with numbers in the handover issue.
 - [x] 8.3 Run `openspec validate adopt-ub-mode --type change --strict` and `tools/spec_ste_check` over `openspec/changes/adopt-ub-mode/` and `adr/0005`. Both pass before archive.
 
 ## 9. Close out
