@@ -57,6 +57,30 @@
       "check": ["tools/zai_routing_audit/.venv/bin/python", "-c", "import mcp, pytest, pytest_cov, ruff, mutmut"],
       "install": "python3 -m venv tools/zai_routing_audit/.venv && tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt",
       "requires": "Python 3.11 or newer"
+    },
+    {
+      "id": "crapper-python-deps",
+      "kind": "dependency-file",
+      "purpose": "Installs the vendored crapper CRAP gate (tree-sitter, pytest, coverage) into tools/crapper/.venv. The ub-mode skill, the feature-pipeline gates, and CI call it.",
+      "check": ["tools/crapper/.venv/bin/python", "-c", "import crapper, pytest, coverage"],
+      "install": "python3 -m venv tools/crapper/.venv && tools/crapper/.venv/bin/python -m pip install -e 'tools/crapper[dev]' coverage",
+      "requires": "Python 3.11 or newer"
+    },
+    {
+      "id": "dryer-python-deps",
+      "kind": "dependency-file",
+      "purpose": "Installs the vendored dryer duplication gate (tree-sitter, pytest, coverage) into tools/dryer/.venv. The ub-mode skill, the feature-pipeline gates, and CI call it.",
+      "check": ["tools/dryer/.venv/bin/python", "-c", "import dryer, pytest, coverage"],
+      "install": "python3 -m venv tools/dryer/.venv && tools/dryer/.venv/bin/python -m pip install -e 'tools/dryer[dev]' coverage",
+      "requires": "Python 3.11 or newer"
+    },
+    {
+      "id": "mutator-python-deps",
+      "kind": "dependency-file",
+      "purpose": "Installs the vendored mutator mutation gate (tree-sitter, pytest, coverage) into tools/mutator/.venv. It reads function names from the sibling tools/crapper. The ub-mode skill, the feature-pipeline gates, and CI call it.",
+      "check": ["tools/mutator/.venv/bin/python", "-c", "import mutator, pytest, coverage"],
+      "install": "python3 -m venv tools/mutator/.venv && tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage",
+      "requires": "Python 3.11 or newer"
     }
   ]
 }

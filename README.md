@@ -30,6 +30,7 @@ A personal lab of Art Koval. The repository holds small projects, tools, and the
 | `tools/devcontainer_init` | A stdlib CLI that scaffolds a devcontainer with an Ubuntu LTS base, git, node, and uv. | `tools/devcontainer_init/README.md`, the `devcontainer-init` skill |
 | `tools/plan_exec` | A stdlib CLI that extracts task briefs, packages review diffs, and keeps append-only execution ledgers. | `tools/plan_exec/README.md`, the `openspec-apply-change` skill |
 | `tools/spec_ste_check` | A stdlib CLI that enforces the mechanical ASD-STE100 rules on spec text. | `tools/spec_ste_check/README.md`, the `spec-ste-check` skill |
+| `tools/crapper`, `tools/dryer`, `tools/mutator` | Vendored gate tools from `unclebob` (0BSD, pinned commits). They are the default quality gates for new Python changes: CRAP, duplication, and mutation. | the vendored READMEs, the `ub-mode` skill |
 
 The devcontainer for the UnderCover contribution lives in `fde/.devcontainer/`. The root suite guards it in `tests/undercover_devcontainer/`.
 
@@ -47,11 +48,12 @@ Run the root test suite from the repository root. By default, it opens no networ
 tools/zai_routing_audit/.venv/bin/python -m pytest
 ```
 
-The e2e tests run only with their gate variables. They must have a network or a Docker daemon.
+The e2e tests run only with their gate variables. The zai and devcontainer tests need a network or a Docker daemon. The gate-tool smoke needs only the three built tool venvs.
 
 ```bash
 ZAI_ROUTING_AUDIT_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest -m e2e
 DEVCONTAINER_INIT_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest -m e2e
+UB_TOOLS_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest -m e2e
 ```
 
 Develop `fde`:

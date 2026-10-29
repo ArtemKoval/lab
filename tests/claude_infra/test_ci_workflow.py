@@ -1,7 +1,10 @@
 """Pin the tests CI workflow: it runs the root suite through the shared
 repository venv, enforces the plan_exec and spec_ste_check coverage
-floors, and lints both tools. Mutation stays a local gate and appears
-nowhere here."""
+floors, and lints both tools. Since adopt-ub-mode, CI also builds the
+three gate tool venvs, runs their vendored suites, and gates the changed
+repository Python: the mutator gate runs the changed product paths only,
+with a worker cap and a step timeout as its budget. The gate uses
+explicit diff-derived paths, never `--changed`."""
 
 from pathlib import Path
 
@@ -45,7 +48,53 @@ def test_workflow_pins_python_3_12():
     assert "python-version: '3.12'" in WORKFLOW.read_text(encoding="utf-8")
 
 
-def test_workflow_does_not_run_mutation():
-    text = WORKFLOW.read_text(encoding="utf-8").lower()
-    assert "mutmut" not in text
-    assert "mutation" not in text
+def test_workflow_builds_the_gate_venvs_and_runs_their_suites():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "python -m venv tools/crapper/.venv" in text
+    assert "python -m venv tools/dryer/.venv" in text
+    assert "python -m venv tools/mutator/.venv" in text
+    for tool in ("crapper", "dryer", "mutator"):
+        assert f"tools/{tool}/.venv/bin/python -m pytest -q tools/{tool}/tests" in text
+
+
+def test_workflow_gates_the_changed_python_with_explicit_paths():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "git diff --name-only" in text
+    assert "tools/crapper/crapper --threshold 10 --use-existing-coverage $GATED_PATHS" in text
+    assert "tools/dryer/dryer --threshold 0.8 --fail-above $product" in text
+    # `--changed` reads the working tree, which is clean in CI.
+    assert "--changed" not in text
+
+
+def test_workflow_whitelists_the_gated_roots():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert (
+        "grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)'"
+        in text
+    )
+    # The whitelist is the only exclusion mechanism in the derive step.
+    assert "grep -vE" not in text
+
+
+def test_workflow_measures_coverage_over_the_gated_roots():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert (
+        "--source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,"
+        "tools/devcontainer_init,tests" in text
+    )
+    assert "coverage lcov" in text
+    assert "-o target/coverage/python/lcov.info" in text
+
+
+def test_workflow_runs_the_mutator_gate_on_product_paths():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "tools/mutator/mutator \\" in text
+    assert "--use-existing-coverage" in text
+    assert "--max-workers 4" in text
+    assert "timeout-minutes: 20" in text
+    assert (
+        '--test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests"'
+        in text
+    )
+    # mutmut stays out of CI; the vendored mutator owns the mutation gate.
+    assert "mutmut" not in WORKFLOW.read_text(encoding="utf-8")

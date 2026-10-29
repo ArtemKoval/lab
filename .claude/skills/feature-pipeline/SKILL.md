@@ -75,8 +75,34 @@ brand-new component comes last. Small steps just ask "can something existing do
 this, or can something go?"; substantial ones walk all five tools. In review,
 any new component without a plan justification is removed or unified.
 
+### ub-mode discipline — make it work, then make it right
+
+The `ub-mode` skill carries the reduced discipline in three phases: First Make
+it Work, Then Make it Right, Practice. Run every change through the three
+phases. The skill owns the full text, and this section carries the rules the
+pipeline lacked:
+
+- **One decision lives in one place.** Ship the smallest edit that solves the
+  problem (Laziness Protocol).
+- **Get the data shape right before you write the logic.** Do first whatever
+  helps every later phase (Foundational Thinking).
+- **Do not bolt a new requirement onto the old design.** Ask what you would
+  build if the feature existed from the start. Think it through, and deliver
+  it in pieces (Redesign From First Principles).
+- **Attack the premise.** When two fixes that share one premise fail the same
+  gate, write that premise in one sentence. Remove the imbalance, and start no
+  other fix until you finish that.
+- **Subtract before you add.** Take complexity out before you add anything.
+
 ### Quality gates — every change touching code, hook scripts included
 
+- **Default Python gates in this repository**: `tools/crapper/crapper
+  --threshold 10` holds CRAP at 10 or less (exit 2 above), `tools/dryer/dryer
+  --threshold 0.8 --fail-above` passes when no pair at or above 0.8 is
+  reported, and `tools/mutator/mutator` (exit 3 on a survivor) runs the
+  mutation gate next to `mutmut`. Use `--changed` for a local run. CI passes
+  explicit paths from the pull request diff. CRAP couples complexity and
+  coverage, so it complements the complexity checker below.
 - **Unit tests, always**, for every new or changed function, method, and class.
   Target 100% line + branch coverage of new and changed code; exclude lines only
   explicitly, with an inline reason. Total coverage never drops — ratchet the
@@ -249,6 +275,9 @@ backend code), and meet the gates.
   `tests/conftest.py`, no network.
 - e2e tests are marked `e2e` and env-var gated — opt-in only.
 - Assert on behavior and outputs, not on mocks echoing their configuration.
+- Test behavior, not implementation. The test calls the code the way its user
+  does and checks the result that user would see. Throw out a test that still
+  passes when every function returns nothing.
 - Each spec scenario (Step 1.5) gets at least one test.
 
 ## Step 4 — Claude tool
@@ -307,7 +336,8 @@ Run e2e when the task has it and credentials exist
 
 Conventional Commit subject; body with what and why; the attribution trailer
 per CLAUDE.md's Commits convention (the exact one your harness specifies —
-never copy a model name from older commits). Confirm the staged set is exactly
+never copy a model name from older commits). Each commit says why, what
+changed, and how you proved it. Confirm the staged set is exactly
 what you intend, then publish the branch (push, shelve, or equivalent).
 
 ## Step 11 — Review request

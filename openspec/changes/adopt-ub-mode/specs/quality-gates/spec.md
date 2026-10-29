@@ -36,14 +36,14 @@ The crapper gate command SHALL run as `tools/crapper/crapper --threshold 10` wit
 - **THEN** the command exits 0
 
 ### Requirement: The dryer gate holds duplication at or below 0.8
-The dryer gate command SHALL run as `tools/dryer/dryer --threshold 0.8` with explicit paths or with `--changed`. The command SHALL exit 0 when no reported pair scores above 0.8. It SHALL exit 2 when a pair scores above 0.8. The apply step SHALL verify the boundary and the exit codes against the vendored code and SHALL correct this requirement before archive when they differ.
+The dryer gate command SHALL run as `tools/dryer/dryer --threshold 0.8 --fail-above` with explicit paths or with `--changed`. The vendored copy adds `--fail-above` to the upstream tool. The tool reports a pair when the pair score is at or above the threshold. The command SHALL exit 0 when no pair is reported. It SHALL exit 2 when a pair at or above 0.8 is reported. The owned tests in `tools/dryer/tests/test_fail_above.py` pin the flag.
 
 #### Scenario: A conforming fixture passes
-- **WHEN** the gate command runs with `--threshold 0.8` on a fixture with no pair above 0.8
+- **WHEN** the gate command runs with `--threshold 0.8 --fail-above` on a fixture with no pair at or above 0.8
 - **THEN** the command exits 0
 
 #### Scenario: A duplicate pair fails the gate
-- **WHEN** the gate command runs with `--threshold 0.8` on a fixture with a pair above 0.8
+- **WHEN** the gate command runs with `--threshold 0.8 --fail-above` on a fixture with a pair that scores 1.0
 - **THEN** the command exits 2 and names the pair
 
 ### Requirement: The mutator gate kills the mutants of changed Python
@@ -80,15 +80,15 @@ The test workflow SHALL build the three unit venvs and SHALL run the three vendo
 - **THEN** the workflow filter skips the test workflow and no gate runs
 
 ### Requirement: The CI gate derives its paths from the pull request diff
-The gate step SHALL fetch the pull request base and SHALL derive the changed gated paths from the diff. The step SHALL pass the paths to the tools as explicit arguments. The gate scope SHALL be the repository-owned Python minus the vendored trees and the fixtures. The crapper and dryer gates SHALL use the LCOV form of the workflow coverage run. The mutator gate SHALL cover changed product paths only.
+The gate step SHALL fetch the pull request base and SHALL derive the changed gated paths from the diff. The whitelist SHALL be the four owned tools and `tests/`. The crapper gate SHALL cover changed product and test paths. The dryer and mutator gates SHALL cover changed product paths only. The coverage run SHALL include the test paths, so a changed test file scores its own coverage.
 
 #### Scenario: A clean CI checkout still gates the changed files
 - **WHEN** the gate step runs in CI, where the working tree is clean
 - **THEN** the tools receive the changed paths as explicit arguments and no step uses `--changed`
 
 #### Scenario: The coverage input is the workflow coverage run
-- **WHEN** the crapper and dryer gate steps run on a pull request
-- **THEN** they read the LCOV conversion of the coverage report the workflow pytest run produced
+- **WHEN** the crapper gate step runs on a pull request
+- **THEN** it reads the LCOV conversion of the coverage report the workflow coverage run produced, with the test paths among the measured sources
 
 ### Requirement: The mutator CI step carries a runtime budget
 The mutator step SHALL cap its workers and SHALL carry a timeout as its budget. The gate venvs SHALL carry `pytest` and `coverage` from the install step, so no gate run installs tooling on demand. The workflow contract test SHALL state the mutation policy after this change.

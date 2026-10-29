@@ -8,7 +8,9 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# absolute(), not resolve(): the mutator symlink overlay must keep this
+# path inside the worker tree, so the tests import the mutated copy.
+REPO_ROOT = Path(__file__).absolute().parents[2]
 
 # The package sits under tools/ in the repository and directly under the
 # root in a flat mutation mirror. Import whichever copy is present, so a
