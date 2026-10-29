@@ -75,7 +75,8 @@ def _run_build(args) -> int:
 def _build_report(args, path: Path) -> str:
     hook_log = _hook_log(args.repo, path.stem)
     session = transcript.parse_session(path)
-    logparse.apply_hook_durations(session.primary.tool_calls, hook_log)
+    for run in [session.primary, *session.sidechains]:
+        logparse.apply_hook_durations(run.tool_calls, hook_log)
     prices = pricing.load_prices(args.prices)
     got = metrics.compute(
         session,
@@ -134,6 +135,8 @@ def _create_issue(args, report: str) -> int:
     except (OSError, subprocess.TimeoutExpired) as error:
         print(f"handover_telemetry: gh failed: {error}", file=sys.stderr)
         return 2
+    finally:
+        Path(body_path).unlink(missing_ok=True)
     if out.returncode != 0:
         print(f"handover_telemetry: gh failed: {out.stderr.strip()}", file=sys.stderr)
         return 2

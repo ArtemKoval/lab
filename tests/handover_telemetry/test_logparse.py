@@ -79,7 +79,7 @@ def test_missing_log_degrades_to_derived_durations(session):
 def test_permission_events_surface():
     records = logparse.load_hook_log(HOOK_LOG)
     events = logparse.permission_events(records)
-    assert events == [{"ts": "2026-10-29T10:00:16.000Z", "decision": "deny", "tool": "Bash"}]
+    assert events == [{"ts": "2026-10-29T10:00:16.000Z", "tool": "Bash"}]
 
 
 def test_event_counts_summarize_the_run():
@@ -111,7 +111,19 @@ def test_missing_start_yields_no_derived_duration(session):
 
 def test_post_with_bad_timestamp_yields_no_duration():
     records = [
-        logparse.HookRecord("2026-01-01T00:00:00Z", "PreToolUse", "s", "Bash", "t1", 1, None, None, {}),
-        logparse.HookRecord("bad", "PostToolUse", "s", "Bash", "t1", 1, None, None, {}),
+        logparse.HookRecord("2026-01-01T00:00:00Z", "PreToolUse", "s", "Bash", "t1", 1, None, {}),
+        logparse.HookRecord("bad", "PostToolUse", "s", "Bash", "t1", 1, None, {}),
     ]
     assert logparse.pair_durations(records) == {}
+
+
+def test_a_bad_pre_stamp_keeps_the_derived_duration(session, tmp_path):
+    log = tmp_path / "bad-pre.jsonl"
+    log.write_text(
+        '{"ts": "junk", "event": "PreToolUse", "tool_use_id": "toolu_1"}\n'
+        '{"ts": "2026-01-01T00:00:09Z", "event": "PostToolUse", "tool_use_id": "toolu_1"}\n',
+        encoding="utf-8",
+    )
+    calls = {c.id: c for c in session.primary.tool_calls}
+    logparse.apply_hook_durations(session.primary.tool_calls, log)
+    assert calls["toolu_1"].duration_ms == pytest.approx(2000.0)

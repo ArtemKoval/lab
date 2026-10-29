@@ -97,6 +97,24 @@ def test_scrubbed_argument_reaches_render(tmp_path):
     assert "[REDACTED:token]" in md
 
 
+def test_transcript_names_render_redacted_in_both_outputs(tmp_path):
+    main = tmp_path / "main.jsonl"
+    main.write_text((SESSION_DIR / "main.jsonl").read_text(encoding="utf-8"), encoding="utf-8")
+    session = transcript.parse_session(main)
+    secret = "gho_AAAABBBBCCCCDDDDEEEEFFFFGGGGHHH1"
+    session.primary.tool_calls[0].name = secret
+    session.primary.turns[0].model = secret
+    session.sidechains = [transcript.AgentRun(agent_id=secret)]
+    got = metrics.compute(session, price_table=pricing.load_prices())
+    scrubber = redact.default_redactor()
+    md = render.render_markdown(got, {}, scrubber)
+    js = render.render_json(got, {}, scrubber)
+    assert secret not in md
+    assert "[REDACTED:token]" in md
+    assert secret not in js
+    assert "[REDACTED:token]" in js
+
+
 def test_json_uses_genai_field_names(output):
     _, js = output
     data = jsonlib.loads(js)
@@ -105,6 +123,25 @@ def test_json_uses_genai_field_names(output):
     assert "gen_ai.usage.input_tokens" in row
     assert "gen_ai.usage.output_tokens" in row
     assert row["gen_ai.usage.output_tokens"] == 350
+
+
+def test_json_labels_the_served_model_as_response_model(output):
+    _, js = output
+    data = jsonlib.loads(js)
+    row = data["models"]["glm-5.3-flash"]
+    assert row["gen_ai.response.model"] == "glm-5.3-flash"
+    assert "gen_ai.request.model" not in row
+
+
+def test_cost_section_renders_the_per_agent_split(output):
+    md, js = output
+    assert "Cost split per agent" in md
+    assert "| Agent | USD |" in md
+    assert "| primary | $0.0050 |" in md
+    assert "| agent-42 | $0.0012 |" in md
+    data = jsonlib.loads(js)
+    assert data["cost"]["by_agent"]["primary"] == pytest.approx(0.005012)
+    assert data["cost"]["by_agent"]["agent-42"] == pytest.approx(0.001228)
 
 
 def test_json_carries_fingerprint_and_requested(output):

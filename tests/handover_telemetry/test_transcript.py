@@ -25,7 +25,7 @@ def session(tmp_path) -> transcript.Session:
 
 
 def test_load_entries_skips_malformed_lines(session):
-    assert session.entry_count == 12
+    assert session.entry_count == 14
 
 
 def test_usage_dedup_counts_one_turn_per_message_id(session):
@@ -58,6 +58,15 @@ def test_tool_call_pairs_with_its_result(session):
     assert call.end is not None
     assert call.error is False
     assert call.exit_code == 1
+
+
+def test_tool_use_in_a_second_entry_of_the_same_message_is_recorded(session):
+    calls = {c.id: c for c in session.primary.tool_calls}
+    assert "toolu_5" in calls
+    assert calls["toolu_5"].name == "Bash"
+    assert calls["toolu_5"].start == "2026-10-29T10:00:09.100Z"
+    assert calls["toolu_5"].end == "2026-10-29T10:00:10.100Z"
+    assert calls["toolu_5"].error is False
 
 
 def test_failed_tool_call_carries_error_flag(session):

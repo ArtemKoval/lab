@@ -22,7 +22,9 @@ def _clean(value: object, scrubber) -> object:
     if isinstance(value, str):
         return scrubber.scrub(value)
     if isinstance(value, dict):
-        return {key: _clean(item, scrubber) for key, item in value.items()}
+        return {
+            scrubber.scrub(key): _clean(item, scrubber) for key, item in value.items()
+        }
     if isinstance(value, (list, tuple)):
         return [_clean(item, scrubber) for item in value]
     return value
@@ -32,8 +34,8 @@ def render_markdown(metrics: TaskMetrics, host: dict, scrubber) -> str:
     lines = ["## Telemetry", ""]
     lines += _run_section(metrics, host, scrubber)
     lines += _funnel_section(metrics, scrubber)
-    lines += _models_section(metrics)
-    lines += _cost_section(metrics)
+    lines += _models_section(metrics, scrubber)
+    lines += _cost_section(metrics, scrubber)
     lines += _pipeline_section(metrics)
     lines += _decisions_section(metrics, scrubber)
     lines += _friction_section(metrics, scrubber)
@@ -62,10 +64,11 @@ def _funnel_section(metrics: TaskMetrics, scrubber) -> list[str]:
     lines = ["### Funnel", "", header, rule]
     for index, call in enumerate(metrics.funnel, start=1):
         agent = scrubber.scrub(str(call["agent"]))
+        tool = scrubber.scrub(str(call["tool"]))
         start = scrubber.scrub(str(call["start"] or _NA))
         exit_code = _NA if call["exit_code"] is None else str(call["exit_code"])
         duration = _ms(call["duration_ms"])
-        row = f"| {index} | {agent} | {call['tool']} | {start}"
+        row = f"| {index} | {agent} | {tool} | {start}"
         row += f" | {duration} | {exit_code} |"
         lines.append(row)
     if not metrics.funnel:
@@ -74,19 +77,20 @@ def _funnel_section(metrics: TaskMetrics, scrubber) -> list[str]:
     return lines
 
 
-def _models_section(metrics: TaskMetrics) -> list[str]:
+def _models_section(metrics: TaskMetrics, scrubber) -> list[str]:
     lines = ["### Models and tokens", ""]
     lines.append("Served models carry the token sums. The requested models follow.")
     header = "| Model | Input | Output | Cache read | Cache write | Turns |"
     lines += ["", header, "|---|---|---|---|---|---|"]
     for model, stats in metrics.models.items():
+        name = scrubber.scrub(model)
         lines.append(
-            f"| {model} | {stats['input']} | {stats['output']} | {stats['cache_read']}"
+            f"| {name} | {stats['input']} | {stats['output']} | {stats['cache_read']}"
             f" | {stats['cache_creation']} | {stats['turns']} |"
         )
     if not metrics.models:
         lines.append(f"| - | {_NA} | {_NA} | {_NA} | {_NA} | {_NA} |")
-    requested = _requested_text(metrics)
+    requested = _requested_text(metrics, scrubber)
     hit = _NA if metrics.cache_hit_rate is None else f"{metrics.cache_hit_rate:.0%}"
     lines += [
         "",
@@ -97,12 +101,15 @@ def _models_section(metrics: TaskMetrics) -> list[str]:
     return lines
 
 
-def _requested_text(metrics: TaskMetrics) -> str:
-    pairs = [f"{name} x{count}" for name, count in metrics.requested_models.items()]
+def _requested_text(metrics: TaskMetrics, scrubber) -> str:
+    pairs = [
+        f"{scrubber.scrub(name)} x{count}"
+        for name, count in metrics.requested_models.items()
+    ]
     return ", ".join(pairs)
 
 
-def _cost_section(metrics: TaskMetrics) -> list[str]:
+def _cost_section(metrics: TaskMetrics, scrubber) -> list[str]:
     lines = [
         "### Cost (estimate)",
         "",
@@ -113,10 +120,16 @@ def _cost_section(metrics: TaskMetrics) -> list[str]:
         "|---|---|",
     ]
     for model, cost in metrics.cost_by_model.items():
-        lines.append(f"| {model} | {_money(cost)} |")
+        lines.append(f"| {scrubber.scrub(model)} | {_money(cost)} |")
     for model in metrics.unknown_models:
-        lines.append(f"| {model} | unknown (no rate in the table) |")
-    lines += [f"| total | {_money(metrics.cost_total)} |", ""]
+        lines.append(f"| {scrubber.scrub(model)} | unknown (no rate in the table) |")
+    lines.append(f"| total | {_money(metrics.cost_total)} |")
+    lines += ["", "Cost split per agent:", "", "| Agent | USD |", "|---|---|"]
+    if not metrics.per_agent:
+        lines.append("| - | - |")
+    for agent, stats in metrics.per_agent.items():
+        lines.append(f"| {scrubber.scrub(agent)} | {_money(stats['cost'])} |")
+    lines.append("")
     return lines
 
 
@@ -146,8 +159,9 @@ def _decisions_section(metrics: TaskMetrics, scrubber) -> list[str]:
     for decision in metrics.decisions:
         summary = scrubber.scrub(str(decision["summary"] or "-"))
         agent = scrubber.scrub(str(decision["agent"]))
+        tool = scrubber.scrub(str(decision["tool"]))
         stamp = decision["ts"] or _NA
-        lines.append(f"- [{stamp}] {agent} via {decision['tool']}: {summary}")
+        lines.append(f"- [{stamp}] {agent} via {tool}: {summary}")
     lines.append("")
     return lines
 
@@ -161,7 +175,6 @@ def _friction_section(metrics: TaskMetrics, scrubber) -> list[str]:
         "",
         f"- api errors: {friction.get('api_errors', 0)}",
         f"- failed tool calls: {friction.get('failed_tool_calls', 0)}",
-        f"- retries: {friction.get('retries', 0)}",
         f"- compactions: {friction.get('compactions', 0)}",
         f"- max compaction pre-tokens: {_NA if peak is None else str(peak)}",
         f"- permission events: {len(events)}",
@@ -169,9 +182,8 @@ def _friction_section(metrics: TaskMetrics, scrubber) -> list[str]:
     for event in events:
         clean = _clean(event, scrubber)
         stamp = clean.get("ts") or _NA
-        decision = clean.get("decision") or _NA
         tool = clean.get("tool") or _NA
-        lines.append(f"  - {stamp}: {decision} on {tool}")
+        lines.append(f"  - {stamp}: {tool}")
     lines.append("")
     return lines
 
@@ -202,7 +214,7 @@ def render_json(metrics: TaskMetrics, host: dict, scrubber) -> str:
         "machine": _clean(host, scrubber),
         "models": {
             model: {
-                "gen_ai.request.model": model,
+                "gen_ai.response.model": model,
                 "gen_ai.usage.input_tokens": stats["input"],
                 "gen_ai.usage.output_tokens": stats["output"],
                 "gen_ai.usage.cache_read_input_tokens": stats["cache_read"],
@@ -215,6 +227,9 @@ def render_json(metrics: TaskMetrics, host: dict, scrubber) -> str:
         "cache_hit_rate": metrics.cache_hit_rate,
         "cost": {
             "by_model": metrics.cost_by_model,
+            "by_agent": {
+                agent: stats["cost"] for agent, stats in metrics.per_agent.items()
+            },
             "unknown_models": metrics.unknown_models,
             "total": metrics.cost_total,
         },

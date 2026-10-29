@@ -99,6 +99,13 @@ def test_install_marks_shim_executable(repo):
     assert os.access(shim, os.X_OK)
 
 
+def test_install_on_a_wired_repo_keeps_the_settings_byte_identical(repo):
+    before = (repo / ".claude" / "settings.json").read_bytes()
+    doctor.install(repo)
+    after = (repo / ".claude" / "settings.json").read_bytes()
+    assert before == after
+
+
 def test_registry_carries_the_hook_wiring_unit():
     registry = json.loads((REPO_ROOT / "tools" / "project_setup" / "registry.json").read_text(encoding="utf-8"))
     ids = {unit["id"] for unit in registry["units"]}

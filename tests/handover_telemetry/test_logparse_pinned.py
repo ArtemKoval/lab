@@ -15,7 +15,7 @@ def test_record_fields_are_pinned(tmp_path):
         [
             '{"ts": "2026-01-01T00:00:01Z", "event": "PostToolUse", "session_id": "s1",'
             ' "tool": "Bash", "tool_use_id": "t1", "hook_ms": 3, "outcome": "exit_1",'
-            ' "decision": "deny", "redactions": {"home_path": 2}}',
+            ' "redactions": {"home_path": 2}}',
             '{"session_id": "s9"}',
         ],
     )
@@ -28,7 +28,6 @@ def test_record_fields_are_pinned(tmp_path):
             tool_use_id="t1",
             hook_ms=3,
             outcome="exit_1",
-            decision="deny",
             redactions={"home_path": 2},
         ),
         logparse.HookRecord(
@@ -39,7 +38,6 @@ def test_record_fields_are_pinned(tmp_path):
             tool_use_id=None,
             hook_ms=None,
             outcome=None,
-            decision=None,
             redactions={},
         ),
     ]
@@ -69,34 +67,34 @@ def test_bad_bytes_are_replaced_not_fatal(tmp_path):
 
 def test_a_keyless_record_does_not_stop_the_pairing():
     records = [
-        logparse.HookRecord("t", "Stop", None, None, None, None, None, None, {}),
+        logparse.HookRecord("t", "Stop", None, None, None, None, None, {}),
         logparse.HookRecord(
-            "2026-01-01T00:00:01Z", "PreToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:01Z", "PreToolUse", None, None, "t1", None, None, {}
         ),
         logparse.HookRecord(
-            "2026-01-01T00:00:03Z", "PostToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:03Z", "PostToolUse", None, None, "t1", None, None, {}
         ),
     ]
     assert logparse.pair_durations(records) == {"t1": 2000.0}
 
 
-def test_pair_duration_with_bad_pre_stamp_uses_the_zero_base():
+def test_pair_duration_with_a_bad_pre_stamp_yields_no_duration():
     records = [
-        logparse.HookRecord("junk", "PreToolUse", None, None, "t1", None, None, None, {}),
+        logparse.HookRecord("junk", "PreToolUse", None, None, "t1", None, None, {}),
         logparse.HookRecord(
-            "2026-01-01T00:00:10Z", "PostToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:10Z", "PostToolUse", None, None, "t1", None, None, {}
         ),
     ]
-    assert logparse.pair_durations(records) == {"t1": 1767225610000.0}
+    assert logparse.pair_durations(records) == {}
 
 
 def test_lowercase_z_stamp_never_parses():
     records = [
         logparse.HookRecord(
-            "2026-01-01T00:00:00Z", "PreToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:00Z", "PreToolUse", None, None, "t1", None, None, {}
         ),
         logparse.HookRecord(
-            "2026-01-01T00:00:10z", "PostToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:10z", "PostToolUse", None, None, "t1", None, None, {}
         ),
     ]
     assert logparse.pair_durations(records) == {}
@@ -105,13 +103,13 @@ def test_lowercase_z_stamp_never_parses():
 def test_a_second_pre_stamp_replaces_the_first():
     records = [
         logparse.HookRecord(
-            "2026-01-01T00:00:01Z", "PreToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:01Z", "PreToolUse", None, None, "t1", None, None, {}
         ),
         logparse.HookRecord(
-            "2026-01-01T00:00:05Z", "PreToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:05Z", "PreToolUse", None, None, "t1", None, None, {}
         ),
         logparse.HookRecord(
-            "2026-01-01T00:00:07Z", "PostToolUse", None, None, "t1", None, None, None, {}
+            "2026-01-01T00:00:07Z", "PostToolUse", None, None, "t1", None, None, {}
         ),
     ]
     assert logparse.pair_durations(records) == {"t1": 2000.0}

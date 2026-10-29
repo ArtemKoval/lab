@@ -18,6 +18,14 @@ SESSION_DIR = FIXTURES / "session"
 def project(tmp_path) -> Path:
     main = tmp_path / "main.jsonl"
     main.write_text((SESSION_DIR / "main.jsonl").read_text(encoding="utf-8"), encoding="utf-8")
+    sub = tmp_path / "sess-1" / "subagents"
+    sub.mkdir(parents=True)
+    (sub / "agent-42.jsonl").write_text(
+        (SESSION_DIR / "sess-1" / "subagents" / "agent-42.jsonl").read_text(
+            encoding="utf-8"
+        ),
+        encoding="utf-8",
+    )
     return tmp_path
 
 
@@ -52,6 +60,16 @@ def test_build_writes_markdown_to_stdout(project, repo, capsys):
     assert code == 0
     assert "## Telemetry" in out
     assert "### Funnel" in out
+
+
+def test_build_gives_sidechain_calls_a_derived_duration(project, repo, capsys):
+    code = cli.main(
+        ["build", "--project-dir", str(project), "--transcript", str(project / "main.jsonl"), "--repo", str(repo)]
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    row = next(line for line in out.splitlines() if "agent-42 | Read" in line)
+    assert "| 500 |" in row
 
 
 def test_build_json_output_is_valid_json(project, repo, capsys):
@@ -111,6 +129,22 @@ def test_build_missing_transcript_exits_2(tmp_path, repo, capsys):
     err = capsys.readouterr().err
     assert code == 2
     assert "none.jsonl" in err
+
+
+def test_build_survives_a_null_questions_argument(tmp_path, repo, capsys):
+    lines = [
+        '{"type": "assistant", "sessionId": "s1", "requestId": "r1", "timestamp": "2026-01-01T00:00:01Z",'
+        ' "message": {"id": "m1", "model": "m", "usage": {}, "content": ['
+        '{"type": "tool_use", "id": "t1", "name": "AskUserQuestion", "input": {"questions": null}}]}}',
+    ]
+    path = tmp_path / "nullq.jsonl"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    code = cli.main(
+        ["build", "--project-dir", str(tmp_path), "--transcript", str(path), "--repo", str(repo)]
+    )
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "via AskUserQuestion: -" in out
 
 
 def test_build_empty_project_exits_2(tmp_path, repo):
@@ -180,6 +214,60 @@ def test_build_create_opens_the_issue(project, repo, tmp_path, monkeypatch, caps
     calls = (tmp_path / "gh-calls.log").read_text(encoding="utf-8")
     assert "issue" in calls and "create" in calls
     assert "--body-file" in calls
+
+
+def test_create_deletes_the_body_file(project, repo, tmp_path, monkeypatch):
+    gh_dir = _fake_gh(tmp_path)
+    monkeypatch.setenv("PATH", f"{gh_dir}:{os.environ['PATH']}")
+    code = cli.main(
+        [
+            "build",
+            "--project-dir",
+            str(project),
+            "--transcript",
+            str(project / "main.jsonl"),
+            "--repo",
+            str(repo),
+            "--create",
+        ]
+    )
+    assert code == 0
+    calls = (tmp_path / "gh-calls.log").read_text(encoding="utf-8")
+    fields = calls.split()
+    body = Path(fields[fields.index("--body-file") + 1])
+    assert not body.exists()
+
+
+def test_create_cleanup_survives_a_consumed_body_file(
+    project, repo, tmp_path, monkeypatch
+):
+    marker = tmp_path / "gh-calls.log"
+    gh_dir = tmp_path / "fakebin2"
+    gh_dir.mkdir(exist_ok=True)
+    gh = gh_dir / "gh"
+    gh.write_text(
+        "#!/bin/sh\n"
+        f'echo "$@" >> {marker}\n'
+        'rm -f "$6"\n'
+        "echo https://github.com/example/lab/issues/99\n",
+        encoding="utf-8",
+    )
+    gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("PATH", f"{gh_dir}:{os.environ['PATH']}")
+    code = cli.main(
+        [
+            "build",
+            "--project-dir",
+            str(project),
+            "--transcript",
+            str(project / "main.jsonl"),
+            "--repo",
+            str(repo),
+            "--create",
+        ]
+    )
+    assert code == 0
+    assert "--body-file" in marker.read_text(encoding="utf-8")
 
 
 def test_build_create_failure_exits_2(project, repo, tmp_path, monkeypatch):

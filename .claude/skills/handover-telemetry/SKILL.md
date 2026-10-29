@@ -60,8 +60,8 @@ no network call. `--create` is the only network path.
   per-task proxy.
 - Decisions: the question, plan, agent, and workflow calls with their
   redacted arguments.
-- Friction: api errors, failed calls, retries, compactions, and
-  permission events.
+- Friction: api errors, failed calls, compactions, and permission
+  events.
 - Machine: the allowlisted host fields. No hostname, no serials, no
   home paths.
 - Redaction: counts per category. Read them before you paste anything.

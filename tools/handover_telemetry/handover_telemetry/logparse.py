@@ -21,7 +21,6 @@ class HookRecord:
     tool_use_id: str | None
     hook_ms: float | None
     outcome: str | None
-    decision: str | None
     redactions: dict
 
 
@@ -53,7 +52,6 @@ def _record_from(data: dict) -> HookRecord:
         tool_use_id=data.get("tool_use_id"),
         hook_ms=data.get("hook_ms"),
         outcome=data.get("outcome"),
-        decision=data.get("decision"),
         redactions=data.get("redactions") or {},
     )
 
@@ -76,7 +74,9 @@ def pair_durations(records: list[HookRecord]) -> dict[str, float]:
         if not key:
             continue
         if record.event == "PreToolUse":
-            starts[key] = _ts_ms(record.ts) or 0.0
+            start = _ts_ms(record.ts)
+            if start is not None:
+                starts[key] = start
         elif record.event == "PostToolUse" and key in starts:
             end = _ts_ms(record.ts)
             if end is not None:
@@ -106,7 +106,7 @@ def apply_hook_durations(tool_calls: list[ToolCall], hook_log: Path | None) -> i
 
 def permission_events(records: list[HookRecord]) -> list[dict]:
     return [
-        {"ts": r.ts, "decision": r.decision, "tool": r.tool}
+        {"ts": r.ts, "tool": r.tool}
         for r in records
         if r.event == "PermissionRequest"
     ]

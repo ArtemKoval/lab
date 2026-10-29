@@ -64,8 +64,9 @@ def test_gpu_none_without_query_tool(monkeypatch):
     assert machine.read_gpu() is None
 
 
-def test_versions_carry_python_and_git():
+def test_versions_carry_python_and_git_only():
     got = machine.versions()
+    assert set(got) == {"python", "git"}
     assert got["python"].startswith("3.")
     assert got["git"].startswith("git version")
 
@@ -82,7 +83,6 @@ def test_collect_returns_allowlisted_fields(tmp_path):
         "disk_total_gb",
         "python",
         "git",
-        "node",
         "container",
         "gpu",
     }

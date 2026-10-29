@@ -112,6 +112,22 @@ def test_macos_home_path_becomes_tilde():
     assert "~/repo" in out
 
 
+def test_tilde_user_path_becomes_tilde():
+    r = default_redactor()
+    out = r.scrub("run at ~alice/repo/main.py end")
+    assert "~alice" not in out
+    assert "~/repo/main.py" in out
+    assert r.counts["home_path"] == 1
+
+
+def test_windows_users_path_becomes_tilde():
+    r = default_redactor()
+    out = r.scrub(r"run at C:\Users\alice\repo end")
+    assert "C:\\Users\\alice" not in out
+    assert "~\\repo" in out
+    assert r.counts["home_path"] == 1
+
+
 def test_timezone_name_gets_marked():
     r = default_redactor()
     out = r.scrub("zone Europe/Paris offset end")

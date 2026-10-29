@@ -188,10 +188,11 @@ def _consume_assistant(run: AgentRun, entry: dict) -> None:
         run.api_errors += 1
         return
     key = (message.get("id"), entry.get("requestId") or entry.get("requestRef"))
-    if key[0] is not None and key in run._seen:
-        return
-    run._seen.add(key)
-    run.turns.append(_turn_from(entry, message, key[1]))
+    # the dedup key guards the turn only; one API message writes several
+    # entries, and a later entry can carry the tool_use block
+    if key[0] is None or key not in run._seen:
+        run._seen.add(key)
+        run.turns.append(_turn_from(entry, message, key[1]))
     for block in message.get("content") or []:
         _consume_tool_use(run, block, entry)
 

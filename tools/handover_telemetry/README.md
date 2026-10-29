@@ -30,8 +30,8 @@ PYTHONPATH=tools/handover_telemetry $VENV -m handover_telemetry build --create  
 ```
 
 Exit 0 on success and 2 on operational failure. The default path makes
-no network call. Flags: `--project-dir`, `--transcript`, `--session`
-with repeat use, `--prices`, `--out`, `--json`, `--create`, `--repo`.
+no network call. Flags: `--project-dir`, `--transcript`, `--session`,
+`--prices`, `--out`, `--json`, `--create`, `--repo`.
 
 ## The hook
 
@@ -97,13 +97,16 @@ $VENV -m mutmut run
 $VENV -m mutmut results
 ```
 
-The copy's `pyproject.toml` sets the test paths to `tests/`. Target:
-95 percent or higher. `__main__.py` carries a `do_not_mutate_patterns`
-exclusion: the two-line shim holds no logic.
+The copy's `pyproject.toml` points at `tests/handover_telemetry/`. Edit
+the copy's pyproject.toml test paths to `tests/` before the run.
+Target: 95 percent or higher. `__main__.py` carries a
+`do_not_mutate_patterns` exclusion: the two-line shim holds no logic.
 
 ## Limits
 
 The transcript format is internal to Claude Code and drifts between
 versions. The parser skips unknown entry types and treats missing
 fields as absent. Session listing reads every transcript in the
-project directory, so a large directory costs one parse per file.
+project directory, so a large directory costs one parse per file. On a
+host with concurrent merges, the lead time uses the newest merge commit
+after the first prompt. That merge can belong to another task.

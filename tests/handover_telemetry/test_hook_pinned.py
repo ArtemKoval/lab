@@ -29,7 +29,6 @@ def test_record_fields_and_timing_are_pinned(monkeypatch):
         "tool": "Bash",
         "tool_use_id": "t1",
         "outcome": None,
-        "decision": None,
         "hook_ms": 123.46,
         "redactions": {},
     }
@@ -45,10 +44,22 @@ def test_record_defaults_for_missing_fields(monkeypatch):
         "tool": None,
         "tool_use_id": None,
         "outcome": None,
-        "decision": None,
         "hook_ms": 123.46,
         "redactions": {},
     }
+
+
+def test_record_drops_the_decision_field(monkeypatch):
+    _stub_clock(monkeypatch)
+    got = hook._record(
+        {
+            "hook_event_name": "PermissionRequest",
+            "session_id": "s1",
+            "tool_name": "Bash",
+            "decision": "deny",
+        }
+    )
+    assert "decision" not in got
 
 
 def test_post_error_outcome_is_error(monkeypatch):
@@ -72,13 +83,12 @@ def test_append_writes_one_sorted_line(tmp_path):
         "tool": None,
         "tool_use_id": None,
         "outcome": None,
-        "decision": None,
         "hook_ms": 1.0,
         "redactions": {},
     }
     hook._append(path, record)
     assert path.read_text(encoding="utf-8") == (
-        '{"decision": null, "event": "Stop", "hook_ms": 1.0, "outcome": null,'
+        '{"event": "Stop", "hook_ms": 1.0, "outcome": null,'
         ' "redactions": {}, "session_id": "s1", "tool": null, "tool_use_id": null,'
         ' "ts": "t"}\n'
     )

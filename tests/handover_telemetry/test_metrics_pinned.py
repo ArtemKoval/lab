@@ -45,7 +45,7 @@ def test_per_agent_ledger_is_pinned(full):
     assert set(full.per_agent) == {"primary", "agent-42"}
     primary = full.per_agent["primary"]
     assert primary["turns"] == 4
-    assert primary["tool_calls"] == 4
+    assert primary["tool_calls"] == 5
     assert primary["cost"] == pytest.approx(0.005012)
     sub = full.per_agent["agent-42"]
     assert sub["turns"] == 1
@@ -166,6 +166,11 @@ def test_workflow_summary_without_description_or_name_is_empty():
 
 def test_question_texts_default_to_no_questions():
     assert metrics._decision_summary(_call("AskUserQuestion", {})) == ""
+
+
+def test_question_texts_guard_against_null():
+    assert metrics._question_texts({"questions": None}) == []
+    assert metrics._decision_summary(_call("AskUserQuestion", {"questions": None})) == ""
 
 
 def test_workflow_summary_truncates_at_the_limit():
@@ -300,6 +305,84 @@ def test_branch_commits_need_a_repo_and_a_branch(monkeypatch, tmp_path):
 def test_branch_commits_tolerate_a_failed_log(monkeypatch, tmp_path):
     monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: None)
     assert metrics._branch_commits(tmp_path, "feat") == []
+
+
+def _fix_rows() -> list[tuple[str, str]]:
+    return [
+        ("2026-01-01T00:00:00+00:00", "early fix before any failure"),
+        ("2026-01-02T00:00:00+00:00", "work on the suite"),
+        ("2026-01-03T00:00:00+00:00", "review fix"),
+        ("junk", "fix with a junk stamp"),
+        ("2026-01-04T00:00:00+00:00", "Fix the flaky gate"),
+    ]
+
+
+BOUNDARY = datetime.fromisoformat("2026-01-02T12:00:00+00:00")
+
+
+def test_fix_commits_count_subjects_with_fix_at_or_after_the_boundary(monkeypatch, tmp_path):
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: _fix_rows())
+    got = metrics._fix_commits_after(tmp_path, "feat/demo", BOUNDARY)
+    assert got == 2
+
+
+def test_fix_commits_before_the_boundary_do_not_count(monkeypatch, tmp_path):
+    rows = [("2026-01-01T00:00:00+00:00", "quick fix")]
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: rows)
+    assert metrics._fix_commits_after(tmp_path, "feat/demo", BOUNDARY) == 0
+
+
+def test_fix_commits_at_the_boundary_count(monkeypatch, tmp_path):
+    rows = [("2026-01-02T12:00:00+00:00", "fix the gate")]
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: rows)
+    assert metrics._fix_commits_after(tmp_path, "feat/demo", BOUNDARY) == 1
+
+
+def test_fix_commits_match_the_subject_without_case(monkeypatch, tmp_path):
+    rows = [("2026-01-03T00:00:00+00:00", "FIX the gate now")]
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: rows)
+    assert metrics._fix_commits_after(tmp_path, "feat/demo", BOUNDARY) == 1
+
+
+def test_fix_commits_without_a_boundary_count_zero(monkeypatch, tmp_path):
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: _fix_rows())
+    assert metrics._fix_commits_after(tmp_path, "feat/demo", None) == 0
+
+
+def test_fix_commits_without_a_repo_or_a_branch_count_zero(monkeypatch, tmp_path):
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: _fix_rows())
+    assert metrics._fix_commits_after(None, "feat/demo", BOUNDARY) == 0
+    assert metrics._fix_commits_after(tmp_path, None, BOUNDARY) == 0
+
+
+def test_fix_commits_tolerate_a_failed_log(monkeypatch, tmp_path):
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: None)
+    assert metrics._fix_commits_after(tmp_path, "feat/demo", BOUNDARY) == 0
+
+
+def test_fix_commits_with_no_rows_count_zero(monkeypatch, tmp_path):
+    monkeypatch.setattr(metrics, "_git_log", lambda repo, ref: [])
+    assert metrics._fix_commits_after(tmp_path, "feat/demo", BOUNDARY) == 0
+
+
+def test_first_failed_start_picks_the_earliest_failed_call_start():
+    runs = [
+        transcript.AgentRun(
+            agent_id="primary",
+            tool_calls=[
+                transcript.ToolCall("t0", "Read", {}, "2026-01-01T00:00:01Z"),
+                transcript.ToolCall("t1", "Bash", {}, "2026-01-01T00:00:05Z", error=True),
+                transcript.ToolCall("t2", "Read", {}, "2026-01-01T00:00:02Z", error=True),
+            ],
+        )
+    ]
+    got = metrics._first_failed_start(runs)
+    assert got == datetime.fromisoformat("2026-01-01T00:00:02+00:00")
+
+
+def test_first_failed_start_with_no_failures_is_none():
+    runs = [transcript.AgentRun(agent_id="primary")]
+    assert metrics._first_failed_start(runs) is None
 
 
 def _review_decisions(stamp: str) -> list[dict]:

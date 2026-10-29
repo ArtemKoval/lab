@@ -9,6 +9,7 @@ A missing session id writes nothing.
 
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -16,6 +17,7 @@ from pathlib import Path
 from .redact import Redactor
 
 _STARTED = time.perf_counter()
+_SAFE_ID = re.compile(r"[^A-Za-z0-9._-]")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,11 +28,17 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def _safe_session_id(raw: object) -> str:
+    if not isinstance(raw, str):
+        return ""
+    return _SAFE_ID.sub("-", raw).replace("..", ".")
+
+
 def handle_event(raw: str) -> None:
     data = _parse(raw)
     if not isinstance(data, dict):
         return
-    session_id = data.get("session_id")
+    session_id = _safe_session_id(data.get("session_id"))
     if not session_id:
         return
     record = _record(data)
@@ -58,7 +66,6 @@ def _record(data: dict) -> dict:
         "tool": data.get("tool_name"),
         "tool_use_id": data.get("tool_use_id"),
         "outcome": _outcome(data),
-        "decision": data.get("decision"),
         "hook_ms": round((time.perf_counter() - _STARTED) * 1000.0, 2),
     }
     scrubber = Redactor()
@@ -71,7 +78,11 @@ def _outcome(data: dict) -> str | None:
     if data.get("hook_event_name") != "PostToolUse":
         return None
     response = data.get("tool_response")
-    if isinstance(response, dict) and response.get("is_error"):
+    if not isinstance(response, dict):
+        return None
+    if "is_error" not in response and "success" not in response:
+        return None
+    if response.get("is_error") or response.get("success") is False:
         return "error"
     return "ok"
 

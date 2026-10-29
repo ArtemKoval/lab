@@ -117,6 +117,7 @@ def test_funnel_orders_calls_by_start_with_agent_labels(full):
     assert order == [
         ("primary", "Bash"),
         ("primary", "Agent"),
+        ("primary", "Bash"),
         ("agent-42", "Read"),
         ("primary", "AskUserQuestion"),
         ("primary", "AskUserQuestion"),
@@ -138,11 +139,11 @@ def test_decisions_carry_agent_tool_and_summary(full):
 def test_friction_counts_errors_and_compaction(full):
     assert full.friction["api_errors"] == 1
     assert full.friction["failed_tool_calls"] == 2
-    assert full.friction["retries"] == 0
+    assert "retries" not in full.friction
     assert full.friction["compactions"] == 1
     assert full.friction["max_compaction_pre_tokens"] == 90000
     assert full.friction["permission_events"] == [
-        {"ts": "2026-10-29T10:00:16.000Z", "decision": "deny", "tool": "Bash"}
+        {"ts": "2026-10-29T10:00:16.000Z", "tool": "Bash"}
     ]
 
 
@@ -169,8 +170,15 @@ def test_deployment_frequency_is_not_applicable(full):
     assert full.dora["deployment_frequency"] is None
 
 
-def test_change_fail_signals_count_failed_calls(full):
-    assert full.dora["change_fail_signals"] == 2
+def test_change_fail_signals_count_failed_calls_and_api_errors(full):
+    assert full.dora["change_fail_signals"] == 3
+
+
+def test_change_fail_signals_count_fix_commits_after_the_first_failure(
+    session, git_repo
+):
+    got = metrics.compute(session, price_table=pricing.load_prices(), repo_root=git_repo)
+    assert got.dora["change_fail_signals"] == 4
 
 
 def test_recovery_spans_fail_to_next_success():

@@ -84,9 +84,9 @@ def test_tool_version_queries_the_tool(monkeypatch):
     assert calls == [(["git", "--version"], PROC_KWARGS)]
 
 
-def test_versions_pin_the_three_tools(monkeypatch):
+def test_versions_pin_the_two_tools(monkeypatch):
     monkeypatch.setattr(machine.shutil, "which", lambda name: f"/usr/bin/{name}")
-    outs = {"git": _Out(0, "git version 2.43.0\n"), "node": _Out(0, "v22.20.0\n")}
+    outs = {"git": _Out(0, "git version 2.43.0\n")}
 
     def fake_run(argv, **kwargs):
         return outs[argv[0]]
@@ -95,7 +95,6 @@ def test_versions_pin_the_three_tools(monkeypatch):
     assert machine.versions() == {
         "python": sys.version.split()[0],
         "git": "git version 2.43.0",
-        "node": "v22.20.0",
     }
 
 
@@ -264,7 +263,6 @@ def _stub_linux_reads(monkeypatch, mem_kb):
         lambda: {
             "python": "3.12.3",
             "git": "git version 2.43.0",
-            "node": "v22.20.0",
         },
     )
     monkeypatch.setattr(machine.os, "cpu_count", lambda: 32)
@@ -280,7 +278,6 @@ LINUX_DICT = {
     "disk_total_gb": 500.0,
     "python": "3.12.3",
     "git": "git version 2.43.0",
-    "node": "v22.20.0",
     "container": "docker",
     "gpu": "NVIDIA GeForce RTX 4090",
 }
@@ -332,7 +329,6 @@ def _stub_mac_reads(monkeypatch, mem_bytes):
         lambda: {
             "python": "3.12.3",
             "git": "git version 2.43.0",
-            "node": "v22.20.0",
         },
     )
     monkeypatch.setattr(machine.os, "cpu_count", lambda: 32)
@@ -351,7 +347,6 @@ def test_collect_pins_the_mac_dict(monkeypatch, tmp_path):
         "disk_total_gb": 500.0,
         "python": "3.12.3",
         "git": "git version 2.43.0",
-        "node": "v22.20.0",
         "container": "docker",
         "gpu": "NVIDIA GeForce RTX 4090",
     }

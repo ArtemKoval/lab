@@ -82,7 +82,8 @@ def test_workflow_measures_coverage_over_the_gated_roots():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert (
         "--source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,"
-        "tools/devcontainer_init,tests" in text
+        "tools/devcontainer_init,tools/handover_telemetry,"
+        "tools/handover_telemetry_setup,tests" in text
     )
     assert "coverage lcov" in text
     assert "-o target/coverage/python/lcov.info" in text

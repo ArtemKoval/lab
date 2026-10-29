@@ -60,7 +60,7 @@ jobs:
           fi
           tools/zai_routing_audit/.venv/bin/python -m coverage run \
             --data-file=target/coverage/python/.coverage \
-            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init,tests \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tests \
             -m pytest -q tests
           tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
             --data-file=target/coverage/python/.coverage \

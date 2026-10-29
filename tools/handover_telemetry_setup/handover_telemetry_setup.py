@@ -111,6 +111,7 @@ def install(root: Path) -> None:
         return
     hooks = data.setdefault("hooks", {})
     wired = set(_wired_events(settings))
+    added = False
     for event in EVENTS:
         if event in wired:
             continue
@@ -122,6 +123,9 @@ def install(root: Path) -> None:
         }
         group = {"hooks": [entry]}
         hooks.setdefault(event, []).append(group)
+        added = True
+    if not added:
+        return
     settings.write_text(json.dumps(data, indent=4) + "\n", encoding="utf-8")
 
 

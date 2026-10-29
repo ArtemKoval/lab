@@ -1,6 +1,6 @@
 """Opt-in live checks. Both tests skip without HANDOVER_TELEMETRY_E2E=1.
 The first reads the real transcript directory. The second opens and
-closes a throwaway issue when HANDOVER_TELEMETRY_E2E_E2E_REPO names a
+closes a throwaway issue when HANDOVER_TELEMETRY_E2E_REPO names a
 repository, so the gh path sees a live round trip."""
 
 import os

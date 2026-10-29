@@ -22,7 +22,6 @@ HOST = {
     "disk_total_gb": 500.0,
     "python": "3.12.3",
     "git": "git version 2.43.0",
-    "node": "v22.20.0",
     "container": "docker",
     "gpu": "NVIDIA GeForce RTX 4090",
 }
@@ -45,7 +44,8 @@ def build_metrics() -> metrics.TaskMetrics:
             encoding="utf-8",
         )
         session = transcript.parse_session(main)
-        logparse.apply_hook_durations(session.primary.tool_calls, HOOK_LOG)
+        for run in [session.primary, *session.sidechains]:
+            logparse.apply_hook_durations(run.tool_calls, HOOK_LOG)
         return metrics.compute(
             session, price_table=pricing.load_prices(), hook_log=HOOK_LOG
         )
@@ -75,9 +75,10 @@ GOLDEN_MD = """\
 |---|---|---|---|---|---|
 | 1 | primary | Bash | 2026-10-29T10:00:05.000Z | 1960 | 1 |
 | 2 | primary | Agent | 2026-10-29T10:00:09.000Z | 1000 | n/a |
-| 3 | agent-42 | Read | 2026-10-29T10:00:10.200Z | n/a | n/a |
-| 4 | primary | AskUserQuestion | 2026-10-29T10:00:13.000Z | n/a | n/a |
+| 3 | primary | Bash | 2026-10-29T10:00:09.100Z | 1000 | 0 |
+| 4 | agent-42 | Read | 2026-10-29T10:00:10.200Z | 500 | n/a |
 | 5 | primary | AskUserQuestion | 2026-10-29T10:00:13.000Z | n/a | n/a |
+| 6 | primary | AskUserQuestion | 2026-10-29T10:00:13.000Z | n/a | n/a |
 
 ### Models and tokens
 
@@ -100,11 +101,18 @@ A model with no rate renders as unknown.
 | glm-5.3-flash | $0.0062 |
 | total | $0.0062 |
 
+Cost split per agent:
+
+| Agent | USD |
+|---|---|
+| primary | $0.0050 |
+| agent-42 | $0.0012 |
+
 ### Pipeline proxies
 
 - change lead time: n/a ms
 - deployment frequency: n/a (no per-task proxy)
-- change fail signals: 2
+- change fail signals: 3
 - recovery time: 3000 ms
 - rework rate: n/a
 
@@ -118,11 +126,10 @@ A model with no rate renders as unknown.
 
 - api errors: 1
 - failed tool calls: 2
-- retries: 0
 - compactions: 1
 - max compaction pre-tokens: 90000
 - permission events: 1
-  - 2026-10-29T10:00:16.000Z: deny on Bash
+  - 2026-10-29T10:00:16.000Z: Bash
 
 ### Machine
 
@@ -135,7 +142,6 @@ A model with no rate renders as unknown.
 - disk_total_gb: 500.0
 - python: 3.12.3
 - git: git version 2.43.0
-- node: v22.20.0
 - container: docker
 - gpu: NVIDIA GeForce RTX 4090
 
@@ -148,6 +154,10 @@ GOLDEN_JSON = """\
 {
   "cache_hit_rate": 0.8733624454148472,
   "cost": {
+    "by_agent": {
+      "agent-42": 0.001228,
+      "primary": 0.005012
+    },
     "by_model": {
       "glm-5.3-flash": 0.00624
     },
@@ -175,7 +185,7 @@ GOLDEN_JSON = """\
     }
   ],
   "dora": {
-    "change_fail_signals": 2,
+    "change_fail_signals": 3,
     "deployment_frequency": null,
     "lead_time_ms": null,
     "recovery_ms": 3000.0,
@@ -194,12 +204,10 @@ GOLDEN_JSON = """\
     "max_compaction_pre_tokens": 90000,
     "permission_events": [
       {
-        "decision": "deny",
         "tool": "Bash",
         "ts": "2026-10-29T10:00:16.000Z"
       }
-    ],
-    "retries": 0
+    ]
   },
   "gen_ai.tool.calls": [
     {
@@ -215,8 +223,14 @@ GOLDEN_JSON = """\
       "gen_ai.tool.name": "Agent"
     },
     {
+      "agent": "primary",
+      "duration_ms": 1000.0,
+      "error": false,
+      "gen_ai.tool.name": "Bash"
+    },
+    {
       "agent": "agent-42",
-      "duration_ms": null,
+      "duration_ms": 500.0,
       "error": true,
       "gen_ai.tool.name": "Read"
     },
@@ -244,12 +258,11 @@ GOLDEN_JSON = """\
     "gpu": "NVIDIA GeForce RTX 4090",
     "kernel": "Linux",
     "mem_total_gb": 62.7,
-    "node": "v22.20.0",
     "python": "3.12.3"
   },
   "models": {
     "glm-5.3-flash": {
-      "gen_ai.request.model": "glm-5.3-flash",
+      "gen_ai.response.model": "glm-5.3-flash",
       "gen_ai.usage.cache_creation_input_tokens": 200,
       "gen_ai.usage.cache_read_input_tokens": 10000,
       "gen_ai.usage.input_tokens": 1250,
@@ -300,6 +313,12 @@ A model with no rate renders as unknown.
 |---|---|
 | total | unknown |
 
+Cost split per agent:
+
+| Agent | USD |
+|---|---|
+| - | - |
+
 ### Pipeline proxies
 
 - change lead time: n/a ms
@@ -316,7 +335,6 @@ A model with no rate renders as unknown.
 
 - api errors: 0
 - failed tool calls: 0
-- retries: 0
 - compactions: 0
 - max compaction pre-tokens: n/a
 - permission events: 0

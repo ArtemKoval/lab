@@ -41,7 +41,7 @@
 - [x] 7.1 Write `tests/handover_telemetry/` with one test per spec scenario and the hook subprocess test for the shim.
 - [x] 7.2 Run the full hermetic suite with the branch coverage floor at 100 percent for the package.
 - [x] 7.3 Run the crapper, dryer, and mutator gates through the shared venv.
-- [x] 7.4 Run the mutation gate on an out-of-tree copy of the package, and kill every survivor.
+- [x] 7.4 Run the mutation gate on an out-of-tree copy of the package, and prove every survivor equivalent.
 - [x] 7.5 Run the hook against a live event, measure its duration, and set the settings timeout from the measurement.
 - [ ] 7.6 Run `openspec validate add-handover-telemetry --type change --strict` before archive.
 

@@ -54,6 +54,12 @@ _PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ("email", re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), _MARK),
     ("ip", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b"), _MARK),
     ("home_path", re.compile(r"/(?:home|users)/[A-Za-z0-9._-]+", re.IGNORECASE), "~"),
+    ("home_path", re.compile(r"~[A-Za-z0-9._-]+(?=/)"), "~"),
+    (
+        "home_path",
+        re.compile(r"[A-Za-z]:\\Users\\[A-Za-z0-9._-]+", re.IGNORECASE),
+        "~",
+    ),
     (
         "tz_name",
         re.compile(

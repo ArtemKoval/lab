@@ -188,9 +188,10 @@ skill saying "always do X" is a wish; a hook enforces it.
   which owns `settings.json`. A hook reads a JSON event on stdin; exit 2 blocks
   a blockable event (or JSON stdout sets `decision`, `permissionDecision`,
   `updatedInput`, `additionalContext`), exit 0 allows, other codes are
-  non-blocking errors. This repo runs two hooks: the SessionStart charter
-  (`.claude/hooks/harness-charter.sh`) and the cc-logging hook
-  (`.claude/hooks/cc-logging.sh`), both wired under `hooks` in
+  non-blocking errors. This repo runs three hooks: the SessionStart charter
+  (`.claude/hooks/harness-charter.sh`), the Write and Edit spec STE gate
+  (`.claude/hooks/spec-ste-gate.sh`), and the cc-logging hook
+  (`.claude/hooks/cc-logging.sh`), all wired under `hooks` in
   `.claude/settings.json`. The `handover-telemetry-hook` setup doctor
   confirms the wiring.
 

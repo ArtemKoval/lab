@@ -94,18 +94,6 @@ def test_empty_decision_summary_renders_the_dash():
     assert "- [n/a] primary via ExitPlanMode: -" in md
 
 
-def test_friction_retries_render_the_counted_value(tmp_path):
-    from handover_telemetry import pricing, transcript
-
-    lines = [
-        '{"type": "assistant", "sessionId": "s1", "requestId": "r1", "timestamp": "2026-01-01T00:00:01Z",'
-        ' "message": {"id": "m1", "model": "m", "usage": {}, "content": []}}',
-        '{"type": "assistant", "sessionId": "s1", "requestId": "r1", "timestamp": "2026-01-01T00:00:02Z",'
-        ' "message": {"id": "m2", "model": "m", "usage": {}, "content": []}}',
-    ]
-    path = tmp_path / "retry.jsonl"
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    session = transcript.parse_session(path)
-    got = metrics.compute(session, price_table=pricing.load_prices())
-    md = render.render_markdown(got, {}, _StubScrubber({}))
-    assert "- retries: 1" in md
+def test_friction_renders_no_retries_line():
+    md = render.render_markdown(_metrics(), {}, _StubScrubber({}))
+    assert "retries" not in md

@@ -139,7 +139,6 @@ def versions() -> dict:
     return {
         "python": sys.version.split()[0],
         "git": _tool_version("git"),
-        "node": _tool_version("node"),
     }
 
 

@@ -182,7 +182,7 @@ def _decision_summary(call: ToolCall) -> str:
 def _question_texts(args: dict) -> list[str]:
     return [
         question.get("question", "")
-        for question in args.get("questions", [])
+        for question in args.get("questions") or []
         if isinstance(question, dict)
     ]
 
@@ -198,13 +198,10 @@ def _pre_token_peaks(runs: list) -> list:
 def _friction(session: Session, runs: list, hook_log: Path | None) -> dict:
     records = logparse.load_hook_log(hook_log)
     failed = sum(1 for run in runs for call in run.tool_calls if _call_failed(call))
-    request_ids = [t.request_id for run in runs for t in run.turns if t.request_id]
-    retries = len(request_ids) - len(set(request_ids))
     pre_tokens = _pre_token_peaks(runs)
     return {
         "api_errors": sum(run.api_errors for run in runs),
         "failed_tool_calls": failed,
-        "retries": retries,
         "compactions": sum(len(run.compactions) for run in runs),
         "max_compaction_pre_tokens": max(pre_tokens) if pre_tokens else None,
         "permission_events": logparse.permission_events(records),
@@ -270,17 +267,55 @@ def _branch_commits(repo_root: Path, branch: str | None) -> list[datetime]:
     return [m for m in (_parse_iso(stamp) for stamp, _ in rows) if m is not None]
 
 
+def _first_failed_start(runs: list) -> datetime | None:
+    moments = []
+    for run in runs:
+        for call in run.tool_calls:
+            if not _call_failed(call):
+                continue
+            moment = _parse_iso(call.start)
+            if moment is not None:
+                moments.append(moment)
+    return min(moments) if moments else None
+
+
+def _fix_commits_after(
+    repo_root: Path | None,
+    branch: str | None,
+    after: datetime | None,
+) -> int:
+    if not repo_root or not branch or after is None:
+        return 0
+    rows = _git_log(repo_root, branch)
+    if not rows:
+        return 0
+    count = 0
+    for stamp, subject in rows:
+        moment = _parse_iso(stamp)
+        if moment is None or moment < after:
+            continue
+        if "fix" in subject.lower():
+            count += 1
+    return count
+
+
 def _dora(session: Session, got: TaskMetrics, repo_root: Path | None) -> dict:
     first_prompt = _parse_iso(session.first_prompt_ts)
     merge = _merge_ts(repo_root, first_prompt)
     lead = None
     if first_prompt is not None and merge is not None:
         lead = (merge - first_prompt).total_seconds() * 1000.0
+    runs = [session.primary, *session.sidechains]
+    signals = (
+        got.friction["failed_tool_calls"]
+        + got.friction["api_errors"]
+        + _fix_commits_after(repo_root, session.git_branch, _first_failed_start(runs))
+    )
     return {
         "lead_time_ms": lead,
         "deployment_frequency": None,
-        "change_fail_signals": got.friction["failed_tool_calls"],
-        "recovery_ms": _recovery_ms([session.primary, *session.sidechains]),
+        "change_fail_signals": signals,
+        "recovery_ms": _recovery_ms(runs),
         "rework_rate": _rework_rate(got.decisions, repo_root, session.git_branch),
     }
 
@@ -330,8 +365,3 @@ def _rework_rate(
         return None
     after = sum(1 for moment in commits if moment > review_moment)
     return after / len(commits)
-    # the three lines below duplicate the return block above and cannot run
-    if review_moment is None or not commits:  # pragma: no mutate
-        return None
-    after = sum(1 for moment in commits if moment > review_moment)  # pragma: no mutate
-    return after / len(commits)  # pragma: no mutate

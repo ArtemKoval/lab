@@ -73,6 +73,26 @@ def test_missing_session_id_writes_nothing(monkeypatch, tmp_path):
     assert not (tmp_path / ".cc_logging").exists()
 
 
+def test_a_traversal_session_id_stays_inside_the_log_dir(monkeypatch, tmp_path):
+    code = _run(
+        monkeypatch, {"hook_event_name": "Stop", "session_id": "../../evil"}, tmp_path
+    )
+    assert code == 0
+    assert sorted(p.name for p in tmp_path.iterdir()) == [".cc_logging"]
+    assert sorted(p.name for p in (tmp_path / ".cc_logging").iterdir()) == [
+        ".-.-evil.jsonl"
+    ]
+
+
+def test_the_session_id_is_sanitized_for_the_log_name():
+    assert hook._safe_session_id("../../evil") == ".-.-evil"
+    assert hook._safe_session_id("s1") == "s1"
+    assert hook._safe_session_id("a..b") == "a.b"
+    assert hook._safe_session_id("") == ""
+    assert hook._safe_session_id(None) == ""
+    assert hook._safe_session_id(7) == ""
+
+
 def test_garbage_stdin_exits_zero(monkeypatch, tmp_path):
     monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
@@ -91,7 +111,7 @@ def test_broken_root_exits_zero(monkeypatch, tmp_path):
     assert hook.main([]) == 0
 
 
-def test_permission_event_keeps_decision(monkeypatch, tmp_path):
+def test_permission_event_drops_the_decision(monkeypatch, tmp_path):
     _run(
         monkeypatch,
         {"hook_event_name": "PermissionRequest", "session_id": "s1", "tool_name": "Bash", "decision": "deny"},
@@ -100,7 +120,7 @@ def test_permission_event_keeps_decision(monkeypatch, tmp_path):
     record = json.loads(
         (tmp_path / ".cc_logging" / "s1.jsonl").read_text(encoding="utf-8").splitlines()[0]
     )
-    assert record["decision"] == "deny"
+    assert "decision" not in record
 
 
 def test_post_event_derives_outcome(monkeypatch, tmp_path):
@@ -154,3 +174,74 @@ def test_post_event_error_outcome(monkeypatch, tmp_path):
         (tmp_path / ".cc_logging" / "s1.jsonl").read_text(encoding="utf-8").splitlines()[0]
     )
     assert record["outcome"] == "error"
+
+
+def test_post_event_success_false_is_an_error(monkeypatch, tmp_path):
+    _run(
+        monkeypatch,
+        {
+            "hook_event_name": "PostToolUse",
+            "session_id": "s1",
+            "tool_name": "Bash",
+            "tool_use_id": "t1",
+            "tool_response": {"success": False},
+        },
+        tmp_path,
+    )
+    record = json.loads(
+        (tmp_path / ".cc_logging" / "s1.jsonl").read_text(encoding="utf-8").splitlines()[0]
+    )
+    assert record["outcome"] == "error"
+
+
+def test_post_event_success_true_is_ok(monkeypatch, tmp_path):
+    _run(
+        monkeypatch,
+        {
+            "hook_event_name": "PostToolUse",
+            "session_id": "s1",
+            "tool_name": "Bash",
+            "tool_use_id": "t1",
+            "tool_response": {"success": True},
+        },
+        tmp_path,
+    )
+    record = json.loads(
+        (tmp_path / ".cc_logging" / "s1.jsonl").read_text(encoding="utf-8").splitlines()[0]
+    )
+    assert record["outcome"] == "ok"
+
+
+def test_post_event_without_outcome_fields_is_none(monkeypatch, tmp_path):
+    _run(
+        monkeypatch,
+        {
+            "hook_event_name": "PostToolUse",
+            "session_id": "s1",
+            "tool_name": "Bash",
+            "tool_use_id": "t1",
+        },
+        tmp_path,
+    )
+    record = json.loads(
+        (tmp_path / ".cc_logging" / "s1.jsonl").read_text(encoding="utf-8").splitlines()[0]
+    )
+    assert record["outcome"] is None
+
+
+def test_post_event_with_an_empty_response_is_none(monkeypatch, tmp_path):
+    _run(
+        monkeypatch,
+        {
+            "hook_event_name": "PostToolUse",
+            "session_id": "s1",
+            "tool_name": "Bash",
+            "tool_use_id": "t1",
+            "tool_response": {},
+        },
+        tmp_path,
+    )
+    record = json.loads(
+        (tmp_path / ".cc_logging" / "s1.jsonl").read_text(encoding="utf-8").splitlines()[0]
+    )
+    assert record["outcome"] is None
