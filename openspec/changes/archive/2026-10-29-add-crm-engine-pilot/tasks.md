@@ -42,4 +42,4 @@
 - [x] 6.2 Raise the coverage floor to the new total and keep the complexity cap at 10.
 - [x] 6.3 Commit the implementation in two milestone commits. Commit one takes the scaffold, the pack, and the backend. Commit two takes the harness, the dashboard, the e2e, the infra, and the docs. Push and open the implementation pull request.
 - [x] 6.4 Run the adversarial review on the diff, fix the confirmed findings, and merge. Budget the noun-guard allowlist volume here.
-- [ ] 6.5 After the merge, archive this change through the archive pull request, as `openspec-git-discipline` orders.
+- [x] 6.5 After the merge, archive this change through the archive pull request, as `openspec-git-discipline` orders.
