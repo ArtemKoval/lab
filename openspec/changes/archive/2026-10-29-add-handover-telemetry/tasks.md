@@ -43,7 +43,7 @@
 - [x] 7.3 Run the crapper, dryer, and mutator gates through the shared venv.
 - [x] 7.4 Run the mutation gate on an out-of-tree copy of the package, and prove every survivor equivalent.
 - [x] 7.5 Run the hook against a live event, measure its duration, and set the settings timeout from the measurement.
-- [ ] 7.6 Run `openspec validate add-handover-telemetry --type change --strict` before archive.
+- [x] 7.6 Run `openspec validate add-handover-telemetry --type change --strict` before archive.
 
 ## 8. Surfaces and docs
 
