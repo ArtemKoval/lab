@@ -153,6 +153,9 @@ htmlcov/
 
 # plan_exec execution ledgers (per-run scratch)
 .plan_exec/
+
+# cc-logging hook logs (per-session, uncommitted)
+.cc_logging/
 .ruff_cache/
 
 # gate tool scratch (crapper, dryer, mutator runs at the analyzed root)
