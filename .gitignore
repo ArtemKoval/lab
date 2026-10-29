@@ -154,3 +154,7 @@ htmlcov/
 # plan_exec execution ledgers (per-run scratch)
 .plan_exec/
 .ruff_cache/
+
+# gate tool scratch (crapper, dryer, mutator runs at the analyzed root)
+.metrics/
+target/

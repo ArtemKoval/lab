@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -21,9 +23,66 @@ jobs:
           python -m venv tools/zai_routing_audit/.venv
           tools/zai_routing_audit/.venv/bin/python -m pip install --upgrade pip
           tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt
+      - name: Build the gate tool venvs
+        run: |
+          python -m venv tools/crapper/.venv
+          tools/crapper/.venv/bin/python -m pip install -e 'tools/crapper[dev]' coverage
+          python -m venv tools/dryer/.venv
+          tools/dryer/.venv/bin/python -m pip install -e 'tools/dryer[dev]' coverage
+          python -m venv tools/mutator/.venv
+          tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage
       - name: Run the root test suite
         run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov-branch --cov-fail-under=100 --cov-config .coveragerc
+      - name: Run the vendored gate suites
+        run: |
+          tools/crapper/.venv/bin/python -m pytest -q tools/crapper/tests
+          tools/dryer/.venv/bin/python -m pytest -q tools/dryer/tests
+          tools/mutator/.venv/bin/python -m pytest -q tools/mutator/tests
       - name: Lint the tools
         run: |
           tools/zai_routing_audit/.venv/bin/ruff check tools/plan_exec
           tools/zai_routing_audit/.venv/bin/ruff check tools/spec_ste_check
+      - name: Derive the changed gated paths
+        if: github.event_name == 'pull_request'
+        run: |
+          changed=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" -- '*.py' \
+            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)' \
+            | grep -vE '^(tools/(crapper|dryer|mutator)/|tests/quality_gates/fixtures/)' || true)
+          echo "GATED_PATHS<<EOF" >> "$GITHUB_ENV"
+          echo "$changed" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+      - name: Produce the gate coverage report
+        if: github.event_name == 'pull_request'
+        run: |
+          tools/zai_routing_audit/.venv/bin/python -m coverage run \
+            --data-file=target/coverage/python/.coverage \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init \
+            -m pytest -q tests
+          tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
+            --data-file=target/coverage/python/.coverage \
+            -o target/coverage/python/lcov.info
+      - name: Gate the changed Python (CRAP and duplication)
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -z "$(printf '%s' "$GATED_PATHS" | tr -d '[:space:]')" ]; then
+            echo "No gated Python changed."
+            exit 0
+          fi
+          echo "Gated paths:"
+          printf '%s\n' "$GATED_PATHS"
+          tools/crapper/crapper --threshold 10 --use-existing-coverage $GATED_PATHS
+          tools/dryer/dryer --threshold 0.8 --fail-above $GATED_PATHS
+      - name: Gate the changed product Python (mutation)
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 20
+        run: |
+          product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^tools/' || true)
+          if [ -z "$(printf '%s' "$product" | tr -d '[:space:]')" ]; then
+            echo "No gated product Python changed."
+            exit 0
+          fi
+          tools/mutator/mutator \
+            --use-existing-coverage \
+            --max-workers 4 \
+            --test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests" \
+            $product

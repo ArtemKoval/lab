@@ -36,14 +36,14 @@ The crapper gate command SHALL run as `tools/crapper/crapper --threshold 10` wit
 - **THEN** the command exits 0
 
 ### Requirement: The dryer gate holds duplication at or below 0.8
-The dryer gate command SHALL run as `tools/dryer/dryer --threshold 0.8` with explicit paths or with `--changed`. The command SHALL exit 0 when no reported pair scores above 0.8. It SHALL exit 2 when a pair scores above 0.8. The apply step SHALL verify the boundary and the exit codes against the vendored code and SHALL correct this requirement before archive when they differ.
+The dryer gate command SHALL run as `tools/dryer/dryer --threshold 0.8 --fail-above` with explicit paths or with `--changed`. The vendored copy adds `--fail-above` to the upstream tool. The tool reports a pair when the pair score is at or above the threshold. The command SHALL exit 0 when no pair is reported. It SHALL exit 2 when a pair at or above 0.8 is reported. The owned tests in `tools/dryer/tests/test_fail_above.py` pin the flag.
 
 #### Scenario: A conforming fixture passes
-- **WHEN** the gate command runs with `--threshold 0.8` on a fixture with no pair above 0.8
+- **WHEN** the gate command runs with `--threshold 0.8 --fail-above` on a fixture with no pair at or above 0.8
 - **THEN** the command exits 0
 
 #### Scenario: A duplicate pair fails the gate
-- **WHEN** the gate command runs with `--threshold 0.8` on a fixture with a pair above 0.8
+- **WHEN** the gate command runs with `--threshold 0.8 --fail-above` on a fixture with a pair that scores 1.0
 - **THEN** the command exits 2 and names the pair
 
 ### Requirement: The mutator gate kills the mutants of changed Python

@@ -5,7 +5,9 @@ import os
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# absolute(), not resolve(): the mutator symlink overlay must keep this
+# path inside the worker tree, so the tests import the mutated copy.
+REPO_ROOT = Path(__file__).absolute().parents[2]
 
 if "MUTANT_UNDER_TEST" not in os.environ:
     for _candidate in (REPO_ROOT / "tools" / "plan_exec", REPO_ROOT):
