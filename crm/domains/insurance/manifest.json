@@ -1,0 +1,16 @@
+{
+  "name": "insurance",
+  "display_name": "UnderCover Travel Insurance",
+  "engine_api": 1,
+  "settings": {
+    "award_approval_limit": 1000.0
+  },
+  "documents": ["wording", "manual"],
+  "seed": {
+    "cases": "data/cases.json",
+    "customers": "data/customers.json",
+    "contracts": "data/contracts.json",
+    "workers": "data/workers.json",
+    "company": "data/company.json"
+  }
+}
