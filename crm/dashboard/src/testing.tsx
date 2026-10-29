@@ -1,0 +1,117 @@
+import { render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import { vi } from "vitest";
+import { App } from "./App";
+import type { Case, CaseSummary, Contract, PreviousCase } from "./api";
+
+// Stands in for the backend: answers "METHOD /path" with the JSON given, or
+// with the status and detail given as an error, and a 404 for anything else.
+export type Routes = Record<string, unknown>;
+
+export class Refusal {
+  constructor(
+    readonly status: number,
+    readonly detail: unknown,
+  ) {}
+}
+
+export function stubApi(routes: Routes) {
+  const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+    const answer = routes[`${init?.method ?? "GET"} ${path}`];
+    if (answer === undefined)
+      return Promise.resolve(
+        Response.json({ detail: "Not found" }, { status: 404 }),
+      );
+    if (answer instanceof Refusal)
+      return Promise.resolve(
+        Response.json({ detail: answer.detail }, { status: answer.status }),
+      );
+    return Promise.resolve(Response.json(answer));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+export function renderAt(path: string) {
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>,
+  );
+}
+
+// Finds the panel headed by the given heading, to look inside it.
+export async function panel(heading: string) {
+  return within(await screen.findByRole("region", { name: heading }));
+}
+
+export const entry: Case = {
+  case_id: "CLM-1002",
+  contract_id: "POL-2002",
+  customer_id: "CUS-3002",
+  customer_name: "Tom Becker",
+  case_type: "baggage",
+  submitted_on: "2026-07-20",
+  incident_date: "2026-06-21",
+  incident_location: "Frankfurt, Germany",
+  summary: "Suitcase lost on a connecting flight",
+  story: "My suitcase never arrived in Prague.",
+  items: [
+    { description: "Hard-shell suitcase", category: "luggage", amount: 280 },
+    { description: "Wool suit", category: "clothing", amount: 870 },
+  ],
+  amount_claimed: 1150,
+  documents: [
+    {
+      name: "Lost baggage report",
+      type: "carrier_report",
+      content: "One checked bag not delivered.",
+    },
+  ],
+  status: "waiting",
+  thread_id: null,
+  attempts: 0,
+  decision: null,
+  payment: null,
+};
+
+export const summary: CaseSummary = {
+  case_id: "CLM-1002",
+  customer_name: "Tom Becker",
+  case_type: "baggage",
+  summary: "Suitcase lost on a connecting flight",
+  amount_claimed: 1150,
+  submitted_on: "2026-07-20",
+  status: "waiting",
+  decision: null,
+  award: null,
+};
+
+export const contract: Contract = {
+  contract_id: "POL-2002",
+  customer_id: "CUS-3002",
+  plan: "premium",
+  add_ons: ["electronics_plus"],
+  purchased_on: "2026-05-02",
+  sold_through: "CRM website",
+  trip: {
+    destination: "Prague, Czech Republic",
+    departs_on: "2026-06-20",
+    returns_on: "2026-06-30",
+    trip_cost: 2400,
+  },
+  travelers: ["Tom Becker"],
+  status: "active",
+};
+
+export const history: PreviousCase[] = [
+  {
+    case_id: "CLM-0412",
+    filed_on: "2024-08-19",
+    incident_date: "2024-08-09",
+    case_type: "baggage_delay",
+    summary: "Checked bag arrived 30 hours late in Lisbon",
+    outcome: "approved",
+    amount_paid: 140,
+  },
+];

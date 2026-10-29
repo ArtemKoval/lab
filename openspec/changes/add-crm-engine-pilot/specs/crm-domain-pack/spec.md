@@ -27,22 +27,22 @@ The manifest SHALL name the pack and SHALL match its folder. The manifest SHALL 
 - **THEN** the loader refuses the pack with a named error
 
 ### Requirement: Seed from the pack
-The seed command SHALL fill the database from the pack. The seed command SHALL be idempotent. The seed command SHALL refuse a pack with a required file absent and name the file.
+The seed command SHALL fill the database from the pack. The seed command SHALL refuse a pack with a required file absent and name the file. A seed over a seeded database SHALL rebuild the same queue.
 
 #### Scenario: Seed fills the queue
 - **GIVEN** a fresh database
 - **WHEN** the user runs the seed command
-- **THEN** the database holds the cases, customers, contracts, plans, workers, and settings from the pack
+- **THEN** the database holds the cases, customers, contracts, workers, and settings from the pack
 
 #### Scenario: Seed names a missing file
 - **GIVEN** a pack with a required file absent
 - **WHEN** the user runs the seed command
 - **THEN** the command fails and names the missing file
 
-#### Scenario: Seed is idempotent
+#### Scenario: A seed over a seeded database rebuilds the same queue
 - **GIVEN** a seeded database
 - **WHEN** the user runs the seed command again
-- **THEN** the command keeps the database and changes nothing
+- **THEN** the database holds the same queue as the first seed built
 
 ### Requirement: Documents in the pack
 The pack SHALL carry the policy documents. The API SHALL serve a section with its document title, its number, and its title.

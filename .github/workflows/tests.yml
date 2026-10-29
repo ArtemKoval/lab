@@ -8,7 +8,68 @@ on:
     branches: [main]
     paths-ignore: ['fde/**', 'llm_ops/**']
 
+env:
+  UV_CACHE_DIR: ~/.cache/uv
+
 jobs:
+  crm:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Derive the changed crm Python paths
+        if: github.event_name == 'pull_request'
+        run: |
+          changed=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" -- '*.py' \
+            | grep -E '^crm/(backend|agent|domains)/' || true)
+          echo "GATED_CRM_PATHS<<EOF" >> "$GITHUB_ENV"
+          echo "$changed" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+      - name: Install uv and the crm Python set
+        if: github.event_name == 'pull_request'
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv sync --project crm
+      - name: Build the gate tool venvs
+        if: github.event_name == 'pull_request'
+        run: |
+          python -m venv tools/crapper/.venv
+          tools/crapper/.venv/bin/python -m pip install -e 'tools/crapper[dev]' coverage
+          python -m venv tools/dryer/.venv
+          tools/dryer/.venv/bin/python -m pip install -e 'tools/dryer[dev]' coverage
+      - name: Produce the crm gate coverage report
+        if: github.event_name == 'pull_request'
+        working-directory: crm
+        run: |
+          if [ -z "$(printf '%s' "$GATED_CRM_PATHS" | tr -d '[:space:]')" ]; then
+            echo "No crm Python changed."
+            exit 0
+          fi
+          .venv/bin/python -m coverage run \
+            --data-file=target/coverage/python/.coverage \
+            --source=backend,agent,domains \
+            -m pytest -q -o addopts=
+          .venv/bin/python -m coverage lcov \
+            --data-file=target/coverage/python/.coverage \
+            -o target/coverage/python/lcov.info
+      - name: Gate the crm Python (CRAP and duplication)
+        if: github.event_name == 'pull_request'
+        working-directory: crm
+        run: |
+          if [ -z "$(printf '%s' "$GATED_CRM_PATHS" | tr -d '[:space:]')" ]; then
+            echo "No crm Python changed."
+            exit 0
+          fi
+          ../tools/crapper/.venv/bin/python -m crapper --threshold 10 --use-existing-coverage backend agent domains
+          ../tools/dryer/.venv/bin/python -m dryer --threshold 0.8 --fail-above backend agent domains
+
   suite:
     runs-on: ubuntu-24.04
     steps:
