@@ -127,3 +127,11 @@ def test_pipeline_names_the_default_gates():
     assert "tools/crapper/crapper --threshold 10" in text
     assert "tools/dryer/dryer --threshold 0.8 --fail-above" in text
     assert "tools/mutator/mutator" in text
+
+
+def test_crapper_suite_skips_the_external_tool_tests():
+    conftest = _read("tools", "crapper", "tests", "conftest.py")
+    assert "Owned by this repository" in conftest
+    assert '_EXTERNAL_TOOLS = ("bb", "zsh")' in conftest
+    assert "test_project_snapshot_is_readable_as_crap4clj_edn" in conftest
+    assert "test_uml_loader_rejects_a_missing_viewer" in conftest
