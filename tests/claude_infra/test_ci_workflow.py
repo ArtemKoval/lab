@@ -61,15 +61,29 @@ def test_workflow_gates_the_changed_python_with_explicit_paths():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "git diff --name-only" in text
     assert "tools/crapper/crapper --threshold 10 --use-existing-coverage $GATED_PATHS" in text
-    assert "tools/dryer/dryer --threshold 0.8 --fail-above $GATED_PATHS" in text
+    assert "tools/dryer/dryer --threshold 0.8 --fail-above $product" in text
     # `--changed` reads the working tree, which is clean in CI.
     assert "--changed" not in text
 
 
-def test_workflow_excludes_the_vendored_trees_and_fixtures():
+def test_workflow_whitelists_the_gated_roots():
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert "tools/(crapper|dryer|mutator)/" in text
-    assert "tests/quality_gates/fixtures/" in text
+    assert (
+        "grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)'"
+        in text
+    )
+    # The whitelist is the only exclusion mechanism in the derive step.
+    assert "grep -vE" not in text
+
+
+def test_workflow_measures_coverage_over_the_gated_roots():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert (
+        "--source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,"
+        "tools/devcontainer_init,tests" in text
+    )
+    assert "coverage lcov" in text
+    assert "-o target/coverage/python/lcov.info" in text
 
 
 def test_workflow_runs_the_mutator_gate_on_product_paths():

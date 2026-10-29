@@ -99,6 +99,16 @@ def test_crapper_gate_fails_a_crap_breach(tmp_path):
     assert "CRAP threshold exceeded" in result.stdout + result.stderr
 
 
+def test_crapper_gate_passes_the_boundary_score(tmp_path):
+    _write(tmp_path, "src/one.py", CONFORMING)
+    _write(tmp_path, "test_one.py", "from src.one import one\n\ndef test_one():\n    assert one(1) == 1\n")
+    _coverage_lcov(tmp_path, "crapper")
+    # The worst CRAP score is exactly 1, so a threshold of 1 sits on the
+    # boundary: the gate fails only when the score exceeds the threshold.
+    result = _run("crapper", ["--threshold", "1", "--use-existing-coverage", "src/one.py"], tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_dryer_gate_passes_a_clean_unit(tmp_path):
     _write(tmp_path, "src/one.py", CONFORMING)
     result = _run("dryer", ["--threshold", "0.8", "--fail-above", "src/one.py"], tmp_path)

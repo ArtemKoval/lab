@@ -48,7 +48,7 @@ Run the root test suite from the repository root. By default, it opens no networ
 tools/zai_routing_audit/.venv/bin/python -m pytest
 ```
 
-The e2e tests run only with their gate variables. They must have a network or a Docker daemon.
+The e2e tests run only with their gate variables. The zai and devcontainer tests need a network or a Docker daemon. The gate-tool smoke needs only the three built tool venvs.
 
 ```bash
 ZAI_ROUTING_AUDIT_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest -m e2e

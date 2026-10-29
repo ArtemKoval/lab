@@ -52,7 +52,9 @@ def test_dryer_carries_the_fail_above_flag_and_owned_tests():
     cli = _read("tools", "dryer", "src", "dryer", "cli.py")
     assert "--fail-above" in cli
     assert "options.fail_above" in cli
-    assert _read("tools", "dryer", "tests", "test_fail_above.py")
+    owned = _read("tools", "dryer", "tests", "test_fail_above.py")
+    assert "--fail-above" in owned
+    assert "code == 2" in owned
 
 
 def test_mutator_sits_beside_crapper():

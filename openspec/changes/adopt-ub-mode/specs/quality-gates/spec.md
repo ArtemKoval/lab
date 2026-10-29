@@ -80,15 +80,15 @@ The test workflow SHALL build the three unit venvs and SHALL run the three vendo
 - **THEN** the workflow filter skips the test workflow and no gate runs
 
 ### Requirement: The CI gate derives its paths from the pull request diff
-The gate step SHALL fetch the pull request base and SHALL derive the changed gated paths from the diff. The step SHALL pass the paths to the tools as explicit arguments. The gate scope SHALL be the repository-owned Python minus the vendored trees and the fixtures. The crapper and dryer gates SHALL use the LCOV form of the workflow coverage run. The mutator gate SHALL cover changed product paths only.
+The gate step SHALL fetch the pull request base and SHALL derive the changed gated paths from the diff. The whitelist SHALL be the four owned tools and `tests/`. The crapper gate SHALL cover changed product and test paths. The dryer and mutator gates SHALL cover changed product paths only. The coverage run SHALL include the test paths, so a changed test file scores its own coverage.
 
 #### Scenario: A clean CI checkout still gates the changed files
 - **WHEN** the gate step runs in CI, where the working tree is clean
 - **THEN** the tools receive the changed paths as explicit arguments and no step uses `--changed`
 
 #### Scenario: The coverage input is the workflow coverage run
-- **WHEN** the crapper and dryer gate steps run on a pull request
-- **THEN** they read the LCOV conversion of the coverage report the workflow pytest run produced
+- **WHEN** the crapper gate step runs on a pull request
+- **THEN** it reads the LCOV conversion of the coverage report the workflow coverage run produced, with the test paths among the measured sources
 
 ### Requirement: The mutator CI step carries a runtime budget
 The mutator step SHALL cap its workers and SHALL carry a timeout as its budget. The gate venvs SHALL carry `pytest` and `coverage` from the install step, so no gate run installs tooling on demand. The workflow contract test SHALL state the mutation policy after this change.

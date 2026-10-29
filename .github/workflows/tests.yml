@@ -46,17 +46,20 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           changed=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" -- '*.py' \
-            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)' \
-            | grep -vE '^(tools/(crapper|dryer|mutator)/|tests/quality_gates/fixtures/)' || true)
+            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init)/|tests/)' || true)
           echo "GATED_PATHS<<EOF" >> "$GITHUB_ENV"
           echo "$changed" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
       - name: Produce the gate coverage report
         if: github.event_name == 'pull_request'
         run: |
+          if [ -z "$(printf '%s' "$GATED_PATHS" | tr -d '[:space:]')" ]; then
+            echo "No gated Python changed."
+            exit 0
+          fi
           tools/zai_routing_audit/.venv/bin/python -m coverage run \
             --data-file=target/coverage/python/.coverage \
-            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/devcontainer_init,tests \
             -m pytest -q tests
           tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
             --data-file=target/coverage/python/.coverage \
@@ -71,7 +74,12 @@ jobs:
           echo "Gated paths:"
           printf '%s\n' "$GATED_PATHS"
           tools/crapper/crapper --threshold 10 --use-existing-coverage $GATED_PATHS
-          tools/dryer/dryer --threshold 0.8 --fail-above $GATED_PATHS
+          product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^tools/' || true)
+          if [ -n "$(printf '%s' "$product" | tr -d '[:space:]')" ]; then
+            # Test files carry pre-existing structural clones, so the dryer
+            # gate covers product paths only.
+            tools/dryer/dryer --threshold 0.8 --fail-above $product
+          fi
       - name: Gate the changed product Python (mutation)
         if: github.event_name == 'pull_request'
         timeout-minutes: 20
