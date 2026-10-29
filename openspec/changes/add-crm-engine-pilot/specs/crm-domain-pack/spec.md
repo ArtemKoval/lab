@@ -60,6 +60,14 @@ The pack SHALL carry the agent instructions. The API SHALL serve the instruction
 - **WHEN** a client asks the API for the instructions
 - **THEN** the API returns the instructions text from the pack
 
+### Requirement: Evals stay out of the queue
+The pack SHALL carry the held-out decision sets for later changes. The seed and the document routes SHALL return no eval content to the agents or the pages.
+
+#### Scenario: The agents never see the evals
+- **GIVEN** the eval files of the pack
+- **WHEN** a client seeds the database or reads a document
+- **THEN** no response carries eval content
+
 ### Requirement: The engine stays generic
 Engine code SHALL carry no domain noun outside the packs. A root-suite guard test SHALL fail on a banned domain noun in engine code.
 

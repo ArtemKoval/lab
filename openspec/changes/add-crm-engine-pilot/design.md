@@ -25,18 +25,17 @@ crm/
   domains/
     insurance/    the first domain pack
       manifest.json
-      policy/wording.md, manual.md
+      policy/wording.md, manual.md, wording_short.md
       data/       cases, customers, contracts, plans, workers, company, knowledge
       instructions/case.md, queue.md
       evals/      held-out decision sets for later changes
   docs/           BRIEF, HARNESS, PROCESS, TECH_STACK, STATUS, CODE_STANDARDS
-  e2e/            see above
   .devcontainer/  devcontainer.json and README
-  pyproject.toml  uv project with dev dependencies
+  pyproject.toml  uv project with the agent and dev dependencies
   package.json    npm scripts that drive uv and vite
 ```
 
-The engine is `crm/` without `crm/domains/`. No engine module imports a pack by name. The loader resolves the pack folder, and the engine reads the pack only through the loader.
+The engine is `crm/` without `crm/domains/`. No engine module imports a pack by name. The loader at `crm/domains/loader.py` is the one module that names the default pack, and the noun guard skips it. The engine reads the pack only through the loader. The `backend` and `agent` top-level packages match the upstream names for port fidelity, and later changes keep new packages in that shape. The collision risk in a monorepo stays noted here.
 
 ## Vocabulary
 
@@ -50,7 +49,7 @@ The rename applies to engine code, tables, routes, tools, and dashboard text. Th
 | policy, policy record | contract | contract label is policy |
 | UnderCover | crm | brand in the manifest |
 
-Guard: a root-suite test greps `crm/backend`, `crm/agent`, `crm/dashboard/src`, and `crm/e2e` for the banned nouns `claim`, `payout`, `handler`, and `undercover`. The test keeps an allowlist for false hits. A new domain noun goes into the test list.
+Guard: a root-suite test greps `crm/backend`, `crm/agent`, `crm/dashboard/src`, and `crm/e2e` for the banned nouns `claim`, `payout`, `handler`, `policy`, `policies`, and `undercover`. The test keeps an allowlist for false hits, and ordinary senses such as an event handler land there. A new domain noun goes into the test list. The manifest serves the engine settings, and the pack `company.json` stays pack content for brand data. The pack carries both documents, and the engine serves the wording and the manual as week one ends. The short wording ports as an unwired extra.
 
 ## Environment variables
 
@@ -77,7 +76,7 @@ The pack schemas use engine nouns from the first commit. The seed JSON carries `
 
 ### Sign-off and payment
 
-The sign-off rule and the payment block stay in engine code, as upstream week one has them. The limit comes from the manifest settings.
+The sign-off rule and the payment block stay in engine code, as upstream week one has them. The limit comes from the manifest settings. Week one has no sign-in, so the sign-off request names a seeded worker, and the API records it as given. The agent framework is LangChain and LangGraph on OpenRouter through `langchain-openai`. The stub model is a scripted stand-in for that model interface, and the harness tests bind the same tool list to both. The model call cap ports as an engine constant with the upstream value.
 
 ### Hermeticity
 
@@ -104,6 +103,10 @@ The project config names a skill for each artifact. This change runs their outco
 - The design carries the layout tree here. The C4 diagram set is a deliverable of the final wiki change, with the `c4-diagrams` skill there.
 - The ADR files follow the six accepted records in `adr/` and the `architectural-decision-records` shape they share.
 - An `adversarial-reviewer` round runs on the artifacts before the proposal pull request, and a builder check follows.
+
+## Builder check
+
+A fresh builder agent read the artifacts alone and asked twelve questions. Three were already answered. Eight settled as minor, and this design adopts the calls. The loader is the one seam module that may name the default pack. The guard also bans `policy`. The week one sign-off names a seeded worker without auth. The model call cap stays an engine constant. A missed to-do item is one that ends in the to do state. Commit one takes scaffold, pack, and backend, and commit two takes the rest. The knowledge and company data port verbatim and wire as week one wires them. The seed parses the markdown documents into a table that search reads. One question went to the author: the upstream source. The clone lives at `/home/repos/undercover-upstream` with the two milestone refs, and the artifacts win on a conflict.
 
 ## Failure modes
 

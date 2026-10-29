@@ -40,5 +40,6 @@
 
 - [ ] 6.1 Run the crm pytest suite, the root suite, and the three gate tools on the changed paths, and fix what fails.
 - [ ] 6.2 Raise the coverage floor to the new total and keep the complexity cap at 10.
-- [ ] 6.3 Run `openspec validate add-crm-engine-pilot --strict`, commit the two milestone commits, push, and open the pull request.
-- [ ] 6.4 Run the adversarial review on the diff, fix the confirmed findings, and merge.
+- [ ] 6.3 Commit the implementation in two milestone commits. Commit one takes the scaffold, the pack, and the backend. Commit two takes the harness, the dashboard, the e2e, the infra, and the docs. Push and open the implementation pull request.
+- [ ] 6.4 Run the adversarial review on the diff, fix the confirmed findings, and merge. Budget the noun-guard allowlist volume here.
+- [ ] 6.5 After the merge, archive this change through the archive pull request, as `openspec-git-discipline` orders.

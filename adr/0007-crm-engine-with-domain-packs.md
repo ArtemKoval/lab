@@ -18,4 +18,4 @@ Adopt a standalone project at `crm/` that ports the upstream milestones in order
 
 ## Consequences
 
-The upstream milestones land as mechanical diffs behind the seam, and the port order follows the upstream branch order. A new domain is a pack plus a validation and smoke run, with no engine change. The pack content keeps upstream prose, which is exempt from the house prose rules as vendored text. The local auth and checkpoint choices land with the changes that port them, and this record owns only the seam.
+The upstream milestones land as mechanical diffs behind the seam, and the port order follows the upstream branch order. A new domain is a pack plus a validation and smoke run, with no engine change. The pack content sits outside the spec gate scope and keeps upstream prose as vendored text. The local auth and checkpoint choices land with the changes that port them, and this record owns only the seam.
