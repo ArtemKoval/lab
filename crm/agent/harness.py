@@ -33,7 +33,7 @@ from langgraph.runtime import Runtime
 from langgraph.store.base import BaseStore
 from langgraph.types import Command, Overwrite, RetryPolicy, interrupt
 
-from agent import api, app_terms, worker_answer, memory, tool_route
+from agent import api, app_terms, memory, tool_route, worker_answer
 from agent.checkpoints import Pool
 from agent.connection import Refused
 from agent.console import describe
@@ -273,9 +273,7 @@ def after_pay(state: CaseState) -> str:
     return HELD if state["status"] == app_terms.Status.WAITING_FOR_SIGN_OFF else END
 
 
-def wait_for_worker(
-    state: CaseState, runtime: Runtime[CaseContext]
-) -> dict[str, Any]:
+def wait_for_worker(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
     """Pause the case's work until a worker answers its held approval. A resume
     runs this node again from the top, so nothing goes before the interrupt. A
     sign-off has already paid the case, so the work then ends. A send back forgets
@@ -583,9 +581,7 @@ def resume(case_id: str, agent: CaseAgent) -> str:
     return work_on(case, start, case_config(case, RESUME, None, ()), None, agent)
 
 
-def work_in_run(
-    case_id: str, run_id: str, new_agent: NewAgent, tags: Tags = ()
-) -> str:
+def work_in_run(case_id: str, run_id: str, new_agent: NewAgent, tags: Tags = ()) -> str:
     """Work one case in a run with a case agent of its own, carrying it on if it
     is in progress, as a sent-back case the run took is, or starting it if it is
     waiting, and report how it ended, with any tags for its trace beside the

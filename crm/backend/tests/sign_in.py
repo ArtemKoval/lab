@@ -12,8 +12,8 @@ from backend.dependencies import API_KEY_HEADER
 
 # The auth service the tests stand in for.
 AUTH_URL = "https://auth.test"
-DANA = "dana.whitfield@crm.example"
-MARCUS = "marcus.oyelaran@crm.example"
+DANA = "dana.whitfield@undercover.example"
+MARCUS = "marcus.oyelaran@undercover.example"
 
 KEY_ID = "test-key"
 KEY = ec.generate_private_key(ec.SECP256R1())

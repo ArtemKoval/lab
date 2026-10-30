@@ -480,8 +480,7 @@ const askTheCopilot = (path: string, body: object) =>
   send<Conversation>("POST", path, body, freshAccessToken);
 
 const CASES = "/api/cases";
-const casePath = (caseId: string) =>
-  `${CASES}/${encodeURIComponent(caseId)}`;
+const casePath = (caseId: string) => `${CASES}/${encodeURIComponent(caseId)}`;
 const DISPATCHES = "/api/dispatches";
 const CONFIGURATION = "/api/configuration";
 const SETTINGS = "/api/settings";
@@ -499,8 +498,7 @@ const conversationPath = (conversationId: string) =>
 export const api = {
   listCases: () => request<CaseSummary[]>(CASES),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
-  listSteps: (caseId: string) =>
-    request<Step[]>(`${casePath(caseId)}/steps`),
+  listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>
     request<Contract>(`/api/contracts/${encodeURIComponent(contractId)}`),
   getCaseHistory: (customerId: string) =>

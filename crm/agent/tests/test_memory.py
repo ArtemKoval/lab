@@ -62,9 +62,7 @@ def test_an_approval_paid_saves_the_case_and_the_decision(client):
         ("CLM-1004", partial(decide, "refer", 0), "CLM-1004  refer  $0.00"),
     ],
 )
-def test_each_decision_the_case_agent_makes_is_saved(
-    client, case_id, replies, report
-):
+def test_each_decision_the_case_agent_makes_is_saved(client, case_id, replies, report):
     store = MemoryStandIn()
     agent = agent_on(stub(*replies()), store=store)
     assert harness.work_case(case_id, None, agent) == report

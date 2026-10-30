@@ -3,8 +3,8 @@ improver that follows a script of tool calls, and stub case agents that decide
 better once their instructions hold the improver's rule."""
 
 from agent.tests.stubs import StubModel, calculate, call, stub
-from domains import loader
 from backend.tests.round_requests import worker_answers
+from domains import loader
 
 # What the improver adds to the case agent's instructions in the tests, and what
 # makes the stub case agents decide as the workers did.

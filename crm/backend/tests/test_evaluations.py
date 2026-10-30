@@ -1,4 +1,3 @@
-from domains import loader
 import json
 
 import pytest
@@ -19,6 +18,7 @@ from backend.tests.run_requests import (
     queue,
     record_cases,
 )
+from domains import loader
 
 TINY_HELD_OUT = ["CLM-1114", "CLM-1106", "CLM-1112", "CLM-1104", "CLM-1110"]
 

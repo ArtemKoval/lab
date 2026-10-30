@@ -119,9 +119,7 @@ def workers_from(monkeypatch):
 
     def given(case_model, saver, improver_model):
         def case_agents(version, kind):
-            return partial(
-                agent_on, case_model, saver, version, pauses=pauses_in(kind)
-            )
+            return partial(agent_on, case_model, saver, version, pauses=pauses_in(kind))
 
         workers = work.Workers(case_agents, lambda round: improver_model, saver)
         monkeypatch.setattr(entrypoint, "open_checkpoint_pool", object)

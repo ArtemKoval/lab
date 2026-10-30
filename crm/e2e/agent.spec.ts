@@ -149,9 +149,7 @@ test("the case page shows every kind of step, the context used and the whole rec
   await expect(
     decision.getByText(/^Decided by CRM Agent, version 1 at /),
   ).toBeVisible();
-  await expect(
-    decision.getByText("Cases manual version 2026.2"),
-  ).toBeVisible();
+  await expect(decision.getByText("Cases manual version 2026.2")).toBeVisible();
 });
 
 test("a sign-off on the dashboard pays the held award and asks the agent to resume the case", async ({

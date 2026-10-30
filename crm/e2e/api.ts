@@ -16,8 +16,7 @@ import { AGENT_KEY_HEADERS, AGENT_STAND_IN } from "./servers";
 // agent's key.
 type Request = APIRequestContext;
 
-const casePath = (caseId: string) =>
-  `/api/cases/${encodeURIComponent(caseId)}`;
+const casePath = (caseId: string) => `/api/cases/${encodeURIComponent(caseId)}`;
 
 // Sends a request as the agent's side does, with its key, and returns the
 // backend's answer, which may be a refusal.
@@ -112,8 +111,7 @@ export async function decide(
 ) {
   if (decision.decision === "approve") {
     const deductible =
-      decision.award -
-      (await awardOnABill(request, caseId, decision.award));
+      decision.award - (await awardOnABill(request, caseId, decision.award));
     await awardOnABill(request, caseId, decision.award + deductible);
   }
   return recordDecision(request, caseId, { ...decision, decided_by: MAKER });

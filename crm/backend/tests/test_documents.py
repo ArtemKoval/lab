@@ -1,16 +1,17 @@
 from pathlib import Path
-from backend import context_files
-from domains import loader
-"""The documents and the award rules seeding loads from the context layer's
-files, and the contents of both documents the case agent's instructions end
-with."""
 
 import pytest
 import yaml
 from sqlalchemy import select
 
-from backend.database import documents, engine, award_rules
+from backend import context_files
+from backend.database import award_rules, documents, engine
 from backend.documents import headings, manual_version
+from domains import loader
+
+"""The documents and the award rules seeding loads from the context layer's
+files, and the contents of both documents the case agent's instructions end
+with."""
 
 
 @pytest.mark.parametrize(
@@ -47,7 +48,11 @@ def test_both_documents_are_seeded_from_the_context_layer_with_their_versions():
 
 
 def test_the_award_rules_are_the_context_layers_plans():
-    plans = yaml.safe_load((Path(__file__).parents[2] / "context" / "plans.yaml").read_text(encoding="utf-8"))
+    plans = yaml.safe_load(
+        (Path(__file__).parents[2] / "context" / "plans.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
     del plans["source"]
     with engine().connect() as db:
         assert db.execute(select(award_rules.c.plans)).scalar_one() == plans

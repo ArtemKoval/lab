@@ -75,14 +75,13 @@ Step = tuple[api.StepKind, str, api.Sources]
 @tool
 def get_case(runtime: ToolRuntime[CaseContext]) -> str:
     """Get your case in full: the story, the items claimed and the documents."""
-    return case_as_read(
-        on_app(runtime, "get_case", case_id=runtime.context.case_id)
-    )
+    return case_as_read(on_app(runtime, "get_case", case_id=runtime.context.case_id))
 
 
 @tool
 def get_contract(runtime: ToolRuntime[CaseContext]) -> str:
-    """Get your case's contract: the plan, add-ons, purchase date, trip and travelers."""
+    """Get your case's contract: the plan, add-ons, purchase date,
+    trip and travelers."""
     contract_id = runtime.context.contract_id
     return as_json(on_app(runtime, "get_contract", contract_id=contract_id))
 

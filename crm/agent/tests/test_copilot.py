@@ -55,12 +55,12 @@ def test_the_model_knows_who_it_works_for(copilot: Copilot):
     copilot.ask("Hello")
     [system, *_] = copilot.model.prompts[0]
     assert isinstance(system, SystemMessage)
-    assert "Dana Whitfield, Senior Cases Worker" in system.text
+    assert "Dana Whitfield, Senior Claims Handler" in system.text
     assert "They can sign off awards over the approval limit." in system.text
     copilot.model = stub("Hello, Marcus.")
     copilot.ask("Hello", email=MARCUS)
     [system, *_] = copilot.model.prompts[0]
-    assert "Marcus Oyelaran, Cases Worker" in system.text
+    assert "Marcus Oyelaran, Claims Handler" in system.text
     assert "They can't sign off awards over the approval limit" in system.text
 
 
@@ -225,9 +225,7 @@ def test_the_gateway_route_for_the_context_layer(
     copilot: Copilot, gateway, monkeypatch
 ):
     monkeypatch.setenv(GATEWAY_URL, gateway.url)
-    copilot.model = stub(
-        call("read_section", document="wording", number=3), "Read."
-    )
+    copilot.model = stub(call("read_section", document="wording", number=3), "Read.")
     [turn] = copilot.ask("What does section 3 say?")["turns"]
     assert gateway.names == ["crm-context___read_section"]
     assert all(c.signed for c in gateway.calls)
@@ -326,9 +324,7 @@ def test_the_lookups_each_with_a_card(client, copilot: Copilot):
 def test_a_call_with_bad_inputs_or_to_no_such_tool_goes_back_to_the_model(
     copilot: Copilot,
 ):
-    copilot.model = stub(
-        call("get_case"), call("pay_case", case_id="CLM-1001"), "Ok."
-    )
+    copilot.model = stub(call("get_case"), call("pay_case", case_id="CLM-1001"), "Ok.")
     [turn] = copilot.ask("Look at a case")["turns"]
     [card] = turn["steps"]
     assert (card["tool"], card["status"]) == ("get_case", "refused")

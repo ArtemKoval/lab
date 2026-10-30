@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from backend import auth
-from backend.database import engine, workers, load
+from backend.database import engine, load, workers
 from backend.tests.case_requests import decide, start
 from backend.tests.gates import WORKER_OPERATIONS
 from backend.tests.rows import everything_recorded
@@ -27,7 +27,7 @@ def test_the_signed_in_worker(client):
     assert response.json() == {
         "worker_id": "HND-01",
         "name": "Dana Whitfield",
-        "role": "Senior Cases Worker",
+        "role": "Senior Claims Handler",
         "email": DANA,
         "can_approve_over_limit": True,
     }
@@ -59,7 +59,7 @@ def test_a_sign_in_that_isnt_a_workers_is_refused(client):
     response = client.get("/api/me", headers=signed_in("visitor@example.com"))
     assert response.status_code == 403
     assert response.json()["detail"] == (
-        "visitor@example.com isn't one of our cases workers"
+        "visitor@example.com isn't one of our case workers"
     )
 
 

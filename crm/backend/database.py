@@ -5,14 +5,11 @@ The same tables and queries serve Postgres on Supabase, when DATABASE_URL is set
 SQLite otherwise, as in the tests.
 """
 
-import json
 import os
 from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
 from typing import Any, NamedTuple
-
-from domains import loader
 
 from sqlalchemy import (
     JSON,
@@ -45,6 +42,7 @@ from backend.models import (
     Status,
     Verdict,
 )
+from domains import loader
 
 ROOT = Path(__file__).resolve().parent.parent
 MANUAL = "manual"
@@ -473,9 +471,7 @@ class LabeledSet(NamedTuple):
 
 LABELED_SETS = {
     EvaluationSet.EVALUATION: LabeledSet(cases, "decisions.json"),
-    EvaluationSet.HELD_OUT: LabeledSet(
-        held_out_cases, "held_out_decisions.json"
-    ),
+    EvaluationSet.HELD_OUT: LabeledSet(held_out_cases, "held_out_decisions.json"),
 }
 
 case_view = (

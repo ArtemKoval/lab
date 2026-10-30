@@ -4,7 +4,7 @@ in, which an approval in that attempt must match."""
 from sqlalchemy import Connection, RowMapping, delete, insert, select
 
 from backend.database import calculations, now
-from backend.models import Calculation, Award
+from backend.models import Award, Calculation
 
 
 def keep_calculation(

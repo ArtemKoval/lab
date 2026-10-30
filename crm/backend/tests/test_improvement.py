@@ -6,7 +6,7 @@ import httpx
 import pytest
 from sqlalchemy import event, select
 
-from backend.database import engine, worker_decisions, held_out_cases
+from backend.database import engine, held_out_cases, worker_decisions
 from backend.tests.agent_answers import unreachable
 from backend.tests.dashboard_reads import read, recipe
 from backend.tests.judging import answer
@@ -14,7 +14,6 @@ from backend.tests.round_requests import (
     ALL,
     approved_change,
     create_round,
-    worker_reasons,
     improvement,
     improver_call,
     play_out,
@@ -23,6 +22,7 @@ from backend.tests.round_requests import (
     review,
     round_path,
     stop_round,
+    worker_reasons,
 )
 from backend.tests.rows import newest_round
 from backend.tests.settings_requests import change_settings
@@ -345,8 +345,7 @@ def test_the_improver_reads_nothing_from_the_held_out_set_but_scores(client):
 
     assert view["current_version"]["number"] == 1
     assert (
-        "## Contents of the cases manual"
-        not in view["current_version"]["instructions"]
+        "## Contents of the cases manual" not in view["current_version"]["instructions"]
     )
     assert view["scores"]["held_out"]["accuracy"] is not None
     wrong = view["evaluation_set"]["wrong"]

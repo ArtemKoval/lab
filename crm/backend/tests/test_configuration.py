@@ -4,13 +4,12 @@ import httpx
 import pytest
 from sqlalchemy import select, update
 
-from domains import loader
 from backend.database import (
     engine,
-    worker_decisions,
     runs,
     seed,
     versions,
+    worker_decisions,
 )
 from backend.tests.case_requests import decide, start
 from backend.tests.dashboard_reads import (
@@ -29,6 +28,7 @@ from backend.tests.run_requests import (
     latest_dispatch,
 )
 from backend.tests.versions import add_version
+from domains import loader
 
 CASE_MD = loader.pack().instruction("case")
 

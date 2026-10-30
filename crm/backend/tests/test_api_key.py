@@ -18,9 +18,9 @@ from backend.tests.case_requests import decide, start
 from backend.tests.dashboard_reads import read
 from backend.tests.gates import (
     AGENT_OPERATIONS,
-    WORKER_OPERATIONS,
     OPEN,
     SHARED_READS,
+    WORKER_OPERATIONS,
 )
 from backend.tests.round_requests import create_round, propose_change, review
 from backend.tests.rows import count

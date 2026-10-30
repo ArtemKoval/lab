@@ -28,10 +28,10 @@ from backend.models import (
     CopilotStepRequest,
     CopilotStepResult,
     CopilotTurn,
-    Worker,
     Status,
     TurnFinishRequest,
     TurnStatus,
+    Worker,
 )
 
 TITLE_LENGTH = 120
@@ -124,9 +124,7 @@ def owned(db: Connection, conversation_id: str, worker: Worker) -> RowMapping:
     return row
 
 
-def conversation(
-    db: Connection, conversation_id: str, worker: Worker
-) -> Conversation:
+def conversation(db: Connection, conversation_id: str, worker: Worker) -> Conversation:
     """One of the worker's conversations, with every turn and its cards."""
     row = owned(db, conversation_id, worker)
     query = (
@@ -366,9 +364,7 @@ def card_of(db: Connection, case_id: str) -> dict[str, Any]:
     sign-off or is an evaluation's copy."""
     case = find_case(db, case_id)
     if case["evaluation_id"] is not None:
-        raise HTTPException(
-            409, A_COPY.format(case_id=case_id, answered="signed off")
-        )
+        raise HTTPException(409, A_COPY.format(case_id=case_id, answered="signed off"))
     if case["status"] != Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(409, NOT_WAITING_FOR_SIGN_OFF.format(case_id=case_id))
     return {

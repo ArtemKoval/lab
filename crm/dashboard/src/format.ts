@@ -102,7 +102,7 @@ export function dateTime(isoTime: string): string {
 }
 
 export function agentsAtOnce(agents: number): string {
-  return `${String(agents)} entry ${agents === 1 ? "agent" : "agents"} at once`;
+  return `${String(agents)} case ${agents === 1 ? "agent" : "agents"} at once`;
 }
 
 // A worker's initials, from their first and last names, such as DW for Dana

@@ -2,6 +2,7 @@
 messages for what isn't found or can't be answered, which more than one of the
 backend's modules need."""
 
+from collections.abc import Callable
 from typing import Any
 
 from fastapi import HTTPException
@@ -21,7 +22,7 @@ from backend.models import ModelAllowed, Settings, Verdict
 
 RUN_NOT_FOUND = "Run {run_id} not found"
 CASE_NOT_FOUND = "Case {case_id} not found"
-VERSION_NOT_FOUND = "Version {number} not found"
+VERSION_NOT_FOUND = "Version {value} not found"
 CUSTOMER_NOT_FOUND = "Customer {customer_id} not found"
 NOT_WAITING_FOR_SIGN_OFF = "Case {case_id} is not waiting for sign-off"
 A_COPY = "Case {case_id} is a copy in an evaluation and can't be {answered}"
@@ -68,13 +69,23 @@ def round_number(db: Connection, round_id: str | None) -> int | None:
     return round_numbers(db, [round_id])[round_id]
 
 
-def version_row(db: Connection, number: int) -> RowMapping:
-    """Return one version of the case agent's configuration, or raise a 404."""
-    query = select(versions).where(versions.c.number == number)
-    row = db.execute(query).mappings().first()
-    if row is None:
-        raise HTTPException(404, VERSION_NOT_FOUND.format(number=number))
-    return row
+def row_fetcher(
+    table: Any, column: Any, not_found: str
+) -> Callable[[Connection, Any], RowMapping]:
+    """Make a lookup of the one row of the table where the column holds the value,
+    or a 404 with the message."""
+
+    def fetch(db: Connection, value: Any) -> RowMapping:
+        query = select(table).where(column == value)
+        row = db.execute(query).mappings().first()
+        if row is None:
+            raise HTTPException(404, not_found.format(value=value))
+        return row
+
+    return fetch
+
+
+version_row = row_fetcher(versions, versions.c.number, VERSION_NOT_FOUND)
 
 
 def current_version_number(db: Connection) -> int:

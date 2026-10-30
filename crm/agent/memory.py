@@ -29,9 +29,7 @@ def what_was_claimed(case: dict[str, Any]) -> str:
     """The case as its customer made it: its summary, the benefit claimed, the
     date and place of the incident and the items claimed, and never the story or
     the documents."""
-    items = "; ".join(
-        f"{i['description']}, ${i['amount']:,.2f}" for i in case["items"]
-    )
+    items = "; ".join(f"{i['description']}, ${i['amount']:,.2f}" for i in case["items"])
     return (
         f"Case {case['case_id']}: {case['summary']}\n"
         f"Benefit claimed: {case['case_type']}\n"

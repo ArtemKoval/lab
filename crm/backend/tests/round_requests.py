@@ -3,7 +3,7 @@ agent and the dashboard do."""
 
 from sqlalchemy import select, update
 
-from backend.database import engine, worker_decisions, runs
+from backend.database import engine, runs, worker_decisions
 from backend.tests.case_requests import decide
 from backend.tests.dashboard_reads import read
 from backend.tests.rows import newest_round

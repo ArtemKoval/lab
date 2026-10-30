@@ -19,18 +19,17 @@ from backend.calculation import (
 from backend.configuration import router as configuration
 from backend.copilot import router as copilot
 from backend.customers import router as customers_router
-from domains import loader
 from backend.database import (
+    award_rules,
     case_view,
     cases,
+    contracts,
     decisions,
     engine,
     is_seeded,
     model_calls,
     now,
     payments,
-    award_rules,
-    contracts,
     seed,
     stamp,
     steps,
@@ -39,9 +38,9 @@ from backend.database import (
 from backend.dependencies import (
     AgentKey,
     Database,
-    WorkerOrAgent,
     SignedIn,
     SignedInWorker,
+    WorkerOrAgent,
     senior,
 )
 from backend.documents import manual_version
@@ -56,22 +55,21 @@ from backend.lookups import (
     run_row,
 )
 from backend.models import (
+    Award,
+    AwardRequest,
+    AwardsOverTheLimit,
     Case,
     CaseSummary,
+    Contract,
     DecisionKind,
     DecisionRequest,
     FailureRequest,
-    Worker,
     HoldRequest,
     ModelCall,
     ModelCallRequest,
     NewStep,
     PaymentRequest,
-    Award,
-    AwardRequest,
-    AwardsOverTheLimit,
     Plans,
-    Contract,
     PreviousCase,
     SendBackRequest,
     StartRequest,
@@ -79,6 +77,7 @@ from backend.models import (
     Step,
     StepRequest,
     TakeRequest,
+    Worker,
     WorkTime,
     WorkTimeRequest,
 )
@@ -88,6 +87,7 @@ from backend.round_state import round_row, why_no_case_starts
 from backend.runs import router as runs
 from backend.sent_back import keep, sent_back_of
 from backend.views import to_case, to_summary
+from domains import loader
 
 ATTEMPTS = 2
 NOT_APPROVED = "Case {case_id} has not been approved"
@@ -166,9 +166,7 @@ def record_payment(db: Connection, case: RowMapping) -> None:
 
 def set_status(db: Connection, case_id: str, status: Status) -> None:
     """Move a case to a new status."""
-    db.execute(
-        update(cases).where(cases.c.case_id == case_id).values(status=status)
-    )
+    db.execute(update(cases).where(cases.c.case_id == case_id).values(status=status))
 
 
 def move_case(
@@ -272,9 +270,7 @@ def list_cases(db: Database) -> list[CaseSummary]:
     return [to_summary(row) for row in rows]
 
 
-@app.get(
-    "/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent]
-)
+@app.get("/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent])
 def get_case(case_id: str, db: Database) -> Case:
     """Get one case in full: the story, the items claimed and the documents."""
     return case_in_full(db, case_id)
@@ -488,7 +484,7 @@ def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
     if case.status != Status.IN_PROGRESS:
         raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
     contract = find_contract(db, case.contract_id)
-    award = work_out_award(contract, plans(db), request, approval_limit(db))
+    award = rules().work_out_award(contract, plans(db), request, approval_limit(db))
     keep_calculation(db, case_id, case.thread_id, award)
     return award
 
@@ -500,7 +496,7 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
     """Pay an approved case its award once, unless it is over the limit."""
     amount = round(request.amount, 2)
     limit = approval_limit(db)
-    if needs_sign_off(amount, limit):
+    if rules().needs_sign_off(amount, limit):
         raise HTTPException(403, over_the_limit(limit))
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:
@@ -590,9 +586,7 @@ def take_case(case_id: str, request: TakeRequest, db: Database) -> Case:
 def record_case_heartbeat(case_id: str, db: Database) -> Case:
     """Record that a resume is still working on a case."""
     heard = db.execute(
-        update(cases)
-        .where(cases.c.case_id == case_id)
-        .values(resume_heard_at=now())
+        update(cases).where(cases.c.case_id == case_id).values(resume_heard_at=now())
     )
     if heard.rowcount == 0:
         raise HTTPException(404, CASE_NOT_FOUND.format(case_id=case_id))
@@ -611,9 +605,7 @@ def fail_case(case_id: str, request: FailureRequest, db: Database) -> Case:
         raise HTTPException(409, ALREADY_DECIDED.format(case_id=case_id))
     error = NewStep(kind="error", content=request.reason, sources=[])
     add_step(db, case_id, case["thread_id"], error)
-    status = (
-        Status.LEFT_FOR_WORKER if case["attempts"] >= ATTEMPTS else Status.WAITING
-    )
+    status = Status.LEFT_FOR_WORKER if case["attempts"] >= ATTEMPTS else Status.WAITING
     set_status(db, case_id, status)
     return case_in_full(db, case_id)
 

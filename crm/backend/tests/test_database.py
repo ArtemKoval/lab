@@ -66,9 +66,7 @@ def status_of(case_id):
 
 
 def decide_in(db, case_id):
-    db.execute(
-        update(cases).where(cases.c.case_id == case_id).values(status="decided")
-    )
+    db.execute(update(cases).where(cases.c.case_id == case_id).values(status="decided"))
 
 
 def test_a_request_commits_at_its_end(database):

@@ -1,4 +1,4 @@
-import { accessToken } from "./auth";
+import { freshAccessToken } from "./auth";
 import { ApiError, reasonFor } from "./refusals";
 
 // How the dashboard's API sends each request to the backend and reads its
@@ -10,7 +10,7 @@ import { ApiError, reasonFor } from "./refusals";
 export async function request<T>(
   path: string,
   init: RequestInit = {},
-  signIn: () => Promise<string | undefined> = accessToken,
+  signIn: () => Promise<string | undefined> = freshAccessToken,
 ): Promise<T> {
   const token = await signIn();
   const headers = new Headers(init.headers);
@@ -29,7 +29,7 @@ export function send<T>(
   method: "POST" | "PUT",
   path: string,
   body?: object,
-  signIn: () => Promise<string | undefined> = accessToken,
+  signIn: () => Promise<string | undefined> = freshAccessToken,
 ) {
   if (body === undefined) return request<T>(path, { method }, signIn);
   const headers = { "Content-Type": "application/json" };

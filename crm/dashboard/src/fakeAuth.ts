@@ -5,6 +5,12 @@ import type * as auth from "./auth";
 // memory. A sign-in succeeds unless the test refuses it.
 export const TOKEN = "test-access-token";
 
+// The next access token the auth stand-in answers with, for the tests that
+// walk the renewed sign-in.
+export const freshAccessToken = vi.fn<typeof auth.freshAccessToken>(() => {
+  return Promise.resolve(token);
+});
+
 let token: string | undefined;
 let refusal: string | undefined;
 const listeners = new Set<(signedIn: boolean) => void>();
@@ -36,16 +42,11 @@ export const signIn = vi.fn<typeof auth.signIn>(() => {
 export const signOut = vi.fn<typeof auth.signOut>(() => {
   token = undefined;
   tell();
-  return Promise.resolve();
 });
 
-export function accessToken(): Promise<string | undefined> {
-  return Promise.resolve(token);
+export function accessToken(): string | undefined {
+  return token;
 }
-
-export const freshAccessToken = vi.fn<typeof auth.freshAccessToken>(() =>
-  Promise.resolve(token),
-);
 
 export function followSession(
   callback: (signedIn: boolean) => void,

@@ -18,13 +18,13 @@ from backend.database import (
     LABELED_SETS,
     cases,
     grades,
-    worker_decisions,
     now,
     run_cases,
     runs,
     waiting_case,
+    worker_decisions,
 )
-from backend.dependencies import AgentKey, Database, WorkerOrAgent, SignedInWorker
+from backend.dependencies import AgentKey, Database, SignedInWorker, WorkerOrAgent
 from backend.free_models import free_model
 from backend.lookups import (
     CASE_NOT_FOUND,
@@ -198,19 +198,13 @@ def make_copies(
     too, and return the copies' ids in order."""
     copies = [
         record
-        | {
-            "case_id": COPY_ID.format(
-                case_id=record["case_id"], number=run["number"]
-            )
-        }
+        | {"case_id": COPY_ID.format(case_id=record["case_id"], number=run["number"])}
         for record in records
     ]
     db.execute(
         insert(cases),
         [
-            waiting_case(
-                copy, evaluation_id=run["run_id"], copy_of=original["case_id"]
-            )
+            waiting_case(copy, evaluation_id=run["run_id"], copy_of=original["case_id"])
             for copy, original in zip(copies, records, strict=True)
         ],
     )
@@ -317,9 +311,9 @@ def mark_finished(db: Connection, run_id: str, summary: dict[str, Any] | None) -
 
 
 def evaluation_row(db: Connection, run_id: str) -> RowMapping:
-    """Return an evaluation's row, or raise a 404."""
+    """Return an evaluation's row, or raise a 404 when the run is a dispatch."""
     row = run_row(db, run_id)
-    if row["kind"] != RunKind.EVALUATION:
+    if row["kind"] == RunKind.DISPATCH:
         raise HTTPException(404, RUN_NOT_FOUND.format(run_id=run_id))
     return row
 

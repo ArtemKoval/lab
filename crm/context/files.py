@@ -10,8 +10,10 @@ from typing import Any, Literal
 
 import yaml
 
+from domains import loader
+
 # The yaml lookups live in this package. The two documents stay in the
-    # active pack, which owns their words, and arrive through the loader.
+# active pack, which owns their words, and arrive through the loader.
 FOLDER = Path(__file__).parent
 DocumentName = Literal["wording", "manual"]
 RecordName = Literal["case", "contract", "previous_case"]
@@ -82,8 +84,6 @@ def split_sections(name: DocumentName, body: str) -> dict[int, Section]:
 
 def _read_document_text(name: DocumentName) -> str:
     """The document's text with its front matter, from the active pack."""
-    from domains import loader
-
     return loader.pack().read_doc(name)
 
 

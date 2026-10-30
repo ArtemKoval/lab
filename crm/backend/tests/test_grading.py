@@ -7,7 +7,7 @@ import httpx
 import pytest
 from sqlalchemy import func, select, update
 
-from backend.database import engine, grades, worker_decisions, runs
+from backend.database import engine, grades, runs, worker_decisions
 from backend.tests.case_requests import decide, start
 from backend.tests.judging import answer
 from backend.tests.run_requests import (

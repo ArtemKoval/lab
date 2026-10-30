@@ -111,11 +111,11 @@ addopts = "--import-mode=importlib --cov --cov-report=term-missing"
 [tool.coverage.run]
 # Python's own monitoring, far quicker than a trace function for line coverage.
 core = "sysmon"
-source = ["backend", "agent", "context"]
+source = ["backend", "agent", "domains", "context"]
 omit = ["*/tests/*"]
 
 [tool.coverage.report]
-fail_under = 80
+fail_under = 97.5
 
 [tool.pyright]
 include = ["backend", "agent", "context", "runtime", "conftest.py", "api_rules.py"]

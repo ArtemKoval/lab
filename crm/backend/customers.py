@@ -7,10 +7,10 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 
-from backend.database import case_view, cases, customers, contracts
+from backend.database import case_view, cases, contracts, customers
 from backend.dependencies import Database, SignedInWorker
 from backend.lookups import customer_record
-from backend.models import Customer, CustomerMatch, Contract, PreviousCase
+from backend.models import Contract, Customer, CustomerMatch, PreviousCase
 from backend.views import to_summary
 
 router = APIRouter()
@@ -44,7 +44,9 @@ def get_customer(customer_id: str, db: Database) -> Customer:
     theirs = select(contracts.c.record).where(
         contracts.c.record["customer_id"].as_string() == customer_id
     )
-    their_contracts = [Contract(**contract) for contract in db.execute(theirs).scalars()]
+    their_contracts = [
+        Contract(**contract) for contract in db.execute(theirs).scalars()
+    ]
     in_the_queue = case_view.where(
         cases.c.customer_id == customer_id, cases.c.evaluation_id.is_(None)
     ).order_by(cases.c.case_id)

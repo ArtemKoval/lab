@@ -31,7 +31,6 @@ from agent.agentcore_app import (
 from agent.checkpoints import Pool, open_checkpoint_pool
 from agent.connection import Refused, api_key
 from agent.console import show_reports
-from agent.worker_answer import SENT_BACK, answer_of
 from agent.harness import case_graphs, paused
 from agent.work import (
     Workers,
@@ -40,6 +39,7 @@ from agent.work import (
     work_the_round,
     work_the_run,
 )
+from agent.worker_answer import SENT_BACK, answer_of
 
 RUN_NOT_RUNNING = "Run {run_id} isn't running"
 ROUND_NOT_OPEN = "Round {number} isn't open"

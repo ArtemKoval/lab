@@ -7,6 +7,7 @@ from sqlalchemy import ColumnElement, Connection, RowMapping, select, update
 
 from backend import spending
 from backend.database import now, proposals, rounds, runs, settings, versions
+from backend.lookups import row_fetcher
 from backend.models import (
     EvaluationSet,
     ProposalKind,
@@ -20,19 +21,13 @@ from backend.money import dollars
 from backend.stops import stop_runs
 from backend.verdict import STOPPED_BEFORE_VERDICT
 
-ROUND_NOT_FOUND = "Round {round_id} not found"
+ROUND_NOT_FOUND = "Round {value} not found"
 NOT_OPEN = "Round {number} is {status}"
 # A version's evaluations: once on the evaluation set and twice on the held-out set.
 EVALUATIONS = [EvaluationSet.EVALUATION, EvaluationSet.HELD_OUT, EvaluationSet.HELD_OUT]
 
 
-def round_row(db: Connection, round_id: str) -> RowMapping:
-    """Return one round's row, or raise a 404."""
-    query = select(rounds).where(rounds.c.round_id == round_id)
-    row = db.execute(query).mappings().first()
-    if row is None:
-        raise HTTPException(404, ROUND_NOT_FOUND.format(round_id=round_id))
-    return row
+round_row = row_fetcher(rounds, rounds.c.round_id, ROUND_NOT_FOUND)
 
 
 def open_round(db: Connection, round_id: str) -> RowMapping:

@@ -86,9 +86,7 @@ def test_the_sign_in_passed_on_is_the_workers_own(dashboard, copilot_calls):
     assert copilot_calls[0]["sign_in"] == own
 
 
-def test_the_laptop_route_is_at_crm_copilot(
-    dashboard, copilot_answers, monkeypatch
-):
+def test_the_laptop_route_is_at_crm_copilot(dashboard, copilot_answers, monkeypatch):
     sent = []
 
     def accept(request):

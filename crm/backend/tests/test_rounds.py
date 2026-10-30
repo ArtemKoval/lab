@@ -4,7 +4,6 @@ rules the backend keeps whatever the improver does."""
 import pytest
 from sqlalchemy import select
 
-from domains import loader
 from backend.database import engine, recipes
 from backend.tests.dashboard_reads import configuration, version_details
 from backend.tests.round_requests import (
@@ -27,6 +26,7 @@ from backend.tests.round_requests import (
 from backend.tests.run_requests import create_evaluation, finish, get_evaluation
 from backend.tests.settings_requests import change_settings
 from backend.tests.sign_in import DANA, signed_in
+from domains import loader
 
 RECIPE_MD = loader.pack().instruction("recipe")
 IMPROVER_MD = loader.pack().instruction("improver")

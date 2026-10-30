@@ -117,8 +117,8 @@ class GatewayStandIn:
     context: FastMCP = field(default_factory=build_server)
 
     def __post_init__(self) -> None:
-        self.server.request_workers[types.ListToolsRequest] = self.list_tools
-        self.server.request_workers[types.CallToolRequest] = self.call_tool
+        self.server.request_handlers[types.ListToolsRequest] = self.list_tools
+        self.server.request_handlers[types.CallToolRequest] = self.call_tool
 
     def reset(self) -> None:
         """Forget the calls made, and refuse only what the Contract always refuses."""

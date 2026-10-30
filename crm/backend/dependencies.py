@@ -20,9 +20,7 @@ SIGN_IN_OUT_OF_REACH = "Sign-in can't be checked: Supabase is out of reach"
 NOT_SIGNED_IN = "The sign-in isn't valid. Please sign in again."
 NEEDS_THE_KEY = "This needs the agent's API key"
 NEEDS_A_SIGN_IN_OR_THE_KEY = "Sign in, or send the agent's API key"
-THE_AGENTS_REQUEST = (
-    "A request with the agent's API key is the agent's, not a worker's"
-)
+THE_AGENTS_REQUEST = "A request with the agent's API key is the agent's, not a worker's"
 API_KEY_HEADER = "X-API-Key"
 # The challenges a 401 carries, for a missing or bad sign-in or key.
 BEARER_CHALLENGE = {"WWW-Authenticate": "Bearer"}
@@ -64,7 +62,7 @@ def worker_with(token: str, db: Connection) -> Worker:
     row = db.execute(select(workers).where(workers.c.email == email)).mappings()
     worker = row.first()
     if worker is None:
-        raise HTTPException(403, f"{email} isn't one of our cases workers")
+        raise HTTPException(403, f"{email} isn't one of our case workers")
     return Worker(**worker)
 
 

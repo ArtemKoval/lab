@@ -1,7 +1,8 @@
-from pathlib import Path
 """A complete decision record, as cases manual section 14 asks: the calculation
 of an approval's award, who or what made the decision, when, and the manual's
 version."""
+
+from pathlib import Path
 
 import pytest
 import yaml
@@ -178,10 +179,10 @@ def test_a_sign_off_adds_who_signed_off_and_when(client):
 
 
 def test_the_record_holds_every_field_the_data_dictionary_names():
-    dictionary = (Path(__file__).parents[2] / "context" / "data_dictionary.yaml").read_text(encoding="utf-8")
-    [case] = [
-        r for r in yaml.safe_load(dictionary)["records"] if r["record"] == "case"
-    ]
+    dictionary = (
+        Path(__file__).parents[2] / "context" / "data_dictionary.yaml"
+    ).read_text(encoding="utf-8")
+    [case] = [r for r in yaml.safe_load(dictionary)["records"] if r["record"] == "case"]
     named = {
         field["field"].removeprefix("decision.")
         for field in case["fields"]

@@ -7,7 +7,7 @@ import {
   CONVERSATION_PATH,
   conversation,
 } from "./copilotTesting";
-import { TOKEN, endSession, freshAccessToken } from "./fakeAuth";
+import { TOKEN, endSession, freshAccessToken, startSession } from "./fakeAuth";
 import { Refusal, entry, stubApi } from "./testing";
 
 afterEach(() => {
@@ -44,6 +44,7 @@ it("falls back to a general message when the body isn't JSON", async () => {
 });
 
 it("sends the session's access token with every request", async () => {
+  startSession();
   const fetchMock = stubApi({
     "GET /api/cases/CLM-1002": entry,
     "POST /api/cases/CLM-1002/sign-off": entry,

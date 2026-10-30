@@ -11,7 +11,7 @@ from agent.copilot import criteria, waiting
 from agent.tests.copilot_driver import Copilot, started_run
 from agent.tests.memory_stand_in import MemoryStandIn
 from agent.tests.stubs import call, stub
-from backend.database import engine, worker_decisions, now, payments
+from backend.database import engine, now, payments, worker_decisions
 from backend.tests.case_requests import decide, held, sign_off, start
 from backend.tests.run_requests import (
     another_running_dispatch,

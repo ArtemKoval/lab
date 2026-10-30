@@ -14,7 +14,7 @@ from backend.database import (
     runs,
     stamp,
 )
-from backend.models import CalculationStep, Award
+from backend.models import Award, CalculationStep
 
 
 def count(table: Table) -> int:

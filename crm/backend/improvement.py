@@ -18,7 +18,6 @@ from backend.agent_work import clear_the_way
 from backend.asking import commit_and_ask
 from backend.database import (
     FIRST_VERSION,
-    worker_decisions,
     improver_calls,
     now,
     proposals,
@@ -26,6 +25,7 @@ from backend.database import (
     rounds,
     runs,
     versions,
+    worker_decisions,
 )
 from backend.dependencies import (
     AgentKey,
@@ -45,17 +45,15 @@ from backend.lookups import (
 from backend.models import (
     Accepted,
     AgentAnswer,
-    ChangeProposalRequest,
     CaseAgentVersion,
     CaseBesideWorker,
+    ChangeProposalRequest,
     Diff,
     EarlierRound,
     Evaluation,
     EvaluationSet,
     EvaluationSetResults,
     FailureRequest,
-    Worker,
-    WorkerAnswer,
     Improvement,
     ImproverCallRequest,
     ImproverView,
@@ -83,6 +81,8 @@ from backend.models import (
     VersionPoint,
     VersionScores,
     WaitingProposal,
+    Worker,
+    WorkerAnswer,
 )
 from backend.round_state import (
     EVALUATIONS,
@@ -108,6 +108,7 @@ from backend.scoreboard import (
     scores_of_versions,
     version_scores,
 )
+from domains import loader
 
 # The improver's model, unless students on free models have one of their own.
 IMPROVER_MODEL = ("openai/gpt-6.1-sol", "medium")

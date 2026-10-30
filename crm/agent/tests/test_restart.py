@@ -66,7 +66,10 @@ class StopBeforeCheckpoint(InMemorySaver):
 def test_a_case_stopped_partway_carries_on_from_its_last_step(client):
     saver = InMemorySaver()
     stop_while_working(
-        "CLM-1001", saver, call("get_case"), call("get_contract", contract_id="POL-2001")
+        "CLM-1001",
+        saver,
+        call("get_case"),
+        call("get_contract", contract_id="POL-2001"),
     )
     stopped = case_of(client, "CLM-1001")
     assert (stopped["status"], stopped["attempts"]) == ("in_progress", 1)

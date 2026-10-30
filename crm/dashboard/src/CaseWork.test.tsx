@@ -122,9 +122,7 @@ it("shows the context used once each, grouped by file, and failed attempts", asy
 
 it("shows no context used when the agent has looked nothing up", async () => {
   showCase(approved, steps);
-  expect(
-    await screen.findByText('get_case(case_id="CLM-1002")'),
-  ).toBeDefined();
+  expect(await screen.findByText('get_case(case_id="CLM-1002")')).toBeDefined();
   expect(screen.queryByText("Context used")).toBeNull();
 });
 
@@ -177,9 +175,7 @@ it("shows an approval's whole record and its payment", async () => {
     "Award$420.00",
   ]);
   expect(
-    panel.getByText(
-      `Decided by CRM Agent, version 1 at ${time(decidedAt)}`,
-    ),
+    panel.getByText(`Decided by CRM Agent, version 1 at ${time(decidedAt)}`),
   ).toBeDefined();
   expect(panel.getByText("Cases manual version 2026.2")).toBeDefined();
   expect(panel.getAllByText("$420.00")).toHaveLength(3);
@@ -229,9 +225,7 @@ it("shows a decline without an award", async () => {
 
 it("shows each kind of step, with results folded", async () => {
   showCase(approved, steps);
-  expect(
-    await screen.findByText('get_case(case_id="CLM-1002")'),
-  ).toBeDefined();
+  expect(await screen.findByText('get_case(case_id="CLM-1002")')).toBeDefined();
   const result = screen.getAllByText(/^get_case: /)[0].closest("details");
   expect(result?.open).toBe(false);
   expect(result?.querySelector("summary")?.textContent).toMatch(/\.\.\.$/);

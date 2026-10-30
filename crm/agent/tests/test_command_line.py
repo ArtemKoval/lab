@@ -172,9 +172,7 @@ def test_only_an_evaluations_case_graphs_dont_pause(fakes, monkeypatch, kind, pa
     assert built == [pauses]
 
 
-def test_a_case_worked_on_the_command_line_pauses_like_a_dispatchs(
-    client, monkeypatch
-):
+def test_a_case_worked_on_the_command_line_pauses_like_a_dispatchs(client, monkeypatch):
     saver = InMemorySaver()
     model = stub(*approve("CLM-1003", 3750.0))
     monkeypatch.setattr(cli, "checkpoint_pool", lambda: nullcontext(object()))

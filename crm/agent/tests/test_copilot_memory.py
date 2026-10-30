@@ -130,6 +130,4 @@ def test_the_memory_is_read_from_its_setting(monkeypatch):
     assert memory_store() is None
     monkeypatch.setenv(MEMORY_ID, "crm_copilot_memory-abc")
     assert isinstance(memory_store(), MemoryStandIn)
-    assert made == [
-        {"memory_id": "crm_copilot_memory-abc", "region_name": "eu-west-2"}
-    ]
+    assert made == [{"memory_id": "crm_copilot_memory-abc", "region_name": "eu-west-2"}]

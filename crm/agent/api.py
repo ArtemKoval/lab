@@ -126,9 +126,7 @@ class DecisionRequest(TypedDict):
 
 
 # The body's fields as keywords, as the direct route passes a tool's inputs.
-def record_decision(
-    case_id: str, **request: Unpack[DecisionRequest]
-) -> dict[str, Any]:
+def record_decision(case_id: str, **request: Unpack[DecisionRequest]) -> dict[str, Any]:
     return call("POST", f"/cases/{case_id}/decision", json=request)
 
 

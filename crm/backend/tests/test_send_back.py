@@ -114,9 +114,7 @@ def test_the_send_backs_refusals(client, dashboard, agent_calls):
         "Marcus Oyelaran can't.",
     )
     assert (
-        dashboard.post(
-            "/api/cases/CLM-1008/send-back", json={"note": NOTE}
-        ).status_code
+        dashboard.post("/api/cases/CLM-1008/send-back", json={"note": NOTE}).status_code
         == 401
     )
 

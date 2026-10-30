@@ -44,7 +44,8 @@ export default defineConfig({
         CRM_AGENT_RUNTIME: "",
         CRM_COPILOT: COPILOT_STAND_IN,
         CRM_COPILOT_RUNTIME: "",
-        VITE_SUPABASE_URL: AUTH_STAND_IN,
+        VITE_AUTH_URL: AUTH_STAND_IN,
+        AUTH_URL: AUTH_STAND_IN,
         JUDGE_URL: JUDGE_STAND_IN,
         OPENROUTER_API_KEY: "e2e-key",
         CRM_AGENT_KEY: AGENT_KEY,
@@ -71,7 +72,7 @@ export default defineConfig({
     },
     {
       command: "node e2e/auth_stand_in.ts",
-      url: `${AUTH_STAND_IN}/auth/v1/.well-known/jwks.json`,
+      url: `${AUTH_STAND_IN}/jwks.json`,
       env: {
         PORT: new URL(AUTH_STAND_IN).port,
         WORKER_PASSWORD: TEST_PASSWORD,
@@ -83,7 +84,8 @@ export default defineConfig({
       url: DASHBOARD,
       env: {
         CRM_API: BACKEND,
-        VITE_SUPABASE_URL: AUTH_STAND_IN,
+        VITE_AUTH_URL: AUTH_STAND_IN,
+        AUTH_URL: AUTH_STAND_IN,
         VITE_SUPABASE_PUBLISHABLE_KEY: "e2e-publishable-key",
       },
     },

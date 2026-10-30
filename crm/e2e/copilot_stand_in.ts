@@ -190,9 +190,7 @@ async function answerConfirmation(payload: Payload) {
   );
   await finish(
     payload,
-    paid
-      ? `Signed off and paid ${caseId}.`
-      : `I couldn't sign off ${caseId}.`,
+    paid ? `Signed off and paid ${caseId}.` : `I couldn't sign off ${caseId}.`,
   );
 }
 

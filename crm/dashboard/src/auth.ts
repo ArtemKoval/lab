@@ -1,50 +1,54 @@
-import { createClient } from "@supabase/supabase-js";
+// The dashboard's way to the auth service. The service's address is public,
+// and the browser keeps the access token for the session. The AWS rollout
+// later points VITE_AUTH_URL at Cognito's token endpoint, on the same shape.
 
-// The dashboard's only way to Supabase Auth. The project's address and its
-// publishable key are meant to be public, and supabase-js keeps the session
-// in the browser and refreshes its access token.
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-);
+const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? "http://127.0.0.1:8004";
+const TOKEN = "crm-access-token";
 
 export const WRONG_PASSWORD = "The email or password is wrong.";
 
-// Signs a worker in, or throws Supabase's reason for refusing.
+interface TokenReply {
+  access_token: string;
+}
+
+// Signs a worker in, or throws the service's reason for refusing.
 export async function signIn(email: string, password: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error)
+  const response = await fetch(`${AUTH_URL}/signin`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const detail = (await response.json().catch(() => ({}))) as {
+      detail?: string;
+    };
     throw new Error(
-      error.code === "invalid_credentials" ? WRONG_PASSWORD : error.message,
+      response.status === 401
+        ? WRONG_PASSWORD
+        : (detail.detail ?? response.statusText),
     );
+  }
+  const reply = (await response.json()) as TokenReply;
+  localStorage.setItem(TOKEN, reply.access_token);
+  window.dispatchEvent(new Event("crm-session"));
 }
 
 // Signs the worker out of this browser only.
-export async function signOut(): Promise<void> {
-  await supabase.auth.signOut({ scope: "local" });
+export function signOut(): void {
+  localStorage.removeItem(TOKEN);
+  window.dispatchEvent(new Event("crm-session"));
 }
 
 // The session's access token, or nothing when no one is signed in.
-export async function accessToken(): Promise<string | undefined> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token;
+export function accessToken(): string | undefined {
+  return localStorage.getItem(TOKEN) ?? undefined;
 }
 
-// A sign-in lasts an hour; one with less than this left is renewed before the
-// Copilot is given it, so it lasts the Copilot's turn.
-export const RENEW_WITHIN_SECONDS = 20 * 60;
-
-// The session's access token, renewed first when it has less than
-// RENEW_WITHIN_SECONDS left, or nothing when no one is signed in.
-export async function freshAccessToken(): Promise<string | undefined> {
-  const { data } = await supabase.auth.getSession();
-  const session = data.session;
-  if (!session) return undefined;
-  const left = (session.expires_at ?? 0) - Date.now() / 1000;
-  if (left >= RENEW_WITHIN_SECONDS) return session.access_token;
-  const { data: renewed, error } = await supabase.auth.refreshSession();
-  if (error) throw new Error(error.message);
-  return renewed.session?.access_token;
+// The access token after any renewal. The local auth service signs tokens
+// that last twelve hours, so this reads the stored token as it is; Cognito
+// renews here at the rollout.
+export function freshAccessToken(): Promise<string | undefined> {
+  return Promise.resolve(accessToken());
 }
 
 // Tells the callback whether a worker is signed in, at once and again on each
@@ -52,10 +56,14 @@ export async function freshAccessToken(): Promise<string | undefined> {
 export function followSession(
   callback: (signedIn: boolean) => void,
 ): () => void {
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session !== null);
-  });
+  const tell = () => {
+    callback(localStorage.getItem(TOKEN) !== null);
+  };
+  tell();
+  window.addEventListener("crm-session", tell);
+  window.addEventListener("storage", tell);
   return () => {
-    data.subscription.unsubscribe();
+    window.removeEventListener("crm-session", tell);
+    window.removeEventListener("storage", tell);
   };
 }
