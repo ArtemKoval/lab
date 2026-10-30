@@ -102,9 +102,10 @@ fails on missing tables without it.
    refuse requests without the `X-API-Key` header.
 4. Write the function URL into `crm/agentcore/.env.local` as `CRM_API`.
    The CDK stack gives it to the runtimes.
-5. Deploy the runtimes, from `crm/`. The `agentcore` CLI ships in the
-   `deploy` extra, not the base install: run `uv sync --extra deploy`
-   once. Then `uv run agentcore deploy`. The command packages
+5. Deploy the runtimes, from `crm/`. The `agentcore` CLI is not a base
+   dependency: install it into the venv with
+   `uv pip install --python .venv/bin/python bedrock-agentcore-starter-toolkit`
+   once (the toolkit provides the CLI). Then `uv run agentcore deploy`. The command packages
    `runtime/main.py` as the agent runtime and `runtime/copilot.py` as the
    copilot runtime. It deploys the CDK stack at `crm/agentcore/cdk`. It
    asks for the three credential values of step 2. It prints the
@@ -144,8 +145,9 @@ The stop rule holds. Delete in the reverse order of Up:
    `crm/agentcore/.env.local`.
 2. Delete the runtimes, from `crm/`: `uv run agentcore destroy`. The
    command deletes the agent runtime, the copilot runtime, the gateway, and
-   the memory that the deploy made. The CLI ships in the `deploy` extra
-   (`uv sync --extra deploy`) if it is gone from the venv.
+   the memory that the deploy made. Reinstall with
+   `uv pip install --python .venv/bin/python bedrock-agentcore-starter-toolkit`
+   if it is gone from the venv.
 3. Delete the function URL:
    `aws lambda delete-function-url-config --function-name crm-app`.
 4. Delete the function:
