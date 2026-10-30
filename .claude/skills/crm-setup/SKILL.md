@@ -78,3 +78,17 @@ Repair that tool's finding, and run the command again.
 
 With Docker, the `crm-local-aws` skill also runs the app with its AWS
 wiring pointed at the local floci emulator.
+
+## Visit after launch
+
+- Dashboard: `http://localhost:5173` — sign in with a pack worker email
+  (insurance: `dana.whitfield@undercover.example`, senior, or
+  `marcus.oyelaran@undercover.example`, not senior; helpdesk:
+  `priya.nair@fastfix.example`, lead) and the dev password `crm-dev`
+  (`AUTH_DEV_PASSWORD`).
+- Backend health: `http://localhost:8000/api/health`
+- Agent service: `http://127.0.0.1:8080`
+- Copilot: `http://127.0.0.1:8081`
+- Context server: `http://127.0.0.1:8006/mcp`
+- Auth service: `http://127.0.0.1:8004` (accepts any pack worker email with
+  `AUTH_DEV_PASSWORD`, default `crm-dev`)

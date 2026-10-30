@@ -102,3 +102,15 @@ And remove `CRM_AGENT_RUNTIME`, `AWS_ENDPOINT_URL`, and the AWS credentials
 from `crm/.env`, so the next `npm run dev` is back on the laptop route. The
 database, the logs, and the registered runtime live only inside the
 container and go with it.
+
+## Visit after launch
+
+- Dashboard: `http://localhost:5173` — sign in with a pack worker email and
+  the dev password `crm-dev` (insurance: `dana.whitfield@undercover.example`;
+  helpdesk: `priya.nair@fastfix.example`).
+- Emulator health: `http://localhost:4566/_floci/health`
+- Backend health: `http://localhost:8000/api/health`
+- Auth service: `http://127.0.0.1:8004`
+
+With `CRM_AGENT_RUNTIME` set, dispatches flow to the emulator's canned
+answer; the agent's real work stays on the laptop route.
