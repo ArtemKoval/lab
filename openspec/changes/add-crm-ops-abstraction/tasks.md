@@ -2,8 +2,8 @@
 
 ## Stage 1 — types move, no behavior change
 
-- [ ] 1.1 Move `Award`, `AwardRequest`, `Line`, `Plan`, `Plans`, `Benefit`, and the decision kinds into `backend/pack_types.py`, and `models.py` re-exports them.
-- [ ] 1.2 The suite passes unchanged. no route or test edits.
+- [x] 1.1 Move `Award`, `AwardRequest`, `Line`, `Plan`, `Plans`, `Benefit`, and the decision kinds into `backend/pack_types.py`, and `models.py` re-exports them.
+- [x] 1.2 The suite passes unchanged. no route or test edits.
 
 ## Stage 2 — the protocol and the execute seam
 

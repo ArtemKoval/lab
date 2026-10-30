@@ -394,6 +394,48 @@ class HoldRequest(BaseModel):
     reason: str = Field(min_length=1, description="Why the Gateway refused to pay")
 
 
+class FailureRequest(BaseModel):
+    reason: str = Field(min_length=1, description="What went wrong")
+
+
+class ModelCallRequest(BaseModel):
+    run_id: str | None = Field(description="The run the call was made in, or null")
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    cost: float = Field(ge=0, description="In US dollars, as OpenRouter reports it")
+
+
+class ModelCall(BaseModel):
+    case_id: str
+    thread_id: str
+    run_id: str | None
+    input_tokens: int
+    output_tokens: int
+    cost: float
+    created_at: str
+
+
+class WorkTimeRequest(BaseModel):
+    run_id: str | None = Field(description="The run the work was done in, or null")
+    seconds: float = Field(ge=0, description="How long the agent worked on the case")
+
+
+class WorkTime(BaseModel):
+    case_id: str
+    thread_id: str
+    run_id: str | None
+    started_at: str
+    seconds: float
+
+
+class StartDispatchRequest(BaseModel):
+    agents: Agents
+
+
+class RunCasesRequest(BaseModel):
+    case_ids: list[str] = Field(description="The cases a dispatch works, in order")
+
+
 class Plan(BaseModel):
     """A plan of the active pack. The benefit maxima are the insurance pack's;
     another pack declares its own fields, which its rules module reads."""
@@ -442,48 +484,6 @@ class Award(BaseModel):
     calculation: list[CalculationStep]
     award: float
     needs_sign_off: bool
-
-
-class FailureRequest(BaseModel):
-    reason: str = Field(min_length=1, description="What went wrong")
-
-
-class ModelCallRequest(BaseModel):
-    run_id: str | None = Field(description="The run the call was made in, or null")
-    input_tokens: int = Field(ge=0)
-    output_tokens: int = Field(ge=0)
-    cost: float = Field(ge=0, description="In US dollars, as OpenRouter reports it")
-
-
-class ModelCall(BaseModel):
-    case_id: str
-    thread_id: str
-    run_id: str | None
-    input_tokens: int
-    output_tokens: int
-    cost: float
-    created_at: str
-
-
-class WorkTimeRequest(BaseModel):
-    run_id: str | None = Field(description="The run the work was done in, or null")
-    seconds: float = Field(ge=0, description="How long the agent worked on the case")
-
-
-class WorkTime(BaseModel):
-    case_id: str
-    thread_id: str
-    run_id: str | None
-    started_at: str
-    seconds: float
-
-
-class StartDispatchRequest(BaseModel):
-    agents: Agents
-
-
-class RunCasesRequest(BaseModel):
-    case_ids: list[str] = Field(description="The cases a dispatch works, in order")
 
 
 class HeldAward(BaseModel):
