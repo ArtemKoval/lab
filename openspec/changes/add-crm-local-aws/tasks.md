@@ -3,7 +3,7 @@
 ## 1. The emulator and the gate
 
 - [ ] 1.1 Extend `crm/deploy/compose.yaml`: the canned runtime acceptance, a fixed container name, and the invoke env the backend reads.
-- [ ] 1.2 Write `crm/deploy/verify_wiring.py`: invoke the emulated runtime through `backend.runtime_calls` and assert the acceptance; exit 0/2.
+- [ ] 1.2 Write `crm/deploy/verify_wiring.py`: invoke the emulated runtime through `backend.runtime_calls` and and assert the acceptance. Exit 0 or 2.
 - [ ] 1.3 Verify both against real Docker and the real emulator on this host, and record the commands run.
 
 ## 2. The skill and the wiring surface

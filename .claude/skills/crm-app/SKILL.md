@@ -63,6 +63,13 @@ from the `crm/` directory:
 .venv/bin/python smoke.py <pack>      # works 3 cases on the stub model
 ```
 
+## Run with the AWS wiring (floci)
+
+The `crm-local-aws` skill starts the floci emulator, points the runtime,
+gateway, and memory variables at it, and proves the invoke path with a
+wiring gate. The laptop route (the agent on 8080) stays the default;
+`CRM_AGENT_RUNTIME` moves the backend to the emulator.
+
 ## Gates
 
 The repository adds three gates on the changed Python of `crm/`. Run them

@@ -75,3 +75,6 @@ Repair that tool's finding, and run the command again.
 - A live agent run needs a model key. Put `OPENROUTER_API_KEY` in
   `crm/.env`, and run `uv run -m agent <case-id>` from `crm/`. Without the
   key, a live run fails on its first decision.
+
+With Docker, the `crm-local-aws` skill also runs the app with its AWS
+wiring pointed at the local floci emulator.

@@ -2,13 +2,19 @@
 # with: docker compose -f crm/deploy/compose.yaml up -d
 # The runtime, gateway, and memory targets resolve from the variables in
 # crm/.env.example; the rollout change points the same variables at AWS.
+#
+# The runtime invoke answers with the acceptance the backend's runtime caller
+# reads (crm/backend/runtime_calls.py), so the wiring gate can prove the whole
+# path: backend caller, botocore, emulator, acceptance.
 services:
   emulator:
     image: floci/floci:latest
+    container_name: crm-floci
     ports:
       - "4566:4566"
     environment:
       FLOCI_HOSTNAME: localhost
+      FLOCI_SERVICES_BEDROCK_AGENT_CORE_INVOKE_RESPONSE: '{"accepted": true}'
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_floci/health || exit 1"]
       interval: 5s
