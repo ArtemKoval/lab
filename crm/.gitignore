@@ -75,3 +75,4 @@ labs/*_desk/
 .DS_Store
 Thumbs.db
 auth/dev-key.json
+screenshots/
