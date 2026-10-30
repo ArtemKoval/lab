@@ -20,13 +20,13 @@ protection to block.
 
 - Stdlib only, one module with a CLI, on the house tool pattern
   (`tools/sec_scan/sec_scan.py`, `--json` for machine output, exit 0/2).
-- Pattern matching over provider shapes plus a Shannon-entropy check on
-  assignments to credential-looking names; entropy alone is reported as
+- Pattern matching over provider shapes, plus a Shannon-entropy examination
+  of assignments to credential-looking names. Entropy alone is reported as
   "suspected", never as a confirmed provider key.
-- `--history` walks `git log -p` and reports commit + path; it is opt-in
+- `--history` walks `git log -p` and reports commit and path. It is opt-in
   because full history on this repo is bounded but slow.
 - Revocation: OpenRouter provisioning API disable (recoverable) behind
-  `--revoke` and a provisioning key; every other provider prints its manual
+  `--revoke` and a provisioning key. Every other provider prints its manual
   command. Without `--revoke`: no network call at all.
 - A skipped-path set mirrors the tree walk's ignore of vendored and dependency
   directories, so a decoy in node_modules never fires.
