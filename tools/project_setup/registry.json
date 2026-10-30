@@ -166,6 +166,18 @@
       ],
       "install": "npm install --prefix crm",
       "requires": "Node.js 22.22 or newer"
+    },
+    {
+      "id": "sec-scan",
+      "kind": "dependency-file",
+      "purpose": "Scans the repository for possibly exposed keys and secrets, and reports the revoke path per finding. Optional: runs only when a security scan is asked for.",
+      "check": [
+        "python3",
+        "tools/sec_scan/sec_scan.py",
+        "--help"
+      ],
+      "install": "echo 'sec-scan is stdlib-only; no install needed'",
+      "requires": "Python 3.10 or newer"
     }
   ]
 }
