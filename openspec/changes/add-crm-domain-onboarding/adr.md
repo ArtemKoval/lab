@@ -9,7 +9,7 @@ The change introduces no new durable decision. The validator, smoke runner, and 
 
 ## In-Force ADRs Reviewed
 
-- `adr/0007-crm-engine-with-domain-packs.md` - accepted, in force. The onboarding lands packs behind the seam; the skill changes no engine code.
+- `adr/0007-crm-engine-with-domain-packs.md` - accepted, in force. The onboarding lands packs behind the seam, and the skill changes no engine code.
 - `adr/0008-local-emulator-first-aws-targets.md` - accepted, in force. The rollout skill's up and down paths walk the same variables the emulator uses.
 
 ## New Durable ADRs Created
