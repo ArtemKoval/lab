@@ -1,7 +1,4 @@
-from fastapi.testclient import TestClient
-
 from backend import seed
-from backend.main import app
 
 
 def test_list_cases(client):
@@ -65,18 +62,7 @@ def test_unknown_ids(client):
 def test_seed_command(capsys):
     seed.main()
     assert capsys.readouterr().out == (
-        "Seeded 25 cases, 50 contracts, 49 customers and 3 workers into crm.db\n"
+        "Seeded 25 cases, 50 contracts, 49 customers and 3 workers "
+        "into crm.db, with 25 held-out cases and 50 workers' decisions "
+        "for evaluations, and version 1 of the configuration and of the recipe\n"
     )
-
-
-def test_startup_seeds_a_missing_database(database):
-    database.unlink()
-    with TestClient(app) as client:
-        assert len(client.get("/api/cases").json()) == 25
-
-
-def test_the_queue_holds_no_held_out_cases(client):
-    """The seed never carries the pack's held-out cases into the queue."""
-    ids = [case["case_id"] for case in client.get("/api/cases").json()]
-    assert len(ids) == 25
-    assert all(case_id.startswith("CLM-10") for case_id in ids)

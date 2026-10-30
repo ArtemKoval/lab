@@ -1,42 +1,65 @@
 """The CRM backend."""
 
-import json
-import sqlite3
-import uuid
-from collections.abc import AsyncIterator, Iterator
-from contextlib import asynccontextmanager, closing
-from datetime import UTC, datetime
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
+from sqlalchemy import Connection, RowMapping, insert, select, update
 
-from backend.database import connect, database_path, seed
-from backend.documents import contents, search, sections, titles
+from backend import agent_service
+from backend.configuration import router as configuration
+from backend.database import (
+    award_rules,
+    case_view,
+    cases,
+    contracts,
+    customers,
+    decisions,
+    engine,
+    is_seeded,
+    model_calls,
+    now,
+    payments,
+    seed,
+    stamp,
+    steps,
+    work_times,
+)
+from backend.dependencies import Database, SignedIn, senior
+from backend.documents import search, sections, titles
+from backend.improvement import router as improvement
+from backend.lookups import CASE_NOT_FOUND, current_settings, run_row
 from backend.models import (
+    Award,
+    AwardRequest,
     Case,
     CaseSummary,
     Contract,
-    Decision,
+    DecisionKind,
     DecisionRequest,
     DocumentName,
     FailureRequest,
-    FinishRequest,
-    Instructions,
-    Payment,
+    ModelCall,
+    ModelCallRequest,
     PaymentRequest,
+    Plans,
     PreviousCase,
-    Run,
-    RunRequest,
     Section,
     SectionMatch,
-    SignOffRequest,
     StartRequest,
+    Status,
     Step,
     StepRequest,
-    Todo,
-    TodosRequest,
     Worker,
+    WorkTime,
+    WorkTimeRequest,
 )
+from backend.money import dollars
+from backend.round_state import round_row, why_no_case_starts
+from backend.runs import router as runs
+from backend.views import to_case, to_summary
 from domains import loader
 
 ATTEMPTS = 2
@@ -44,123 +67,100 @@ ATTEMPTS = 2
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Seed the database on startup if it doesn't exist yet."""
-    if not database_path().exists():
-        seed(database_path())
+    """Seed the database on startup if it has no tables yet."""
+    if not is_seeded(engine()):
+        seed(engine())
     yield
 
 
 app = FastAPI(title="CRM", lifespan=lifespan)
+app.include_router(runs)
+app.include_router(configuration)
+app.include_router(improvement)
+
+SignsOffOverTheLimit = Annotated[Worker, Depends(senior("sign this off"))]
 
 
-def database() -> Iterator[sqlite3.Connection]:
-    """Open the database for one request and commit if the request succeeds."""
-    with closing(connect()) as connection, connection:
-        yield connection
+def rules():
+    """Return the active pack's deterministic rules module."""
+    return loader.pack().rules_module()
 
 
-Database = Annotated[sqlite3.Connection, Depends(database)]
+def approval_limit(db: Connection) -> float:
+    """Return the largest award that can be paid without a worker's sign-off, as
+    the settings in force have it."""
+    return current_settings(db).approval_limit
 
 
-def now() -> str:
-    """Return the current time in UTC, to the second."""
-    return datetime.now(UTC).isoformat(timespec="seconds")
+def plans(db: Connection) -> Plans:
+    """Return the plans and add-ons, and the benefits the deductible applies to."""
+    return Plans(**db.execute(select(award_rules.c.plans)).scalar_one())
 
 
-def dollars(amount: float) -> str:
-    """Format an amount like $1,250.00."""
-    return f"${amount:,.2f}"
-
-
-def approval_limit(db: sqlite3.Connection) -> float:
-    """Return the largest award that can be paid without a worker's sign-off."""
-    return db.execute("SELECT award_approval_limit FROM settings").fetchone()[0]
-
-
-def find_case(db: sqlite3.Connection, case_id: str) -> sqlite3.Row:
+def find_case(db: Connection, case_id: str) -> RowMapping:
     """Return one case's row, or raise a 404."""
-    row = db.execute("SELECT * FROM case_view WHERE case_id = ?", (case_id,)).fetchone()
+    query = case_view.where(cases.c.case_id == case_id)
+    row = db.execute(query).mappings().first()
     if row is None:
-        raise HTTPException(404, f"Case {case_id} not found")
+        raise HTTPException(404, CASE_NOT_FOUND.format(case_id=case_id))
     return row
 
 
-def to_summary(row: sqlite3.Row) -> CaseSummary:
-    """Build a case's line in the queue from its row."""
-    return CaseSummary(
-        **json.loads(row["record"])
-        | {
-            "status": row["status"],
-            "customer_name": row["customer_name"],
-            "decision": row["decision"],
-            "award": row["award"],
-        }
-    )
+def find_contract(db: Connection, contract_id: str) -> Contract:
+    """Return one contract, or raise a 404."""
+    query = select(contracts.c.record).where(contracts.c.contract_id == contract_id)
+    record = db.execute(query).scalar_one_or_none()
+    if record is None:
+        raise HTTPException(404, f"Contract {contract_id} not found")
+    return Contract(**record)
 
 
-def to_case(row: sqlite3.Row) -> Case:
-    """Build a case in full, with its decision and payment, from its row."""
-    decision = None
-    if row["decision"] is not None:
-        decision = Decision(**{field: row[field] for field in Decision.model_fields})
-    payment = None
-    if row["paid_at"] is not None:
-        payment = Payment(**{field: row[field] for field in Payment.model_fields})
-    return Case(
-        **json.loads(row["record"])
-        | {
-            "status": row["status"],
-            "customer_name": row["customer_name"],
-            "thread_id": row["thread_id"],
-            "attempts": row["attempts"],
-            "decision": decision,
-            "payment": payment,
-        }
-    )
+def set_status(db: Connection, case_id: str, status: Status) -> None:
+    """Move a case to a new status."""
+    db.execute(update(cases).where(cases.c.case_id == case_id).values(status=status))
 
 
-def pay(
-    db: sqlite3.Connection, case_id: str, amount: float, signed_off_by: str | None
-) -> Payment:
-    """Record a payment on a case."""
-    payment = Payment(amount=amount, paid_at=now(), signed_off_by=signed_off_by)
-    db.execute(
-        "INSERT INTO payments VALUES (?, ?, ?, ?)",
-        (case_id, payment.amount, payment.paid_at, payment.signed_off_by),
-    )
-    return payment
+def started_thread(db: Connection, case_id: str) -> str:
+    """Return the thread of a case that has been started, or raise a 404 or a 409."""
+    thread_id = find_case(db, case_id)["thread_id"]
+    if thread_id is None:
+        raise HTTPException(409, f"Case {case_id} has not been started")
+    return thread_id
+
+
+def refuse_a_round_that_cant_go_on(db: Connection, run_id: str) -> None:
+    """Raise a 409 when an evaluation belongs to a round that was stopped or has
+    spent its limit, so no new case starts in it."""
+    round_id = run_row(db, run_id)["round_id"]
+    if round_id is None:
+        return
+    reason = why_no_case_starts(db, round_row(db, round_id))
+    if reason:
+        raise HTTPException(409, reason)
+
+
+def check_run(db: Connection, run_id: str | None) -> None:
+    """Check that the run named, if any, exists, or raise a 404."""
+    if run_id is not None:
+        run_row(db, run_id)
 
 
 def add_step(
-    db: sqlite3.Connection, case_id: str, thread_id: str, kind: str, content: str
+    db: Connection, case_id: str, thread_id: str, kind: str, content: str
 ) -> Step:
     """Add one step of the agent's work to a case."""
-    row = db.execute(
-        "INSERT INTO steps (case_id, thread_id, kind, content, created_at)"
-        " VALUES (?, ?, ?, ?, ?) RETURNING *",
-        (case_id, thread_id, kind, content, now()),
-    ).fetchone()
-    return Step(**dict(row))
-
-
-def find_run(db: sqlite3.Connection, run_id: str) -> Run:
-    """Return one run with its to-do list, or raise a 404."""
-    row = db.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
-    if row is None:
-        raise HTTPException(404, f"Run {run_id} not found")
-    todos = db.execute(
-        "SELECT content, status FROM todos WHERE run_id = ? ORDER BY position",
-        (run_id,),
-    ).fetchall()
-    return Run(**dict(row), todos=[Todo(**dict(todo)) for todo in todos])
-
-
-def running_run(db: sqlite3.Connection, run_id: str) -> Run:
-    """Return a run that is still running, or raise a 404 or a 409."""
-    run = find_run(db, run_id)
-    if run.status != "running":
-        raise HTTPException(409, f"Run {run_id} has finished")
-    return run
+    query = (
+        insert(steps)
+        .values(
+            case_id=case_id,
+            thread_id=thread_id,
+            kind=kind,
+            content=content,
+            created_at=now(),
+        )
+        .returning(steps)
+    )
+    return Step(**db.execute(query).mappings().one())
 
 
 @app.get("/api/health", operation_id="health")
@@ -171,8 +171,9 @@ def health() -> dict[str, str]:
 
 @app.get("/api/cases", operation_id="list_cases")
 def list_cases(db: Database) -> list[CaseSummary]:
-    """List every case in the queue, in id order."""
-    rows = db.execute("SELECT * FROM case_view ORDER BY case_id").fetchall()
+    """List every case in the queue, in id order, leaving out evaluations' copies."""
+    query = case_view.where(cases.c.evaluation_id.is_(None))
+    rows = db.execute(query.order_by(cases.c.case_id)).mappings()
     return [to_summary(row) for row in rows]
 
 
@@ -185,33 +186,17 @@ def get_case(case_id: str, db: Database) -> Case:
 @app.get("/api/contracts/{contract_id}", operation_id="get_contract")
 def get_contract(contract_id: str, db: Database) -> Contract:
     """Get a contract: the plan, add-ons, purchase date, trip and travelers."""
-    row = db.execute(
-        "SELECT record FROM contracts WHERE contract_id = ?", (contract_id,)
-    ).fetchone()
-    if row is None:
-        raise HTTPException(404, f"Contract {contract_id} not found")
-    return Contract(**json.loads(row["record"]))
+    return find_contract(db, contract_id)
 
 
 @app.get("/api/customers/{customer_id}/cases", operation_id="get_case_history")
 def get_case_history(customer_id: str, db: Database) -> list[PreviousCase]:
     """Get a customer's earlier cases, with the outcome and the amount paid."""
-    row = db.execute(
-        "SELECT record FROM customers WHERE customer_id = ?", (customer_id,)
-    ).fetchone()
-    if row is None:
+    query = select(customers.c.record).where(customers.c.customer_id == customer_id)
+    record = db.execute(query).scalar_one_or_none()
+    if record is None:
         raise HTTPException(404, f"Customer {customer_id} not found")
-    return [
-        PreviousCase(**case) for case in json.loads(row["record"])["previous_cases"]
-    ]
-
-
-@app.get("/api/instructions", operation_id="get_instructions")
-def get_instructions(db: Database) -> Instructions:
-    """Get the agent's instructions for running the queue and for working a case."""
-    queue = loader.pack().instruction("queue")
-    case = loader.pack().instruction("case")
-    return Instructions(queue=queue, case=f"{case}\n{contents(db)}")
+    return [PreviousCase(**case) for case in record["previous_cases"]]
 
 
 @app.get("/api/documents/search", operation_id="search_documents")
@@ -232,22 +217,28 @@ def read_section(document: DocumentName, number: int, db: Database) -> Section:
     raise HTTPException(404, f"Section {number} of the {title} not found")
 
 
-@app.get("/api/workers", operation_id="list_workers")
-def list_workers(db: Database) -> list[Worker]:
-    """List the cases workers."""
-    rows = db.execute("SELECT * FROM workers ORDER BY worker_id").fetchall()
-    return [Worker(**dict(row)) for row in rows]
+@app.get("/api/me", operation_id="get_signed_in_worker")
+def get_signed_in_worker(worker: SignedIn) -> Worker:
+    """Get the worker signed in, with what they may sign off."""
+    return worker
 
 
 @app.post("/api/cases/{case_id}/start", operation_id="start_case")
 def start_case(case_id: str, request: StartRequest, db: Database) -> Case:
     """Start work on a waiting case, which moves it to in progress."""
-    if find_case(db, case_id)["status"] != "waiting":
+    case = find_case(db, case_id)
+    if case["status"] != Status.WAITING:
         raise HTTPException(409, f"Case {case_id} is not waiting")
+    if case["evaluation_id"]:
+        refuse_a_round_that_cant_go_on(db, case["evaluation_id"])
     db.execute(
-        "UPDATE cases SET status = 'in_progress', thread_id = ?,"
-        " attempts = attempts + 1 WHERE case_id = ?",
-        (request.thread_id, case_id),
+        update(cases)
+        .where(cases.c.case_id == case_id)
+        .values(
+            status=Status.IN_PROGRESS,
+            thread_id=request.thread_id,
+            attempts=cases.c.attempts + 1,
+        )
     )
     return to_case(find_case(db, case_id))
 
@@ -255,79 +246,145 @@ def start_case(case_id: str, request: StartRequest, db: Database) -> Case:
 @app.post("/api/cases/{case_id}/steps", operation_id="record_step")
 def record_step(case_id: str, request: StepRequest, db: Database) -> Step:
     """Record one step of the agent's work on a case."""
-    thread_id = find_case(db, case_id)["thread_id"]
-    if thread_id is None:
-        raise HTTPException(409, f"Case {case_id} has not been started")
+    thread_id = started_thread(db, case_id)
     return add_step(db, case_id, thread_id, request.kind, request.content)
+
+
+@app.post("/api/cases/{case_id}/model-calls", operation_id="record_model_call")
+def record_model_call(
+    case_id: str, request: ModelCallRequest, db: Database
+) -> ModelCall:
+    """Record the tokens and the cost of one model call on a started case."""
+    thread_id = started_thread(db, case_id)
+    check_run(db, request.run_id)
+    query = (
+        insert(model_calls)
+        .values(
+            case_id=case_id,
+            thread_id=thread_id,
+            **request.model_dump(),
+            created_at=now(),
+        )
+        .returning(model_calls)
+    )
+    return ModelCall(**db.execute(query).mappings().one())
+
+
+@app.post("/api/cases/{case_id}/work-times", operation_id="record_work_time")
+def record_work_time(case_id: str, request: WorkTimeRequest, db: Database) -> WorkTime:
+    """Record one spell of the agent's work on a started case, ending now."""
+    thread_id = started_thread(db, case_id)
+    check_run(db, request.run_id)
+    started = datetime.now(UTC) - timedelta(seconds=request.seconds)
+    query = (
+        insert(work_times)
+        .values(
+            case_id=case_id,
+            thread_id=thread_id,
+            run_id=request.run_id,
+            started_at=stamp(started),
+            seconds=request.seconds,
+        )
+        .returning(work_times)
+    )
+    return WorkTime(**db.execute(query).mappings().one())
 
 
 @app.get("/api/cases/{case_id}/steps", operation_id="list_steps")
 def list_steps(case_id: str, db: Database) -> list[Step]:
     """List the steps of the agent's work on a case, in order."""
     find_case(db, case_id)
-    rows = db.execute(
-        "SELECT * FROM steps WHERE case_id = ? ORDER BY step_id", (case_id,)
-    ).fetchall()
-    return [Step(**dict(row)) for row in rows]
+    query = select(steps).where(steps.c.case_id == case_id).order_by(steps.c.step_id)
+    return [Step(**row) for row in db.execute(query).mappings()]
 
 
 @app.post("/api/cases/{case_id}/decision", operation_id="record_decision")
 def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Case:
-    """Record the decision on a case; an approval over the limit waits for sign-off."""
-    if find_case(db, case_id)["status"] != "in_progress":
-        raise HTTPException(409, f"Case {case_id} is not in progress")
+    """Record a case's decision once; an approval waits to be paid or signed off."""
+    case = find_case(db, case_id)
     award = round(request.award, 2)
-    held = request.decision == "approve" and award > approval_limit(db)
+    if case["decision"] is not None:
+        if (case["decision"], case["award"]) == (request.decision, award):
+            return to_case(case)
+        raise HTTPException(409, f"Case {case_id} has already been decided")
+    if case["status"] != Status.IN_PROGRESS:
+        raise HTTPException(409, f"Case {case_id} is not in progress")
+    limit = approval_limit(db)
     db.execute(
-        "INSERT INTO decisions VALUES (?, ?, ?, ?, ?, ?)",
-        (case_id, request.decision, award, request.section, request.reason, now()),
+        insert(decisions).values(
+            case_id=case_id,
+            decision=request.decision,
+            award=award,
+            section=request.section,
+            reason=request.reason,
+            decided_at=now(),
+            approval_limit=limit,
+        )
     )
-    db.execute(
-        "UPDATE cases SET status = ? WHERE case_id = ?",
-        ("waiting_for_sign_off" if held else "decided", case_id),
-    )
+    if request.decision != DecisionKind.APPROVE:
+        set_status(db, case_id, Status.DECIDED)
+    elif rules().needs_sign_off(award, limit):
+        set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
     return to_case(find_case(db, case_id))
 
 
+@app.post("/api/cases/{case_id}/award", operation_id="calculate_award")
+def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
+    """Work out an approval's award with CRM's award rules; records nothing."""
+    contract = find_contract(db, to_case(find_case(db, case_id)).contract_id)
+    return rules().work_out_award(contract, plans(db), request, approval_limit(db))
+
+
 @app.post("/api/cases/{case_id}/payment", operation_id="pay_case")
-def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Payment:
-    """Pay an approved case its award, unless it needs a worker's sign-off."""
+def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
+    """Pay an approved case its award once, unless it needs a worker's sign-off."""
     case = find_case(db, case_id)
-    if case["decision"] != "approve":
+    if case["decision"] != DecisionKind.APPROVE:
         raise HTTPException(409, f"Case {case_id} has not been approved")
+    amount = round(request.amount, 2)
     if case["paid_at"] is not None:
+        if amount == case["amount"]:
+            return to_case(case)
         raise HTTPException(409, f"Case {case_id} has already been paid")
-    if case["status"] == "waiting_for_sign_off":
+    if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(
             403,
-            f"An award over {dollars(approval_limit(db))} needs a worker's sign-off",
+            f"An award over {dollars(case['approval_limit'])} needs a worker's "
+            "sign-off",
         )
-    if round(request.amount, 2) != case["award"]:
+    if amount != case["award"]:
         raise HTTPException(
             422, f"The amount must be the approved award of {dollars(case['award'])}"
         )
-    return pay(db, case_id, case["award"], None)
+    db.execute(
+        insert(payments).values(case_id=case_id, amount=case["award"], paid_at=now())
+    )
+    set_status(db, case_id, Status.DECIDED)
+    return to_case(find_case(db, case_id))
 
 
 @app.post("/api/cases/{case_id}/sign-off", operation_id="sign_off_case")
-def sign_off_case(case_id: str, request: SignOffRequest, db: Database) -> Case:
-    """Sign off a held award as a worker, which pays it and decides the case."""
+def sign_off_case(
+    case_id: str,
+    worker: SignsOffOverTheLimit,
+    db: Database,
+    background: BackgroundTasks,
+) -> Case:
+    """Sign off a held award as the worker signed in, so the agent pays it."""
     case = find_case(db, case_id)
-    if case["status"] != "waiting_for_sign_off":
-        raise HTTPException(409, f"Case {case_id} is not waiting for sign-off")
-    row = db.execute(
-        "SELECT * FROM workers WHERE worker_id = ?", (request.worker_id,)
-    ).fetchone()
-    if row is None:
-        raise HTTPException(404, f"Worker {request.worker_id} not found")
-    worker = Worker(**dict(row))
-    if not worker.can_approve_over_limit:
+    if case["evaluation_id"] is not None:
         raise HTTPException(
-            403,
-            f"{worker.name} can't sign off awards over {dollars(approval_limit(db))}",
+            409, f"Case {case_id} is a copy in an evaluation and can't be signed off"
         )
-    pay(db, case_id, case["award"], worker.name)
-    db.execute("UPDATE cases SET status = 'decided' WHERE case_id = ?", (case_id,))
+    if case["status"] != Status.WAITING_FOR_SIGN_OFF:
+        raise HTTPException(409, f"Case {case_id} is not waiting for sign-off")
+    db.execute(
+        update(decisions)
+        .where(decisions.c.case_id == case_id)
+        .values(signed_off_by=worker.name, signed_off_at=now())
+    )
+    set_status(db, case_id, Status.IN_PROGRESS)
+    background.add_task(agent_service.resume_case, case_id)
     return to_case(find_case(db, case_id))
 
 
@@ -335,54 +392,11 @@ def sign_off_case(case_id: str, request: SignOffRequest, db: Database) -> Case:
 def fail_case(case_id: str, request: FailureRequest, db: Database) -> Case:
     """Put a failed case back in the queue, or leave it for a worker after two."""
     case = find_case(db, case_id)
-    if case["status"] != "in_progress":
+    if case["status"] != Status.IN_PROGRESS:
         raise HTTPException(409, f"Case {case_id} is not in progress")
+    if case["decision"] is not None:
+        raise HTTPException(409, f"Case {case_id} has already been decided")
     add_step(db, case_id, case["thread_id"], "error", request.reason)
-    status = "left_for_worker" if case["attempts"] >= ATTEMPTS else "waiting"
-    db.execute("UPDATE cases SET status = ? WHERE case_id = ?", (status, case_id))
+    status = Status.LEFT_FOR_WORKER if case["attempts"] >= ATTEMPTS else Status.WAITING
+    set_status(db, case_id, status)
     return to_case(find_case(db, case_id))
-
-
-@app.post("/api/runs", operation_id="start_run")
-def start_run(request: RunRequest, db: Database) -> Run:
-    """Start a run of the agent on the queue, with an empty to-do list."""
-    run_id = str(uuid.uuid4())
-    db.execute(
-        "INSERT INTO runs VALUES (?, ?, 'running', ?, NULL, NULL)",
-        (run_id, request.cap, now()),
-    )
-    return find_run(db, run_id)
-
-
-@app.get("/api/runs/latest", operation_id="get_latest_run")
-def get_latest_run(db: Database) -> Run | None:
-    """Get the newest run with its to-do list, or nothing before the first run."""
-    row = db.execute("SELECT run_id FROM runs ORDER BY rowid DESC").fetchone()
-    return None if row is None else find_run(db, row["run_id"])
-
-
-@app.put("/api/runs/{run_id}/todos", operation_id="write_todos")
-def write_todos(run_id: str, request: TodosRequest, db: Database) -> Run:
-    """Replace the to-do list of a running run."""
-    running_run(db, run_id)
-    db.execute("DELETE FROM todos WHERE run_id = ?", (run_id,))
-    db.executemany(
-        "INSERT INTO todos VALUES (?, ?, ?, ?)",
-        [
-            (run_id, position, todo.content, todo.status)
-            for position, todo in enumerate(request.todos)
-        ],
-    )
-    return find_run(db, run_id)
-
-
-@app.post("/api/runs/{run_id}/finish", operation_id="finish_run")
-def finish_run(run_id: str, request: FinishRequest, db: Database) -> Run:
-    """Finish a run with the agent's summary for the workers."""
-    running_run(db, run_id)
-    db.execute(
-        "UPDATE runs SET status = 'finished', finished_at = ?, summary = ?"
-        " WHERE run_id = ?",
-        (now(), request.summary, run_id),
-    )
-    return find_run(db, run_id)

@@ -1,4 +1,5 @@
-from agent.tools import CASE_TOOLS, QUEUE_TOOLS
+from agent.json_text import as_json
+from agent.tools import CASE_TOOLS
 
 
 def operations(client):
@@ -15,17 +16,18 @@ def test_case_tools_are_named_after_backend_operations(client):
         "get_case_history",
         "search_documents",
         "read_section",
+        "calculate_award",
         "record_decision",
-        "pay_case",
     ]
     assert set(names) <= operations(client)
 
 
-def test_queue_tools_are_named_after_backend_operations_or_hand_cases_on(client):
-    names = [t.name for t in QUEUE_TOOLS]
-    assert names == ["list_cases", "write_todos", "work_case"]
-    assert {"list_cases", "write_todos"} <= operations(client)
-
-
 def test_a_case_agent_can_only_act_on_its_own_case():
     assert all("case_id" not in t.args for t in CASE_TOOLS)
+
+
+def test_the_agent_writes_json_with_characters_as_themselves():
+    section = {"title": "Contract wording §2", "note": "the plan’s limit"}
+    assert as_json(section) == (
+        '{"title": "Contract wording §2", "note": "the plan’s limit"}'
+    )

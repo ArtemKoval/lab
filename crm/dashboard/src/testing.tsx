@@ -2,7 +2,15 @@ import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { vi } from "vitest";
 import { App } from "./App";
-import type { Case, CaseSummary, Contract, PreviousCase } from "./api";
+import type {
+  Case,
+  CaseSummary,
+  Worker,
+  Contract,
+  PreviousCase,
+  Settings,
+  SettingsPage,
+} from "./api";
 
 // Stands in for the backend: answers "METHOD /path" with the JSON given, or
 // with the status and detail given as an error, and a 404 for anything else.
@@ -15,9 +23,67 @@ export class Refusal {
   ) {}
 }
 
+const dana: Worker = {
+  worker_id: "HND-01",
+  name: "Dana Whitfield",
+  role: "Senior Cases Worker",
+  email: "dana.whitfield@crm.example",
+  can_approve_over_limit: true,
+};
+
+export const marcus: Worker = {
+  worker_id: "HND-02",
+  name: "Marcus Oyelaran",
+  role: "Cases Worker",
+  email: "marcus.oyelaran@crm.example",
+  can_approve_over_limit: false,
+};
+
+const startingSettings: Settings = {
+  number: 1,
+  approval_limit: 1000,
+  objectives: { accuracy: 0.6, grade: 1 },
+  noise: {
+    accuracy: 0.1,
+    grade: 0.15,
+    cost_per_case: 0.15,
+    seconds_per_case: 0.15,
+  },
+  tolerance: {
+    accuracy: 0.1,
+    grade: 0.15,
+    cost_per_case: 1,
+    seconds_per_case: 0.25,
+  },
+  spending_limit: 0.5,
+  agents: 25,
+  changed_by: null,
+  changed_at: "2026-10-04T09:00:00+00:00",
+};
+
+export const settings: SettingsPage = {
+  current: startingSettings,
+  changes: [startingSettings],
+  models_allowed: [
+    {
+      model: "openai/gpt-6-luna",
+      reasoning_efforts: ["none", "low", "medium"],
+      input_price: 0.1,
+      output_price: 0.5,
+    },
+  ],
+};
+
+// Every page is signed in as Dana unless the routes say otherwise.
 export function stubApi(routes: Routes) {
+  const signedIn: Routes = {
+    "GET /api/me": dana,
+    "GET /api/settings": settings,
+  };
   const fetchMock = vi.fn((path: string, init?: RequestInit) => {
-    const answer = routes[`${init?.method ?? "GET"} ${path}`];
+    const answer = { ...signedIn, ...routes }[
+      `${init?.method ?? "GET"} ${path}`
+    ];
     if (answer === undefined)
       return Promise.resolve(
         Response.json({ detail: "Not found" }, { status: 404 }),
@@ -32,12 +98,31 @@ export function stubApi(routes: Routes) {
   return fetchMock;
 }
 
+// The bodies of the requests sent to "METHOD /path", in order.
+export function sent(fetchMock: ReturnType<typeof stubApi>, route: string) {
+  return fetchMock.mock.calls
+    .filter(([path, init]) => `${init?.method ?? "GET"} ${path}` === route)
+    .map(([, init]) =>
+      typeof init?.body === "string"
+        ? (JSON.parse(init.body) as unknown)
+        : undefined,
+    );
+}
+
 export function renderAt(path: string) {
   render(
     <MemoryRouter initialEntries={[path]}>
       <App />
     </MemoryRouter>,
   );
+}
+
+// Matches the element whose whole text is the text given, even when its words
+// are split across elements, such as an amount set in mono.
+export function wholeText(text: string) {
+  return (_: string, element: Element | null) =>
+    element?.textContent === text &&
+    [...element.children].every((child) => child.textContent !== text);
 }
 
 // Finds the panel headed by the given heading, to look inside it.
@@ -71,6 +156,8 @@ export const entry: Case = {
   status: "waiting",
   thread_id: null,
   attempts: 0,
+  evaluation_id: null,
+  copy_of: null,
   decision: null,
   payment: null,
 };

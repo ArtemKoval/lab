@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { ApiError, api } from "./api";
+import { TOKEN, endSession } from "./fakeAuth";
 import { Refusal, entry, stubApi } from "./testing";
 
 afterEach(() => {
@@ -19,6 +20,39 @@ it("raises the backend's reason for refusing", async () => {
 });
 
 it("falls back to a general message when the reason isn't text", async () => {
-  stubApi({ "GET /api/instructions": new Refusal(422, [{ msg: "bad" }]) });
-  await expect(api.getInstructions()).rejects.toThrow("The request failed");
+  stubApi({ "GET /api/configuration": new Refusal(422, [{ msg: "bad" }]) });
+  await expect(api.getConfiguration()).rejects.toThrow("The request failed");
+});
+
+it("falls back to a general message when the body isn't JSON", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() =>
+      Promise.resolve(new Response("Internal Server Error", { status: 500 })),
+    ),
+  );
+  await expect(api.getConfiguration()).rejects.toEqual(
+    new ApiError(500, "The request failed"),
+  );
+});
+
+it("sends the session's access token with every request", async () => {
+  const fetchMock = stubApi({
+    "GET /api/cases/CLM-1002": entry,
+    "POST /api/cases/CLM-1002/sign-off": entry,
+  });
+  await api.getCase("CLM-1002");
+  await api.signOff("CLM-1002");
+  const headers = fetchMock.mock.calls.map(([, init]) =>
+    new Headers(init?.headers).get("Authorization"),
+  );
+  expect(headers).toEqual([`Bearer ${TOKEN}`, `Bearer ${TOKEN}`]);
+});
+
+it("sends no token when no one is signed in", async () => {
+  endSession();
+  const fetchMock = stubApi({ "GET /api/cases/CLM-1002": entry });
+  await api.getCase("CLM-1002");
+  const [[, init]] = fetchMock.mock.calls;
+  expect(new Headers(init?.headers).has("Authorization")).toBe(false);
 });

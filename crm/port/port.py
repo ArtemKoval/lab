@@ -44,6 +44,8 @@ PATH_MAP = [
     ("backend/instructions.md", "domains/insurance/instructions/case.md"),
     ("backend/instructions/claim.md", "domains/insurance/instructions/case.md"),
     ("backend/instructions/queue.md", "domains/insurance/instructions/queue.md"),
+    ("backend/instructions/improver.md", "domains/insurance/instructions/improver.md"),
+    ("backend/instructions/recipe.md", "domains/insurance/instructions/recipe.md"),
     ("docs/SPEC.md", "docs/BRIEF.md"),
 ]
 
@@ -52,14 +54,14 @@ PATH_MAP = [
 ENV_MAP = [
     ("UNDERCOVER_DB", "CRM_DB"),
     ("UNDERCOVER_API_KEY", "CRM_AGENT_KEY"),
-    ("UNDERCOVER_API", "CRM_AGENT_API"),
+    ("UNDERCOVER_API", "CRM_API"),
     ("UNDERCOVER_CONTEXT", "CRM_CONTEXT_URL"),
     ("UNDERCOVER_COPILOT", "CRM_COPILOT"),
     ("UNDERCOVER_GATEWAY_URL", "CRM_GATEWAY_URL"),
     ("UNDERCOVER_MEMORY_ID", "CRM_MEMORY_ID"),
     ("UNDERCOVER_AGENT_RUNTIME", "CRM_AGENT_RUNTIME"),
     ("UNDERCOVER_COPILOT_RUNTIME", "CRM_COPILOT_RUNTIME"),
-    ("UNDERCOVER_AGENT", "CRM_AGENT_API"),
+    ("UNDERCOVER_AGENT", "CRM_AGENT_SERVICE"),
 ]
 
 # Word-boundary renames for engine code. Order matters: the two-word

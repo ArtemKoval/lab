@@ -72,3 +72,14 @@ def test_a_manifest_name_must_match_its_folder(monkeypatch, tmp_path):
     finally:
         (pack_dir / "manifest.json").unlink()
         pack_dir.rmdir()
+
+
+def test_the_pack_rules_module_matches_the_contract():
+    """The pack carries the deterministic rules under the engine's contract."""
+    import inspect
+
+    rules = loader.pack().rules_module()
+    work = inspect.signature(rules.work_out_award)
+    assert list(work.parameters) == ["contract", "plans", "request", "approval_limit"]
+    sign_off = inspect.signature(rules.needs_sign_off)
+    assert list(sign_off.parameters) == ["award", "approval_limit"]

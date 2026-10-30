@@ -52,9 +52,17 @@ class Pack:
 
     def load_json(self, name: str) -> Any:
         """Read one JSON file from the pack data folder."""
-        path = self.data / name
+        return self._json(self.data, name, "pack file")
+
+    def load_eval(self, name: str) -> Any:
+        """Read one JSON file from the pack evals folder."""
+        return self._json(self.evals, name, "pack eval file")
+
+    def _json(self, folder: Path, name: str, kind: str) -> Any:
+        """Read one JSON file of the pack, or name it in an error."""
+        path = folder / name
         if not path.is_file():
-            raise PackError(f"missing pack file: {path}")
+            raise PackError(f"missing {kind}: {path}")
         return json.loads(path.read_text(encoding="utf-8"))
 
     def read_doc(self, name: str) -> str:
@@ -64,6 +72,13 @@ class Pack:
     def instruction(self, name: str) -> str:
         """Read one instruction text by name, such as case or queue."""
         return self._read(self.instructions, name, "pack instruction")
+
+    def rules_module(self):
+        """Import the pack's deterministic rules module by its manifest name."""
+        import importlib
+
+        name = self.manifest.get("rules", "rules")
+        return importlib.import_module(f"domains.{self.name}.{name}")
 
     def _read(self, folder: Path, name: str, kind: str) -> str:
         """Read one markdown file of the pack, or name it in an error."""

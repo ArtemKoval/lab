@@ -1,24 +1,36 @@
 import { expect, test } from "@playwright/test";
-import { post } from "./api";
+import {
+  askToPay,
+  payCase,
+  recordDecision,
+  recordStep,
+  resumed,
+  startCase,
+} from "./api";
+import { WORKERS } from "./workers";
 
 // These tests stand in for the agent by calling the API through the
 // dashboard's proxy, and watch the case page update without a reload.
 
 test("the case page shows the agent at work", async ({ page, request }) => {
   await page.goto("/cases/CLM-1003");
-  const heading = page.locator(".case-heading");
+  const heading = page.locator(".page-header");
   await expect(heading.getByText("Waiting")).toBeVisible();
   await expect(page.getByText(/No steps yet/)).toBeVisible();
 
-  await post(request, "/api/cases/CLM-1003/start", { thread_id: "e2e-1" });
-  await post(request, "/api/cases/CLM-1003/steps", {
-    kind: "tool_call",
-    content: 'get_case(case_id="CLM-1003")',
-  });
-  await post(request, "/api/cases/CLM-1003/steps", {
-    kind: "tool_result",
-    content: 'get_case: {"case_id":"CLM-1003"}',
-  });
+  await startCase(request, "CLM-1003", "e2e-1");
+  await recordStep(
+    request,
+    "CLM-1003",
+    "tool_call",
+    'get_case(case_id="CLM-1003")',
+  );
+  await recordStep(
+    request,
+    "CLM-1003",
+    "tool_result",
+    'get_case: {"case_id":"CLM-1003"}',
+  );
   await expect(heading.getByText("In progress")).toBeVisible();
   await expect(
     page.getByText("The agent is working on this case."),
@@ -28,54 +40,85 @@ test("the case page shows the agent at work", async ({ page, request }) => {
     page.getByText('get_case: {"case_id":"CLM-1003"}').first(),
   ).toBeVisible();
 
-  await post(request, "/api/cases/CLM-1003/decision", {
+  await recordDecision(request, "CLM-1003", {
     decision: "approve",
     award: 500,
     section: "Section 7, Emergency Medical",
     reason: "The treatment was necessary and covered.",
   });
-  await post(request, "/api/cases/CLM-1003/payment", { amount: 500 });
-  await post(request, "/api/cases/CLM-1003/steps", {
-    kind: "message",
-    content: "Approved and paid $500.00.",
-  });
-  await expect(heading.getByText("Decided")).toBeVisible();
   const decision = page.locator("section", {
     has: page.getByRole("heading", { name: "Decision" }),
   });
   await expect(decision.getByText("Approved")).toBeVisible();
+  await expect(heading.getByText("In progress")).toBeVisible();
+  await payCase(request, "CLM-1003", 500);
+  await recordStep(
+    request,
+    "CLM-1003",
+    "message",
+    "Approved and paid $500.00.",
+  );
+  await expect(heading.getByText("Decided")).toBeVisible();
   await expect(decision.getByText("Paid $500.00")).toBeVisible();
   await expect(page.getByText("Approved and paid $500.00.")).toBeVisible();
 });
 
-test("a worker signs off an award over the limit", async ({
+test("a sign-off on the dashboard reaches the agent's service", async ({
   page,
   request,
 }) => {
-  await post(request, "/api/cases/CLM-1020/start", { thread_id: "e2e-2" });
-  await post(request, "/api/cases/CLM-1020/decision", {
+  await startCase(request, "CLM-1020", "e2e-2");
+  await recordDecision(request, "CLM-1020", {
     decision: "approve",
     award: 1350,
     section: "Section 5, Baggage and Personal Effects",
     reason: "The loss is covered.",
   });
-  const refused = await request.post("/api/cases/CLM-1020/payment", {
-    data: { amount: 1350 },
-  });
+  const refused = await askToPay(request, "CLM-1020", 1350);
   expect(refused.status()).toBe(403);
 
   await page.goto("/cases/CLM-1020");
-  await expect(
-    page.locator(".case-heading").getByText("Waiting for sign-off"),
-  ).toBeVisible();
-  await page.getByRole("combobox", { name: "Worker" }).selectOption({
-    label: "Dana Whitfield",
-  });
+  const heading = page.locator(".page-header");
+  await expect(heading.getByText("Waiting for sign-off")).toBeVisible();
+  expect(await resumed(request)).not.toContain("CLM-1020");
+  await expect(page.getByRole("combobox")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign off" }).click();
+  await expect(heading.getByText("In progress")).toBeVisible();
+  await expect(page.getByText(/Signed off by Dana Whitfield/)).toBeVisible();
+  await expect.poll(() => resumed(request)).toContain("CLM-1020");
+
+  // The test plays the agent, which pays the case once it is told.
+  await payCase(request, "CLM-1020", 1350);
+  await expect(heading.getByText("Decided")).toBeVisible();
   await expect(
-    page.locator(".case-heading").getByText("Decided"),
+    page.getByText(/^Paid \$1,350\.00, signed off by Dana Whitfield at /),
   ).toBeVisible();
-  await expect(
-    page.getByText("Paid $1,350.00, signed off by Dana Whitfield"),
-  ).toBeVisible();
+});
+
+test.describe("signed in as Marcus Oyelaran", () => {
+  test.use({ storageState: WORKERS.marcus.storage });
+
+  test("a held award says why he can't sign it off", async ({
+    page,
+    request,
+  }) => {
+    await startCase(request, "CLM-1024", "e2e-7");
+    await recordDecision(request, "CLM-1024", {
+      decision: "approve",
+      award: 1350,
+      section: "Section 5, Baggage and Personal Effects",
+      reason: "The loss is covered.",
+    });
+
+    await page.goto("/cases/CLM-1024");
+    await expect(
+      page.getByLabel("Signed in").getByText("Marcus Oyelaran"),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Only a worker who can sign off awards over $1,000.00 can sign this off. Marcus Oyelaran can't.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign off" })).toHaveCount(0);
+  });
 });

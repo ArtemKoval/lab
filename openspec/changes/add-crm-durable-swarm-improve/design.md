@@ -10,7 +10,7 @@ The seam comes from the accepted tournament in `add-crm-engine-pilot` and ADR 00
 
 - Supabase stays out. The upstream backend already switches on `DATABASE_URL`: Postgres when set, SQLite when not. The port keeps that switch, and the devcontainer default stays SQLite, so the tests stay hermetic with no network.
 - The checkpoint saver becomes a factory. The port adds SQLite as the local saver and keeps PostgresSaver for the Postgres case, because a devcontainer has no Postgres. The factory is one function behind the graph builder.
-- Supabase Auth becomes a local auth service. The backend verifies any JWT against a JWKS URL, so the port serves JWKS from a small Node service at `AUTH_URL` and the dashboard signs in against it. The e2e stand-in from upstream becomes the shape of that service. The AWS rollout later points the same variables at Cognito.
+- Supabase Auth becomes a local auth service. The backend verifies any JWT against a JWKS URL. The port serves JWKS from a small Node service at `AUTH_URL`, and the dashboard signs in against it. The e2e stand-in from upstream becomes the shape of that service. The AWS rollout later points the same variables at Cognito.
 - The payout engine becomes the pack rules. The port moves `backend/payout.py` to `domains/insurance/rules.py` behind a fixed contract, and the pack manifest names the module.
 
 ## Port mechanics
@@ -27,12 +27,12 @@ The passes port `data/models.json` and `data/improvement.json` into the pack. Su
 
 ## Key decisions
 
-- The saver factory: `checkpoints.py` returns a saver from `DATABASE_URL`; SQLite locally, Postgres when set. Tests keep the SQLite saver.
+- The saver factory: `checkpoints.py` returns a saver from `DATABASE_URL`. SQLite serves locally and Postgres when the URL is set. Tests keep the SQLite saver.
 - The rules contract: `rules.work_out(lines, contract, plans, settings) -> list[steps]`, pure code, no engine imports. `backend/calculation.py` stays engine: it pins one calculation per case per attempt and refuses a mismatched approval.
-- The auth service: `crm/auth/server.mjs`, Node built-ins only, signs ES256, serves JWKS at `/jwks.json`, accepts any pack worker email with the dev password from `AUTH_DEV_PASSWORD`, and runs as `npm run dev:auth` on port 8004. `backend/auth.py` reads `AUTH_URL`. The dashboard replaces `supabase-js` with a fetch sign-in and stores the token in the session storage.
+- The auth service: `crm/auth/server.mjs`, Node built-ins only. It signs ES256 and serves JWKS at `/jwks.json`. It accepts any pack worker email with the dev password from `AUTH_DEV_PASSWORD`, and runs as `npm run dev:auth` on port 8004. `backend/auth.py` reads `AUTH_URL`. The dashboard replaces `supabase-js` with a fetch sign-in and stores the token in the session storage.
 - The improver, judge, versions, rounds, recipes, spending, and verdict port as engine code with the rename. The improvement settings and models data live in the pack.
 - Langfuse stays optional: the handler attaches only when the keys are in the environment, so hermetic runs trace nothing.
-- Port 8002 hosts the agent service; `npm run dev` starts backend, agent, auth, and dashboard. `CRM_AGENT_SERVICE` names its address.
+- Port 8002 hosts the agent service. `npm run dev` starts backend, agent, auth, and dashboard. `CRM_AGENT_SERVICE` names its address.
 
 ## Mandated skills
 

@@ -1,8 +1,7 @@
-from contextlib import closing
-
 import pytest
+from sqlalchemy import select
 
-from backend.database import connect
+from backend.database import documents, engine
 from backend.documents import sections
 
 
@@ -14,7 +13,7 @@ from backend.documents import sections
     ],
 )
 def test_documents_split_into_numbered_sections(document, count, first, last):
-    with closing(connect()) as db:
+    with engine().connect() as db:
         found = sections(db, document)
     assert [s.number for s in found] == list(range(1, count + 1))
     assert (found[0].title, found[-1].title) == (first, last)
@@ -82,10 +81,8 @@ def test_search_with_no_matches(client):
     assert client.get("/api/documents/search").status_code == 422
 
 
-def test_instructions_for_the_queue_and_a_case(client):
-    instructions = client.get("/api/instructions").json()
-    assert instructions["queue"].startswith("# UnderCover Agent: running the queue")
-    case = instructions["case"]
+def test_the_case_agent_reads_the_contents_of_both_documents(client):
+    case = client.get("/api/versions/current").json()["instructions"]
     assert case.startswith("# UnderCover Agent: working a claim")
     contents = case[case.index("## Contents of the contract wording") :]
     assert "\n3. Trip Delay\n" in contents
@@ -96,8 +93,9 @@ def test_instructions_for_the_queue_and_a_case(client):
 
 
 def test_both_documents_are_seeded():
-    with closing(connect()) as db:
-        rows = db.execute("SELECT * FROM documents ORDER BY rowid").fetchall()
+    with engine().connect() as db:
+        query = select(documents).order_by(documents.c.position)
+        rows = db.execute(query).mappings().all()
     assert [(row["name"], row["title"]) for row in rows] == [
         ("wording", "Contract wording"),
         ("manual", "Cases manual"),

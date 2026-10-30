@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { WORKERS } from "./workers";
 
 test("the queue lists every case", async ({ page }) => {
   await page.goto("/");
@@ -21,15 +22,25 @@ test("a case opens from the queue", async ({ page }) => {
   await expect(page.getByText("POL-2001")).toBeVisible();
 });
 
-test("the header opens the instructions", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("link", { name: "Instructions" }).click();
-  await expect(page).toHaveURL("/instructions");
-  const queue = page.getByRole("region", { name: "Running the queue" });
-  await expect(queue.getByText(/you run the claims queue/)).toBeVisible();
-  const entry = page.getByRole("region", { name: "Working a case" });
+test("signing out from the account menu lands on the sign-in page", async ({
+  browser,
+}) => {
+  // A browser of its own, so signing out leaves the other tests signed in.
+  const context = await browser.newContext({
+    storageState: WORKERS.dana.storage,
+  });
+  const page = await context.newPage();
+  await page.goto("/scoreboard");
+  const who = page.getByLabel("Signed in");
+  await expect(who.getByText("Dana Whitfield")).toBeVisible();
+  await expect(who.getByText("Senior Cases Worker")).toBeVisible();
+  await who.getByRole("button", { name: "Account" }).click();
+  await who.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL("/sign-in");
   await expect(
-    entry.getByText(/10\. How we work out your payment/),
+    page.getByRole("heading", { name: "Sign in", level: 1 }),
   ).toBeVisible();
-  await expect(entry.getByText(/9\. Repeat claims/)).toBeVisible();
+  await page.goto("/scoreboard");
+  await expect(page).toHaveURL("/sign-in");
+  await context.close();
 });

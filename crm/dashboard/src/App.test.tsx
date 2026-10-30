@@ -1,11 +1,13 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+import { TRY_AGAIN } from "./components/StateMessage";
 import {
   Refusal,
   entry,
   history,
   contract,
   renderAt,
+  sent,
   stubApi,
   summary,
 } from "./testing";
@@ -28,7 +30,7 @@ it("shows the queue with counts by state", async () => {
       },
       { ...summary, case_id: "CLM-1004", status: "left_for_worker" },
     ],
-    "GET /api/runs/latest": null,
+    "GET /api/dispatches/latest": null,
   });
   renderAt("/");
   const link = await screen.findByRole("link", { name: "CLM-1002" });
@@ -51,7 +53,7 @@ it("shows an error when the queue can't load", async () => {
   stubApi({ "GET /api/cases": new Refusal(500, "The backend is down") });
   renderAt("/");
   expect((await screen.findByRole("alert")).textContent).toBe(
-    "The backend is down",
+    `The backend is down ${TRY_AGAIN}`,
   );
 });
 
@@ -90,47 +92,37 @@ it("shows a contract without add-ons and a customer with no earlier cases", asyn
   });
   renderAt("/cases/CLM-1002");
   expect(await screen.findByText("None")).toBeDefined();
-  expect(await screen.findByText("No earlier cases")).toBeDefined();
+  expect(
+    await screen.findByText(
+      /^No earlier cases: this is the customer's first case/,
+    ),
+  ).toBeDefined();
 });
 
 it("says when a case doesn't exist, and stops asking for it", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   const fetchMock = stubApi({});
   renderAt("/cases/CLM-9999");
-  expect(await screen.findByText("Case not found")).toBeDefined();
+  expect(
+    await screen.findByText("Case not found. Choose one from the queue."),
+  ).toBeDefined();
   await vi.advanceTimersByTimeAsync(5000);
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(sent(fetchMock, "GET /api/cases/CLM-9999")).toHaveLength(1);
   vi.useRealTimers();
 });
 
 it("shows other errors loading a case", async () => {
   stubApi({ "GET /api/cases/CLM-1002": new Refusal(500, "Server error") });
   renderAt("/cases/CLM-1002");
-  expect((await screen.findByRole("alert")).textContent).toBe("Server error");
+  expect((await screen.findByRole("alert")).textContent).toBe(
+    `Server error ${TRY_AGAIN}`,
+  );
 });
 
-it("shows the agent's instructions read only", async () => {
-  stubApi({
-    "GET /api/instructions": {
-      queue: "# Running the queue",
-      case: "# Working a case\n\n## Contents of the cases manual",
-    },
-  });
-  renderAt("/instructions");
-  const queue = await screen.findByRole("region", {
-    name: "Running the queue",
-  });
-  expect(within(queue).getByText("# Running the queue")).toBeDefined();
-  const entry = screen.getByRole("region", { name: "Working a case" });
-  expect(
-    within(entry).getByText(/## Contents of the cases manual/),
-  ).toBeDefined();
-  expect(screen.queryByRole("textbox")).toBeNull();
-  expect(screen.queryByRole("button")).toBeNull();
-});
-
-it("says when a page doesn't exist", () => {
+it("says when a page doesn't exist", async () => {
   stubApi({});
   renderAt("/nowhere");
-  expect(screen.getByText("Page not found")).toBeDefined();
+  expect(
+    await screen.findByText("Page not found. Choose a page from the header."),
+  ).toBeDefined();
 });

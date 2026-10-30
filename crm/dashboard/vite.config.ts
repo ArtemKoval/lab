@@ -1,17 +1,27 @@
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
+// Only npm run dev reads .env, from the repo root. The unit tests and the
+// end-to-end tests set their own values, so the checks never read it.
+const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
+
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  envDir: mode === "development" ? REPO_ROOT : false,
   server: {
-    proxy: { "/api": process.env.CRM_AGENT_API ?? "http://127.0.0.1:8000" },
+    proxy: { "/api": process.env.CRM_API ?? "http://127.0.0.1:8000" },
   },
   test: {
     environment: "jsdom",
+    env: {
+      VITE_AUTH_URL: "http://127.0.0.1:8004",
+    },
+    setupFiles: ["src/setupTests.ts"],
     coverage: {
       include: ["src/**"],
       exclude: ["src/main.tsx"],
       thresholds: { statements: 80 },
     },
   },
-});
+}));
