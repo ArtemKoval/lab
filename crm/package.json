@@ -25,7 +25,6 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.117.2",
     "lucide-react": "^1.52.0",
     "mdast-util-find-and-replace": "^3.0.3",
     "react": "^19.3.0",

@@ -16,7 +16,7 @@ from backend.lookups import current_settings
 from backend.models import Worker
 from backend.money import dollars
 
-SIGN_IN_OUT_OF_REACH = "Sign-in can't be checked: Supabase is out of reach"
+SIGN_IN_OUT_OF_REACH = "Sign-in can't be checked: the auth service is out of reach"
 NOT_SIGNED_IN = "The sign-in isn't valid. Please sign in again."
 NEEDS_THE_KEY = "This needs the agent's API key"
 NEEDS_A_SIGN_IN_OR_THE_KEY = "Sign in, or send the agent's API key"

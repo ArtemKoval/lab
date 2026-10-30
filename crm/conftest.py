@@ -1,6 +1,8 @@
 """Fixtures for the backend's and the agent's tests."""
 
 import json
+import os
+import shutil
 
 import httpx
 import jwt
@@ -8,28 +10,89 @@ import pytest
 from fastapi.testclient import TestClient
 from openrouter import OpenRouter
 
-from backend import agent_service, auth, judge
+from agent import identity
+from agent.copilot.memory import MEMORY_ID as COPILOT_MEMORY_ID
+from agent.direct import CONTEXT_URL
+from agent.gateway import GATEWAY_URL
+from agent.memory import MEMORY_ID
+from backend import agent_service, auth, copilot_service, judge
+from backend.dashboard import DashboardFiles
+from backend.dashboard import mount as dashboard_mount
 from backend.database import engine, seed
+from backend.dependencies import API_KEY_HEADER
 from backend.main import app
+from backend.tests.dashboard_build import stand_in_build
 from backend.tests.judging import JUDGE_URL, answer
 from backend.tests.sign_in import AUTH_URL, PUBLIC_KEYS
 
+# The agent's API key in the tests, which the backend and the agent share.
+TEST_KEY = "test-agent-key-0123456789abcdefghijklmnop"
 
-@pytest.fixture(autouse=True)
-def database(tmp_path, monkeypatch):
-    """Give every test its own freshly seeded SQLite database, never Postgres."""
-    path = tmp_path / "crm.db"
+
+def use_sqlite(monkeypatch, path):
+    """Point the backend at a SQLite file, never Postgres, on the default model."""
     monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("MODEL_NAME", raising=False)
     monkeypatch.setenv("CRM_DB", str(path))
-    seed(engine())
+
+
+@pytest.fixture(scope="session")
+def seeded(tmp_path_factory):
+    """A SQLite database seeded once for the whole session."""
+    path = tmp_path_factory.mktemp("seeded") / "crm.db"
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        use_sqlite(monkeypatch, path)
+        seed(engine())
     return path
 
 
 @pytest.fixture(autouse=True)
-def auth_keys(monkeypatch):
+def database(seeded, tmp_path, monkeypatch):
+    """Give every test its own copy of the session's seeded SQLite database, which
+    is quicker than seeding each time."""
+    path = tmp_path / "crm.db"
+    use_sqlite(monkeypatch, path)
+    shutil.copyfile(seeded, path)
+    return path
+
+
+@pytest.fixture(autouse=True)
+def no_aws(tmp_path, monkeypatch):
+    """Keep every test away from AWS, a Gateway and the servers running on the
+    laptop: no Gateway, context layer, memory, Copilot or runtime from the
+    environment, never as if on AgentCore Runtime, and stand-in AWS credentials and
+    a region in place of the AWS CLI's."""
+    ours = (
+        GATEWAY_URL,
+        CONTEXT_URL,
+        MEMORY_ID,
+        COPILOT_MEMORY_ID,
+        agent_service.AGENT,
+        agent_service.RUNTIME,
+        copilot_service.COPILOT,
+        copilot_service.RUNTIME,
+    )
+    on_runtime = [name for name in os.environ if name.startswith(identity.PREFIX)]
+    for name in (*ours, *on_runtime, "AWS_PROFILE", "AWS_SESSION_TOKEN", "AWS_REGION"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test-access-key")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test-secret-key")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+    monkeypatch.setenv("AWS_CONFIG_FILE", str(tmp_path / "aws-config"))
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", str(tmp_path / "aws-credentials"))
+
+
+@pytest.fixture(autouse=True)
+def agent_key(monkeypatch):
+    """Give the backend and the agent the same API key in every test."""
+    monkeypatch.setenv("CRM_AGENT_KEY", TEST_KEY)
+    return TEST_KEY
+
+
+@pytest.fixture(autouse=True)
+def supabase_keys(monkeypatch):
     """Check sign-ins against the tests' own public key, in place of fetching
-    the auth service's."""
+    Supabase's."""
     monkeypatch.setenv("AUTH_URL", AUTH_URL)
     monkeypatch.setattr(jwt.PyJWKClient, "fetch_data", lambda _: PUBLIC_KEYS)
     auth.public_keys.cache_clear()
@@ -43,8 +106,13 @@ def judge_answers(monkeypatch):
 
     def answer_with(worker):
         transport = httpx.MockTransport(worker)
+        # With both clients its own, the SDK closes neither when the stand-in is
+        # collected; closing an async client it made runs asyncio.run, which
+        # takes the main thread's event loop away from the Lambda worker.
         stand_in = OpenRouter(
-            api_key="test-key", client=httpx.Client(transport=transport)
+            api_key="test-key",
+            client=httpx.Client(transport=transport),
+            async_client=httpx.AsyncClient(transport=transport),
         )
         monkeypatch.setattr(judge, "client", lambda: stand_in)
 
@@ -67,34 +135,85 @@ def judged(judge_answers):
 
 @pytest.fixture
 def agent_answers(monkeypatch):
-    """Answer the backend's calls to the agent's service with a worker of the test's
-    own, in place of the service."""
+    """Answer the backend's calls to the agent on the laptop with a worker of the
+    test's own, in place of the agent."""
 
     def answer_with(worker):
         transport = httpx.MockTransport(worker)
-        stand_in = httpx.Client(
-            base_url=agent_service.agent.base_url, transport=transport
-        )
-        monkeypatch.setattr(agent_service, "agent", stand_in)
+        monkeypatch.setattr(agent_service, "agent", httpx.Client(transport=transport))
 
     return answer_with
 
 
 @pytest.fixture(autouse=True)
 def agent_calls(agent_answers):
-    """Stand in for the agent's service, keeping the path and the body of each call
-    to it, or None for a call with no body."""
-    calls: list[tuple[str, object]] = []
+    """Stand in for the agent on the laptop, taking the work each payload asks for
+    and keeping the payload."""
+    calls: list[object] = []
 
     def accept(request: httpx.Request) -> httpx.Response:
-        body = json.loads(request.content) if request.content else None
-        calls.append((request.url.path, body))
-        return httpx.Response(202, json={"status": "accepted"})
+        calls.append(json.loads(request.content))
+        return httpx.Response(200, json={"accepted": True})
 
     agent_answers(accept)
     return calls
 
 
 @pytest.fixture
-def client():
-    return TestClient(app)
+def copilot_answers(monkeypatch):
+    """Answer the backend's calls to the Copilot on the laptop with a worker of
+    the test's own, in place of the Copilot."""
+
+    def answer_with(worker):
+        transport = httpx.MockTransport(worker)
+        monkeypatch.setattr(
+            copilot_service, "copilot", httpx.Client(transport=transport)
+        )
+
+    return answer_with
+
+
+@pytest.fixture(autouse=True)
+def copilot_calls(copilot_answers):
+    """Stand in for the Copilot on the laptop, taking each turn and answer the
+    payload asks for and keeping the payload."""
+    calls: list[object] = []
+
+    def accept(request: httpx.Request) -> httpx.Response:
+        calls.append(json.loads(request.content))
+        return httpx.Response(200, json={"accepted": True})
+
+    copilot_answers(accept)
+    return calls
+
+
+@pytest.fixture
+def client(database):
+    """The backend, called as the agent's side calls it, with the agent's key. Each
+    client stays open for the test, so its requests share one event loop rather
+    than starting a thread and a loop for each."""
+    with TestClient(app, headers={API_KEY_HEADER: TEST_KEY}) as caller:
+        yield caller
+
+
+@pytest.fixture
+def dashboard(database):
+    """The backend, called as a worker's browser calls it, with no key, open for
+    the test like the agent's side."""
+    with TestClient(app) as caller:
+        yield caller
+
+
+@pytest.fixture
+def build(tmp_path, monkeypatch):
+    """Serve a stand-in for the dashboard's build in place of dashboard/dist."""
+    folder = stand_in_build(tmp_path / "dist")
+    monkeypatch.setattr(dashboard_mount, "app", DashboardFiles(directory=folder))
+    return folder
+
+
+@pytest.fixture
+def no_build(tmp_path, monkeypatch):
+    """Serve no build, as when dashboard/dist hasn't been built."""
+    unbuilt = DashboardFiles(directory=tmp_path / "dist", check_dir=False)
+    monkeypatch.setattr(dashboard_mount, "app", unbuilt)

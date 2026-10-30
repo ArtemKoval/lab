@@ -104,7 +104,7 @@ max-complexity = 10
 "*/tests/*" = ["S101", "PLR2004"]
 
 [tool.pytest.ini_options]
-testpaths = ["backend", "agent", "context"]
+testpaths = ["backend", "agent", "context", "domains"]
 pythonpath = ["."]
 addopts = "--import-mode=importlib --cov --cov-report=term-missing"
 

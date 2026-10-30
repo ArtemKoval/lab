@@ -35,7 +35,7 @@ test("signing out from the account menu lands on the sign-in page", async ({
   await page.goto("/scoreboard");
   const who = page.getByLabel("Signed in");
   await expect(who.getByText("Dana Whitfield")).toBeVisible();
-  await expect(who.getByText("Senior Cases Worker")).toBeVisible();
+  await expect(who.getByText("Senior Claims Handler")).toBeVisible();
   await who.getByRole("button", { name: "Account" }).click();
   await who.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL("/sign-in");

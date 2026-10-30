@@ -34,7 +34,7 @@ test("the dispatch panel follows a dispatch as it works", async ({
   await recordRunCases(request, run_id, ["CLM-1013", "CLM-1014"]);
   const rows = panel.getByRole("row");
   await expect(panel.getByText("Running", { exact: true })).toBeVisible();
-  await expect(panel.getByText(/with 2 entry agents at once/)).toBeVisible();
+  await expect(panel.getByText(/with 2 case agents at once/)).toBeVisible();
   await expect(rows).toHaveText([
     /^Case/,
     /^CLM-1013.*Waiting/,

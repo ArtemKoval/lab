@@ -43,7 +43,7 @@ def test_a_sign_in_issued_a_little_ahead_of_our_clock_is_fine(client):
     assert client.get("/api/me", headers=headers).status_code == 200
 
 
-def test_supabase_out_of_reach_isnt_a_bad_sign_in(client, monkeypatch):
+def test_an_out_of_reach_auth_service_isnt_a_bad_sign_in(client, monkeypatch):
     def unreachable(_):
         raise jwt.PyJWKClientConnectionError("Fail to fetch data from the url")
 
@@ -51,7 +51,7 @@ def test_supabase_out_of_reach_isnt_a_bad_sign_in(client, monkeypatch):
     refused = client.get("/api/me", headers=signed_in(DANA))
     assert (refused.status_code, refused.json()["detail"]) == (
         503,
-        "Sign-in can't be checked: Supabase is out of reach",
+        "Sign-in can't be checked: the auth service is out of reach",
     )
 
 

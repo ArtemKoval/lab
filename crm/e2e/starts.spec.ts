@@ -29,7 +29,7 @@ test("a dispatch started on the queue page reaches the agent", async ({
   expect(run).toMatchObject({ kind: "dispatch", agents: 7, status: "running" });
   await expect(button).toHaveAttribute("aria-disabled", "false");
   await expect(panel.getByRole("alert")).toHaveCount(0);
-  await expect(panel.getByText(/with 7 entry agents at once/)).toBeVisible();
+  await expect(panel.getByText(/with 7 case agents at once/)).toBeVisible();
 
   await button.click();
   await expect(panel.getByRole("alert")).toHaveText("A dispatch is running");
