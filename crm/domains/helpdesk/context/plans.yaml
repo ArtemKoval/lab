@@ -1,0 +1,29 @@
+# FastFix's two support plans: each plan's response target, per-incident cap
+# and priority multiplier. Seeding loads this file into the app's award rules,
+# so the credit check and the agent read the same plans.
+
+source:
+  system: Plan administration
+  owner: Product
+  reviewed: "2026-10-01"
+
+plans:
+  - plan: standard
+    name: FastFix Standard
+    per_incident_cap: 150.00
+    response_target_hours: 8
+    priority_multiplier: 1.00
+    missed_response_credit: 20.00
+
+  - plan: priority
+    name: FastFix Priority
+    per_incident_cap: 400.00
+    response_target_hours: 2
+    priority_multiplier: 1.50
+    missed_response_credit: 20.00
+
+# Neither plan carries a deductible in version 2026.1.
+deductible_applies_to: []
+
+# FastFix sells no add-ons in version 2026.1.
+add_ons: []

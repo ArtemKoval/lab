@@ -71,6 +71,17 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
             "        contract, plans(db), request, approval_limit(db)\n"
             "    )",
         ),
+        (
+            "    award = work_out_award(contract, plans(db), request, approval_limit(db))\n"
+            "    keep_calculation",
+            "    try:\n"
+            "        award = rules().work_out_award(\n"
+            "            contract, plans(db), request, approval_limit(db)\n"
+            "        )\n"
+            "    except ValueError as error:\n"
+            "        raise HTTPException(422, str(error)) from error\n"
+            "    keep_calculation",
+        ),
         ("A award over", "An award over"),
         (
             "elif needs_sign_off(award, limit):",

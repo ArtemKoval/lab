@@ -1,0 +1,39 @@
+[
+  {
+    "contract_id": "SUP-4001",
+    "customer_id": "CUS-4001",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2025-11-01",
+    "sold_through": "FastFix website checkout",
+    "trip": {
+      "destination": "Harborview Dental Group, four clinics in Oregon",
+      "departs_on": "2025-11-02",
+      "returns_on": "2026-11-01",
+      "trip_cost": 4680.0
+    },
+    "travelers": [
+      "Elena Marsh",
+      "Tim Dooley"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "SUP-4002",
+    "customer_id": "CUS-4002",
+    "plan": "priority",
+    "add_ons": [],
+    "purchased_on": "2026-03-01",
+    "sold_through": "FastFix sales team",
+    "trip": {
+      "destination": "Cedarline Logistics, two warehouses in Illinois",
+      "departs_on": "2026-03-02",
+      "returns_on": "2027-03-01",
+      "trip_cost": 9600.0
+    },
+    "travelers": [
+      "Victor Osei"
+    ],
+    "status": "active"
+  }
+]

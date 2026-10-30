@@ -1,0 +1,113 @@
+[
+  {
+    "case_id": "TCK-2001",
+    "contract_id": "SUP-4001",
+    "customer_id": "CUS-4001",
+    "case_type": "outage",
+    "submitted_on": "2026-09-15",
+    "incident_date": "2026-09-14",
+    "incident_location": "FastFix platform, US-West region",
+    "summary": "Two hour platform outage stopped ticket intake at all four clinics",
+    "story": "On the morning of September 14 our front desk could not open tickets in the FastFix desk from 9:20 to 11:20. The status page showed a platform outage in the US-West region, and FastFix confirmed it by email at 11:52. While the desk was down, one clinic could not log a fault with an X-ray unit, and our first response to that fault came the next morning, well after your eight business hour target. We are claiming the outage credit and the missed response credit.",
+    "items": [
+      {
+        "description": "Outage credit, two hours at $60 an hour",
+        "category": "outage_credit",
+        "amount": 120.0
+      },
+      {
+        "description": "Missed response target, one service credit",
+        "category": "sla_credit",
+        "amount": 20.0
+      }
+    ],
+    "amount_claimed": 140.0,
+    "documents": [
+      {
+        "name": "Status page incident report INC-4082",
+        "type": "incident_report",
+        "content": "FastFix IT Support status page, incident INC-4082. Started September 14, 2026 at 09:20, resolved at 11:20. Scope: Ticket Desk and FastFix Agent, US-West region. Cause: a failed database failover during a storage upgrade. Customer impact: tickets could not be opened or updated. A service credit applies under the support wording."
+      },
+      {
+        "name": "FastFix confirmation email",
+        "type": "email",
+        "content": "From: support@fastfix.example, September 14, 2026 at 11:52. To: Elena Marsh. We confirm that incident INC-4082 affected your desk from 09:20 to 11:20, two hours. We are sorry for the disruption. Your first response to ticket 8841 was sent on September 15 at 09:05, outside the eight business hour response target on your Standard plan."
+      }
+    ],
+    "status": "waiting"
+  },
+  {
+    "case_id": "TCK-2002",
+    "contract_id": "SUP-4002",
+    "customer_id": "CUS-4002",
+    "case_type": "outage",
+    "submitted_on": "2026-10-07",
+    "incident_date": "2026-10-06",
+    "incident_location": "FastFix platform, US-Central region",
+    "summary": "Five hour outage of the sync service halted warehouse label printing",
+    "story": "On October 6 the sync service went down at 06:00 and came back at 11:00. Our two warehouses print shipping labels through the sync service, so both lines stopped for the whole morning shift. Your monitoring graph for our account shows the gap, and your own incident report names the sync service. Our Priority plan gives us a two hour response target around the clock, and the first engineer joined the ticket at 09:15, well past it. We are claiming the outage credit for the five hours and the missed response credit, and we expect the Priority multiplier on both.",
+    "items": [
+      {
+        "description": "Outage credit, five hours at $60 an hour",
+        "category": "outage_credit",
+        "amount": 300.0
+      },
+      {
+        "description": "Missed response target, one service credit",
+        "category": "sla_credit",
+        "amount": 20.0
+      }
+    ],
+    "amount_claimed": 320.0,
+    "documents": [
+      {
+        "name": "Status page incident report INC-4157",
+        "type": "incident_report",
+        "content": "FastFix IT Support status page, incident INC-4157. Started October 6, 2026 at 06:00, resolved at 11:00. Scope: Sync Service, US-Central region. Cause: a message queue filled after a broker restart. Customer impact: data stopped moving between the FastFix Agent and the Ticket Desk. A service credit applies under the support wording."
+      },
+      {
+        "name": "Cedarline monitoring export",
+        "type": "monitoring_log",
+        "content": "Cedarline Logistics monitoring, October 6, 2026. sync.fastfix.example heartbeat lost at 06:00, restored at 11:00. Label printer queue depth 0 from 06:02 to 11:02 at both warehouses. Export generated October 6 at 14:00 by monitoring@cedarline.example."
+      },
+      {
+        "name": "Ticket timeline extract TCK-1993",
+        "type": "email",
+        "content": "FastFix Ticket Desk, ticket TCK-1993, opened by Cedarline Logistics at 06:04 on October 6, 2026. First engineer joined at 09:15. Priority plan response target: two hours, around the clock."
+      }
+    ],
+    "status": "waiting"
+  },
+  {
+    "case_id": "TCK-2003",
+    "contract_id": "SUP-4001",
+    "customer_id": "CUS-4001",
+    "case_type": "other",
+    "submitted_on": "2026-10-14",
+    "incident_date": "2026-10-13",
+    "incident_location": "Harborview Dental Group, Portland clinic",
+    "summary": "FastFix Agent update crash took the front desk terminals down for a morning",
+    "story": "On the morning of October 13 your agent update 6.2 installed itself on our five front desk terminals, and every one of them crashed on startup, over and over. We lost about two and a half hours across the clinic until your engineer walked us back to the last good version. I saw on your status page that other customers reported the same thing that morning, so I believe the update caused it and a credit is due. This is the third incident we have filed since May, and I want it handled fairly.",
+    "items": [
+      {
+        "description": "Outage credit, two and a half hours at $60 an hour",
+        "category": "outage_credit",
+        "amount": 150.0
+      }
+    ],
+    "amount_claimed": 150.0,
+    "documents": [
+      {
+        "name": "Status page note on update 6.2",
+        "type": "incident_report",
+        "content": "FastFix IT Support status page, October 13, 2026. FastFix Agent update 6.2, rolled out from 08:00. Some Windows terminals crash on startup after the update. A fixed build 6.2.1 goes out from 13:00, and support can restore the last good version 6.1 on request. This is not a platform outage; the Ticket Desk stayed up throughout."
+      },
+      {
+        "name": "Harborview monitoring export",
+        "type": "monitoring_log",
+        "content": "Harborview Dental Group monitoring, October 13, 2026. Five front desk terminals running FastFix Agent 6.2 crashed on startup between 08:10 and 10:40. Terminals restored on Agent 6.1 by 11:00 with help from a FastFix engineer. Export by itsupport@harborviewdental.example."
+      }
+    ],
+    "status": "waiting"
+  }
+]

@@ -7,12 +7,12 @@ support manual. The plans and the approval limit come from settings.
 from dataclasses import dataclass
 
 from backend.models import (
-    CalculationStep,
     Award,
     AwardRequest,
+    CalculationStep,
+    Contract,
     Plan,
     Plans,
-    Contract,
 )
 
 
@@ -53,7 +53,10 @@ def less_already_issued(
     """Less the credit FastFix already issued for the same incident."""
     if request.paid_by_others:
         calculation.append(
-            step("Less the credit already issued for this incident", -request.paid_by_others)
+            step(
+                "Less the credit already issued for this incident",
+                -request.paid_by_others,
+            )
         )
         total -= request.paid_by_others
     return total

@@ -7,10 +7,9 @@ description: Onboard a new domain to the crm engine from a free-form description
 
 The crm engine is generic. It runs on domain packs at `crm/domains/<name>/`,
 and the pack carries every domain word. The reference pack is
-`crm/domains/insurance/`. Read it first: `manifest.json`, `rules.py`,
-`policy/wording.md` and `policy/manual.md`, the files under `data/`, the
-files under `instructions/`, `evals/decisions.json`, and the files under
-`context/`.
+`crm/domains/insurance/`. Read it first: `manifest.json`, `rules.py`, the
+files under `policy/`, `data/`, `instructions/`, and `context/`, and
+`evals/decisions.json`.
 
 ## Never edit engine code
 
@@ -22,11 +21,12 @@ tell the user.
 ## Engine constraints
 
 - The manifest at `crm/domains/<name>/manifest.json` carries these keys:
-  `name` (equal to the folder name), `display_name`, `engine_api: 1`,
-  `rules: "rules"`, `settings` with `award_approval_limit`, `documents`
-  (the short names of the policy files), and `seed` with `cases`,
-  `customers`, `contracts`, `workers`, and `company`, each a file name
-  under `data/`.
+  `name`, `display_name`, `engine_api`, `rules`, `settings`, `documents`,
+  and `seed`. The key `name` equals the folder name. The key `engine_api`
+  is `1`. The key `rules` is `"rules"`. The key `settings` carries
+  `award_approval_limit`. The key `documents` carries the short names of
+  the policy files. The key `seed` carries `cases`, `customers`,
+  `contracts`, `workers`, and `company`, each a file name under `data/`.
 - `rules.py` defines `work_out_award(contract, plans, request,
   approval_limit)` and `needs_sign_off(award, approval_limit)`, with these
   exact parameter names in this order. Import the engine types from

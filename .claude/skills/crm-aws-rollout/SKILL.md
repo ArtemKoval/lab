@@ -78,8 +78,7 @@ cd target/lambda && zip -qr ../crm-app.zip . && cd ../..
 1. Send the package to the function:
    `aws lambda update-function-code --function-name crm-app --zip-file fileb://target/crm-app.zip`.
    If AWS has no `crm-app` function yet, create it first, with runtime
-   `python3.12`, handler `backend.main.worker`, and an execution role in
-   the account.
+   `python3.12`, handler `backend.main.worker`, and an execution role.
 2. Give the function a URL:
    `aws lambda create-function-url-config --function-name crm-app --auth-type NONE`.
    If the function has a URL already, this command fails. Then read the
@@ -91,7 +90,7 @@ cd target/lambda && zip -qr ../crm-app.zip . && cd ../..
    The CDK stack gives it to the runtimes.
 5. Deploy the runtimes, from `crm/`: `uv run agentcore deploy`. The command
    packages `runtime/main.py` as the agent runtime and `runtime/copilot.py`
-   as the copilot runtime, and deploys the CDK stack at
+   as the copilot runtime. It deploys the CDK stack at
    `crm/agentcore/cdk`. It asks for the three credential values of step 2.
    It prints the addresses of the runtimes, the gateway, and the memory.
 

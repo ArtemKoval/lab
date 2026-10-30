@@ -21,7 +21,7 @@ def _pack_folder() -> Path:
 
 DocumentName = Literal["wording", "manual"]
 RecordName = Literal["case", "contract", "previous_case"]
-PlanName = Literal["economy", "premium", "first"]
+PlanName = str
 TITLES: dict[DocumentName, str] = {
     "wording": "Contract wording",
     "manual": "Cases manual",

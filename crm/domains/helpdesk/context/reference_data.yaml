@@ -1,0 +1,80 @@
+# Facts from outside CRM that tickets often turn on: status page records,
+# what each FastFix service does, and the equipment we support with its list
+# prices.
+
+source:
+  system: Outside data providers
+  owner: Support operations
+  reviewed: "2026-10-01"
+
+topics:
+  - topic: events
+    description: Outages, maintenance windows and releases on the FastFix status page, and outside events that disrupt customers' networks
+    facts:
+      - >-
+        FastFix status page, incident INC-4082, September 14, 2026: Ticket Desk
+        and FastFix Agent down in the US-West region from 09:20 to 11:30. Cause:
+        a failed database failover during a storage upgrade. All accounts in the
+        region were affected.
+      - >-
+        FastFix status page, incident INC-4157, October 6, 2026: Sync Service
+        down in the US-Central region from 06:00 to 11:00. Cause: a message queue
+        filled after a broker restart. Data stopped moving between the FastFix
+        Agent and the Ticket Desk.
+      - >-
+        FastFix status page, October 13, 2026: FastFix Agent update 6.2 rolled
+        out from 08:00. Some Windows terminals crash on startup after the update.
+        A fixed build 6.2.1 goes out from 13:00, and support can restore the last
+        good version 6.1 on request. The Ticket Desk stayed up throughout.
+      - >-
+        FastFix status page, September 27, 2026: high wait times on new tickets
+        between 13:00 and 22:00 after a staff rota error. First replies that day
+        ran up to 11 hours behind on Standard plan tickets.
+      - >-
+        FastFix status page, October 20, 2026: planned maintenance on the Ticket
+        Desk from 01:00 to 03:00, announced on October 12. Credits do not apply
+        to announced maintenance windows.
+      - >-
+        CascadeNet notice, September 30, 2026: a fiber cut in downtown Portland
+        took business internet links down for about four hours. FastFix services
+        stayed up; customers on CascadeNet could not reach them.
+
+  - topic: systems
+    description: The services FastFix runs, what each one does and where it runs
+    facts:
+      - >-
+        Ticket Desk: the web application customers open and read tickets in. It
+        runs in the US-West and EU-West regions.
+      - >-
+        Sync Service: the service that moves data between the FastFix Agent and
+        the Ticket Desk. It runs in the US-Central and EU-West regions.
+      - >-
+        FastFix Agent: the small program installed on a customer's machines that
+        collects diagnostics and runs remote fixes. It reports to the Sync
+        Service.
+      - >-
+        Status page: the public record of outages and maintenance at
+        status.fastfix.example. It is the source of truth for outage times.
+      - >-
+        Regions: FastFix runs US-West, US-Central and EU-West. An incident names
+        its region, and only accounts hosted in that region are affected.
+
+  - topic: products
+    description: Equipment FastFix supports, from the supported device catalog with list prices
+    facts:
+      - >-
+        Veldt Register T4: a point-of-sale terminal common at retail counters.
+        It runs the FastFix Agent on Windows. List price $1,290.
+      - >-
+        Veldt Register T2: the earlier Veldt terminal, out of support since 2025.
+        It cannot run Agent 6.2. List price at its last sale $980.
+      - >-
+        Harrow Optima S: a dental practice management terminal. Five of them run
+        the FastFix Agent at a typical clinic front desk. List price $1,750.
+      - >-
+        Corlane Edge GW-1: a network gateway that forwards label printer traffic
+        to the Sync Service. List price $640.
+      - >-
+        Pallas Label Pro 300: an industrial label printer used in warehouses. It
+        prints through the Sync Service and prints nothing while the service is
+        down. List price $2,100.
