@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: The validator
-The `crm/validate` command SHALL examine one pack and exit 0 when it is onboardable, or 2 with named findings. It SHALL examine: the manifest against its schema and folder name; the rules module against the engine's contract; each document's front matter and version; the seed files' referential integrity; each eval decision's legality; the instructions' tool names against the served tools; and the pack's engine-facing file names.
+The `crm/validate` command SHALL examine one pack and exit 0 when it is onboardable, or 2 with named findings. It SHALL examine the manifest against its schema and folder name. It SHALL examine the rules module against the engine's contract, each document's front matter and version, and the seed files' referential integrity. It SHALL examine each eval decision's legality and the instructions' tool names against the served tools. It SHALL examine the pack's engine-facing file names.
 
 #### Scenario: A good pack validates clean
 - **GIVEN** a pack with every required artifact correct
@@ -14,7 +14,7 @@ The `crm/validate` command SHALL examine one pack and exit 0 when it is onboarda
 - **THEN** the command exits 2 and names the file, the record, and the missing reference
 
 ### Requirement: The smoke run
-The `crm/smoke` command SHALL seed a temporary database from the pack, work three cases through the harness on the stub model, and print each decision with its award. The command SHALL make no network call and SHALL need no model key.
+The `crm/smoke` command SHALL seed a temporary database from the pack. It SHALL work three cases through the harness on the stub model, and print each decision with its award. The command SHALL make no network call and SHALL need no model key.
 
 #### Scenario: A smoke run works three cases
 - **GIVEN** a validated pack

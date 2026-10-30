@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: The rollout skill
-The `crm-aws-rollout` skill SHALL roll the stack out to a real AWS account and roll it back, on the ADR 0008 variables, from a checklist the skill carries. The skill SHALL examine the account's readiness first, and a failed step SHALL stop the rollout with the step named.
+The `crm-aws-rollout` skill SHALL roll the stack out to a real AWS account, and roll it back. The paths walk a checklist the skill carries, on the ADR 0008 variables. The skill SHALL examine the account's readiness first, and a failed step SHALL stop the rollout with the step named.
 
 #### Scenario: The skill examines readiness before it deploys
 - **GIVEN** an AWS account with credentials

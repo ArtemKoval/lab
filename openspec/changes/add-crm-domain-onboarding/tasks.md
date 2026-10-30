@@ -2,8 +2,8 @@
 
 ## 1. The validator
 
-- [ ] 1.1 Write `crm/validate.py`: one named check per contract rule, over the manifest, the rules contract, the documents' front matter, the seed references, the eval decisions, the instruction tool names, and the file names.
-- [ ] 1.2 Write the validator's tests, including a deliberately broken pack fixture per check.
+- [ ] 1.1 Write `crm/validate.py` with one named examination per contract rule. The examinations cover the manifest, the rules contract, the documents, the seed references, the eval decisions, the instruction tool names, and the file names.
+- [ ] 1.2 Write the validator's tests, including a deliberately broken pack fixture per examination.
 - [ ] 1.3 Fold the checks into the pack spec's wording, so the spec and the validator agree.
 
 ## 2. The smoke run
@@ -15,7 +15,7 @@
 
 - [ ] 3.1 Write `.claude/skills/crm-onboard-domain/SKILL.md`: the five steps, the gates at each, and the human review of the held-out decisions.
 - [ ] 3.2 Write `.claude/skills/crm-setup/SKILL.md`: the dev-box install and the local run.
-- [ ] 3.3 Write `.claude/skills/crm-aws-rollout/SKILL.md`: the readiness checks, the up path, the failed-step stop, and the down path.
+- [ ] 3.3 Write `.claude/skills/crm-aws-rollout/SKILL.md`. It carries the readiness review, the up path, the failed-step stop, and the tear-down path.
 - [ ] 3.4 Update the `crm-app` skill, the registry, and `.env.example` for the new surfaces.
 
 ## 4. The second domain
