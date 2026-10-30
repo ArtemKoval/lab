@@ -5,7 +5,7 @@
 
 ## Context
 
-The crm engine's week three milestones deploy the backend and the agent to AWS: a Lambda-style handler for the backend, an agent runtime, a gateway for the tools, and a memory. The engine must run in a devcontainer with no cloud account, and a later change rolls the same stack out to a real account for a human to test.
+The crm engine's week three milestones deploy the backend and the agent to AWS. They add a Lambda-style handler for the backend, an agent runtime, a gateway for the tools, and a memory. The engine must run in a devcontainer with no cloud account. A later change rolls the same stack out to a real account for a human to test.
 
 ## Decision
 

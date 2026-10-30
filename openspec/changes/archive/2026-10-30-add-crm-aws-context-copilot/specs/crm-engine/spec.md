@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Send-back on the case page
-The case page SHALL carry a send-back form for a held case, and the case SHALL show its sent-back decisions with who sent them and why.
+The case page SHALL carry a send-back form for a held case. The page SHALL show the sent-back decisions with who sent them and why.
 
 #### Scenario: The page shows the sent-back decisions
 - **GIVEN** a case with a sent-back decision

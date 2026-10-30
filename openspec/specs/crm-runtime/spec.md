@@ -1,7 +1,16 @@
-## ADDED Requirements
+# crm-runtime Specification
+
+## Purpose
+
+The agent runs as one app that answers at once and works in the
+background, beats the backend while it works, is reached through its
+service or a runtime on the same payloads, and hands a held case back to
+a worker or takes it again with the worker's note.
+
+## Requirements
 
 ### Requirement: The agent app
-The agent SHALL run as one app with named operations for working a run, carrying a round, and resuming a case. The app SHALL answer at once, work in the background, and report its busy state at the ping route.
+The agent SHALL run as one app with named operations. They work a run, carry a round, and resume a case. The app SHALL answer at once, work in the background, and report its busy state at the ping route.
 
 #### Scenario: The app answers at once
 - **GIVEN** the agent app running
@@ -22,7 +31,7 @@ The agent SHALL beat the backend while it works. The backend SHALL read the beat
 - **THEN** the beat is fresh
 
 ### Requirement: Runtime invocation
-The backend SHALL reach the agent through its service address by default, or through a runtime when `CRM_AGENT_RUNTIME` is set, with the same payloads on both. The local emulator SHALL serve the runtime target in development.
+The backend SHALL reach the agent through its service address by default. When `CRM_AGENT_RUNTIME` is set, it reaches the agent through the runtime, with the same payloads on both. The local emulator SHALL serve the runtime target in development.
 
 #### Scenario: The runtime target serves a resume
 - **GIVEN** `CRM_AGENT_RUNTIME` pointed at the local emulator
@@ -30,7 +39,7 @@ The backend SHALL reach the agent through its service address by default, or thr
 - **THEN** the resume reaches the agent through the runtime
 
 ### Requirement: Sign-off or send-back
-A worker SHALL sign off a held case or send it back with a reason. A sent-back case SHALL keep the sent-back decisions, and the agent SHALL resume it with the note, while the award is refused until it decides again.
+A worker SHALL sign off a held case or send it back with a reason. A sent-back case SHALL keep the sent-back decisions. The agent SHALL resume it with the note. The award is refused until it decides again.
 
 #### Scenario: A send-back resumes the case
 - **GIVEN** a case waiting for sign off

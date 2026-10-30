@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: The worker chat
-The copilot SHALL answer a signed-in worker in a chat, with its own graph and tools over the same backend API, and the worker's own token on every call. A case sign-off through the chat SHALL wait for the worker's confirmation before it fires.
+The copilot SHALL answer a signed-in worker in a chat. Its own graph and tools go over the same backend API, and every call carries the worker's own token. A case sign-off through the chat SHALL wait for the worker's confirmation before it fires.
 
 #### Scenario: The copilot answers with its tools
 - **GIVEN** a signed-in worker and a question about the queue
@@ -14,7 +14,7 @@ The copilot SHALL answer a signed-in worker in a chat, with its own graph and to
 - **THEN** no sign-off fires
 
 ### Requirement: Conversation records
-Each conversation SHALL keep its turns in the database with their steps, their state, and their cost. A turn SHALL move through waiting, working, and answered, and a failed turn SHALL name its error.
+Each conversation SHALL keep its turns in the database, with their steps, their state, and their cost. A turn SHALL move through waiting, working, and answered, and a failed turn SHALL name its error.
 
 #### Scenario: A turn keeps its steps
 - **GIVEN** a copilot answer that used tools
