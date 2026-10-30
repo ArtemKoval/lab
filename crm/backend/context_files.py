@@ -1,8 +1,8 @@
 """The context layer's files that seeding reads: the plans, and each document's
-body and version. Only seeding reads them, so nothing reads context/ when the app
-is imported or for a request, and the app's package needs no context/."""
+body and version. The files live in the active pack, so a second domain brings
+its own."""
 
-from pathlib import Path
+import os
 from typing import Any, NamedTuple
 
 import yaml
@@ -21,13 +21,11 @@ class Document(NamedTuple):
 
 
 def read(file: str) -> str:
-    """Read a governed file: the yaml lookups from the context package, the
-    documents from the active pack."""
+    """Read a governed file: everything comes from the active pack."""
     if file.endswith(".md"):
         return loader.pack().read_doc(file.removesuffix(".md"))
-    return (Path(__file__).resolve().parent.parent / "context" / file).read_text(
-        encoding="utf-8"
-    )
+    pack_root = loader.DOMAINS / os.environ.get("CRM_DOMAIN", "insurance")
+    return (pack_root / "context" / file).read_text(encoding="utf-8")
 
 
 def plans() -> dict[str, Any]:

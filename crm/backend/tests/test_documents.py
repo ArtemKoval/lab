@@ -49,9 +49,13 @@ def test_both_documents_are_seeded_from_the_context_layer_with_their_versions():
 
 def test_the_award_rules_are_the_context_layers_plans():
     plans = yaml.safe_load(
-        (Path(__file__).parents[2] / "context" / "plans.yaml").read_text(
-            encoding="utf-8"
-        )
+        (
+            Path(__file__).parents[2]
+            / "domains"
+            / "insurance"
+            / "context"
+            / "plans.yaml"
+        ).read_text(encoding="utf-8")
     )
     del plans["source"]
     with engine().connect() as db:
