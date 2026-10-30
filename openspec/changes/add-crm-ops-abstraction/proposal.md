@@ -36,7 +36,7 @@ type.
 ### Modified Capabilities
 
 - `crm-domain-pack`: The pack contract grows the protocol module and the
-  manifest declarations; the rules contract is replaced by the protocol verbs.
+  manifest declarations. the rules contract is replaced by the protocol verbs.
 - `crm-engine`, `crm-durable-state`, `crm-swarm`, `crm-self-improvement`:
   their award- and decision-shaped requirements are restated over the generic
   vocabulary.
@@ -44,8 +44,8 @@ type.
 ## Impact
 
 - `backend/models.py`, `main.py`, `database.py`, and `agent/tools.py` are
-  reshaped; both packs and the new `opsdemo` pack move onto the protocol.
+  reshaped. both packs and the new `opsdemo` pack move onto the protocol.
 - The dashboard renders outcome summaries and actions from the pack
   declarations.
-- Staged delivery: five stages, each leaving the suite green; per-stage
+- Staged delivery: five stages, each leaving the suite green. per-stage
   aliases keep old tool names and routes working until the removal stage.

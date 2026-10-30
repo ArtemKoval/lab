@@ -29,7 +29,7 @@ outcome payload.
 
 ### Requirement: The gate hold is generic
 The pack's `gate` verb SHALL decide whether an outcome is held. The core
-SHOLD hold a gated outcome, answer the hold generically, and refuse the
+SHALL hold a gated outcome, answer the hold generically, and refuse the
 effect until the hold is answered.
 
 #### Scenario: A gated outcome waits

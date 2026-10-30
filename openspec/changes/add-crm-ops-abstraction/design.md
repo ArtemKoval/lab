@@ -3,8 +3,8 @@
 ## Source
 
 The user's direction: abstract crm into generic operations automation. A user
-acts; the backoffice pipeline is generic; actions and side effects are
-declared by the domain during setup; an award is a configurable piece of a
+acts. the backoffice pipeline is generic. actions and side effects are
+declared by the domain during setup. an award is a configurable piece of a
 domain, not a core type.
 
 ## Plan review
@@ -37,6 +37,6 @@ aliases keep old names working (from the tournament's shared lesson).
 
 ## Failure modes
 
-- The core reading the payload: forbidden; scoring reads the pack metric.
+- The core reading the payload: forbidden. scoring reads the pack metric.
 - A pack bypassing one-execution-per-effect: the core owns the unique index.
 - A protocol contract break: the loader validates the verbs at startup.
