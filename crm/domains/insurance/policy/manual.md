@@ -1,3 +1,11 @@
+---
+source:
+  system: Claims operations
+  owner: Head of claims operations
+  reviewed: "2026-09-01"
+version: "2026.2"
+---
+
 # UnderCover Claims Handling Manual
 
 Version 2026.2. Internal. For claims handlers and for any system that decides claims on their behalf.

@@ -4,7 +4,7 @@ import {
   failCase,
   finishRun,
   payCase,
-  recordDecision,
+  decide,
   recordModelCall,
   recordRunCases,
   recordStep,
@@ -49,14 +49,14 @@ test("the dispatch panel follows a dispatch as it works", async ({
     /^CLM-1014.*In progress/,
   ]);
 
-  await recordDecision(request, "CLM-1013", {
+  await decide(request, "CLM-1013", {
     decision: "approve",
     award: 300,
     section: "Section 3, Trip Delay",
     reason: "The delay was covered.",
   });
   await payCase(request, "CLM-1013", 300);
-  await recordDecision(request, "CLM-1014", {
+  await decide(request, "CLM-1014", {
     decision: "refer",
     award: 0,
     section: "Manual, section 2",
@@ -95,8 +95,16 @@ test("a case that fails twice is left for a worker", async ({
   await recordStep(
     request,
     "CLM-1016",
-    "reading",
+    "lookup",
     "Contract wording, section 7: Emergency Medical",
+    [
+      {
+        file: "wording.md",
+        system: "Published contract documents",
+        owner: "Legal",
+        reviewed: "2026-09-01",
+      },
+    ],
   );
   await failCase(request, "CLM-1016", "RuntimeError: The model timed out");
   await expect(
@@ -116,8 +124,10 @@ test("a case that fails twice is left for a worker", async ({
     ),
   ).toBeVisible();
 
-  const read = page.locator(".sections-read");
-  await expect(read.getByRole("listitem")).toHaveText([
+  const used = page.locator("section", {
+    has: page.getByRole("heading", { name: "Context used" }),
+  });
+  await expect(used.getByRole("listitem")).toHaveText([
     "Contract wording, section 7: Emergency Medical",
   ]);
   const failed = page.locator(".step", { hasText: "Failed" });

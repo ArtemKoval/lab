@@ -44,7 +44,7 @@ class CaseToWork(TypedDict):
 
 
 # Works one case in a run, given the case's id and the run's, and reports how it
-# ended: the harness's work_in_run, bound to how its case graphs are built.
+# ended: the harness's work_in_run, bound to how its case agents are built.
 WorkInRun = Callable[[str, str], str]
 
 # How a case still failing after its tries is left, by the kind of run.

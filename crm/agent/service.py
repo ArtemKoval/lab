@@ -21,7 +21,7 @@ from agent import api, improver, improver_api
 from agent.connection import Refused, api_key
 from agent.console import describe, show_reports
 from agent.dispatcher import WorkInRun, work_run
-from agent.harness import NewGraph, case_graphs, checkpoint_pool, work_in_run
+from agent.harness import NewAgent, checkpoint_pool, case_graphs, work_in_run
 
 ACCEPTED = {"status": "accepted"}
 # The most case agents at once, as the backend and the dashboard also allow.
@@ -88,13 +88,13 @@ def refused(_: Request, error: Refused) -> JSONResponse:
     return JSONResponse({"detail": error.detail}, status_code=error.status_code)
 
 
-# How to build the case graphs of a version of the case agent, each with a
-# saver of its own.
-CaseAgents = Callable[[dict[str, Any]], NewGraph]
+# How to build the case agents of a version of the case agent for a kind of run,
+# each with a saver of its own.
+CaseAgents = Callable[[dict[str, Any], api.RunKind], NewAgent]
 
 
 def case_agents(request: Request) -> CaseAgents:
-    """Build a version's case graphs on the service's pool."""
+    """Build a version's case agents on the service's pool."""
     return partial(case_graphs, pool=request.app.state.pool)
 
 
@@ -145,9 +145,9 @@ class ReviewRequest(BaseModel):
 def case_work(run: dict[str, Any], case_agents: CaseAgents) -> WorkInRun:
     """How to work one of a run's cases, on the case agents of the run's own
     version, tagged with its round when it has one."""
-    new_graph = case_agents(api.get_version(run["version"]))
+    new_agent = case_agents(api.get_version(run["version"]), run["kind"])
     tags = (run["round_id"],) if run["round_id"] else ()
-    return partial(work_in_run, new_graph=new_graph, tags=tags)
+    return partial(work_in_run, new_agent=new_agent, tags=tags)
 
 
 def evaluate(run: dict[str, Any], case_agents: CaseAgents) -> None:
@@ -163,6 +163,9 @@ def work_in_background(
     try:
         run = create()
         work_run(run, case_work(run, case_agents))
+    except ConnectionError as error:  # a route's server isn't answering
+        log.error("The run stopped: %s", error)
+        api.stop_runs()
     except Exception:
         log.exception("The run stopped")
         api.stop_runs()

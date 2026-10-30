@@ -9,8 +9,26 @@ from langchain_core.callbacks import BaseCallbackHandler
 from langgraph.checkpoint.memory import InMemorySaver
 
 from agent import connection, dispatcher, harness, improver, service
-from agent.tests.stubs import graph_on
+from agent.direct import CONTEXT_URL
+from agent.tests.gateway_stand_in import GatewayStandIn
+from agent.tests.local_server import serving
+from agent.tests.stubs import agent_on
 from backend.main import app
+from context.server import build_server
+
+
+@pytest.fixture(scope="session")
+def context_layer():
+    """The real context layer, served on a local port for the whole session."""
+    with serving(build_server().streamable_http_app()) as address:
+        yield f"{address}/mcp"
+
+
+@pytest.fixture(autouse=True)
+def context_at(no_aws, context_layer, monkeypatch):
+    """Point the direct route at the context layer the tests serve."""
+    monkeypatch.setenv(CONTEXT_URL, context_layer)
+    return context_layer
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +56,7 @@ def traces(monkeypatch):
     """Keep Langfuse out of the tests, and record the root runs it would trace."""
     roots: list[dict[str, Any]] = []
     for module in (harness, improver):
-        monkeypatch.setattr(module, "CallbackHandler", lambda: RecordRoots(roots))
+        monkeypatch.setattr(module, "CallbackWorker", lambda: RecordRoots(roots))
     return roots
 
 
@@ -65,8 +83,8 @@ def serve():
     def with_model(model, saver=None):
         saver = saver or InMemorySaver()
 
-        def case_agents(version):
-            return partial(graph_on, model, saver, version["instructions"])
+        def case_agents(version, kind):
+            return partial(agent_on, model, saver, version)
 
         service.app.dependency_overrides[service.case_agents] = lambda: case_agents
         return TestClient(service.app)
@@ -116,13 +134,31 @@ def serve_rounds():
     saver = InMemorySaver()
 
     def with_models(improver_model, case_model):
-        def case_agents(version):
-            return partial(graph_on, case_model, saver, version["instructions"])
+        def case_agents(version, kind):
+            return partial(agent_on, case_model, saver, version)
 
-        workers = service.RoundWorkers(case_agents, lambda round: improver_model, saver)
+        workers = service.RoundWorkers(
+            case_agents, lambda round: improver_model, saver
+        )
         service.app.dependency_overrides[service.round_workers] = lambda: workers
         service.app.dependency_overrides[service.case_agents] = lambda: case_agents
         return TestClient(service.app)
 
     yield with_models
     service.app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="session")
+def gateway_server():
+    """The stand-in Gateway, served on a local port for the whole session."""
+    stand_in = GatewayStandIn()
+    with serving(stand_in.asgi()) as address:
+        stand_in.url = f"{address}/mcp"
+        yield stand_in
+
+
+@pytest.fixture
+def gateway(gateway_server):
+    """The stand-in Gateway, with nothing called or refused yet in this test."""
+    gateway_server.reset()
+    return gateway_server

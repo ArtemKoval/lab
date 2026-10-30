@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   askToPay,
   payCase,
-  recordDecision,
+  decide,
   recordStep,
   reviews,
   startCase,
@@ -51,7 +51,7 @@ test("the case page shows the agent at work", async ({ page, request }) => {
     page.getByText('get_case: {"case_id":"CLM-1003"}').first(),
   ).toBeVisible();
 
-  await recordDecision(request, "CLM-1003", {
+  await decide(request, "CLM-1003", {
     decision: "approve",
     award: 500,
     section: "Section 7, Emergency Medical",
@@ -74,12 +74,93 @@ test("the case page shows the agent at work", async ({ page, request }) => {
   await expect(page.getByText("Approved and paid $500.00.")).toBeVisible();
 });
 
+test("the case page shows every kind of step, the context used and the whole record", async ({
+  page,
+  request,
+}) => {
+  const manual = {
+    file: "manual.md",
+    system: "Cases operations",
+    owner: "Head of cases operations",
+    reviewed: "2026-09-01",
+  };
+  await page.goto("/cases/CLM-1006");
+  await expect(page.getByText(/No steps yet/)).toBeVisible();
+
+  await startCase(request, "CLM-1006", "e2e-steps");
+  await recordStep(
+    request,
+    "CLM-1006",
+    "lookup",
+    "Cases manual, section 9: Repeat cases",
+    [manual],
+  );
+  await recordStep(request, "CLM-1006", "lookup", 'Reference data: "zeppelin"');
+  await recordStep(
+    request,
+    "CLM-1006",
+    "memory_search",
+    '"earlier cases"\n- CLM-1005 was approved for $243.00.',
+  );
+  await recordStep(
+    request,
+    "CLM-1006",
+    "refusal",
+    "record_decision: Refused with status 422: Cases manual section 14",
+  );
+  const steps = page.locator(".steps > li");
+  await expect(steps).toHaveText([
+    /Looked up Cases manual, section 9: Repeat cases.*owned by the Head of cases operations, reviewed Sep 1, 2026/,
+    /Looked up Reference data: "zeppelin"/,
+    /Searched memory "earlier cases"\s+- CLM-1005 was approved for \$243\.00\./,
+    /Refused record_decision: Refused with status 422/,
+  ]);
+  const used = page.locator("section", {
+    has: page.getByRole("heading", { name: "Context used" }),
+  });
+  await expect(used.getByRole("heading", { level: 3 })).toHaveText([
+    "manual.md",
+    "Found nothing",
+  ]);
+  await expect(
+    used.getByText(
+      "Cases operations, owned by the Head of cases operations, reviewed Sep 1, 2026",
+    ),
+  ).toBeVisible();
+
+  await decide(request, "CLM-1006", {
+    decision: "approve",
+    award: 243,
+    section: "Section 6, Emergency Medical",
+    reason: "The hospital bill is covered.",
+  });
+  await recordStep(
+    request,
+    "CLM-1006",
+    "memory_save",
+    "Case CLM-1006: Food poisoning in Porto",
+  );
+  await expect(steps.last()).toHaveText(
+    /Saved to memory Case CLM-1006: Food poisoning in Porto/,
+  );
+  const decision = page.locator("section", {
+    has: page.getByRole("heading", { name: "Decision" }),
+  });
+  await expect(decision.getByRole("row").last()).toHaveText("Award$243.00");
+  await expect(
+    decision.getByText(/^Decided by CRM Agent, version 1 at /),
+  ).toBeVisible();
+  await expect(
+    decision.getByText("Cases manual version 2026.2"),
+  ).toBeVisible();
+});
+
 test("a sign-off on the dashboard pays the held award", async ({
   page,
   request,
 }) => {
   await startCase(request, "CLM-1020", "e2e-2");
-  await recordDecision(request, "CLM-1020", {
+  await decide(request, "CLM-1020", {
     decision: "approve",
     award: 1350,
     section: "Section 5, Baggage and Personal Effects",
@@ -110,7 +191,7 @@ test.describe("signed in as Marcus Oyelaran", () => {
     request,
   }) => {
     await startCase(request, "CLM-1024", "e2e-7");
-    await recordDecision(request, "CLM-1024", {
+    await decide(request, "CLM-1024", {
       decision: "approve",
       award: 1350,
       section: "Section 5, Baggage and Personal Effects",

@@ -86,14 +86,14 @@ def test_each_case_graph_has_a_saver_of_its_own(fakes, monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     built = []
 
-    def case_graph(llm, screener, saver, instructions):
+    def case_graph(llm, screener, saver, instructions, store):
         built.append((llm, screener, saver, instructions))
 
     monkeypatch.setattr(harness, "case_graph", case_graph)
     with harness.checkpoint_pool() as pool:
-        new_graph = harness.case_graphs(VERSION, pool)
-        new_graph()
-        new_graph()
+        new_agent = harness.case_graphs(VERSION, None, pool)
+        new_agent()
+        new_agent()
     [first, second] = built
     assert first[0] is second[0]
     assert first[0].model_name == "google/gemini-3.5-flash-lite"
@@ -114,18 +114,18 @@ def test_command_line_works_one_case(monkeypatch, capsys):
     monkeypatch.setattr(cli, "checkpoint_pool", lambda: nullcontext(pool))
     add_version("Version 2's instructions", verdict="kept")
 
-    def case_graphs(version, on):
-        built.append((version["number"], on))
+    def case_graphs(version, kind, on):
+        built.append((version["number"], kind, on))
         return lambda: "graph"
 
     monkeypatch.setattr(cli, "case_graphs", case_graphs)
     worked = []
     monkeypatch.setattr(cli, "work_case", lambda *args: worked.append(args))
     cli.main(["CLM-1001"])
-    assert built == [(2, pool)]
+    assert built == [(2, None, pool)]
     assert worked == [("CLM-1001", None, "graph")]
 
-    def refuse(case_id, run_id, graph):
+    def refuse(case_id, run_id, agent):
         raise Refused(409, f"Case {case_id} is not waiting")
 
     monkeypatch.setattr(cli, "work_case", refuse)
@@ -134,6 +134,21 @@ def test_command_line_works_one_case(monkeypatch, capsys):
     assert refused.value.code == 1
     assert capsys.readouterr().err == (
         "CLM-1003  not started: 409: Case CLM-1003 is not waiting\n"
+    )
+
+
+def test_command_line_says_when_the_context_layer_isnt_answering(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "checkpoint_pool", lambda: nullcontext(object()))
+
+    def down(version, kind, pool):
+        raise ConnectionError("The context layer isn't answering at http://x/mcp")
+
+    monkeypatch.setattr(cli, "case_graphs", down)
+    with pytest.raises(SystemExit) as stopped:
+        cli.main(["CLM-1001"])
+    assert stopped.value.code == 1
+    assert capsys.readouterr().err == (
+        "CLM-1001  not started: The context layer isn't answering at http://x/mcp\n"
     )
 
 

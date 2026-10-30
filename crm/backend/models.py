@@ -3,7 +3,13 @@
 from enum import StrEnum
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, Field, StringConstraints, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 
 class Status(StrEnum):
@@ -99,19 +105,31 @@ class DiffLineKind(StrEnum):
     REMOVED = "removed"
 
 
+def to_the_cent(amount: float) -> float:
+    """Round an amount in US dollars to the cent."""
+    return round(amount, 2)
+
+
 # A model at its own default, with no reasoning effort sent. OpenAI's "none" is a
 # real level of its own.
 NO_REASONING_EFFORT = "default"
 
 
 StepKind = Literal[
-    "screening", "tool_call", "tool_result", "message", "reading", "error"
+    "screening",
+    "tool_call",
+    "tool_result",
+    "message",
+    "lookup",
+    "memory_search",
+    "memory_save",
+    "refusal",
+    "error",
 ]
 MOST_AGENTS = 25
 Agents = Annotated[
     int, Field(ge=1, le=MOST_AGENTS, description="How many case agents work at once")
 ]
-DocumentName = Literal["wording", "manual"]
 Benefit = Literal[
     "trip_cancellation",
     "trip_interruption",
@@ -138,14 +156,28 @@ class Document(BaseModel):
     content: str
 
 
+class CalculationStep(BaseModel):
+    step: str
+    amount: float
+
+
+class Calculation(BaseModel):
+    lines: list[CalculationStep]
+    award: float
+
+
 class Decision(BaseModel):
     decision: DecisionKind
     award: float
+    calculation: Calculation | None
     section: str
     reason: str
+    decided_by: str
     decided_at: str
+    manual_version: str
     signed_off_by: str | None
     signed_off_at: str | None
+    gateway_refusal: str | None
 
 
 class Payment(BaseModel):
@@ -227,11 +259,21 @@ class Worker(BaseModel):
     can_approve_over_limit: bool
 
 
+class Source(BaseModel):
+    """A context file a lookup's answer came from, and that file's source."""
+
+    file: str
+    system: str
+    owner: str
+    reviewed: str
+
+
 class Step(BaseModel):
     step_id: int
     thread_id: str
     kind: StepKind
     content: str
+    sources: list[Source]
     created_at: str
 
 
@@ -280,21 +322,6 @@ class SettingsPage(BaseModel):
     models_allowed: list[ModelAllowed]
 
 
-class Section(BaseModel):
-    document: DocumentName
-    document_title: str
-    number: int
-    title: str
-    text: str
-
-
-class SectionMatch(BaseModel):
-    document: DocumentName
-    number: int
-    title: str
-    excerpts: list[str]
-
-
 class StartRequest(BaseModel):
     thread_id: str = Field(min_length=1)
 
@@ -302,30 +329,34 @@ class StartRequest(BaseModel):
 class StepRequest(BaseModel):
     kind: StepKind
     content: str = Field(min_length=1)
+    sources: list[Source] = Field(
+        description="The context files a lookup came from, and none for other steps"
+    )
 
 
 class DecisionRequest(BaseModel):
-    decision: DecisionKind
-    award: float = Field(ge=0, description="In US dollars, 0 for a decline or referral")
-    section: str = Field(
-        min_length=1, description="The sections of the wording and the manual relied on"
-    )
-    reason: str = Field(
-        min_length=1, description="Two or three sentences explaining the decision"
-    )
+    """A decision to record, which cases manual section 14 checks."""
 
-    @model_validator(mode="after")
-    def check_award(self) -> Self:
-        """An approval pays something, and a decline or referral pays nothing."""
-        if self.decision == DecisionKind.APPROVE and self.award == 0:
-            raise ValueError("An approval needs a award above zero")
-        if self.decision != DecisionKind.APPROVE and self.award != 0:
-            raise ValueError("A decline or a referral has a award of zero")
-        return self
+    decision: DecisionKind
+    award: Annotated[float, AfterValidator(to_the_cent)] = Field(
+        description="In US dollars, 0 for a decline or referral"
+    )
+    section: str = Field(
+        description="The sections of the wording and the manual relied on"
+    )
+    reason: str = Field(description="Two or three sentences explaining the decision")
+    decided_by: str = Field(
+        description="Who or what made the decision, such as the CRM Agent "
+        "with the version of its configuration"
+    )
 
 
 class PaymentRequest(BaseModel):
     amount: float = Field(gt=0, description="The approved award in US dollars")
+
+
+class HoldRequest(BaseModel):
+    reason: str = Field(min_length=1, description="Why the Gateway refused to pay")
 
 
 class Plan(BaseModel):
@@ -373,11 +404,6 @@ class AwardRequest(BaseModel):
         description="The covered lines, with any excluded left out"
     )
     paid_by_others: float = Field(ge=0, description="Paid or refunded by others")
-
-
-class CalculationStep(BaseModel):
-    step: str
-    amount: float
 
 
 class Award(BaseModel):

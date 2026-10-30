@@ -4,6 +4,7 @@ import type {
   EvaluationSet,
   Improvement,
   Run,
+  Source,
   StepKind,
 } from "../dashboard/src/api";
 import { WORKERS, signedInAs } from "./workers";
@@ -41,23 +42,82 @@ async function send(
 export const startCase = (request: Request, caseId: string, thread: string) =>
   send(request, "POST", `${casePath(caseId)}/start`, { thread_id: thread });
 
+// Records a step, with the context files a lookup came from, and none for any
+// other step.
 export const recordStep = (
   request: Request,
   caseId: string,
   kind: StepKind,
   content: string,
-) => send(request, "POST", `${casePath(caseId)}/steps`, { kind, content });
+  sources: Source[] = [],
+) =>
+  send(request, "POST", `${casePath(caseId)}/steps`, {
+    kind,
+    content,
+    sources,
+  });
 
-export const recordDecision = (
+// Who makes the decisions the tests record, as the case agent says it.
+const MAKER = "CRM Agent, version 1";
+
+interface DecisionRequest {
+  decision: DecisionKind;
+  award: number;
+  section: string;
+  reason: string;
+  decided_by: string;
+}
+
+const recordDecision = (
   request: Request,
   caseId: string,
-  decision: {
-    decision: DecisionKind;
-    award: number;
-    section: string;
-    reason: string;
-  },
+  decision: DecisionRequest,
 ) => send(request, "POST", `${casePath(caseId)}/decision`, decision);
+
+const calculateAward = (
+  request: Request,
+  caseId: string,
+  award: { benefit: string; lines: object[]; paid_by_others: number },
+) => send(request, "POST", `${casePath(caseId)}/award`, award);
+
+// Works out the award on one emergency medical bill, which the backend keeps
+// for the case's attempt, and returns what it pays.
+async function awardOnABill(request: Request, caseId: string, bill: number) {
+  const response = await calculateAward(request, caseId, {
+    benefit: "emergency_medical",
+    lines: [
+      {
+        description: "The covered costs",
+        amount: bill,
+        quantity: 1,
+        kind: "expense",
+        nights: 0,
+        hours: 0,
+      },
+    ],
+    paid_by_others: 0,
+  });
+  const { award } = (await response.json()) as { award: number };
+  return award;
+}
+
+// Records a decision as the case agent does, with its maker. An approval's
+// award is worked out first: a bill for the award alone shows the plan's
+// deductible, and a bill for the award and the deductible leaves exactly the
+// award on file.
+export async function decide(
+  request: Request,
+  caseId: string,
+  decision: Omit<DecisionRequest, "decided_by">,
+) {
+  if (decision.decision === "approve") {
+    const deductible =
+      decision.award -
+      (await awardOnABill(request, caseId, decision.award));
+    await awardOnABill(request, caseId, decision.award + deductible);
+  }
+  return recordDecision(request, caseId, { ...decision, decided_by: MAKER });
+}
 
 // Asks to pay a case and returns the backend's answer, which may be a refusal.
 export const askToPay = (request: Request, caseId: string, amount: number) =>

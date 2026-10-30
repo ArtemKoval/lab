@@ -2,11 +2,11 @@ import { useCallback } from "react";
 import { Link, useParams } from "react-router";
 import { api, type Case } from "../api";
 import { StatusChip } from "../components/Chips";
+import { ContextUsed } from "../components/ContextUsed";
 import { DecisionPanel } from "../components/DecisionPanel";
 import { StateMessage } from "../components/StateMessage";
 import { PageHeader } from "../components/PageHeader";
 import { HistoryPanel, ContractPanel } from "../components/ContractPanels";
-import { SectionsRead } from "../components/SectionsRead";
 import { StepList } from "../components/StepList";
 import { date, label, money } from "../format";
 import { evaluationPage, QUEUE } from "../paths";
@@ -56,8 +56,8 @@ export function CasePage() {
           )
         }
       />
-      {/* The agent's steps grow at the end of the right column, and the sections
-          it read at the end of the left, so neither moves anything as the
+      {/* The agent's steps grow at the end of the right column, and the context
+          it used at the end of the left, so neither moves anything as the
           page refreshes. */}
       <div className="case-layout">
         <div className="column">
@@ -66,7 +66,7 @@ export function CasePage() {
           <DocumentsPanel entry={entry} />
           <ContractPanel contractId={entry.contract_id} />
           <HistoryPanel customerId={entry.customer_id} />
-          <SectionsRead steps={steps.data} />
+          <ContextUsed steps={steps.data} />
         </div>
         <div className="column">
           <DecisionPanel entry={entry} onSignedOff={reload} />

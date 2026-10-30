@@ -5,17 +5,17 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException
 from mangum import Mangum
 from sqlalchemy import Connection, RowMapping, insert, select, update
 
 from backend import agent_api, dashboard
+from backend.calculation import attempts_calculation, keep_calculation
 from backend.configuration import router as configuration
+from domains import loader
 from backend.database import (
-    award_rules,
     case_view,
     cases,
-    contracts,
     customers,
     decisions,
     engine,
@@ -23,6 +23,8 @@ from backend.database import (
     model_calls,
     now,
     payments,
+    award_rules,
+    contracts,
     seed,
     stamp,
     steps,
@@ -31,46 +33,49 @@ from backend.database import (
 from backend.dependencies import (
     AgentKey,
     Database,
+    WorkerOrAgent,
     SignedIn,
     SignedInWorker,
-    WorkerOrAgent,
     senior,
 )
-from backend.documents import search, sections, titles
+from backend.documents import manual_version
 from backend.improvement import router as improvement
 from backend.lookups import CASE_NOT_FOUND, current_settings, run_row
 from backend.models import (
-    Award,
-    AwardRequest,
     Case,
     CaseSummary,
-    Contract,
     DecisionKind,
     DecisionRequest,
-    DocumentName,
     FailureRequest,
+    Worker,
+    HoldRequest,
     ModelCall,
     ModelCallRequest,
     PaymentRequest,
+    Award,
+    AwardRequest,
     Plans,
+    Contract,
     PreviousCase,
-    Section,
-    SectionMatch,
     StartRequest,
     Status,
     Step,
     StepRequest,
-    Worker,
     WorkTime,
     WorkTimeRequest,
 )
 from backend.money import dollars
+from backend.records import check_calculation, check_request
 from backend.round_state import round_row, why_no_case_starts
 from backend.runs import router as runs
 from backend.views import to_case, to_summary
-from domains import loader
 
 ATTEMPTS = 2
+NOT_APPROVED = "Case {case_id} has not been approved"
+ALREADY_PAID = "Case {case_id} has already been paid"
+NOT_STARTED = "Case {case_id} has not been started"
+NOT_IN_PROGRESS = "Case {case_id} is not in progress"
+ALREADY_DECIDED = "Case {case_id} has already been decided"
 
 
 @asynccontextmanager
@@ -132,21 +137,25 @@ def record_payment(db: Connection, case: RowMapping) -> None:
     """Pay an approved case its award, which decides it."""
     case_id = case["case_id"]
     db.execute(
-        insert(payments).values(case_id=case_id, amount=case["award"], paid_at=now())
+        insert(payments).values(
+            case_id=case_id, amount=case["award"], paid_at=now()
+        )
     )
     set_status(db, case_id, Status.DECIDED)
 
 
 def set_status(db: Connection, case_id: str, status: Status) -> None:
     """Move a case to a new status."""
-    db.execute(update(cases).where(cases.c.case_id == case_id).values(status=status))
+    db.execute(
+        update(cases).where(cases.c.case_id == case_id).values(status=status)
+    )
 
 
 def started_thread(db: Connection, case_id: str) -> str:
     """Return the thread of a case that has been started, or raise a 404 or a 409."""
     thread_id = find_case(db, case_id)["thread_id"]
     if thread_id is None:
-        raise HTTPException(409, f"Case {case_id} has not been started")
+        raise HTTPException(409, NOT_STARTED.format(case_id=case_id))
     return thread_id
 
 
@@ -167,17 +176,14 @@ def check_run(db: Connection, run_id: str | None) -> None:
         run_row(db, run_id)
 
 
-def add_step(
-    db: Connection, case_id: str, thread_id: str, kind: str, content: str
-) -> Step:
+def add_step(db: Connection, case_id: str, thread_id: str, step: StepRequest) -> Step:
     """Add one step of the agent's work to a case."""
     query = (
         insert(steps)
         .values(
             case_id=case_id,
             thread_id=thread_id,
-            kind=kind,
-            content=content,
+            **step.model_dump(),
             created_at=now(),
         )
         .returning(steps)
@@ -199,7 +205,9 @@ def list_cases(db: Database) -> list[CaseSummary]:
     return [to_summary(row) for row in rows]
 
 
-@app.get("/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent])
+@app.get(
+    "/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent]
+)
 def get_case(case_id: str, db: Database) -> Case:
     """Get one case in full: the story, the items claimed and the documents."""
     return to_case(find_case(db, case_id))
@@ -227,30 +235,6 @@ def get_case_history(customer_id: str, db: Database) -> list[PreviousCase]:
     if record is None:
         raise HTTPException(404, f"Customer {customer_id} not found")
     return [PreviousCase(**case) for case in record["previous_cases"]]
-
-
-@app.get(
-    "/api/documents/search", operation_id="search_documents", dependencies=[AgentKey]
-)
-def search_documents(
-    query: Annotated[str, Query(min_length=1)], db: Database
-) -> list[SectionMatch]:
-    """Find the sections of the wording and the manual that mention a word or phrase."""
-    return search(db, query)
-
-
-@app.get(
-    "/api/documents/{document}/sections/{number}",
-    operation_id="read_section",
-    dependencies=[AgentKey],
-)
-def read_section(document: DocumentName, number: int, db: Database) -> Section:
-    """Read one section of the contract wording or the cases manual in full."""
-    for section in sections(db, document):
-        if section.number == number:
-            return section
-    title = titles(db)[document].lower()
-    raise HTTPException(404, f"Section {number} of the {title} not found")
 
 
 @app.get(
@@ -297,7 +281,7 @@ def start_case(case_id: str, request: StartRequest, db: Database) -> Case:
 def record_step(case_id: str, request: StepRequest, db: Database) -> Step:
     """Record one step of the agent's work on a case."""
     thread_id = started_thread(db, case_id)
-    return add_step(db, case_id, thread_id, request.kind, request.content)
+    return add_step(db, case_id, thread_id, request)
 
 
 @app.post(
@@ -366,15 +350,19 @@ def list_steps(case_id: str, db: Database) -> list[Step]:
     dependencies=[AgentKey],
 )
 def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Case:
-    """Record a case's decision once; an approval waits to be paid or signed off."""
+    """Record a case's decision once, as section 14 asks; approvals await payment."""
+    check_request(request)
     case = find_case(db, case_id)
-    award = round(request.award, 2)
+    award = request.award
     if case["decision"] is not None:
         if (case["decision"], case["award"]) == (request.decision, award):
             return to_case(case)
-        raise HTTPException(409, f"Case {case_id} has already been decided")
+        raise HTTPException(409, ALREADY_DECIDED.format(case_id=case_id))
     if case["status"] != Status.IN_PROGRESS:
-        raise HTTPException(409, f"Case {case_id} is not in progress")
+        raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
+    calculation = None
+    if request.decision == DecisionKind.APPROVE:
+        calculation = check_calculation(award, attempts_calculation(db, case))
     limit = approval_limit(db)
     db.execute(
         insert(decisions).values(
@@ -383,7 +371,10 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
             award=award,
             section=request.section,
             reason=request.reason,
+            decided_by=request.decided_by,
             decided_at=now(),
+            manual_version=manual_version(db),
+            calculation=calculation and calculation.model_dump(),
             approval_limit=limit,
         )
     )
@@ -400,9 +391,18 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
     dependencies=[AgentKey],
 )
 def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
-    """Work out an approval's award with CRM's award rules; records nothing."""
-    contract = find_contract(db, to_case(find_case(db, case_id)).contract_id)
-    return rules().work_out_award(contract, plans(db), request, approval_limit(db))
+    """Work out and keep an approval's award with CRM's award rules."""
+    case = to_case(find_case(db, case_id))
+    if case.thread_id is None:
+        raise HTTPException(409, NOT_STARTED.format(case_id=case_id))
+    if case.status != Status.IN_PROGRESS:
+        raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
+    contract = find_contract(db, case.contract_id)
+    award = rules().work_out_award(
+        contract, plans(db), request, approval_limit(db)
+    )
+    keep_calculation(db, case_id, case.thread_id, award)
+    return award
 
 
 @app.post(
@@ -416,11 +416,11 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
         raise HTTPException(403, over_the_limit(limit))
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:
-        raise HTTPException(409, f"Case {case_id} has not been approved")
+        raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
     if case["paid_at"] is not None:
         if amount == case["amount"]:
             return to_case(case)
-        raise HTTPException(409, f"Case {case_id} has already been paid")
+        raise HTTPException(409, ALREADY_PAID.format(case_id=case_id))
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(403, over_the_limit(case["approval_limit"]))
     if amount != case["award"]:
@@ -428,6 +428,27 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
             422, f"The amount must be the approved award of {dollars(case['award'])}"
         )
     record_payment(db, case)
+    return to_case(find_case(db, case_id))
+
+
+@app.post(
+    "/api/cases/{case_id}/hold", operation_id="hold_payment", dependencies=[AgentKey]
+)
+def hold_payment(case_id: str, request: HoldRequest, db: Database) -> Case:
+    """Hold an approval the Gateway refused to pay for a worker's sign-off."""
+    case = find_case(db, case_id)
+    if case["decision"] != DecisionKind.APPROVE:
+        raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
+    if case["paid_at"] is not None:
+        raise HTTPException(409, ALREADY_PAID.format(case_id=case_id))
+    if case["status"] == Status.WAITING_FOR_SIGN_OFF:
+        return to_case(case)
+    db.execute(
+        update(decisions)
+        .where(decisions.c.case_id == case_id)
+        .values(gateway_refusal=request.reason)
+    )
+    set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
     return to_case(find_case(db, case_id))
 
 
@@ -457,11 +478,14 @@ def fail_case(case_id: str, request: FailureRequest, db: Database) -> Case:
     """Put a failed case back in the queue, or leave it for a worker after two."""
     case = find_case(db, case_id)
     if case["status"] != Status.IN_PROGRESS:
-        raise HTTPException(409, f"Case {case_id} is not in progress")
+        raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
     if case["decision"] is not None:
-        raise HTTPException(409, f"Case {case_id} has already been decided")
-    add_step(db, case_id, case["thread_id"], "error", request.reason)
-    status = Status.LEFT_FOR_WORKER if case["attempts"] >= ATTEMPTS else Status.WAITING
+        raise HTTPException(409, ALREADY_DECIDED.format(case_id=case_id))
+    error = StepRequest(kind="error", content=request.reason, sources=[])
+    add_step(db, case_id, case["thread_id"], error)
+    status = (
+        Status.LEFT_FOR_WORKER if case["attempts"] >= ATTEMPTS else Status.WAITING
+    )
     set_status(db, case_id, status)
     return to_case(find_case(db, case_id))
 
