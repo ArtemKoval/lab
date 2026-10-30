@@ -159,3 +159,14 @@ Then print this remainder for the human. This skill does not delete it:
 - the database, with its records
 - the CloudWatch log groups of the function and the runtimes
 - every resource that a human made by hand
+
+## Visit after rollout
+
+- The function URL of Up step 4: the backend API (probe `/api/health`).
+- The dashboard: serve `crm/dashboard` against the function URL, or open the
+  URL the CDK deploy printed for the dashboard distribution, if you deployed
+  one.
+- Sign in with a pack worker email and the password configured on the
+  deployed auth service (`AUTH_URL`).
+
+The tear-down of the Down path removes all of these addresses.

@@ -12,6 +12,37 @@ The engine carries generic names: case, contract, award, worker, decision.
 The pack keeps the insurance wording in its content. `port/` holds the tool
 that ports the next upstream milestones.
 
+## Launch
+
+One skill per way to run the stack. Each skill ends with the addresses to
+visit and the sign-in to use.
+
+| Where | Skill | What it does |
+| --- | --- | --- |
+| Locally | **`crm-setup`** | Installs uv, the Python and Node sets, seeds the database, and starts backend, agent, auth, and dashboard |
+| Devcontainer, with the AWS wiring on floci | **`crm-local-aws`** | Adds Docker to the container, starts the floci emulator, registers the runtime, points the variables at it, and proves the invoke path |
+| A real AWS account | **`crm-aws-rollout`** | Reviews the account's readiness, deploys the backend and the runtimes in order, and tears them back down |
+| Locally or in the devcontainer, headed e2e | **`crm-app`** | Runs the full Playwright suite headed (`npm run e2e -- --headed`); the suite starts its own stack with stand-ins |
+
+## Visit after launch
+
+| Address | What runs there |
+| --- | --- |
+| `http://localhost:5173` | The dashboard — the queue, cases, scoreboard, settings |
+| `http://localhost:8000/api/health` | The backend's health check |
+| `http://127.0.0.1:8080` | The agent's service |
+| `http://127.0.0.1:8081` | The copilot |
+| `http://127.0.0.1:8006/mcp` | The context server |
+| `http://127.0.0.1:8004` | The dev auth service |
+| `http://localhost:4566/_floci/health` | The emulator (only when floci runs) |
+
+**Sign in** at the dashboard with any worker email of the active pack and the
+dev password `crm-dev` (`AUTH_DEV_PASSWORD`). Insurance: `dana.whitfield@undercover.example`
+can approve over the limit; `marcus.oyelaran@undercover.example` cannot.
+Helpdesk: `priya.nair@fastfix.example` (lead), `marcus.bell@fastfix.example`
+(agent). The e2e suite signs in by itself with its own password and needs no
+manual login.
+
 ## Run it
 
 You need Python 3.12 or newer, Node 22 or newer, and uv.

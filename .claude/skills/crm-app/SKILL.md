@@ -107,3 +107,29 @@ mutator still gate them.
 - The dev container lives at `crm/.devcontainer/`.
 - A failed check prints the failing tool first. Fix that tool's finding,
   then run `npm run check` again.
+
+## Headed e2e
+
+Run the full Playwright suite headed, from `crm/`:
+
+```bash
+npm run e2e -- --headed
+```
+
+The suite starts its own backend and dashboard with stand-ins, signs in by
+itself, and needs no model key. A browser window opens; close nothing.
+
+## Visit after launch
+
+- Dashboard: `http://localhost:5173` — sign in with a pack worker email
+  (insurance: `dana.whitfield@undercover.example`, senior, or
+  `marcus.oyelaran@undercover.example`, not senior; helpdesk:
+  `priya.nair@fastfix.example`, lead) and the dev password `crm-dev`
+  (`AUTH_DEV_PASSWORD`).
+- Backend health: `http://localhost:8000/api/health`
+- Agent service: `http://127.0.0.1:8080`
+- Copilot: `http://127.0.0.1:8081`
+- Context server: `http://127.0.0.1:8006/mcp`
+- Auth service: `http://127.0.0.1:8004` (accepts any pack worker email with
+  `AUTH_DEV_PASSWORD`, default `crm-dev`)
+
