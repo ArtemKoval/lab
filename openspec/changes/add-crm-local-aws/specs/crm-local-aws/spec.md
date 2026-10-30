@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: The skill
-The `crm-local-aws` skill SHALL run the crm app with the AWS wiring pointed at the local emulator: start the emulator, set the wiring variables, start the app, verify the wiring, and tear it down. Every step SHALL name its command and its gate.
+The `crm-local-aws` skill SHALL run the crm app with the AWS wiring pointed at the local emulator. The steps start the emulator, set the wiring variables, start the app, verify the wiring, and tear it down. Every step SHALL name its command and its gate.
 
 #### Scenario: The skill runs the app with the wiring live
 - **GIVEN** Docker running and the floci image pulled
@@ -22,7 +22,7 @@ The `crm/deploy/verify_wiring.py` script SHALL invoke the emulated runtime throu
 - **THEN** the script exits 2 and names the failed connection
 
 ### Requirement: Honest boundaries
-The skill SHALL state what the emulator proves and what it does not: the runtime invoke path is proven against the emulator's canned acceptance, and agent behavior stays with the hermetic tests and the human's checks.
+The skill SHALL state what the emulator proves and what it does not. The runtime invoke path is proven against the emulator's canned acceptance. Agent behavior stays with the hermetic tests and the human's own reviews.
 
 #### Scenario: The skill names the boundary
 - **WHEN** the user reads the skill
