@@ -9,6 +9,7 @@ import type {
   Verdict,
   VersionStatus,
 } from "./api";
+import type { Source } from "./sources";
 
 const dollars = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -43,6 +44,16 @@ const modelDollars = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 4,
 });
 
+// A context file's source as a worker reads it, such as "Cases operations,
+// owned by the Head of cases operations, reviewed Sep 1, 2026". An owner that
+// is a role, a head of something, is "the" head.
+export function sourceOf(source: Source): string {
+  const owner = source.owner.startsWith("Head of ")
+    ? `the ${source.owner}`
+    : source.owner;
+  return `${source.system}, owned by ${owner}, reviewed ${date(source.reviewed)}`;
+}
+
 export function money(amount: number): string {
   return dollars.format(amount);
 }
@@ -70,6 +81,12 @@ export function duration(seconds: number): string {
   return whole % 60 === 0
     ? `${String(minutes)} min`
     : `${String(minutes)} min ${rest}`;
+}
+
+// A short length of time, to a tenth of a second under ten seconds, such as
+// 0.4 s, and as duration gives it from there.
+export function briefly(seconds: number): string {
+  return seconds < 10 ? `${seconds.toFixed(1)} s` : duration(seconds);
 }
 
 export function date(isoDate: string): string {
@@ -105,6 +122,7 @@ export const statusLabels: Record<Status, string> = {
   waiting: "Waiting",
   in_progress: "In progress",
   waiting_for_sign_off: "Waiting for sign-off",
+  sent_back: "Sent back",
   decided: "Decided",
   left_for_worker: "Left for a worker",
 };
@@ -151,6 +169,12 @@ export const roundStages = Object.keys(stageLabels) as RoundStage[];
 // A verdict's reason in words: the rule names measures such as cost_per_case.
 export function inWords(reason: string | null): string {
   return (reason ?? "").replaceAll("_", " ");
+}
+
+// Why a run stopped, as a sentence: "Stopped: The agent stopped answering." A
+// reason that already ends with a stop, as an error's message may, keeps it.
+export function stoppedBecause(reason: string): string {
+  return `Stopped: ${reason}${/[.!?]$/.test(reason) ? "" : "."}`;
 }
 
 // Where an open round has got to, such as "First evaluations, 2 of 3", or

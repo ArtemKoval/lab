@@ -1,16 +1,21 @@
-"""The backend's operations on the improver's rounds. Only the agent's service writes
-them, under /api/rounds; the dashboard reads and acts on them under
-/api/improvement. The backend keeps a proposal from taking effect until a worker
-approves it, keeps or rolls back each version by the business's rule, and refuses
-anything a round records once it has finished or been stopped."""
+"""The backend's operations on the improver's rounds. A senior worker starts a round
+and reviews its proposals under /api/improvement, which the app records before it
+asks the agent to work the round; the agent records the round's work under
+/api/rounds, and the dashboard reads it. The backend keeps a proposal from taking
+effect until a worker approves it, keeps or rolls back each version by the
+business's rule, and refuses anything a round records once it has finished or been
+stopped."""
 
 import uuid
+from functools import partial
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection, RowMapping, func, insert, select, update
 
 from backend import agent_service, spending, verdict
+from backend.agent_work import clear_the_way
+from backend.asking import commit_and_ask
 from backend.database import (
     FIRST_VERSION,
     improver_calls,
@@ -21,9 +26,13 @@ from backend.database import (
     runs,
     versions,
     worker_decisions,
-    workers,
 )
-from backend.dependencies import Database, refuse_unless_senior, senior
+from backend.dependencies import (
+    AgentKey,
+    Database,
+    SignedInWorker,
+    senior,
+)
 from backend.diffs import diff
 from backend.free_models import model_or_free
 from backend.lookups import (
@@ -39,12 +48,12 @@ from backend.models import (
     CaseAgentVersion,
     CaseBesideWorker,
     ChangeProposalRequest,
-    CreateRoundRequest,
     Diff,
     EarlierRound,
     Evaluation,
     EvaluationSet,
     EvaluationSetResults,
+    FailureRequest,
     Improvement,
     ImproverCallRequest,
     ImproverView,
@@ -58,8 +67,7 @@ from backend.models import (
     RecipeSummary,
     RejectionRequest,
     Review,
-    ReviewRequest,
-    RoundForService,
+    RoundForTheAgent,
     RoundReviewView,
     RoundStatus,
     RoundSummary,
@@ -67,7 +75,6 @@ from backend.models import (
     RunStatus,
     ScoredCase,
     Spending,
-    StopRoundsRequest,
     Verdict,
     VerdictResult,
     VerdictScores,
@@ -120,15 +127,6 @@ ReviewsProposals = Annotated[Worker, Depends(senior(REVIEWING))]
 
 
 # Finding things.
-
-
-def worker_row(db: Connection, worker_id: str) -> Worker:
-    """Return a worker by id, or raise a 404."""
-    query = select(workers).where(workers.c.worker_id == worker_id)
-    row = db.execute(query).mappings().first()
-    if row is None:
-        raise HTTPException(404, f"Worker {worker_id} not found")
-    return Worker(**row)
 
 
 def proposal_in(db: Connection, row: RowMapping, proposal_id: str) -> RowMapping:
@@ -226,7 +224,7 @@ def first_evaluations(db: Connection, version: int) -> list[EvaluationSet]:
 
 
 def to_proposal(row: RowMapping) -> Proposal:
-    """A proposal as the service and the improver read it."""
+    """A proposal as the agent and the improver read it."""
     proposed: dict[str, Any] = row["proposal"]
     return Proposal(
         **{field: row[field] for field in Proposal.model_fields if field in row},
@@ -238,14 +236,14 @@ def to_proposal(row: RowMapping) -> Proposal:
     )
 
 
-def for_the_service(db: Connection, row: RowMapping) -> RoundForService:
-    """A round as the agent's service works it, with the improver's instructions
-    around the round's recipe."""
+def for_the_agent(db: Connection, row: RowMapping) -> RoundForTheAgent:
+    """A round as the agent works it, with the improver's instructions around the
+    round's recipe."""
     recipe = db.execute(
         select(recipes.c.recipe).where(recipes.c.number == row["recipe"])
     ).scalar_one()
     improver = loader.pack().instruction("improver")
-    return RoundForService(
+    return RoundForTheAgent(
         **row,
         instructions=f"{improver}\n{recipe}",
         models_allowed=allowed_models(db),
@@ -548,14 +546,12 @@ def improvement_page(db: Connection) -> Improvement:
     )
 
 
-# The agent's service's operations on a round.
+# The agent's operations on a round.
 
 
-@router.post("/api/rounds", operation_id="create_round")
-def create_round(request: CreateRoundRequest, db: Database) -> RoundForService:
-    """Record a new round to the settings, recipe and version in force."""
-    refuse_while_a_round_is_open(db)
-    worker = worker_row(db, request.worker_id)
+def new_round(db: Connection, worker: Worker) -> RowMapping:
+    """Record a new round for a worker, to the settings, recipe and version in
+    force, and return its row."""
     version = current_version_number(db)
     model, reasoning_effort = model_or_free(*IMPROVER_MODEL)
     round_id = str(uuid.uuid4())
@@ -572,33 +568,104 @@ def create_round(request: CreateRoundRequest, db: Database) -> RoundForService:
             improver_reasoning_effort=reasoning_effort,
             started_by=worker.name,
             started_at=now(),
+            heard_at=now(),
         )
     )
-    return for_the_service(db, round_row(db, round_id))
+    return round_row(db, round_id)
 
 
-@router.post("/api/rounds/stop", operation_id="stop_rounds")
-def stop_rounds(request: StopRoundsRequest, db: Database) -> list[str]:
-    """Stop every open round that isn't waiting for a worker, with the reason."""
-    query = select(rounds).where(rounds.c.status == RoundStatus.OPEN)
-    stopped = []
-    for row in db.execute(query).mappings().all():
-        if waiting_proposal(db, row["round_id"]) is None:
-            stop(db, row, None, request.reason)
-            stopped.append(row["round_id"])
-    return stopped
+def record_the_review(
+    db: Connection, row: RowMapping, proposal: str, by: Worker, rejection: str | None
+) -> None:
+    """Record a worker's review of the proposal waiting: an approval, or a
+    rejection with its reason. It counts as hearing of the round's work."""
+    review = Review.APPROVED if rejection is None else Review.REJECTED
+    db.execute(
+        update(proposals)
+        .where(proposals.c.proposal_id == proposal)
+        .values(
+            review=review,
+            reviewed_by=by.name,
+            reviewed_at=now(),
+            rejection_reason=rejection,
+        )
+    )
+    db.execute(
+        update(rounds)
+        .where(rounds.c.round_id == row["round_id"])
+        .values(heard_at=now())
+    )
 
 
-@router.get("/api/rounds/{round_id}", operation_id="get_round")
-def get_round(round_id: str, db: Database) -> RoundForService:
-    """Get a round as the agent's service works it, with the improver's model."""
-    return for_the_service(db, round_row(db, round_id))
+def clear_the_review(db: Connection, proposal_id: str) -> None:
+    """Clear a review the agent didn't take, so the proposal waits for a worker
+    again."""
+    db.execute(
+        update(proposals)
+        .where(proposals.c.proposal_id == proposal_id)
+        .values(review=None, reviewed_by=None, reviewed_at=None, rejection_reason=None)
+    )
 
 
-@router.get("/api/rounds/{round_id}/results", operation_id="get_improver_view")
+def carry_on_after(db: Connection, row: RowMapping, proposal_id: str) -> None:
+    """Ask the agent to carry the round on after a review, which is cleared when
+    the agent didn't take it."""
+    commit_and_ask(
+        db,
+        partial(agent_service.carry_round_on, row["round_id"], proposal_id),
+        lambda reason: clear_the_review(db, proposal_id),
+    )
+
+
+@router.get("/api/rounds/{round_id}", operation_id="get_round", dependencies=[AgentKey])
+def get_round(round_id: str, db: Database) -> RoundForTheAgent:
+    """Get a round as the agent works it, with the improver's model."""
+    return for_the_agent(db, round_row(db, round_id))
+
+
+@router.get(
+    "/api/rounds/{round_id}/results",
+    operation_id="get_improver_view",
+    dependencies=[AgentKey],
+)
 def get_improver_view(round_id: str, db: Database) -> ImproverView:
     """Get what the improver reads in a round: no held-out case, only scores."""
     return improver_view(db, round_row(db, round_id))
+
+
+@router.get(
+    "/api/rounds/{round_id}/proposals/{proposal_id}",
+    operation_id="get_proposal",
+    dependencies=[AgentKey],
+)
+def get_proposal(round_id: str, proposal_id: str, db: Database) -> Proposal:
+    """Get one of a round's proposals, with its review and the reason for it."""
+    return to_proposal(proposal_in(db, round_row(db, round_id), proposal_id))
+
+
+@router.post(
+    "/api/rounds/{round_id}/heartbeat",
+    operation_id="record_round_heartbeat",
+    dependencies=[AgentKey],
+)
+def record_round_heartbeat(round_id: str, db: Database) -> RoundForTheAgent:
+    """Record that the agent is still working a round, and its evaluation."""
+    round_row(db, round_id)
+    db.execute(
+        update(rounds).where(rounds.c.round_id == round_id).values(heard_at=now())
+    )
+    return for_the_agent(db, round_row(db, round_id))
+
+
+@router.post(
+    "/api/rounds/{round_id}/failure", operation_id="fail_round", dependencies=[AgentKey]
+)
+def fail_round(
+    round_id: str, request: FailureRequest, db: Database
+) -> RoundForTheAgent:
+    """Stop a round whose work failed, with its running evaluation, if it's open."""
+    stop(db, round_row(db, round_id), None, request.reason)
+    return for_the_agent(db, round_row(db, round_id))
 
 
 def propose(
@@ -620,7 +687,9 @@ def propose(
 
 
 @router.post(
-    "/api/rounds/{round_id}/proposals/change", operation_id="record_change_proposal"
+    "/api/rounds/{round_id}/proposals/change",
+    operation_id="record_change_proposal",
+    dependencies=[AgentKey],
 )
 def record_change_proposal(
     round_id: str, request: ChangeProposalRequest, db: Database
@@ -639,7 +708,9 @@ def record_change_proposal(
 
 
 @router.post(
-    "/api/rounds/{round_id}/proposals/recipe", operation_id="record_recipe_proposal"
+    "/api/rounds/{round_id}/proposals/recipe",
+    operation_id="record_recipe_proposal",
+    dependencies=[AgentKey],
 )
 def record_recipe_proposal(
     round_id: str, request: RecipeProposalRequest, db: Database
@@ -649,33 +720,6 @@ def record_recipe_proposal(
     if round_recipe(db, round_id):
         raise HTTPException(409, f"Round {row['number']} has already made a recipe")
     return propose(db, row, ProposalKind.RECIPE, request.model_dump())
-
-
-@router.post(
-    "/api/rounds/{round_id}/proposals/{proposal_id}/review",
-    operation_id="record_review",
-)
-def record_review(
-    round_id: str, proposal_id: str, request: ReviewRequest, db: Database
-) -> Proposal:
-    """Record a worker's review of the proposal waiting for one."""
-    row = open_round(db, round_id)
-    the_one_waiting(db, row, proposal_id)
-    worker = worker_row(db, request.worker_id)
-    refuse_unless_senior(db, worker, REVIEWING)
-    db.execute(
-        update(proposals)
-        .where(proposals.c.proposal_id == proposal_id)
-        .values(
-            review=request.review,
-            reviewed_by=worker.name,
-            reviewed_at=now(),
-            rejection_reason=request.reason
-            if request.review == Review.REJECTED
-            else None,
-        )
-    )
-    return to_proposal(proposal_in(db, row, proposal_id))
 
 
 def approved_query(row: RowMapping, kind: ProposalKind):
@@ -701,7 +745,11 @@ def approved(db: Connection, row: RowMapping, kind: ProposalKind) -> RowMapping:
     return proposal
 
 
-@router.post("/api/rounds/{round_id}/version", operation_id="create_version")
+@router.post(
+    "/api/rounds/{round_id}/version",
+    operation_id="create_version",
+    dependencies=[AgentKey],
+)
 def create_version(round_id: str, db: Database) -> NewNumber:
     """Make the approved change a version under test; a repeat returns it."""
     row = open_round(db, round_id)
@@ -727,7 +775,11 @@ def create_version(round_id: str, db: Database) -> NewNumber:
     return NewNumber(number=number)
 
 
-@router.post("/api/rounds/{round_id}/recipe", operation_id="create_recipe")
+@router.post(
+    "/api/rounds/{round_id}/recipe",
+    operation_id="create_recipe",
+    dependencies=[AgentKey],
+)
 def create_recipe(round_id: str, db: Database) -> NewNumber:
     """Make the approved recipe the one the next round follows; a repeat returns it."""
     row = open_round(db, round_id)
@@ -769,7 +821,11 @@ def decide(
     return verdict.keep_or_roll_back(new, old, settings)
 
 
-@router.post("/api/rounds/{round_id}/verdict", operation_id="record_verdict")
+@router.post(
+    "/api/rounds/{round_id}/verdict",
+    operation_id="record_verdict",
+    dependencies=[AgentKey],
+)
 def record_verdict(round_id: str, db: Database) -> VerdictResult:
     """Keep or roll back the round's version under test by the business's rule."""
     row = open_round(db, round_id)
@@ -810,7 +866,11 @@ def record_verdict(round_id: str, db: Database) -> VerdictResult:
     )
 
 
-@router.post("/api/rounds/{round_id}/model-calls", operation_id="record_improver_call")
+@router.post(
+    "/api/rounds/{round_id}/model-calls",
+    operation_id="record_improver_call",
+    dependencies=[AgentKey],
+)
 def record_improver_call(
     round_id: str, request: ImproverCallRequest, db: Database
 ) -> Spending:
@@ -824,8 +884,12 @@ def record_improver_call(
     return spending_of(db, row)
 
 
-@router.post("/api/rounds/{round_id}/finish", operation_id="finish_round")
-def finish_round(round_id: str, db: Database) -> RoundForService:
+@router.post(
+    "/api/rounds/{round_id}/finish",
+    operation_id="finish_round",
+    dependencies=[AgentKey],
+)
+def finish_round(round_id: str, db: Database) -> RoundForTheAgent:
     """Finish an open round with nothing waiting for a worker."""
     row = open_round(db, round_id)
     refuse_while_waiting(db, row)
@@ -837,19 +901,25 @@ def finish_round(round_id: str, db: Database) -> RoundForService:
         .where(rounds.c.round_id == round_id)
         .values(status=RoundStatus.FINISHED, finished_at=now())
     )
-    return for_the_service(db, round_row(db, round_id))
+    return for_the_agent(db, round_row(db, round_id))
 
 
 # The dashboard's operations.
 
 
-@router.get("/api/improvement", operation_id="get_improvement")
+@router.get(
+    "/api/improvement", operation_id="get_improvement", dependencies=[SignedInWorker]
+)
 def get_improvement(db: Database) -> Improvement:
     """Get the open or newest round in full, every round, and the recipe's versions."""
     return improvement_page(db)
 
 
-@router.get("/api/improvement/recipes/{number}", operation_id="get_recipe")
+@router.get(
+    "/api/improvement/recipes/{number}",
+    operation_id="get_recipe",
+    dependencies=[SignedInWorker],
+)
 def get_recipe(number: int, db: Database) -> RecipeDetails:
     """Get one version of the improver's recipe, with its diff from the one before."""
     all_recipes = recipes_newest_first(db)
@@ -866,9 +936,15 @@ def get_recipe(number: int, db: Database) -> RecipeDetails:
 
 @router.post("/api/improvement/rounds", operation_id="start_round", status_code=202)
 def start_round(worker: StartsRounds, db: Database) -> Accepted:
-    """Ask the agent's service to start a round of the improver."""
+    """Start a round of the improver, which the agent works."""
+    clear_the_way(db)
     refuse_while_a_round_is_open(db)
-    agent_service.start_round(worker.worker_id)
+    row = new_round(db, worker)
+    commit_and_ask(
+        db,
+        partial(agent_service.work_round, row["round_id"]),
+        lambda reason: stop(db, row, None, reason),
+    )
     return Accepted()
 
 
@@ -876,7 +952,9 @@ def start_round(worker: StartsRounds, db: Database) -> Accepted:
 def stop_round(round_id: str, worker: StopsRounds, db: Database) -> RoundSummary:
     """Stop an open round; a version it hadn't given a verdict is rolled back."""
     row = open_round(db, round_id)
-    stop(db, row, worker.name, f"Stopped by {worker.name}")
+    if not stop(db, row, worker.name, f"Stopped by {worker.name}"):
+        # It finished or stopped since it was read, so it says how it ended.
+        open_round(db, round_id)
     return summary_of(db, round_row(db, round_id))
 
 
@@ -888,11 +966,12 @@ def stop_round(round_id: str, worker: StopsRounds, db: Database) -> RoundSummary
 def approve_proposal(
     round_id: str, proposal_id: str, worker: ReviewsProposals, db: Database
 ) -> Accepted:
-    """Approve the proposal waiting, which the agent's service records and acts on."""
-    the_one_waiting(db, open_round(db, round_id), proposal_id)
-    agent_service.review_proposal(
-        round_id, proposal_id, Review.APPROVED, worker.worker_id, ""
-    )
+    """Approve the proposal waiting, and have the agent carry the round on."""
+    clear_the_way(db)
+    row = open_round(db, round_id)
+    the_one_waiting(db, row, proposal_id)
+    record_the_review(db, row, proposal_id, worker, None)
+    carry_on_after(db, row, proposal_id)
     return Accepted()
 
 
@@ -909,8 +988,9 @@ def reject_proposal(
     db: Database,
 ) -> Accepted:
     """Reject the proposal waiting, with the reason the improver reads."""
-    the_one_waiting(db, open_round(db, round_id), proposal_id)
-    agent_service.review_proposal(
-        round_id, proposal_id, Review.REJECTED, worker.worker_id, request.reason
-    )
+    clear_the_way(db)
+    row = open_round(db, round_id)
+    the_one_waiting(db, row, proposal_id)
+    record_the_review(db, row, proposal_id, worker, request.reason)
+    carry_on_after(db, row, proposal_id)
     return Accepted()

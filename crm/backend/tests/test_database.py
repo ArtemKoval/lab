@@ -1,10 +1,13 @@
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import Column, MetaData, Table, Text, inspect
+from sqlalchemy import Column, MetaData, Table, Text, inspect, select, update
 from sqlalchemy.pool import QueuePool
 
-from backend.database import RETIRED, engine, location, seed
+from backend import dependencies
+from backend.database import RETIRED, cases, engine, location, seed
 from backend.main import app
+from backend.tests.dashboard_reads import read
 
 POSTGRES_URL = "postgresql://postgres.ref:secret@pooler.example.com:5432/db"
 
@@ -42,7 +45,7 @@ def test_startup_seeds_a_missing_or_empty_database(database, empty):
     if empty:
         database.touch()
     with TestClient(app) as client:
-        assert len(client.get("/api/cases").json()) == 25
+        assert len(read(client, "/api/cases").json()) == 26
 
 
 def test_seeding_drops_the_tables_of_earlier_versions():
@@ -54,3 +57,34 @@ def test_seeding_drops_the_tables_of_earlier_versions():
     tables = set(inspect(engine()).get_table_names())
     assert not tables & set(RETIRED)
     assert {"runs", "run_cases", "model_calls", "work_times"} <= tables
+
+
+def status_of(case_id):
+    with engine().connect() as db:
+        query = select(cases.c.status).where(cases.c.case_id == case_id)
+        return db.execute(query).scalar_one()
+
+
+def decide_in(db, case_id):
+    db.execute(update(cases).where(cases.c.case_id == case_id).values(status="decided"))
+
+
+def test_a_request_commits_at_its_end(database):
+    request = dependencies.database()
+    decide_in(next(request), "CLM-1001")
+    assert status_of("CLM-1001") == "waiting"
+    with pytest.raises(StopIteration):
+        next(request)
+    assert status_of("CLM-1001") == "decided"
+
+
+def test_a_route_can_commit_sooner_and_a_failure_keeps_only_that(database):
+    request = dependencies.database()
+    db = next(request)
+    decide_in(db, "CLM-1001")
+    db.commit()
+    assert status_of("CLM-1001") == "decided"
+    decide_in(db, "CLM-1003")
+    with pytest.raises(HTTPException):
+        request.throw(HTTPException(409, "Refused"))
+    assert (status_of("CLM-1001"), status_of("CLM-1003")) == ("decided", "waiting")

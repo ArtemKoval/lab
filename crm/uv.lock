@@ -168,6 +168,25 @@ wheels = [
 ]
 
 [[package]]
+name = "bedrock-agentcore"
+version = "1.24.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boto3" },
+    { name = "botocore" },
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+    { name = "urllib3" },
+    { name = "uvicorn" },
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f7/92/c7221fa549de4fe0a75dfc875f7b8dd65fb686a3a1e5f2115289ccad61cf/bedrock_agentcore-1.24.1.tar.gz", hash = "sha256:6921bcd331635087c61bc0c0a484b7bfb36c66845e70cf19bc1e1e0f498b7e9d", size = 1276252, upload-time = "2026-10-07T01:19:49.089Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/13/35b95c7de9a2b6b8b8692d43efbb25376422f160809c90b9671592a8580f/bedrock_agentcore-1.24.1-py3-none-any.whl", hash = "sha256:dc8aa5b0111c3eb2823f040b2f4349780e418211b595aa3f0fbe7ca0948dfc38", size = 523760, upload-time = "2026-10-07T01:19:47.434Z" },
+]
+
+[[package]]
 name = "boto3"
 version = "1.43.108"
 source = { registry = "https://pypi.org/simple" }
@@ -721,6 +740,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e0/4d/f332313098c1de1b2d2ff91cf2674415cc7cddab2ca1b01ae29774bd5fdf/docstring_parser-0.18.0.tar.gz", hash = "sha256:292510982205c12b1248696f44959db3cdd1740237a968ea1e2e7a900eeb2015", size = 29341, upload-time = "2026-04-14T04:09:19.867Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/5f/ed01f9a3cdffbd5a008556fc7b2a08ddb1cc6ace7effa7340604b1d16699/docstring_parser-0.18.0-py3-none-any.whl", hash = "sha256:b3fcbed555c47d8479be0796ef7e19c2670d428d72e96da63f3a40122860374b", size = 22484, upload-time = "2026-04-14T04:09:18.638Z" },
+]
+
+[[package]]
+name = "execnet"
+version = "2.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/89/780e11f9588d9e7128a3f87788354c7946a9cbb1401ad38a48c4db9a4f07/execnet-2.1.2.tar.gz", hash = "sha256:63d83bfdd9a23e35b9c6a3261412324f964c2ec8dcd8d3c6916ee9373e0befcd", size = 166622, upload-time = "2025-11-12T09:56:37.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/84/02fc1827e8cdded4aa65baef11296a9bbe595c474f0d6d758af082d849fd/execnet-2.1.2-py3-none-any.whl", hash = "sha256:67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec", size = 40708, upload-time = "2025-11-12T09:56:36.333Z" },
 ]
 
 [[package]]
@@ -1509,6 +1537,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dc/e1/089c4c9e0a2fec7f883f82ae8e6a727138d50074cfeb6644bc2d13b1019b/langgraph_checkpoint-4.2.0.tar.gz", hash = "sha256:51a593b6bee684b0818e5d6e58e28ab340c6db7794575056ce7bd1b746a84ed7", size = 180239, upload-time = "2026-08-07T20:05:03.756Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/05/71/3b475f09bd57d3a5649792c66353312b4432afd843f301739dfcebd157f0/langgraph_checkpoint-4.2.0-py3-none-any.whl", hash = "sha256:0547fd228935a0b758865de3a3d6d7a2537c308895d0f9ab092ce9151b5da942", size = 56833, upload-time = "2026-08-07T20:05:02.655Z" },
+]
+
+[[package]]
+name = "langgraph-checkpoint-aws"
+version = "1.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boto3" },
+    { name = "langgraph" },
+    { name = "langgraph-checkpoint" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f4/ae/9af6ad5c6b7a4a27c8805092ca82c52baf216bf7e112b0cf3886ef6f7a68/langgraph_checkpoint_aws-1.2.4.tar.gz", hash = "sha256:2d76da709b7173d3a0d021b230c9d71af47984759952a25656d2315c86451066", size = 346533, upload-time = "2026-10-02T03:30:33.983Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/80/a5/a7753b1fcb2b1a2b6520e59ac3bfe4df56d3f9ac3dd1314b715594707663/langgraph_checkpoint_aws-1.2.4-py3-none-any.whl", hash = "sha256:63ea1d0f2747b5949c869665b3ac2e770846e3914869e537bc6cbbe21a84b059", size = 186405, upload-time = "2026-10-02T03:30:32.775Z" },
 ]
 
 [[package]]
@@ -2657,6 +2699,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-xdist"
+version = "3.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "execnet" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/b4/439b179d1ff526791eb921115fca8e44e596a13efeda518b9d845a619450/pytest_xdist-3.8.0.tar.gz", hash = "sha256:7e578125ec9bc6050861aa93f2d59f1d8d085595d6551c2c90b6f4fad8d3a9f1", size = 88069, upload-time = "2025-07-01T13:30:59.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/31/d4e37e9e550c2b92a9cbc2e4d0b7420a27224968580b5a447f420847c975/pytest_xdist-3.8.0-py3-none-any.whl", hash = "sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88", size = 46396, upload-time = "2025-07-01T13:30:56.632Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -3438,6 +3493,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "beautifulsoup4" },
+    { name = "bedrock-agentcore" },
     { name = "boto3" },
     { name = "claude-agent-sdk" },
     { name = "deepagents" },
@@ -3450,8 +3506,10 @@ dependencies = [
     { name = "langchain-mcp-adapters" },
     { name = "langchain-openai" },
     { name = "langfuse" },
+    { name = "langgraph-checkpoint-aws" },
     { name = "langgraph-checkpoint-postgres" },
     { name = "mangum" },
+    { name = "mcp" },
     { name = "nbformat" },
     { name = "ollama" },
     { name = "openai" },
@@ -3462,6 +3520,7 @@ dependencies = [
     { name = "psycopg-pool" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
     { name = "requests" },
     { name = "sqlalchemy" },
     { name = "tqdm" },
@@ -3469,18 +3528,45 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+context = [
+    { name = "mangum" },
+    { name = "mcp" },
+    { name = "pyyaml" },
+]
 dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pytest-xdist" },
     { name = "ruff" },
 ]
+runtime = [
+    { name = "bedrock-agentcore" },
+    { name = "boto3" },
+    { name = "botocore" },
+    { name = "httpx" },
+    { name = "langchain" },
+    { name = "langchain-core" },
+    { name = "langchain-mcp-adapters" },
+    { name = "langchain-openai" },
+    { name = "langfuse" },
+    { name = "langgraph" },
+    { name = "langgraph-checkpoint-aws" },
+    { name = "langgraph-checkpoint-postgres" },
+    { name = "mcp" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg-pool" },
+    { name = "pydantic" },
+    { name = "starlette" },
+]
 server = [
+    { name = "boto3" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "mangum" },
     { name = "openrouter" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "pyyaml" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -3488,6 +3574,7 @@ server = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
+    { name = "bedrock-agentcore", specifier = ">=1.24.1" },
     { name = "boto3", specifier = ">=1.43.108" },
     { name = "claude-agent-sdk", specifier = ">=0.2.161" },
     { name = "deepagents", specifier = ">=0.7.19" },
@@ -3500,8 +3587,10 @@ requires-dist = [
     { name = "langchain-mcp-adapters", specifier = ">=0.3.2" },
     { name = "langchain-openai", specifier = ">=1.6.2" },
     { name = "langfuse", specifier = ">=4.16.0" },
+    { name = "langgraph-checkpoint-aws", specifier = ">=1.2.4" },
     { name = "langgraph-checkpoint-postgres", specifier = ">=3.1.2" },
     { name = "mangum", specifier = ">=0.22.0" },
+    { name = "mcp", specifier = ">=1.30.0" },
     { name = "nbformat", specifier = ">=5.11.1" },
     { name = "ollama", specifier = ">=0.6.2" },
     { name = "openai", specifier = ">=3.19.2" },
@@ -3512,6 +3601,7 @@ requires-dist = [
     { name = "psycopg-pool", specifier = ">=3.3.3" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.15.1" },
     { name = "python-dotenv", specifier = ">=1.2.3" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.34.2" },
     { name = "sqlalchemy", specifier = ">=2.1.3" },
     { name = "tqdm", specifier = ">=4.70.1" },
@@ -3519,18 +3609,45 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+context = [
+    { name = "mangum", specifier = ">=0.22.0" },
+    { name = "mcp", specifier = ">=1.30.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+]
 dev = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "ruff", specifier = ">=0.16.9" },
 ]
+runtime = [
+    { name = "bedrock-agentcore", specifier = ">=1.24.1" },
+    { name = "boto3", specifier = ">=1.43.108" },
+    { name = "botocore", specifier = ">=1.43.108" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "langchain", specifier = ">=1.4.2" },
+    { name = "langchain-core", specifier = ">=1.6.5" },
+    { name = "langchain-mcp-adapters", specifier = ">=0.3.2" },
+    { name = "langchain-openai", specifier = ">=1.6.2" },
+    { name = "langfuse", specifier = ">=4.16.0" },
+    { name = "langgraph", specifier = ">=1.2.12" },
+    { name = "langgraph-checkpoint-aws", specifier = ">=1.2.4" },
+    { name = "langgraph-checkpoint-postgres", specifier = ">=3.1.2" },
+    { name = "mcp", specifier = ">=1.30.0" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6" },
+    { name = "psycopg-pool", specifier = ">=3.3.3" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "starlette", specifier = ">=1.7.0" },
+]
 server = [
+    { name = "boto3", specifier = ">=1.43.108" },
     { name = "fastapi", specifier = ">=0.141.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mangum", specifier = ">=0.22.0" },
     { name = "openrouter", specifier = ">=1.2.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.15.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "sqlalchemy", specifier = ">=2.1.3" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]

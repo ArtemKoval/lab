@@ -1,4 +1,4 @@
-"""Workers sign in through the auth service, and the backend checks the worker on
+"""Workers sign in through Supabase Auth, and the backend checks the worker on
 every action a worker takes."""
 
 import jwt
@@ -6,30 +6,11 @@ import pytest
 from sqlalchemy import select
 
 from backend import auth
-from backend.database import engine, load, metadata, workers
+from backend.database import engine, load, workers
 from backend.tests.case_requests import decide, start
-from backend.tests.settings_requests import STARTING
-from backend.tests.sign_in import AUTH_URL, DANA, OTHER_KEY, signed_in
-
-ROUND = "/api/improvement/rounds/round-1"
-PROPOSAL = f"{ROUND}/proposals/proposal-1"
-
-# Every operation a worker takes, with a body it would accept.
-WORKER_ACTIONS = {
-    "get_signed_in_worker": ("GET", "/api/me", None),
-    "sign_off_case": ("POST", "/api/cases/CLM-1002/sign-off", None),
-    "start_dispatch": ("POST", "/api/dispatches", {"agents": 3}),
-    "start_evaluation": (
-        "POST",
-        "/api/evaluations",
-        {"evaluation_set": "held_out", "tiny": True, "agents": 5},
-    ),
-    "change_settings": ("PUT", "/api/settings", STARTING),
-    "start_round": ("POST", "/api/improvement/rounds", None),
-    "stop_round": ("POST", f"{ROUND}/stop", None),
-    "approve_proposal": ("POST", f"{PROPOSAL}/approval", None),
-    "reject_proposal": ("POST", f"{PROPOSAL}/rejection", {"reason": "Too broad"}),
-}
+from backend.tests.gates import WORKER_OPERATIONS
+from backend.tests.rows import everything_recorded
+from backend.tests.sign_in import AUTH_URL, DANA, OTHER_KEY, signed_in, token
 
 NOT_SIGNED_IN = {
     "no token": {},
@@ -38,15 +19,6 @@ NOT_SIGNED_IN = {
     "another audience": signed_in(DANA, audience="anon"),
     "not a token": {"Authorization": "Bearer not-a-token"},
 }
-
-
-def everything_recorded():
-    """Every row of every table, to show that a request changed nothing."""
-    with engine().connect() as db:
-        return {
-            table.name: [dict(row) for row in db.execute(select(table)).mappings()]
-            for table in metadata.sorted_tables
-        }
 
 
 def test_the_signed_in_worker(client):
@@ -59,6 +31,11 @@ def test_the_signed_in_worker(client):
         "email": DANA,
         "can_approve_over_limit": True,
     }
+
+
+def test_a_browsers_request_with_no_key_header_at_all_is_the_workers(dashboard):
+    headers = {"Authorization": f"Bearer {token(DANA)}"}
+    assert dashboard.get("/api/me", headers=headers).status_code == 200
 
 
 def test_a_sign_in_issued_a_little_ahead_of_our_clock_is_fine(client):
@@ -82,25 +59,20 @@ def test_a_sign_in_that_isnt_a_workers_is_refused(client):
     response = client.get("/api/me", headers=signed_in("visitor@example.com"))
     assert response.status_code == 403
     assert response.json()["detail"] == (
-        "visitor@example.com isn't one of our cases workers"
+        "visitor@example.com isn't one of our case workers"
     )
 
 
-def test_these_are_every_operation_that_needs_a_worker(client):
-    schema = client.get("/openapi.json").json()
-    secured = {
-        operation["operationId"]
-        for operations in schema["paths"].values()
-        for operation in operations.values()
-        if operation.get("security")
-    }
-    assert secured == set(WORKER_ACTIONS)
-
-
 @pytest.mark.parametrize(
-    ("method", "path", "body"), WORKER_ACTIONS.values(), ids=WORKER_ACTIONS.keys()
+    ("method", "path", "body"),
+    WORKER_OPERATIONS.values(),
+    ids=WORKER_OPERATIONS.keys(),
 )
-def test_every_worker_action_needs_a_sign_in(client, agent_calls, method, path, body):
+def test_every_worker_operation_needs_a_sign_in_and_the_key_wont_do(
+    client, agent_calls, method, path, body
+):
+    """The client sends the agent's key with every request, which never stands in
+    for a worker."""
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 1350.0)
     before = everything_recorded()

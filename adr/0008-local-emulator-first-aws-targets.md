@@ -9,7 +9,7 @@ The crm engine's week three milestones deploy the backend and the agent to AWS: 
 
 ## Decision
 
-Every AWS target of the crm engine runs against a local emulator in development. One compose file starts the emulator with the services the targets need, and the target addresses resolve from the same environment variables the real AWS rollout sets. Agent behavior tests stay hermetic on stand-ins, because the emulator's runtime data plane answers with canned payloads by design. The emulator is for wiring, not for behavior. The rollout change owns the real deploy and adds no second set of variables. Rejected options:
+Every AWS target of the crm engine runs against a local emulator in development. One compose file starts the emulator with the services the targets need. The target addresses resolve from the same environment variables the real AWS rollout sets. Agent behavior tests stay hermetic on stand-ins, because the emulator's runtime data plane answers with canned payloads by design. The emulator is for wiring, not for behavior. The rollout change owns the real deploy and adds no second set of variables. Rejected options:
 
 - Keep the deployment targets cloud-only and test them by hand. The devcontainer contract would break, and the rollout would carry untested wiring.
 - Mock each service in pytest. The emulator already speaks the wire protocols, and a second mock would drift from it.

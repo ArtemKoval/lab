@@ -1,3 +1,11 @@
+---
+source:
+  system: Claims operations
+  owner: Head of claims operations
+  reviewed: "2026-09-01"
+version: "2026.1"
+---
+
 # UnderCover Travel Insurance: Policy Wording
 
 Version 2026.1, for policies bought on or after January 1, 2026.

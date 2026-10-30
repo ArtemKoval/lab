@@ -44,6 +44,13 @@ export function accessToken(): string | undefined {
   return localStorage.getItem(TOKEN) ?? undefined;
 }
 
+// The access token after any renewal. The local auth service signs tokens
+// that last twelve hours, so this reads the stored token as it is; Cognito
+// renews here at the rollout.
+export function freshAccessToken(): Promise<string | undefined> {
+  return Promise.resolve(accessToken());
+}
+
 // Tells the callback whether a worker is signed in, at once and again on each
 // sign-in and sign-out, until the function it returns is called.
 export function followSession(

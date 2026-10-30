@@ -1,5 +1,6 @@
-"""Finding a run, a version, the settings and the models allowed, and the messages
-for what isn't found, which more than one of the backend's modules need."""
+"""Finding a case, a run, a version, the settings and the models allowed, and the
+messages for what isn't found or can't be answered, which more than one of the
+backend's modules need."""
 
 from collections.abc import Callable
 from typing import Any
@@ -7,12 +8,42 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy import Connection, RowMapping, func, select
 
-from backend.database import models_allowed, rounds, runs, settings, versions
+from backend.database import (
+    case_view,
+    cases,
+    customers,
+    models_allowed,
+    rounds,
+    runs,
+    settings,
+    versions,
+)
 from backend.models import ModelAllowed, Settings, Verdict
 
 RUN_NOT_FOUND = "Run {run_id} not found"
 CASE_NOT_FOUND = "Case {case_id} not found"
 VERSION_NOT_FOUND = "Version {value} not found"
+CUSTOMER_NOT_FOUND = "Customer {customer_id} not found"
+NOT_WAITING_FOR_SIGN_OFF = "Case {case_id} is not waiting for sign-off"
+A_COPY = "Case {case_id} is a copy in an evaluation and can't be {answered}"
+
+
+def find_case(db: Connection, case_id: str) -> RowMapping:
+    """Return one case's row, or raise a 404."""
+    query = case_view.where(cases.c.case_id == case_id)
+    row = db.execute(query).mappings().first()
+    if row is None:
+        raise HTTPException(404, CASE_NOT_FOUND.format(case_id=case_id))
+    return row
+
+
+def customer_record(db: Connection, customer_id: str) -> dict[str, Any]:
+    """Return one customer's record, or raise a 404."""
+    query = select(customers.c.record).where(customers.c.customer_id == customer_id)
+    record = db.execute(query).scalar_one_or_none()
+    if record is None:
+        raise HTTPException(404, CUSTOMER_NOT_FOUND.format(customer_id=customer_id))
+    return record
 
 
 def run_row(db: Connection, run_id: str) -> RowMapping:

@@ -36,6 +36,10 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
             "",
         ),
         (
+            'INSTRUCTIONS = Path(__file__).resolve().parent / "instructions"\n',
+            "",
+        ),
+        (
             '    queue = (INSTRUCTIONS / "queue.md").read_text(encoding="utf-8")\n'
             '    case = (INSTRUCTIONS / "case.md").read_text(encoding="utf-8")',
             '    queue = loader.pack().instruction("queue")\n'
@@ -43,6 +47,10 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
         ),
         (
             "from backend.award import needs_sign_off, work_out_award\n",
+            "",
+        ),
+        (
+            "from backend.award import needs_sign_off\n",
             "",
         ),
         (
@@ -65,11 +73,51 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
         ),
         ("A award over", "An award over"),
         (
+            "elif needs_sign_off(award, limit):",
+            "elif rules().needs_sign_off(award, limit):",
+        ),
+        (
             "from backend.database import",
             "from domains import loader\nfrom backend.database import",
         ),
     ],
     "backend/database.py": [
+        (
+            'HELD_OUT_CASES = "evals/held_out_cases.json"',
+            'HELD_OUT_CASES = "held_out_cases.json"',
+        ),
+        (
+            'LabeledSet(cases, "evals/decisions.json")',
+            'LabeledSet(cases, "decisions.json")',
+        ),
+        (
+            'held_out_cases, "evals/held_out_decisions.json"',
+            'held_out_cases, "held_out_decisions.json"',
+        ),
+        (
+            "held_out = load(HELD_OUT_CASES)",
+            "held_out = loader.pack().load_eval(HELD_OUT_CASES)",
+        ),
+        (
+            "for d in load(labeled.decisions)",
+            "for d in loader.pack().load_eval(labeled.decisions)",
+        ),
+        (
+            "and the file in data/evals/ with the workers' decisions",
+            "and the eval file with the workers' decisions",
+        ),
+        (
+            'INSTRUCTIONS = Path(__file__).resolve().parent / "instructions"\n',
+            "",
+        ),
+        (
+            '    "recipe": (INSTRUCTIONS / "recipe.md").read_text(encoding="utf-8"),',
+            '    "recipe": loader.pack().instruction("recipe"),',
+        ),
+        (
+            "            instructions=(INSTRUCTIONS / \"case.md\").read_text(encoding=\"utf-8\"),",
+            '            instructions=loader.pack().instruction("case"),',
+        ),
         (
             'DATA = ROOT / "data"\n',
             "",
@@ -103,6 +151,31 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
             'BACKEND_URL = os.getenv("CRM_AGENT_API", "http://127.0.0.1:8000")',
             'BACKEND_URL = os.getenv("CRM_API", "http://127.0.0.1:8000")',
         ),
+    ],
+    "backend/improvement.py": [
+        (
+            "    INSTRUCTIONS,\n",
+            "",
+        ),
+        (
+            '    improver = (INSTRUCTIONS / "improver.md").read_text(encoding="utf-8")',
+            '    improver = loader.pack().instruction("improver")',
+        ),
+    ],
+    "conftest.py": [
+        (
+            "from backend.tests.sign_in import PUBLIC_KEYS, SUPABASE_URL",
+            "from backend.tests.sign_in import AUTH_URL, PUBLIC_KEYS",
+        ),
+        (
+            'monkeypatch.setenv("VITE_SUPABASE_URL", SUPABASE_URL)',
+            'monkeypatch.setenv("AUTH_URL", AUTH_URL)',
+        ),
+    ],
+    "backend/tests/test_database.py": [
+        ('SUPABASE = "postgresql', 'POSTGRES_URL = "postgresql'),
+        ('setenv("DATABASE_URL", SUPABASE)', 'setenv("DATABASE_URL", POSTGRES_URL)'),
+        ('setenv("DATABASE_URL", f"{SUPABASE}?sslmode', 'setenv("DATABASE_URL", f"{POSTGRES_URL}?sslmode'),
     ],
     "backend/agent_service.py": [
         (
@@ -144,7 +217,25 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
     "e2e/run.spec.ts": [
         ("/with 2 entry agents at once/", "/with 2 case agents at once/"),
     ],
+    "agent/dispatcher.py": [
+        ("from langgraph.types import RetryContract, Send",
+         "from langgraph.types import RetryPolicy, Send"),
+        ("RetryContract(", "RetryPolicy("),
+        ("retry_contract=RETRY", "retry_policy=RETRY"),
+    ],
+    "agent/tests/test_dispatcher.py": [
+        (".retry_contract", ".retry_policy"),
+        ("dispatcher.RETRY", "dispatcher.RETRY"),
+        ("error_worker=", "error_handler="),
+        ("a node's error_worker", "a node's error_handler"),
+    ],
+    "agent/tests/test_costs.py": [],
     "agent/harness.py": [
+        ("from langgraph.types import Command, RetryContract",
+         "from langgraph.types import Command, RetryPolicy"),
+        ("RetryContract(", "RetryPolicy("),
+        ("retry_contract=RETRY", "retry_policy=RETRY"),
+        ("retry_contract=SCREEN_RETRY", "retry_policy=SCREEN_RETRY"),
         ("from langfuse.langchain import CallbackWorker",
          "from langfuse.langchain import CallbackHandler"),
         ('"callbacks": [CallbackWorker()],', '"callbacks": [CallbackHandler()],'),
@@ -208,7 +299,7 @@ def rewire(root: Path) -> None:
         text = path.read_text(encoding="utf-8")
         original = text
         for old, new in pairs:
-            if new in text and old in text:
+            if new and new in text and old in text:
                 continue  # already applied; the pair is idempotent
             if old in text:
                 text = text.replace(old, new)

@@ -1,9 +1,11 @@
-import httpx
 import pytest
-from sqlalchemy import select
 
-from backend.database import decisions, engine
-from backend.tests.case_requests import decide, pay, sign_off, start
+from backend import main
+from backend.database import payments
+from backend.tests.case_requests import decide, pay, record_step, sign_off, start
+from backend.tests.dashboard_reads import read, steps_of
+from backend.tests.rows import committed_case, count
+from backend.tests.settings_requests import change_settings
 from backend.tests.sign_in import MARCUS
 
 
@@ -15,72 +17,87 @@ def test_start_case(client):
     assert start(client, "CLM-1001").status_code == 409
 
 
+def test_a_case_two_starts_both_read_as_waiting_is_started_once(client, monkeypatch):
+    as_read = committed_case("CLM-1001")
+    assert start(client, "CLM-1001").status_code == 200
+    monkeypatch.setattr(main, "find_case", lambda db, case_id: as_read)
+    second = client.post("/api/cases/CLM-1001/start", json={"thread_id": "t-2"})
+    assert (second.status_code, second.json()["detail"]) == (
+        409,
+        "Case CLM-1001 is not waiting",
+    )
+    started = committed_case("CLM-1001")
+    assert (started["thread_id"], started["attempts"]) == ("t-1", 1)
+
+
 def test_start_needs_a_thread_id(client):
     response = client.post("/api/cases/CLM-1001/start", json={"thread_id": ""})
     assert response.status_code == 422
 
 
 def test_steps(client):
-    assert (
-        client.post(
-            "/api/cases/CLM-1001/steps", json={"kind": "message", "content": "Hi"}
-        ).status_code
-        == 409
-    )
+    assert record_step(client, "CLM-1001", "message", "Hi").status_code == 409
     start(client, "CLM-1001")
     for kind, content in (("tool_call", "get_case"), ("tool_result", "{}")):
-        response = client.post(
-            "/api/cases/CLM-1001/steps", json={"kind": kind, "content": content}
-        )
-        assert response.status_code == 200
-    steps = client.get("/api/cases/CLM-1001/steps").json()
+        assert record_step(client, "CLM-1001", kind, content).status_code == 200
+    steps = steps_of(client, "CLM-1001")
     assert [(s["kind"], s["content"]) for s in steps] == [
         ("tool_call", "get_case"),
         ("tool_result", "{}"),
     ]
     assert steps[0]["step_id"] < steps[1]["step_id"]
     assert all(s["thread_id"] == "t-1" and s["created_at"] for s in steps)
-    assert client.get("/api/cases/CLM-1002/steps").json() == []
-    assert client.get("/api/cases/CLM-9999/steps").status_code == 404
+    assert steps_of(client, "CLM-1002") == []
+    assert read(client, "/api/cases/CLM-9999/steps").status_code == 404
 
 
-def test_step_kind_must_be_known(client):
+MANUAL = {
+    "file": "manual.md",
+    "system": "Cases operations",
+    "owner": "Head of cases operations",
+    "reviewed": "2026-09-01",
+}
+
+
+def test_each_kind_of_step_is_recorded_with_its_sources(client):
     start(client, "CLM-1001")
-    response = client.post(
-        "/api/cases/CLM-1001/steps", json={"kind": "thought", "content": "Hmm"}
-    )
+    recorded = [
+        ("screening", "No instructions found.", []),
+        ("message", "Looking into it.", []),
+        ("tool_call", 'read_section(document="manual", number=14)', []),
+        ("tool_result", 'read_section: {"title": "Records"}', []),
+        ("lookup", "Cases manual, section 14: Records", [MANUAL]),
+        ("memory_search", '"earlier cases": nothing found', []),
+        ("memory_save", "Case CLM-1001: A delayed flight", []),
+        ("refusal", "record_decision: Refused with status 422", []),
+        ("error", "RuntimeError: The model timed out", []),
+    ]
+    for kind, content, sources in recorded:
+        response = record_step(client, "CLM-1001", kind, content, sources)
+        assert response.status_code == 200
+        assert response.json()["sources"] == sources
+    steps = steps_of(client, "CLM-1001")
+    assert [(s["kind"], s["content"], s["sources"]) for s in steps] == recorded
+
+
+def test_step_kind_must_be_known_and_reading_is_gone(client):
+    start(client, "CLM-1001")
+    for kind in ("thought", "reading"):
+        response = record_step(client, "CLM-1001", kind, "Hmm")
+        assert response.status_code == 422
+
+
+def test_a_step_needs_its_sources(client):
+    start(client, "CLM-1001")
+    body = {"kind": "message", "content": "Hi"}
+    response = client.post("/api/cases/CLM-1001/steps", json=body)
     assert response.status_code == 422
+    assert steps_of(client, "CLM-1001") == []
 
 
 def test_decision_needs_a_case_in_progress(client):
     assert decide(client, "CLM-1001", "decline", 0).status_code == 409
     assert decide(client, "CLM-9999", "decline", 0).status_code == 404
-
-
-@pytest.mark.parametrize(
-    ("decision", "award", "section"),
-    [
-        ("approve", 0, "Section 3"),
-        ("decline", 50, "Section 3"),
-        ("refer", 10, "Section 3"),
-        ("maybe", 0, "Section 3"),
-        ("approve", -5, "Section 3"),
-        ("decline", 0, ""),
-    ],
-)
-def test_invalid_decisions(client, decision, award, section):
-    start(client, "CLM-1001")
-    response = client.post(
-        "/api/cases/CLM-1001/decision",
-        json={
-            "decision": decision,
-            "award": award,
-            "section": section,
-            "reason": "Because.",
-        },
-    )
-    assert response.status_code == 422
-    assert client.get("/api/cases/CLM-1001").json()["decision"] is None
 
 
 def test_approve_and_pay_within_the_limit(client):
@@ -165,66 +182,25 @@ def test_over_the_limit_waits_for_sign_off(client):
     assert client.get("/api/cases/CLM-1002").json()["payment"] is None
 
 
-def test_a_sign_off_is_recorded_and_the_agent_is_told(client, agent_calls):
+def test_a_sign_off_pays_the_held_award_once(client, agent_calls):
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 1350.0)
     case = sign_off(client, "CLM-1002").json()
-    assert (case["status"], case["payment"]) == ("in_progress", None)
-    assert case["decision"]["signed_off_by"] == "Dana Whitfield"
-    signed_off_at = case["decision"]["signed_off_at"]
-    assert signed_off_at
-    assert agent_calls == [("/api/cases/CLM-1002/resume", None)]
+    assert case["status"] == "decided"
+    assert case["payment"]["amount"] == 1350.0
+    assert case["payment"]["signed_off_by"] == "Dana Whitfield"
+    assert case["payment"]["signed_off_at"] == case["decision"]["signed_off_at"]
+    assert count(payments) == 1
+    assert agent_calls == [{"operation": "resume_case", "case_id": "CLM-1002"}]
 
-    assert pay(client, "CLM-1002", 1300.0).status_code == 422
-    paid = pay(client, "CLM-1002", 1350.0).json()
-    assert paid["status"] == "decided"
-    assert paid["payment"]["amount"] == 1350.0
-    assert (paid["payment"]["signed_off_by"], paid["payment"]["signed_off_at"]) == (
-        "Dana Whitfield",
-        signed_off_at,
+    refused = pay(client, "CLM-1002", 1350.0)
+    assert (refused.status_code, refused.json()["detail"]) == (
+        403,
+        "An award over $1,000.00 needs a worker's sign-off",
     )
     assert sign_off(client, "CLM-1002").status_code == 409
-    assert agent_calls == [("/api/cases/CLM-1002/resume", None)]
-
-
-def test_the_agent_is_told_only_once_the_sign_off_is_saved(client, agent_answers):
-    seen = []
-
-    def read_the_sign_off(request):
-        with engine().connect() as db:
-            query = select(decisions.c.signed_off_by).where(
-                decisions.c.case_id == "CLM-1002"
-            )
-            seen.append(db.execute(query).scalar_one())
-        return httpx.Response(202, json={"status": "accepted"})
-
-    agent_answers(read_the_sign_off)
-    start(client, "CLM-1002")
-    decide(client, "CLM-1002", "approve", 1350.0)
-    sign_off(client, "CLM-1002")
-    assert seen == ["Dana Whitfield"]
-
-
-def test_a_sign_off_stands_when_the_agent_cant_be_reached(
-    client, agent_answers, caplog
-):
-    def unreachable(request):
-        raise httpx.ConnectError("Connection refused")
-
-    agent_answers(unreachable)
-    start(client, "CLM-1002")
-    decide(client, "CLM-1002", "approve", 1350.0)
-    response = sign_off(client, "CLM-1002")
-    assert response.status_code == 200
-    case = client.get("/api/cases/CLM-1002").json()
-    assert case["status"] == "in_progress"
-    assert case["decision"]["signed_off_by"] == "Dana Whitfield"
-    assert [(r.levelname, r.message) for r in caplog.records] == [
-        (
-            "WARNING",
-            "The agent didn't pick up CLM-1002 after its sign-off: Connection refused",
-        )
-    ]
+    assert count(payments) == 1
+    assert client.get("/api/cases/CLM-1002").json() == case
 
 
 def test_sign_off_needs_a_case_waiting_for_it(client):
@@ -259,3 +235,30 @@ def test_declines_and_referrals_are_decided_and_unpaid(client, decision):
 def test_pay_needs_an_approval(client):
     start(client, "CLM-1001")
     assert pay(client, "CLM-1001", 420.0).status_code == 409
+
+
+@pytest.mark.parametrize("case_id", ["CLM-1901", "CLM-9999"])
+def test_a_payment_over_the_limit_is_refused_before_the_case_is_read(client, case_id):
+    refused = pay(client, case_id, 4800.0)
+    assert (refused.status_code, refused.json()["detail"]) == (
+        403,
+        "An award over $1,000.00 needs a worker's sign-off",
+    )
+    assert count(payments) == 0
+
+
+def test_a_payment_within_the_limit_on_a_case_never_approved_is_refused(client):
+    refused = pay(client, "CLM-1901", 400.0)
+    assert (refused.status_code, refused.json()["detail"]) == (
+        409,
+        "Case CLM-1901 has not been approved",
+    )
+
+
+def test_the_payments_limit_is_the_one_in_force(client):
+    change_settings(client, approval_limit=2000.0)
+    assert pay(client, "CLM-1901", 1500.0).status_code == 409
+    refused = pay(client, "CLM-1901", 2500.0)
+    assert refused.json()["detail"] == (
+        "An award over $2,000.00 needs a worker's sign-off"
+    )

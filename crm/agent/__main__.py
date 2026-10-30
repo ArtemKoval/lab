@@ -6,24 +6,25 @@ import sys
 from dotenv import load_dotenv
 
 from agent import api
+from agent.checkpoints import checkpoint_pool
 from agent.connection import Refused
 from agent.console import show_reports
-from agent.harness import case_graphs, checkpoint_pool, work_case
+from agent.harness import case_graphs, work_case
 
 
 def main(args: list[str]) -> None:
     """Work the case named on the command line on the current version, with no
-    run."""
+    run, which counts as no evaluation."""
     parser = argparse.ArgumentParser(
         prog="uv run -m agent", description="Work one case in the queue."
     )
     parser.add_argument("case_id", help="the case to work")
     options = parser.parse_args(args)
     with checkpoint_pool() as pool:
-        graph = case_graphs(api.get_current_version(), pool)()
         try:
-            work_case(options.case_id, None, graph)
-        except Refused as refusal:
+            agent = case_graphs(api.get_current_version(), None, pool)()
+            work_case(options.case_id, None, agent)
+        except (Refused, ConnectionError) as refusal:
             parser.exit(1, f"{options.case_id}  not started: {refusal}\n")
 
 

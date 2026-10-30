@@ -1,11 +1,12 @@
-"""The harness: it builds the case agent's graph and works a case with it."""
+"""The harness: it builds the case agent's graph, with the check for hidden
+instructions as its first step, and works a case with it."""
 
 import logging
-import os
 import time
 import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, cast
 
@@ -29,24 +30,30 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.runtime import Runtime
-from langgraph.types import Command, interrupt
-from psycopg import Connection, sql
-from psycopg.rows import DictRow, dict_row
-from psycopg_pool import ConnectionPool
+from langgraph.store.base import BaseStore
+from langgraph.types import Command, Overwrite, RetryPolicy, interrupt
 
-from agent import api
+from agent import api, app_terms, memory, tool_route, worker_answer
+from agent.checkpoints import Pool
 from agent.connection import Refused
 from agent.console import describe
 from agent.json_text import as_json
 from agent.openrouter import chat_model, usage_of
+from agent.refusals import REFUSED
 from agent.root_run import as_root_run
-from agent.tools import CASE_TOOLS, CaseContext, CaseState
+from agent.routes import GatewayRefused, Route, Target
+from agent.screening import screen
+from agent.tools import (
+    TARGETS,
+    CaseContext,
+    CaseState,
+    case_as_read,
+    case_tools,
+)
 
 log = logging.getLogger(__name__)
 
 CaseGraph = CompiledStateGraph[CaseState, CaseContext, Any, Any]
-NewGraph = Callable[[], CaseGraph]
-Pool = ConnectionPool[Connection[DictRow]]
 Messages = dict[str, list[BaseMessage]]
 Start = Messages | Command | None
 # Tags for a case's trace beside its run's, such as the round it works in.
@@ -56,93 +63,140 @@ Tags = tuple[str, ...]
 # with its progress saved, to carry on later.
 TRANSIENT = (ModelRateLimitError, ModelTimeoutError)
 
-SCHEMA = "crm"
-CONNECTIONS = 4
-CONNECTION_WAIT = 120
 CASE_MODEL_CALLS = 30
 NO_DECISION = "The agent finished without recording a decision"
 WORK_CASE = "Work case"
 CARRY_ON = "Carry on"
+RESUME = "Resume"
+SCREEN = "screen"
+REFER = "refer"
 AGENT = "agent"
 TOOLS = "tools"
-PAUSE = "wait_for_sign_off"
 PAY = "pay"
+REMEMBER = "remember"
+WAIT_FOR_WORKER = "wait_for_worker"
+# Where a decision goes when its award is held for a worker's sign-off.
+HELD = "held"
+PAY_CASE = "pay_case"
+REFUSAL = "refusal"
+
+
+# The check's result as the case's first step, and the section and the maker of
+# the referral it makes when it finds an instruction, which sits outside the
+# versions of the case agent.
+FOUND = "Instructions found. {reason}"
+NONE_FOUND = "No instructions found. {reason}"
+SECURITY_CHECK = "Security check: no section of the wording or the manual applies"
+CHECK_DECIDES = "Security check"
+# Who makes the case agent's decisions: the version of its configuration.
+AGENT_DECIDES = "CRM Agent, version {number}"
 
 
 class TooManyModelCalls(Exception):
     """The case agent made as many model calls as it may without finishing."""
 
 
-def model(version: dict[str, Any]) -> ChatOpenAI:
-    """Return a version's model, at its reasoning effort."""
-    return chat_model(version["model"], version["reasoning_effort"], timeout=120)
+class UnreadableScreening(Exception):
+    """The check for hidden instructions gave an answer that can't be read."""
 
 
-@contextmanager
-def checkpoint_pool() -> Iterator[Pool]:
-    """Open the process's pool of at most CONNECTIONS connections to DATABASE_URL,
-    where case graphs save their progress in our own schema, set up once. A case
-    agent waits up to CONNECTION_WAIT seconds for a connection."""
-    settings = {
-        "autocommit": True,
-        "prepare_threshold": 0,
-        "row_factory": dict_row,
-        "options": f"-c search_path={SCHEMA}",
-    }
-    with ConnectionPool[Connection[DictRow]](
-        os.environ["DATABASE_URL"],
-        min_size=1,
-        max_size=CONNECTIONS,
-        timeout=CONNECTION_WAIT,
-        kwargs=settings,
-    ) as pool:
-        with pool.connection() as connection:
-            create = sql.SQL("CREATE SCHEMA IF NOT EXISTS {}")
-            connection.execute(create.format(sql.Identifier(SCHEMA)))
-        PostgresSaver(pool).setup()
-        yield pool
+# Tries the check three times in all when its answer can't be read, and for nothing
+# else: a rate limit, a timeout or a refusal goes on like any error in the graph.
+SCREEN_RETRY = RetryPolicy(max_attempts=3, retry_on=UnreadableScreening)
+
+
+def model(named: dict[str, Any]) -> ChatOpenAI:
+    """Return the model a version or get_screening names, at its reasoning effort."""
+    return chat_model(named["model"], named["reasoning_effort"])
 
 
 def refusal(error: Exception) -> str:
-    """Show the model why a tool was refused, and let any other error stop the agent."""
+    """Show the model why a tool was refused, by the app, the Gateway or the tool's
+    own checks, and let any other error stop the agent."""
     if isinstance(error, Refused):
         return f"Refused with status {error}"
+    if isinstance(error, GatewayRefused):
+        return error.answer
     if isinstance(error, ToolException):
-        return f"Refused: {error}"
+        return REFUSED.format(reason=error)
     raise error
 
 
-def record_reply(case_id: str, reply: BaseMessage) -> None:
-    """Record the model's reply on the case: its text, then each tool it calls."""
+def named(context: CaseContext, tool: str) -> str:
+    """Name a call to one of the case agent's tools as its route names it, or as
+    the model did for a tool the case agent doesn't have."""
+    target = TARGETS.get(tool)
+    return context.route.name(target, tool) if target else tool
+
+
+def record_reply(context: CaseContext, reply: BaseMessage) -> None:
+    """Record the model's reply on the case: its text, then each tool it calls,
+    named as the route names it."""
     if reply.text:
-        api.record_step(case_id, "message", reply.text)
+        api.record_step(context.case_id, "message", reply.text, [])
     if isinstance(reply, AIMessage):
         for call in reply.tool_calls:
             args = ", ".join(f"{k}={as_json(v)}" for k, v in call["args"].items())
-            api.record_step(case_id, "tool_call", f"{call['name']}({args})")
+            name = named(context, call["name"])
+            api.record_step(context.case_id, "tool_call", f"{name}({args})", [])
 
 
 def record_result(
     request: ToolCallRequest,
     execute: Callable[[ToolCallRequest], ToolMessage | Command],
 ) -> ToolMessage | Command:
-    """Run a tool and record its result on the case, then any step it gives as its
-    artifact, such as a section it read."""
+    """Run a tool and record its result on the case, or its refusal, named as the
+    route names the tool, then any step it gives as its artifact, such as what it
+    looked up and the files that came from."""
     result = execute(request)
     if isinstance(result, ToolMessage):
         message = result
     else:
         message = cast(dict[str, Any], result.update)["messages"][0]
-    case_id = cast(CaseContext, request.runtime.context).case_id
-    api.record_step(case_id, "tool_result", f"{message.name}: {message.text}")
+    context = cast(CaseContext, request.runtime.context)
+    kind = REFUSAL if message.status == "error" else "tool_result"
+    name = named(context, request.tool_call["name"])
+    api.record_step(context.case_id, kind, f"{name}: {message.text}", [])
     if message.artifact:
-        api.record_step(case_id, *message.artifact)
+        api.record_step(context.case_id, *message.artifact)
     return result
 
 
 def record_call(context: CaseContext, reply: BaseMessage) -> None:
     """Record the tokens and the cost of one model call, as OpenRouter reports them."""
     api.record_model_call(context.case_id, context.run_id, *usage_of(reply))
+
+
+def screen_case(
+    state: CaseState, runtime: Runtime[CaseContext], screener: BaseChatModel
+) -> dict[str, Any]:
+    """Have the check read the case as the case agent's get_case tool gives it,
+    before the case agent's model sees it, and record its call and its result as
+    the case's first step. Raise UnreadableScreening, after recording the call,
+    when its answer can't be read."""
+    context = runtime.context
+    reply, screening = screen(screener, case_as_read(api.get_case(context.case_id)))
+    record_call(context, reply)
+    if screening is None:
+        raise UnreadableScreening("The security check's answer couldn't be read")
+    line = FOUND if screening.instructions_found else NONE_FOUND
+    checked = line.format(reason=screening.reason)
+    api.record_step(context.case_id, "screening", checked, [])
+    return {"screening": screening.model_dump()}
+
+
+def refer(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
+    """Refer a case the check flagged to a worker, with the check's reason."""
+    reason = state["screening"]["reason"]
+    case = api.record_decision(
+        runtime.context.case_id,
+        decision=app_terms.REFER,
+        award=0,
+        section=SECURITY_CHECK,
+        reason=reason,
+        decided_by=CHECK_DECIDES,
+    )
+    return {"decision": case["decision"], "status": case["status"]}
 
 
 def call_model(
@@ -159,20 +213,33 @@ def call_model(
         raise TooManyModelCalls(message)
     reply = llm.invoke([instructions, *state["messages"]])
     record_call(runtime.context, reply)
-    record_reply(runtime.context.case_id, reply)
+    record_reply(runtime.context, reply)
     return {"messages": [reply], "model_calls": 1}
 
 
-def wait_for_sign_off(state: CaseState, runtime: Runtime[CaseContext]) -> None:
-    """Pause until a worker signs off the award, which the backend records. On
-    resume this runs again from the top, so nothing comes before the interrupt."""
-    interrupt({"case_id": runtime.context.case_id})
-
-
 def pay(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
-    """Pay the approved award, which the backend refuses unless it may be paid."""
-    case = api.pay_case(runtime.context.case_id, state["decision"]["award"])
+    """Pay the approved award on the case agent's route, which the app refuses
+    unless it may be paid, and hold a payment the Gateway refuses."""
+    context = runtime.context
+    payment = {"case_id": context.case_id, "amount": state["decision"]["award"]}
+    try:
+        case = context.route.call(Target.APP, PAY_CASE, payment)
+    except GatewayRefused as refused:
+        case = hold(context, refused)
     return {"status": case["status"]}
+
+
+def hold(context: CaseContext, refused: GatewayRefused) -> dict[str, Any]:
+    """Record the Gateway's refusal of a payment on the case, and hold the payment
+    for a worker's sign-off with the Gateway's reason."""
+    name = context.route.name(Target.APP, PAY_CASE)
+    api.record_step(context.case_id, REFUSAL, f"{name}: {refused.answer}", [])
+    return api.hold_payment(context.case_id, str(refused))
+
+
+def after_screen(state: CaseState) -> str:
+    """Refer a case the check found an instruction in, or hand it to the model."""
+    return REFER if state["screening"]["instructions_found"] else AGENT
 
 
 def after_agent(state: CaseState) -> str:
@@ -182,55 +249,171 @@ def after_agent(state: CaseState) -> str:
 
 
 def after_tools(state: CaseState) -> str:
-    """Go back to the model until a decision is recorded, then pay an approval, after
-    a sign-off if the backend holds it, or stop."""
+    """Go back to the model until a decision is recorded, then pay an approval the
+    backend can pay at once, hold one it holds for a worker's sign-off, or end the
+    case agent's work. The graph maps a held award to the pause, or to the end
+    for a graph that doesn't pause, and the end to `remember` when it has a
+    memory."""
     decision, status = state["decision"], state["status"]
     if not decision:
         return AGENT
-    if status == api.Status.WAITING_FOR_SIGN_OFF:
-        return PAUSE
-    if decision["decision"] == api.APPROVE and status == api.Status.IN_PROGRESS:
+    if status == app_terms.Status.WAITING_FOR_SIGN_OFF:
+        return HELD
+    if (
+        decision["decision"] == app_terms.APPROVE
+        and status == app_terms.Status.IN_PROGRESS
+    ):
         return PAY
     return END
 
 
+def after_pay(state: CaseState) -> str:
+    """Hold a payment the Gateway refused for a worker's sign-off, or end the case
+    agent's work on a case that is paid."""
+    return HELD if state["status"] == app_terms.Status.WAITING_FOR_SIGN_OFF else END
+
+
+def wait_for_worker(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
+    """Pause the case's work until a worker answers its held approval. A resume
+    runs this node again from the top, so nothing goes before the interrupt. A
+    sign-off has already paid the case, so the work then ends. A send back forgets
+    the decision, so nothing can pay it, gives the case agent its full allowance
+    of model calls again and hands the model the note."""
+    answer = interrupt({"case_id": runtime.context.case_id})
+    if answer["answer"] != worker_answer.SENT_BACK:
+        return {}
+    return {
+        "decision": {},
+        "status": "",
+        "model_calls": Overwrite(0),
+        "messages": [worker_answer.note_message(answer)],
+    }
+
+
+def after_worker(state: CaseState) -> str:
+    """Hand a decision sent back to the model, or end the work after a sign-off."""
+    return END if state["decision"] else AGENT
+
+
+def remember(state: CaseState, runtime: Runtime[CaseContext]) -> None:
+    """Save the case the case agent decided to its customer's memory, and record
+    what was saved on the case. When the memory can't be reached, the case keeps
+    its decision and the error is logged as a warning, as any error after the
+    decision is."""
+    case = api.get_case(runtime.context.case_id)
+    saved = memory.remember(cast(BaseStore, runtime.store), case)
+    api.record_step(case["case_id"], "memory_save", saved, [])
+
+
+@dataclass(frozen=True)
+class RunTraits:
+    """What the kind of run a case graph works in gives it: a memory of each
+    customer, or none, and whether a award held for sign-off pauses for a
+    worker's answer."""
+
+    store: BaseStore | None
+    pauses: bool
+
+
+def traits_of(kind: app_terms.RunKind | None) -> RunTraits:
+    """An evaluation's case graphs have no memory, so its scores don't depend on
+    it, and don't pause, since nobody signs off a copy. Any other's have the memory
+    the environment names, read now, and pause."""
+    if kind == app_terms.EVALUATION:
+        return RunTraits(store=None, pauses=False)
+    return RunTraits(store=memory.memory_store(), pauses=True)
+
+
 def case_graph(
-    llm: BaseChatModel, saver: BaseCheckpointSaver[Any], instructions: str
+    llm: BaseChatModel,
+    screener: BaseChatModel,
+    saver: BaseCheckpointSaver[Any],
+    instructions: str,
+    traits: RunTraits,
 ) -> CaseGraph:
-    """Build the case agent's graph on a model, with its instructions, which saves
-    its progress after every step."""
+    """Build the case agent's graph, which saves its progress after every step: the
+    check for hidden instructions on its own model, then the case agent on its
+    model, with its instructions. With a memory, it can search the customer's, and
+    a case it decides is remembered once its work ends. A graph that pauses waits
+    for a worker's answer to a award held for sign-off; any other ends its work
+    there."""
+    remembers = traits.store is not None
+    tools = case_tools(remembers)
+    decided = REMEMBER if remembers else END
+    held = WAIT_FOR_WORKER if traits.pauses else decided
     builder = StateGraph(CaseState, context_schema=CaseContext)
+    builder.add_node(
+        SCREEN, partial(screen_case, screener=screener), retry_policy=SCREEN_RETRY
+    )
+    builder.add_node(REFER, refer)
     builder.add_node(
         AGENT,
         partial(
             call_model,
-            llm=llm.bind_tools(CASE_TOOLS),
+            llm=llm.bind_tools(tools),
             instructions=SystemMessage(instructions),
         ),
     )
     builder.add_node(
         TOOLS,
-        ToolNode(CASE_TOOLS, handle_tool_errors=refusal, wrap_tool_call=record_result),
+        ToolNode(tools, handle_tool_errors=refusal, wrap_tool_call=record_result),
     )
-    builder.add_node(PAUSE, wait_for_sign_off)
     builder.add_node(PAY, pay)
-    builder.add_edge(START, AGENT)
+    builder.add_edge(START, SCREEN)
+    builder.add_conditional_edges(SCREEN, after_screen, [REFER, AGENT])
+    builder.add_edge(REFER, END)
     builder.add_conditional_edges(AGENT, after_agent, [TOOLS, END])
-    builder.add_conditional_edges(TOOLS, after_tools, [AGENT, PAUSE, PAY, END])
-    builder.add_edge(PAUSE, PAY)
-    builder.add_edge(PAY, END)
-    return builder.compile(checkpointer=saver)
+    builder.add_conditional_edges(
+        TOOLS, after_tools, {AGENT: AGENT, PAY: PAY, HELD: held, END: decided}
+    )
+    builder.add_conditional_edges(PAY, after_pay, {HELD: held, END: decided})
+    if traits.pauses:
+        builder.add_node(WAIT_FOR_WORKER, wait_for_worker)
+        builder.add_conditional_edges(
+            WAIT_FOR_WORKER, after_worker, {AGENT: AGENT, END: decided}
+        )
+    if remembers:
+        builder.add_node(REMEMBER, remember)
+        builder.add_edge(REMEMBER, END)
+    return builder.compile(checkpointer=saver, store=traits.store)
 
 
-def case_graphs(version: dict[str, Any], pool: Pool) -> NewGraph:
-    """Return how to build a version's case graph with a saver of its own on the
-    pool, since a saver lets one case at a time read or write."""
-    llm = model(version)
+@dataclass
+class CaseAgent:
+    """A case graph with a saver of its own, and what its cases' contexts need:
+    the route its tools and payment take, and who its decisions are made by."""
 
-    def new_graph() -> CaseGraph:
-        return case_graph(llm, PostgresSaver(pool), version["instructions"])
+    graph: CaseGraph
+    route: Route
+    decided_by: str
 
-    return new_graph
+
+NewAgent = Callable[[], CaseAgent]
+
+
+def maker_of(version: dict[str, Any]) -> str:
+    """Say who makes the decisions of a version of the case agent."""
+    return AGENT_DECIDES.format(number=version["number"])
+
+
+def case_graphs(
+    version: dict[str, Any], kind: app_terms.RunKind | None, pool: Pool
+) -> NewAgent:
+    """Return how to build a version's case agent for a kind of run, or none: a
+    case graph with a saver of its own on the pool, since a saver lets one case
+    at a time read or write, on the route and with the memory read when the run's
+    agents are built. The check runs on the model the backend names for it."""
+    llm, screener = model(version), model(api.get_screening())
+    route = tool_route.from_environment()
+    traits = traits_of(kind)
+    decided_by = maker_of(version)
+
+    def new_agent() -> CaseAgent:
+        saver = PostgresSaver(pool)
+        graph = case_graph(llm, screener, saver, version["instructions"], traits)
+        return CaseAgent(graph, route, decided_by)
+
+    return new_agent
 
 
 def thread_of(case: dict[str, Any]) -> RunnableConfig:
@@ -258,6 +441,21 @@ def case_config(
     }
 
 
+def context_of(
+    case: dict[str, Any], run_id: str | None, agent: CaseAgent
+) -> CaseContext:
+    """What the case agent knows of the case it works on, in the run given if
+    any."""
+    return CaseContext(
+        case["case_id"],
+        run_id,
+        case["contract_id"],
+        case["customer_id"],
+        agent.route,
+        agent.decided_by,
+    )
+
+
 def begin(case_id: str) -> Messages:
     """Give a case agent its first message, naming the case it works on."""
     return {"messages": [HumanMessage(f"Case {case_id}")]}
@@ -266,14 +464,14 @@ def begin(case_id: str) -> Messages:
 def report(case: dict[str, Any], reason: str) -> str:
     """Say in one line how a case ended: its decision and award, or why it failed."""
     case_id, status, decision = case["case_id"], case["status"], case["decision"]
-    if status == api.Status.WAITING:
+    if status == app_terms.Status.WAITING:
         return f"{case_id}  failed: {reason}, back in the queue"
-    if status == api.Status.LEFT_FOR_WORKER:
+    if status == app_terms.Status.LEFT_FOR_WORKER:
         return f"{case_id}  failed: {reason}, left for a worker"
     line = f"{case_id}  {decision['decision']}  ${decision['award']:,.2f}"
-    if status == api.Status.WAITING_FOR_SIGN_OFF:
+    if status == app_terms.Status.WAITING_FOR_SIGN_OFF:
         return f"{line}, waiting for sign-off"
-    if decision["decision"] == api.APPROVE and case["payment"] is None:
+    if decision["decision"] == app_terms.APPROVE and case["payment"] is None:
         return f"{line}, not paid yet"
     return line
 
@@ -308,7 +506,7 @@ def settle(case_id: str, error: str | None) -> str:
     error after the decision is logged, and the case keeps its decision."""
     case = api.get_case(case_id)
     reason = error or NO_DECISION
-    if case["status"] == api.Status.IN_PROGRESS and case["decision"] is None:
+    if case["status"] == app_terms.Status.IN_PROGRESS and case["decision"] is None:
         case = api.fail_case(case_id, reason)
     elif error:
         log.warning("%s  %s", case_id, error)
@@ -317,60 +515,78 @@ def settle(case_id: str, error: str | None) -> str:
     return line
 
 
+def work_on(
+    case: dict[str, Any],
+    start: Start,
+    config: RunnableConfig,
+    run_id: str | None,
+    agent: CaseAgent,
+) -> str:
+    """Run the case graph on the case's thread from a start, in the run given if
+    any, timed as one spell of work, then settle the case and report how it
+    ended."""
+    case_id = case["case_id"]
+    context = context_of(case, run_id, agent)
+    with spell(case_id, run_id):
+        error = run_case_graph(agent.graph, start, config, context)
+        return settle(case_id, error)
+
+
 def work_case(
-    case_id: str, run_id: str | None, graph: CaseGraph, tags: Tags = ()
+    case_id: str, run_id: str | None, agent: CaseAgent, tags: Tags = ()
 ) -> str:
     """Work one case from a clean start, as a new attempt, in the run given if any,
     and report how it ended."""
     case = api.start_case(case_id, str(uuid.uuid4()))
     config = case_config(case, WORK_CASE, run_id, tags)
-    with spell(case_id, run_id):
-        error = run_case_graph(
-            graph, begin(case_id), config, CaseContext(case_id, run_id)
-        )
-        return settle(case_id, error)
+    return work_on(case, begin(case_id), config, run_id, agent)
 
 
 def carry_on(
-    case_id: str, run_id: str | None, graph: CaseGraph, tags: Tags = ()
+    case_id: str, run_id: str | None, agent: CaseAgent, tags: Tags = ()
 ) -> str:
     """Carry a case in progress on from its saved progress, as the same attempt, and
-    report how it ended. A case at the pause has been signed off, so it resumes past
-    it. One with nothing saved, stopped before its first step, starts on its own
-    thread; any other carries on, finishing a step whose writes were saved."""
+    report how it ended. One whose next step is the pause resumes with its
+    worker's answer, whether the pause has run or not: LangGraph keeps an answer
+    given before the pause for the pause to return at once. One with nothing
+    saved, stopped before its first step, starts on its own thread; any other
+    carries on, finishing a step whose writes were saved. A case whose work has
+    ended has nothing left to run."""
     case = api.get_case(case_id)
-    saved = graph.get_state(thread_of(case))
+    saved = agent.graph.get_state(thread_of(case))
+    answer = worker_answer.answer_of(case)
     start: Start = None
-    if saved.next == (PAUSE,):
-        start = Command(resume=True)
+    if saved.next == (WAIT_FOR_WORKER,) and answer:
+        start = Command(resume=answer)
     elif saved.created_at is None and case["decision"] is None:
         start = begin(case_id)
     config = case_config(case, CARRY_ON, run_id, tags)
-    with spell(case_id, run_id):
-        error = run_case_graph(graph, start, config, CaseContext(case_id, run_id))
-        return settle(case_id, error)
+    return work_on(case, start, config, run_id, agent)
 
 
-def work_in_run(case_id: str, run_id: str, new_graph: NewGraph, tags: Tags = ()) -> str:
-    """Work one case in a run on a case graph of its own, carrying it on if it is
-    in progress or starting it if it is waiting, and report how it ended, with any
-    tags for its trace beside the run's. A copy in an evaluation held for sign-off
-    is finished."""
-    graph = new_graph()
-    if api.get_case(case_id)["status"] == api.Status.IN_PROGRESS:
-        line = carry_on(case_id, run_id, graph, tags)
-    else:
-        line = work_case(case_id, run_id, graph, tags)
-    finish_held_copy(case_id, graph)
-    return line
+def paused(case: dict[str, Any], agent: CaseAgent) -> bool:
+    """Say whether the case's work is paused for a worker's answer: an interrupt
+    waits on its thread. The next step names the pause as soon as the step before
+    it is saved, before the pause has run, so it isn't enough."""
+    if case["thread_id"] is None:
+        return False
+    return bool(agent.graph.get_state(thread_of(case)).interrupts)
 
 
-def finish_held_copy(case_id: str, graph: CaseGraph) -> None:
-    """Clear the saved progress of an evaluation's copy held for sign-off: nobody
-    can sign a copy off, so its work is finished."""
+def resume(case_id: str, agent: CaseAgent) -> str:
+    """Resume a paused case with the worker's answer from the app's record, with
+    no run, and report how it ended."""
     case = api.get_case(case_id)
-    held = case["status"] == api.Status.WAITING_FOR_SIGN_OFF
-    if case["evaluation_id"] and held:
-        # case_graph always compiles the graph with a saver.
-        saver = cast(BaseCheckpointSaver[Any], graph.checkpointer)
-        saver.delete_thread(case["thread_id"])
+    start = Command(resume=worker_answer.answer_of(case))
+    return work_on(case, start, case_config(case, RESUME, None, ()), None, agent)
+
+
+def work_in_run(case_id: str, run_id: str, new_agent: NewAgent, tags: Tags = ()) -> str:
+    """Work one case in a run with a case agent of its own, carrying it on if it
+    is in progress, as a sent-back case the run took is, or starting it if it is
+    waiting, and report how it ended, with any tags for its trace beside the
+    run's."""
+    agent = new_agent()
+    if api.get_case(case_id)["status"] == app_terms.Status.IN_PROGRESS:
+        return carry_on(case_id, run_id, agent, tags)
+    return work_case(case_id, run_id, agent, tags)

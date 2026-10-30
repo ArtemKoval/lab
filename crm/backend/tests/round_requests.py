@@ -1,10 +1,20 @@
 """Requests the backend's tests send to play out a round of the improver, as the
-agent's service and the dashboard do."""
+agent and the dashboard do."""
 
 from sqlalchemy import select, update
 
 from backend.database import engine, runs, worker_decisions
+from backend.tests.case_requests import decide
+from backend.tests.dashboard_reads import read
+from backend.tests.rows import newest_round
+from backend.tests.run_requests import get_evaluation
 from backend.tests.sign_in import DANA, signed_in
+
+# Who each worker signs in as, by their id.
+EMAILS = {
+    "HND-01": DANA,
+    "HND-02": "marcus.oyelaran@undercover.example",
+}
 
 CHANGE = {
     "instructions": "# Working a case\n\nA rule for stolen phones.\n",
@@ -19,12 +29,30 @@ RECIPE = {
 }
 
 
+ROUNDS = "/api/improvement/rounds"
+
+
+def start_round(client, worker_id="HND-01"):
+    """Start a round as a worker does, and return the start's answer."""
+    return client.post(ROUNDS, headers=signed_in(EMAILS[worker_id]))
+
+
 def create_round(client, worker_id="HND-01"):
-    return client.post("/api/rounds", json={"worker_id": worker_id})
+    """Start a round as a worker does, which the app creates, and return it as
+    the agent reads it, or the start's refusal."""
+    started = start_round(client, worker_id)
+    if started.status_code != 202:
+        return started
+    return client.get(round_path(newest_round()))
 
 
 def round_path(round_id):
     return f"/api/rounds/{round_id}"
+
+
+def fail_round(client, round_id, reason="RuntimeError: The improver broke"):
+    """Stop a round whose work failed, as the agent does."""
+    return client.post(f"{round_path(round_id)}/failure", json={"reason": reason})
 
 
 def propose_change(client, round_id, **change):
@@ -35,12 +63,35 @@ def propose_recipe(client, round_id):
     return client.post(f"{round_path(round_id)}/proposals/recipe", json=RECIPE)
 
 
-def review(client, round_id, proposal_id, verdict="approved", worker_id="HND-01"):
-    reason = "Keep each rule general" if verdict == "rejected" else ""
+def review_path(round_id, proposal_id):
+    return f"{ROUNDS}/{round_id}/proposals/{proposal_id}"
+
+
+def approve(client, round_id, proposal_id, worker_id="HND-01"):
+    """Approve a proposal as a worker does, and return the answer."""
     return client.post(
-        f"{round_path(round_id)}/proposals/{proposal_id}/review",
-        json={"review": verdict, "worker_id": worker_id, "reason": reason},
+        f"{review_path(round_id, proposal_id)}/approval",
+        headers=signed_in(EMAILS[worker_id]),
     )
+
+
+def reject(client, round_id, proposal_id, worker_id="HND-01"):
+    """Reject a proposal as a worker does, with a reason, and return the answer."""
+    return client.post(
+        f"{review_path(round_id, proposal_id)}/rejection",
+        json={"reason": "Keep each rule general"},
+        headers=signed_in(EMAILS[worker_id]),
+    )
+
+
+def review(client, round_id, proposal_id, verdict="approved", worker_id="HND-01"):
+    """Approve or reject a proposal as a worker does on the Improvement page, and
+    return it with its review as the agent reads it, or the refusal."""
+    answer = approve if verdict == "approved" else reject
+    reviewed = answer(client, round_id, proposal_id, worker_id)
+    if reviewed.status_code != 202:
+        return reviewed
+    return client.get(f"{round_path(round_id)}/proposals/{proposal_id}")
 
 
 def approved_change(client, round_id, **change):
@@ -63,13 +114,11 @@ def round_evaluation(client, round_id):
 
 
 def improvement(client):
-    return client.get("/api/improvement").json()
+    return read(client, "/api/improvement").json()
 
 
 def stop_round(client, round_id, email=DANA):
-    return client.post(
-        f"/api/improvement/rounds/{round_id}/stop", headers=signed_in(email)
-    )
+    return client.post(f"{ROUNDS}/{round_id}/stop", headers=signed_in(email))
 
 
 def into_round(round_id, *evaluations):
@@ -114,15 +163,7 @@ def decide_copies(client, run, right):
         if n >= right:
             decision, award = ("refer" if decision == "decline" else "decline"), 0
         client.post(f"/api/cases/{copy_id}/start", json={"thread_id": copy_id})
-        client.post(
-            f"/api/cases/{copy_id}/decision",
-            json={
-                "decision": decision,
-                "award": award,
-                "section": "Section 3",
-                "reason": "The reason.",
-            },
-        )
+        decide(client, copy_id, decision, award, section="Section 3")
 
 
 def play_out(client, round_id, right=0, finish=True):
@@ -132,4 +173,4 @@ def play_out(client, round_id, right=0, finish=True):
     decide_copies(client, run, right)
     if finish:
         client.post(f"/api/runs/{run['run_id']}/finish")
-    return client.get(f"/api/evaluations/{run['run_id']}").json()
+    return get_evaluation(client, run["run_id"])

@@ -8,49 +8,63 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from agent import api, harness
 from agent.connection import Refused
-from agent.tests.records import case_of, steps_of
+from agent.tests.records import case_of
 from agent.tests.stubs import (
     INSTRUCTIONS,
+    PASSED,
     StubModel,
+    agent_on,
+    approve,
+    calculate,
     call,
     decide,
-    graph_on,
     record,
     stub,
 )
+from backend.tests.dashboard_reads import steps_of
 from backend.tests.settings_requests import change_settings
 
 
 def work(case_id, model, saver=None):
-    return harness.work_case(case_id, None, graph_on(model, saver))
-
-
-def state_of(graph, client, case_id):
-    return graph.get_state(harness.thread_of(case_of(client, case_id)))
+    return harness.work_case(case_id, None, agent_on(model, saver))
 
 
 def test_the_graph():
-    graph = graph_on(stub()).get_graph()
+    graph = agent_on(stub()).graph.get_graph()
     assert set(graph.nodes) == {
         "__start__",
+        "screen",
+        "refer",
         "agent",
         "tools",
-        "wait_for_sign_off",
         "pay",
+        "wait_for_worker",
         "__end__",
     }
     edges = {(e.source, e.target, e.conditional) for e in graph.edges}
     assert edges == {
-        ("__start__", "agent", False),
+        ("__start__", "screen", False),
+        ("screen", "refer", True),
+        ("screen", "agent", True),
+        ("refer", "__end__", False),
         ("agent", "tools", True),
         ("agent", "__end__", True),
         ("tools", "agent", True),
-        ("tools", "wait_for_sign_off", True),
         ("tools", "pay", True),
+        ("tools", "wait_for_worker", True),
         ("tools", "__end__", True),
-        ("wait_for_sign_off", "pay", False),
-        ("pay", "__end__", False),
+        ("pay", "wait_for_worker", True),
+        ("pay", "__end__", True),
+        ("wait_for_worker", "agent", True),
+        ("wait_for_worker", "__end__", True),
     }
+
+
+def test_an_evaluations_graph_has_no_pause():
+    graph = agent_on(stub(), pauses=False).graph.get_graph()
+    assert "wait_for_worker" not in graph.nodes
+    edges = {(e.source, e.target) for e in graph.edges}
+    assert {("tools", "__end__"), ("pay", "__end__")} <= edges
 
 
 def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
@@ -59,11 +73,12 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
         call("get_case"),
         call("get_contract", contract_id="POL-2001"),
         call("get_case_history", customer_id="CUS-3001"),
+        calculate("CLM-1001", 420.0),
         record("approve", 420.0),
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
     assert caplog.messages == ["CLM-1001  approve  $420.00"]
-    assert len(model.prompts) == 4
+    assert len(model.prompts) == 5
 
     case = case_of(client, "CLM-1001")
     assert case["status"] == "decided"
@@ -72,14 +87,19 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
     assert case["payment"]["amount"] == 420.0
     assert len(case["thread_id"]) == 36
 
-    steps = steps_of(client, "CLM-1001")
-    assert [s["kind"] for s in steps] == ["tool_call", "tool_result"] * 4
+    check, *steps = steps_of(client, "CLM-1001")
+    assert (check["kind"], check["content"]) == (
+        "screening",
+        f"No instructions found. {PASSED}",
+    )
+    assert [s["kind"] for s in steps] == ["tool_call", "tool_result"] * 5
     assert steps[0]["content"] == "get_case()"
     assert steps[1]["content"].startswith('get_case: {"case_id": "CLM-1001"')
-    assert steps[6]["content"].startswith("record_decision(")
-    assert steps[7]["content"].startswith('record_decision: {"case_id": "CLM-1001"')
+    assert steps[6]["content"].startswith("calculate_award(")
+    assert steps[8]["content"].startswith("record_decision(")
+    assert steps[9]["content"].startswith('record_decision: {"case_id": "CLM-1001"')
     assert "pay_case" not in "".join(s["content"] for s in steps)
-    assert {s["thread_id"] for s in steps} == {case["thread_id"]}
+    assert {s["thread_id"] for s in [check, *steps]} == {case["thread_id"]}
 
 
 def test_the_case_agent_reads_its_instructions_then_its_case(client):
@@ -91,50 +111,42 @@ def test_the_case_agent_reads_its_instructions_then_its_case(client):
     assert first.content == "Case CLM-1003"
 
 
-def test_pauses_before_a_award_over_the_limit(client):
-    model = stub(*decide("approve", 1350.0))
-    graph = graph_on(model)
-    report = harness.work_case("CLM-1002", None, graph)
-    assert report == "CLM-1002  approve  $1,350.00, waiting for sign-off"
-    assert len(model.prompts) == 2
-
-    state = state_of(graph, client, "CLM-1002")
-    assert state.next == (harness.PAUSE,)
-    assert len(state.interrupts) == 1
-    case = case_of(client, "CLM-1002")
-    assert (case["status"], case["payment"]) == ("waiting_for_sign_off", None)
-
-
 def test_the_graph_follows_the_backend_on_the_limit(client):
     change_settings(client, approval_limit=2000.0)
-    report = work("CLM-1002", stub(*decide("approve", 1350.0)))
+    report = work("CLM-1002", stub(*approve("CLM-1002", 1350.0)))
     assert report == "CLM-1002  approve  $1,350.00"
     assert case_of(client, "CLM-1002")["payment"]["amount"] == 1350.0
 
 
 @pytest.mark.parametrize("decision", ["decline", "refer"])
 def test_declines_and_refers(client, decision):
-    graph = graph_on(stub(*decide(decision, 0)))
-    report = harness.work_case("CLM-1003", None, graph)
+    agent = agent_on(stub(*decide(decision, 0)))
+    report = harness.work_case("CLM-1003", None, agent)
     assert report == f"CLM-1003  {decision}  $0.00"
     case = case_of(client, "CLM-1003")
     assert (case["status"], case["payment"]) == ("decided", None)
-    history = graph.get_state_history(harness.thread_of(case))
+    history = agent.graph.get_state_history(harness.thread_of(case))
     assert harness.PAY not in {node for snapshot in history for node in snapshot.next}
 
 
 def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
     twice = [record("approve", 420.0).tool_calls[0] for _ in range(2)]
-    model = stub(AIMessage(content="", tool_calls=twice))
+    model = stub(calculate("CLM-1001", 420.0), AIMessage(content="", tool_calls=twice))
     assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
     case = case_of(client, "CLM-1001")
     assert (case["status"], case["payment"]["amount"]) == ("decided", 420.0)
-    results = [s for s in steps_of(client, "CLM-1001") if s["kind"] == "tool_result"]
+    results = [
+        s
+        for s in steps_of(client, "CLM-1001")
+        if s["kind"] == "tool_result" and s["content"].startswith("record_decision")
+    ]
     assert len(results) == 2
 
 
 def test_a_refused_decision_goes_back_to_the_model(client):
-    model = stub(record("approve", 0), record("approve", 420.0))
+    model = stub(
+        record("approve", 0), calculate("CLM-1001", 420.0), record("approve", 420.0)
+    )
     assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
     refusal = model.prompts[1][-1]
     assert isinstance(refusal, ToolMessage)
@@ -142,7 +154,7 @@ def test_a_refused_decision_goes_back_to_the_model(client):
     assert case_of(client, "CLM-1001")["payment"]["amount"] == 420.0
 
 
-def test_reading_a_section_is_recorded(client):
+def test_a_section_read_is_recorded_as_a_lookup(client):
     model = stub(
         call("read_section", document="manual", number=9),
         call("read_section", document="manual", number=15),
@@ -151,21 +163,26 @@ def test_reading_a_section_is_recorded(client):
     )
     work("CLM-1004", model)
 
-    steps = [(s["kind"], s["content"]) for s in steps_of(client, "CLM-1004")]
+    _, *steps = [(s["kind"], s["content"]) for s in steps_of(client, "CLM-1004")]
     assert steps[0] == (
         "tool_call",
         'read_section(document="manual", number=9)',
     )
     assert steps[1][1].startswith('read_section: {"document": "manual"')
-    assert steps[2] == ("reading", "Cases manual, section 9: Repeat claims")
+    assert steps[2] == ("lookup", "Cases manual, section 9: Repeat claims")
     assert steps[4] == (
-        "tool_result",
-        "read_section: Refused with status 404: "
+        "refusal",
+        "read_section: Refused: Error executing tool read_section: "
         "Section 15 of the cases manual not found",
     )
     assert steps[5] == ("tool_call", 'search_documents(query="wild animal")')
-    assert steps[6][1].startswith('search_documents: [{"document": "manual"')
-    assert [s for s in steps if s[0] == "reading"] == [steps[2]]
+    assert steps[6][1].startswith(
+        'search_documents: {"sections": [{"document": "manual"'
+    )
+    assert [s for s in steps if s[0] == "lookup"] == [
+        steps[2],
+        ("lookup", 'Documents: "wild animal"'),
+    ]
 
 
 def test_a_section_with_bad_arguments_goes_back_to_the_model(client):
@@ -173,7 +190,7 @@ def test_a_section_with_bad_arguments_goes_back_to_the_model(client):
         call("read_section", document="handbook", number=1), *decide("refer", 0)
     )
     assert work("CLM-1004", model) == "CLM-1004  refer  $0.00"
-    assert "reading" not in {s["kind"] for s in steps_of(client, "CLM-1004")}
+    assert "lookup" not in {s["kind"] for s in steps_of(client, "CLM-1004")}
 
 
 def test_working_out_the_award(client):
@@ -205,10 +222,11 @@ def test_working_out_the_award(client):
     ]
     model = stub(
         call("calculate_award", benefit="trip_delay", lines=lines, paid_by_others=0),
-        *decide("approve", 420.0),
+        record("approve", 420.0),
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
-    result = steps_of(client, "CLM-1001")[1]
+    # After the check's step and the call.
+    result = steps_of(client, "CLM-1001")[2]
     assert result["kind"] == "tool_result"
     content = result["content"].removeprefix("calculate_award: ")
     assert json.loads(content)["award"] == 420.0
@@ -223,16 +241,16 @@ def test_a_case_is_traced_in_the_session_of_its_thread(client, traces):
 
 
 def test_working_a_case_saves_each_step_on_its_thread(client, monkeypatch):
-    graph = graph_on(stub(*decide("refer", 0)))
+    agent = agent_on(stub(*decide("refer", 0)))
     runs = []
-    invoke = graph.invoke
+    invoke = agent.graph.invoke
 
     def spy(start, config, **kwargs):
         runs.append((config, kwargs))
         return invoke(start, config, **kwargs)
 
-    monkeypatch.setattr(graph, "invoke", spy)
-    harness.work_case("CLM-1003", None, graph)
+    monkeypatch.setattr(agent.graph, "invoke", spy)
+    harness.work_case("CLM-1003", None, agent)
     [(config, kwargs)] = runs
     assert kwargs["durability"] == "sync"
     thread_id = case_of(client, "CLM-1003")["thread_id"]
@@ -303,7 +321,7 @@ def test_a_failure_after_the_decision_keeps_it(client, monkeypatch, caplog):
         raise RuntimeError("The connection was lost")
 
     monkeypatch.setattr(api, "pay_case", lost)
-    report = work("CLM-1001", stub(*decide("approve", 420.0)))
+    report = work("CLM-1001", stub(*approve("CLM-1001", 420.0)))
     assert report == "CLM-1001  approve  $420.00, not paid yet"
     assert "CLM-1001  RuntimeError: The connection was lost" in caplog.messages
     case = case_of(client, "CLM-1001")
@@ -323,9 +341,9 @@ def test_a_case_that_isnt_waiting_is_not_started(client):
 
 def test_each_case_starts_clean(client):
     model = stub(*decide("decline", 0), *decide("refer", 0))
-    graph = graph_on(model)
-    harness.work_case("CLM-1001", None, graph)
-    harness.work_case("CLM-1003", None, graph)
+    agent = agent_on(model)
+    harness.work_case("CLM-1001", None, agent)
+    harness.work_case("CLM-1003", None, agent)
     firsts = [prompt for prompt in model.prompts if len(prompt) == 2]
     assert [prompt[1].content for prompt in firsts] == [
         "Case CLM-1001",

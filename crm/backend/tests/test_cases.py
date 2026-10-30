@@ -1,9 +1,13 @@
+from sqlalchemy import select
+
 from backend import seed
+from backend.database import engine, worker_decisions
+from backend.tests.run_requests import create_evaluation, finish, queue
 
 
 def test_list_cases(client):
     cases = client.get("/api/cases").json()
-    assert len(cases) == 25
+    assert len(cases) == 26
     assert [case["case_id"] for case in cases] == sorted(
         case["case_id"] for case in cases
     )
@@ -18,6 +22,7 @@ def test_list_cases(client):
         "status": "waiting",
         "decision": None,
         "award": None,
+        "resuming": False,
     }
 
 
@@ -62,7 +67,33 @@ def test_unknown_ids(client):
 def test_seed_command(capsys):
     seed.main()
     assert capsys.readouterr().out == (
-        "Seeded 25 cases, 50 contracts, 49 customers and 3 workers "
+        "Seeded 26 cases, 51 contracts, 50 customers and 3 workers "
         "into crm.db, with 25 held-out cases and 50 workers' decisions "
         "for evaluations, and version 1 of the configuration and of the recipe\n"
     )
+
+
+def test_the_security_teams_case_waits_in_the_queue(client):
+    case = client.get("/api/cases/CLM-1901").json()
+    assert (case["status"], case["contract_id"], case["customer_id"]) == (
+        "waiting",
+        "POL-2901",
+        "CUS-3901",
+    )
+    assert client.get("/api/contracts/POL-2901").status_code == 200
+    assert client.get("/api/customers/CUS-3901/cases").status_code == 200
+    [listed] = [c for c in queue(client) if c["case_id"] == "CLM-1901"]
+    assert listed["customer_name"] == "Derek Vance"
+
+
+def test_the_security_teams_case_is_in_neither_evaluation_set(client):
+    with engine().connect() as db:
+        query = select(worker_decisions.c.case_id)
+        assert "CLM-1901" not in set(db.execute(query).scalars())
+    for evaluation_set in ("evaluation", "held_out"):
+        for tiny in (True, False):
+            run = create_evaluation(client, evaluation_set, tiny).json()
+            copied = [case["case_id"] for case in run["cases"]]
+            assert copied
+            assert not [c for c in copied if c.startswith("CLM-1901")]
+            finish(client, run["run_id"])

@@ -1,22 +1,26 @@
-"""The CRM backend's API for the case agent and the agent's service: one
+"""The CRM backend's API for the case agent and the agent's entry point: one
 function for each operation they use. It has no way to the scores, the settings,
 the rounds or the workers' decisions."""
 
-from enum import StrEnum
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict, Unpack
 
 from pydantic import BaseModel, Field
 
-from agent.connection import call, get, post
+from agent.app_terms import DecisionKind
+from agent.connection import call
 
-DecisionKind = Literal["approve", "decline", "refer"]
-APPROVE: DecisionKind = "approve"
-DocumentName = Literal["wording", "manual"]
-StepKind = Literal["tool_call", "tool_result", "message", "reading"]
-EvaluationSet = Literal["evaluation", "held_out"]
-RunKind = Literal["dispatch", "evaluation"]
-DISPATCH: RunKind = "dispatch"
-EVALUATION: RunKind = "evaluation"
+StepKind = Literal[
+    "screening",
+    "tool_call",
+    "tool_result",
+    "message",
+    "lookup",
+    "memory_search",
+    "memory_save",
+    "refusal",
+]
+# The context files a lookup came from, each with its system, owner and review date.
+Sources = list[dict[str, str]]
 Benefit = Literal[
     "trip_cancellation",
     "trip_interruption",
@@ -26,16 +30,6 @@ Benefit = Literal[
     "passport",
     "emergency_medical",
 ]
-
-
-class Status(StrEnum):
-    """Where a case stands."""
-
-    WAITING = "waiting"
-    IN_PROGRESS = "in_progress"
-    WAITING_FOR_SIGN_OFF = "waiting_for_sign_off"
-    DECIDED = "decided"
-    LEFT_FOR_WORKER = "left_for_worker"
 
 
 LineKind = Literal[
@@ -76,75 +70,84 @@ class Line(BaseModel):
 
 
 def list_cases() -> list[dict[str, Any]]:
-    return get("/cases")
+    return call("GET", "/cases")
 
 
 def get_case(case_id: str) -> dict[str, Any]:
-    return get(f"/cases/{case_id}")
+    return call("GET", f"/cases/{case_id}")
 
 
 def get_contract(contract_id: str) -> dict[str, Any]:
-    return get(f"/contracts/{contract_id}")
+    return call("GET", f"/contracts/{contract_id}")
 
 
 def get_case_history(customer_id: str) -> list[dict[str, Any]]:
-    return get(f"/customers/{customer_id}/cases")
+    return call("GET", f"/customers/{customer_id}/cases")
 
 
 def get_version(number: int) -> dict[str, Any]:
-    return get(f"/versions/{number}")
+    return call("GET", f"/versions/{number}")
 
 
 def get_current_version() -> dict[str, Any]:
-    return get("/versions/current")
+    return call("GET", "/versions/current")
 
 
-def search_documents(query: str) -> list[dict[str, Any]]:
-    return call("GET", "/documents/search", params={"query": query})
-
-
-def read_section(document: DocumentName, number: int) -> dict[str, Any]:
-    return get(f"/documents/{document}/sections/{number}")
+def get_screening() -> dict[str, Any]:
+    return call("GET", "/screening")
 
 
 def calculate_award(
-    case_id: str, benefit: Benefit, lines: list[Line], paid_by_others: float
+    case_id: str, benefit: Benefit, lines: list[dict[str, Any]], paid_by_others: float
 ) -> dict[str, Any]:
-    body = {
-        "benefit": benefit,
-        "lines": [line.model_dump() for line in lines],
-        "paid_by_others": paid_by_others,
-    }
-    return post(f"/cases/{case_id}/award", **body)
+    body = {"benefit": benefit, "lines": lines, "paid_by_others": paid_by_others}
+    return call("POST", f"/cases/{case_id}/award", json=body)
 
 
 def start_case(case_id: str, thread_id: str) -> dict[str, Any]:
-    return post(f"/cases/{case_id}/start", **{"thread_id": thread_id})
+    return call("POST", f"/cases/{case_id}/start", json={"thread_id": thread_id})
 
 
-def record_step(case_id: str, kind: StepKind, content: str) -> dict[str, Any]:
-    body = {"kind": kind, "content": content}
-    return post(f"/cases/{case_id}/steps", **body)
-
-
-def record_decision(
-    case_id: str, decision: DecisionKind, award: float, section: str, reason: str
+def record_step(
+    case_id: str, kind: StepKind, content: str, sources: Sources
 ) -> dict[str, Any]:
-    body = {
-        "decision": decision,
-        "award": award,
-        "section": section,
-        "reason": reason,
-    }
-    return post(f"/cases/{case_id}/decision", **body)
+    body = {"kind": kind, "content": content, "sources": sources}
+    return call("POST", f"/cases/{case_id}/steps", json=body)
+
+
+class DecisionRequest(TypedDict):
+    """A decision to record, with who or what made it."""
+
+    decision: DecisionKind
+    award: float
+    section: str
+    reason: str
+    decided_by: str
+
+
+# The body's fields as keywords, as the direct route passes a tool's inputs.
+def record_decision(case_id: str, **request: Unpack[DecisionRequest]) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/decision", json=request)
 
 
 def pay_case(case_id: str, amount: float) -> dict[str, Any]:
-    return post(f"/cases/{case_id}/payment", **{"amount": amount})
+    return call("POST", f"/cases/{case_id}/payment", json={"amount": amount})
+
+
+def hold_payment(case_id: str, reason: str) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/hold", json={"reason": reason})
 
 
 def fail_case(case_id: str, reason: str) -> dict[str, Any]:
-    return post(f"/cases/{case_id}/failure", **{"reason": reason})
+    return call("POST", f"/cases/{case_id}/failure", json={"reason": reason})
+
+
+def take_case(case_id: str, run_id: str | None) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/take", json={"run_id": run_id})
+
+
+def record_case_heartbeat(case_id: str) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/heartbeat")
 
 
 def record_model_call(
@@ -160,26 +163,26 @@ def record_model_call(
         "output_tokens": output_tokens,
         "cost": cost,
     }
-    return post(f"/cases/{case_id}/model-calls", **body)
+    return call("POST", f"/cases/{case_id}/model-calls", json=body)
 
 
 def record_work_time(
     case_id: str, run_id: str | None, seconds: float
 ) -> dict[str, Any]:
-    return post(
-        f"/cases/{case_id}/work-times", **{"run_id": run_id, "seconds": seconds}
-    )
+    body = {"run_id": run_id, "seconds": seconds}
+    return call("POST", f"/cases/{case_id}/work-times", json=body)
 
 
-def create_dispatch(agents: int) -> dict[str, Any]:
-    return post("/runs/dispatches", **{"agents": agents})
+def get_run(run_id: str) -> dict[str, Any]:
+    return call("GET", f"/runs/{run_id}")
 
 
-def create_evaluation(
-    evaluation_set: EvaluationSet, tiny: bool, agents: int
-) -> dict[str, Any]:
-    body = {"evaluation_set": evaluation_set, "tiny": tiny, "agents": agents}
-    return post("/runs/evaluations", **body)
+def record_run_heartbeat(run_id: str) -> dict[str, Any]:
+    return call("POST", f"/runs/{run_id}/heartbeat")
+
+
+def fail_run(run_id: str, reason: str) -> dict[str, Any]:
+    return call("POST", f"/runs/{run_id}/failure", json={"reason": reason})
 
 
 def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
@@ -187,8 +190,4 @@ def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
 
 
 def finish_run(run_id: str) -> dict[str, Any]:
-    return post(f"/runs/{run_id}/finish")
-
-
-def stop_runs() -> list[str]:
-    return post("/runs/stop")
+    return call("POST", f"/runs/{run_id}/finish")

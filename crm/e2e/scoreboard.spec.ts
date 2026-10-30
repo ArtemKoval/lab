@@ -1,25 +1,30 @@
 import { expect, test } from "@playwright/test";
 import type { DecisionKind } from "../dashboard/src/api";
 import {
-  createEvaluation,
   finishRun,
   payCase,
-  recordDecision,
+  decide,
   recordModelCall,
   recordWorkTime,
   startCase,
+  startEvaluation,
+  stopTheWork,
 } from "./api";
 
-// This test stands in for the agent's service and its case agents, playing
-// out an evaluation of the held-out set's tiny cases through the API, and
-// checks the Scoreboard and the evaluation's page. Only this file records
-// evaluations, and its copies are its own.
+// This test starts an evaluation of the held-out set's tiny cases as Dana
+// Whitfield, which the app creates, then stands in for the agent and its case
+// agents, playing it out through the API, and checks the Scoreboard and the
+// evaluation's page. Its copies are its own.
+
+test.afterEach(async ({ request }) => {
+  await stopTheWork(request);
+});
 
 test("the Scoreboard shows an evaluation played out through the API", async ({
   page,
   request,
 }) => {
-  const { run_id, number, cases } = await createEvaluation(
+  const { run_id, number, cases } = await startEvaluation(
     request,
     "held_out",
     true,
@@ -33,8 +38,12 @@ test("the Scoreboard shows an evaluation played out through the API", async ({
     await recordModelCall(request, case_id, run_id, 0.0125);
     await recordWorkTime(request, case_id, run_id, 40);
   }
-  const decide = (original: string, decision: DecisionKind, award: number) =>
-    recordDecision(request, copyOf(original), {
+  const decideCopy = (
+    original: string,
+    decision: DecisionKind,
+    award: number,
+  ) =>
+    decide(request, copyOf(original), {
       decision,
       award,
       section: "Section 5",
@@ -42,12 +51,12 @@ test("the Scoreboard shows an evaluation played out through the API", async ({
     });
   const pay = (original: string, amount: number) =>
     payCase(request, copyOf(original), amount);
-  await decide("CLM-1104", "approve", 250);
+  await decideCopy("CLM-1104", "approve", 250);
   await pay("CLM-1104", 250);
-  await decide("CLM-1106", "approve", 300);
+  await decideCopy("CLM-1106", "approve", 300);
   await pay("CLM-1106", 300);
-  await decide("CLM-1110", "refer", 0);
-  await decide("CLM-1112", "approve", 1200);
+  await decideCopy("CLM-1110", "refer", 0);
+  await decideCopy("CLM-1112", "approve", 1200);
   await finishRun(request, run_id);
 
   await page.goto("/scoreboard");

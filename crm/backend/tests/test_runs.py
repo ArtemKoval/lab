@@ -10,9 +10,11 @@ from backend.tests.case_requests import (
     sign_off,
     start,
 )
+from backend.tests.dashboard_reads import read
 from backend.tests.run_requests import (
     create_dispatch,
     dispatch_of,
+    fail_run,
     finish,
     latest_dispatch,
     record_cases,
@@ -20,7 +22,7 @@ from backend.tests.run_requests import (
 
 
 def test_no_dispatch_yet(client):
-    response = client.get("/api/dispatches/latest")
+    response = read(client, "/api/dispatches/latest")
     assert response.status_code == 200
     assert response.json() is None
 
@@ -112,7 +114,7 @@ def test_each_case_shows_where_it_stands_with_its_cost_and_time(client):
 
 def test_finishing_a_dispatch_sums_up_its_cases(client):
     started = ["CLM-1001", "CLM-1003", "CLM-1004", "CLM-1008", "CLM-1016"]
-    started += ["CLM-1012", "CLM-1002"]
+    started += ["CLM-1012", "CLM-1002", "CLM-1006"]
     run_id = dispatch_of(client, *started, "CLM-1005")
     for case_id in started:
         start(client, case_id)
@@ -126,18 +128,20 @@ def test_finishing_a_dispatch_sums_up_its_cases(client):
     fail(client, "CLM-1016")
     decide(client, "CLM-1002", "approve", 1350.0)
     sign_off(client, "CLM-1002")
+    decide(client, "CLM-1006", "approve", 300.0)
 
     dispatch = finish(client, run_id).json()
     assert dispatch["status"] == "finished"
     assert dispatch["finished_at"]
     assert dispatch["seconds"] >= 0
+    # CLM-1002's sign-off paid it; CLM-1006's approval isn't paid yet.
     assert dispatch["summary"] == {
-        "approved": 2,
+        "approved": 3,
         "declined": 1,
         "referred": 1,
         "waiting_for_sign_off": [{"case_id": "CLM-1008", "award": 2240.0}],
         "left_for_worker": ["CLM-1016"],
-        "unfinished": ["CLM-1012", "CLM-1002", "CLM-1005"],
+        "unfinished": ["CLM-1012", "CLM-1006", "CLM-1005"],
     }
     assert latest_dispatch(client) == dispatch
     again = finish(client, run_id)
@@ -151,18 +155,50 @@ def test_finish_needs_a_known_run(client):
     assert unknown.json()["detail"] == "Run run-9 not found"
 
 
-def test_stop_every_running_run(client):
+def test_a_run_whose_work_failed_is_stopped_with_why(client):
     finished = create_dispatch(client).json()["run_id"]
     finish(client, finished)
-    running = [create_dispatch(client).json()["run_id"] for _ in range(2)]
-    response = client.post("/api/runs/stop")
-    assert response.status_code == 200
-    assert response.json() == running
-    stopped = latest_dispatch(client)
-    assert (stopped["run_id"], stopped["status"]) == (running[1], "stopped")
-    assert (stopped["finished_at"], stopped["seconds"]) == (None, None)
-    assert finish(client, running[0]).status_code == 409
-    assert client.post("/api/runs/stop").json() == []
+    running = create_dispatch(client).json()["run_id"]
+    failed = fail_run(client, running)
+    assert failed.status_code == 200
+    assert (failed.json()["status"], failed.json()["stopped_because"]) == (
+        "stopped",
+        "RuntimeError: The dispatcher broke",
+    )
+    assert (failed.json()["finished_at"], failed.json()["seconds"]) == (None, None)
+    assert latest_dispatch(client)["stopped_because"] == (
+        "RuntimeError: The dispatcher broke"
+    )
+    for run_id, status in ((running, "stopped"), (finished, "finished")):
+        again = fail_run(client, run_id, "RuntimeError: Again")
+        assert (again.status_code, again.json()["status"]) == (200, status)
+    assert client.get(f"/api/runs/{running}").json()["stopped_because"] == (
+        "RuntimeError: The dispatcher broke"
+    )
+    assert fail_run(client, "run-9").status_code == 404
+
+
+def test_finishing_a_stopped_run_answers_with_it_still_stopped(client):
+    run_id = create_dispatch(client).json()["run_id"]
+    fail_run(client, run_id)
+    finished = finish(client, run_id)
+    assert finished.status_code == 200
+    assert finished.json()["status"] == "stopped"
+    assert finished.json()["summary"] is None
+
+
+def test_the_agent_reads_a_run_and_tells_the_app_it_is_working(client, dashboard):
+    run_id = create_dispatch(client).json()["run_id"]
+    run = client.get(f"/api/runs/{run_id}").json()
+    assert (run["run_id"], run["status"], run["kind"]) == (
+        run_id,
+        "running",
+        "dispatch",
+    )
+    assert client.post(f"/api/runs/{run_id}/heartbeat").status_code == 200
+    assert client.get("/api/runs/run-9").status_code == 404
+    assert client.post("/api/runs/run-9/heartbeat").status_code == 404
+    assert dashboard.get(f"/api/runs/{run_id}").status_code == 401
 
 
 def test_runs_started_in_the_same_second_keep_their_order(client, monkeypatch):

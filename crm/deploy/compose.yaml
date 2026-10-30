@@ -1,0 +1,16 @@
+# The local AWS emulator for the crm engine's deployment targets. Start it
+# with: docker compose -f crm/deploy/compose.yaml up -d
+# The runtime, gateway, and memory targets resolve from the variables in
+# crm/.env.example; the rollout change points the same variables at AWS.
+services:
+  emulator:
+    image: floci/floci:latest
+    ports:
+      - "4566:4566"
+    environment:
+      FLOCI_HOSTNAME: localhost
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_floci/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12

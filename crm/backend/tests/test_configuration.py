@@ -12,10 +12,17 @@ from backend.database import (
     worker_decisions,
 )
 from backend.tests.case_requests import decide, start
+from backend.tests.dashboard_reads import (
+    configuration,
+    evaluations,
+    read,
+    version_details,
+)
 from backend.tests.round_requests import create_round, into_round
 from backend.tests.run_requests import (
     create_dispatch,
     create_evaluation,
+    fail_run,
     finish,
     get_evaluation,
     latest_dispatch,
@@ -72,14 +79,14 @@ def test_the_current_version_is_the_newest_kept(client):
     add_version(CASE_MD + "\nAnother rule.\n", based_on=2)
     assert client.get("/api/versions/current").json()["number"] == 2
 
-    configuration = client.get("/api/configuration").json()
-    assert configuration["current"] == 2
+    page = configuration(client)
+    assert page["current"] == 2
     listed = [
         (v["number"], v["status"], v["lines_added"], v["lines_removed"])
-        for v in configuration["versions"]
+        for v in page["versions"]
     ]
     assert listed == [(3, "under_test", 1, 1), (2, "current", 2, 0), (1, "kept", 0, 0)]
-    two = configuration["versions"][1]
+    two = page["versions"][1]
     assert (two["model_before"], two["model"]) == (
         "openai/gpt-6-luna",
         "google/gemini-3.5-flash-lite",
@@ -90,28 +97,27 @@ def test_the_current_version_is_the_newest_kept(client):
 def test_a_rolled_back_version_leaves_the_current_one(client):
     add_version(CASE_MD + "\nA rule.\n", verdict="rolled_back")
     assert client.get("/api/versions/current").json()["number"] == 1
-    statuses = [
-        v["status"] for v in client.get("/api/configuration").json()["versions"]
-    ]
+    statuses = [v["status"] for v in configuration(client)["versions"]]
     assert statuses == ["rolled_back", "current"]
 
 
 def test_a_versions_details_hold_its_diff(client):
     add_version(CASE_MD.replace("working a claim", "working a claim, with care", 1))
-    details = client.get("/api/configuration/versions/2").json()
+    details = version_details(client, 2)
     assert details["based_on"] == 1
     assert details["instructions"].startswith("# UnderCover Agent: working a claim")
     assert (details["diff"]["added"], details["diff"]["removed"]) == (1, 1)
     [hunk] = details["diff"]["hunks"]
     assert [line["kind"] for line in hunk[:2]] == ["removed", "added"]
-    first = client.get("/api/configuration/versions/1").json()
+    first = version_details(client, 1)
     assert (first["diff"], first["status"]) == (None, "current")
-    assert client.get("/api/configuration/versions/9").status_code == 404
+    assert read(client, "/api/configuration/versions/9").status_code == 404
 
 
 def test_runs_record_the_current_version(client):
     add_version("New instructions", verdict="kept")
     dispatch = create_dispatch(client).json()
+    finish(client, dispatch["run_id"])
     evaluation = create_evaluation(client).json()
     for run in (dispatch, evaluation):
         assert (run["version"], run["round_id"]) == (2, None)
@@ -120,7 +126,7 @@ def test_runs_record_the_current_version(client):
             "minimal",
         )
     assert latest_dispatch(client)["version"] == 2
-    assert client.get("/api/evaluations").json()[0]["version"] == 2
+    assert evaluations(client)[0]["version"] == 2
     assert get_evaluation(client, evaluation["run_id"])["version"] == 2
 
 
@@ -133,7 +139,7 @@ def test_a_version_after_one_rolled_back_changes_the_current_one(client):
         reasoning_effort="medium",
         based_on=2,
     )
-    four = client.get("/api/configuration/versions/4").json()
+    four = version_details(client, 4)
     assert (four["based_on"], four["lines_added"], four["lines_removed"]) == (2, 1, 0)
     assert (four["model_before"], four["reasoning_effort_before"]) == (
         "google/gemini-3.5-flash-lite",
@@ -141,6 +147,22 @@ def test_a_version_after_one_rolled_back_changes_the_current_one(client):
     )
     [hunk] = four["diff"]["hunks"]
     assert [line["kind"] for line in hunk] == ["context", "context", "added"]
+
+
+def finished_evaluation(client, tiny):
+    """Start an evaluation of the held-out set and finish it at once."""
+    evaluation = create_evaluation(client, tiny=tiny).json()
+    finish(client, evaluation["run_id"])
+    return evaluation
+
+
+def referred_evaluation(client):
+    """Start an evaluation of the held-out set's tiny cases, and refer each copy."""
+    evaluation = create_evaluation(client).json()
+    for copy in evaluation["cases"]:
+        start(client, copy["case_id"])
+        decide(client, copy["case_id"], "refer", 0)
+    return evaluation
 
 
 def in_a_round(client, *evaluations):
@@ -158,24 +180,24 @@ def a_held_out_decline():
 
 
 def test_a_versions_scores_average_the_whole_set_evaluations_its_rounds_ran(client):
-    first, second, scoreboard, tiny, stopped = [
-        create_evaluation(client, tiny=size).json()
-        for size in (False, False, False, True, False)
-    ]
+    first = finished_evaluation(client, tiny=False)
+    second = create_evaluation(client, tiny=False).json()
     copy = f"{a_held_out_decline()}-E{second['number']}"
     start(client, copy)
     decide(client, copy, "decline", 0)
+    finish(client, second["run_id"])
+    finished_evaluation(client, tiny=False)
+    tiny = finished_evaluation(client, tiny=True)
+    stopped = create_evaluation(client, tiny=False).json()
+    fail_run(client, stopped["run_id"])
     in_a_round(client, first, second, tiny, stopped)
-    for evaluation in (first, second, scoreboard, tiny):
-        finish(client, evaluation["run_id"])
-    client.post("/api/runs/stop")
 
     accuracies = [
         get_evaluation(client, e["run_id"])["measures"]["accuracy"]
         for e in (first, second)
     ]
     assert accuracies[1] == pytest.approx(accuracies[0] + 1 / 25)
-    scores = client.get("/api/configuration").json()["versions"][0]["scores"]
+    scores = configuration(client)["versions"][0]["scores"]
     assert scores["evaluation"] is None
     assert scores["held_out"]["accuracy"] == pytest.approx(sum(accuracies) / 2)
 
@@ -183,21 +205,38 @@ def test_a_versions_scores_average_the_whole_set_evaluations_its_rounds_ran(clie
 def test_a_run_with_nothing_graded_leaves_the_grade_to_the_others(
     client, judge_answers
 ):
-    graded, ungraded = (create_evaluation(client).json() for _ in range(2))
-    for evaluation in (graded, ungraded):
-        for copy in evaluation["cases"]:
-            start(client, copy["case_id"])
-            decide(client, copy["case_id"], "refer", 0)
+    graded = referred_evaluation(client)
+    finish(client, graded["run_id"])
+    judge_answers(lambda request: httpx.Response(500, json={"error": "Down"}))
+    ungraded = referred_evaluation(client)
+    finish(client, ungraded["run_id"])
     in_a_round(client, graded, ungraded)
     # Count the five tiny cases as a whole set, to keep the test short.
     with engine().begin() as db:
         db.execute(update(runs).values(tiny=False))
-    finish(client, graded["run_id"])
-    judge_answers(lambda request: httpx.Response(500, json={"error": "Down"}))
-    finish(client, ungraded["run_id"])
 
     assert get_evaluation(client, ungraded["run_id"])["measures"]["grade"] is None
-    held_out = client.get("/api/configuration").json()["versions"][0]["scores"][
-        "held_out"
-    ]
+    held_out = configuration(client)["versions"][0]["scores"]["held_out"]
     assert held_out["grade"] == pytest.approx(2.2)
+
+
+def test_the_check_runs_on_gpt_6_luna_with_no_reasoning(client, dashboard):
+    assert client.get("/api/screening").json() == {
+        "model": "openai/gpt-6-luna",
+        "reasoning_effort": "none",
+    }
+    assert dashboard.get("/api/screening").status_code == 401
+
+
+def test_the_check_runs_on_the_free_model_at_its_default(client, monkeypatch):
+    monkeypatch.setenv("MODEL_NAME", "openrouter/free")
+    assert client.get("/api/screening").json() == {
+        "model": "openrouter/free",
+        "reasoning_effort": "default",
+    }
+
+
+def test_no_version_changes_the_checks_model(client):
+    add_version("Version 2's instructions", model="openai/gpt-6.1-sol", verdict="kept")
+    assert client.get("/api/versions/current").json()["model"] == "openai/gpt-6.1-sol"
+    assert client.get("/api/screening").json()["model"] == "openai/gpt-6-luna"

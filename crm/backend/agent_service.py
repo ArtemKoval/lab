@@ -1,71 +1,67 @@
-"""The agent's service, as the backend calls it: after each sign-off, to start a
-dispatch, an evaluation or a round, and to pass on a review of a proposal."""
+"""The agent, as the app calls it: one JSON payload for each operation, posted to its
+AgentCore app on the laptop, with the agent's key, or sent to its runtime on
+AgentCore Runtime, in a session of its own, when CRM_AGENT_RUNTIME names one.
+Each answer says whether the agent took the work."""
 
-import logging
 import os
-from http import HTTPStatus
-from typing import Any
+import uuid
 
 import httpx
-from fastapi import HTTPException
 
-AGENT_URL = os.getenv("CRM_AGENT_SERVICE", "http://127.0.0.1:8002")
+from backend import runtime_calls
+from backend.api_key import the_agents_key
+from backend.runtime_calls import Payload, Wording
+
+AGENT = "CRM_AGENT_SERVICE"
+# The agent's AgentCore app on the laptop, as npm run dev serves it.
+LOCAL_AGENT = "http://127.0.0.1:8080"
+RUNTIME = "CRM_AGENT_RUNTIME"
 NOT_RUNNING = "The agent's service isn't running"
 NO_ANSWER = (
     "The agent's service didn't answer in time. Reload the page to see whether "
     "it went through."
 )
+COULDNT_TAKE = "The agent couldn't take the work: {reason}"
+WORDING = Wording(NOT_RUNNING, COULDNT_TAKE, NO_ANSWER)
 
-agent = httpx.Client(base_url=f"{AGENT_URL}/api", timeout=10)
+agent = httpx.Client()
 
-log = logging.getLogger(__name__)
+
+def ask(payload: Payload) -> None:
+    """Ask the agent to take some work, on Runtime in a new session when
+    CRM_AGENT_RUNTIME names its runtime, read now, or else on the laptop at
+    CRM_AGENT_SERVICE, with the agent's key. Raise NotTaken or MayHaveStarted when
+    it didn't, or may not have."""
+    if arn := os.getenv(RUNTIME):
+        runtime_calls.invoke(arn, str(uuid.uuid4()), payload, WORDING)
+    else:
+        url = os.getenv(AGENT, LOCAL_AGENT)
+        headers = {"Authorization": f"Bearer {the_agents_key()}"}
+        runtime_calls.post(agent, url, payload, headers, WORDING)
+
+
+def work_run(run_id: str) -> None:
+    """Ask the agent to work a dispatch or an evaluation the app created."""
+    ask({"operation": "work_run", "run_id": run_id})
+
+
+def work_round(round_id: str) -> None:
+    """Ask the agent to work a round of the improver the app created."""
+    ask({"operation": "work_round", "round_id": round_id})
+
+
+def carry_round_on(round_id: str, proposal_id: str) -> None:
+    """Ask the agent to carry a round on after the review the app recorded."""
+    ask(
+        {
+            "operation": "carry_round_on",
+            "round_id": round_id,
+            "proposal_id": proposal_id,
+        }
+    )
 
 
 def resume_case(case_id: str) -> None:
-    """Ask the agent to pick a case back up after its sign-off."""
-    try:
-        agent.post(f"/cases/{case_id}/resume").raise_for_status()
-    except httpx.HTTPError as error:  # the sign-off stands without the agent
-        log.warning(
-            "The agent didn't pick up %s after its sign-off: %s", case_id, error
-        )
-
-
-def send(path: str, body: dict[str, Any]) -> None:
-    """Send the agent's service some work, passing on its refusal while something
-    else is running, or say it isn't running when it can't be reached, or that
-    it didn't answer in time."""
-    try:
-        response = agent.post(path, json=body)
-    except (httpx.ConnectError, httpx.ConnectTimeout) as error:
-        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, NOT_RUNNING) from error
-    except httpx.TimeoutException as error:
-        raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, NO_ANSWER) from error
-    if response.status_code == HTTPStatus.CONFLICT:
-        raise HTTPException(HTTPStatus.CONFLICT, response.json()["detail"])
-    response.raise_for_status()
-
-
-def start_dispatch(agents: int) -> None:
-    """Ask the agent's service to start a dispatch with up to N case agents."""
-    send("/dispatches", {"agents": agents})
-
-
-def start_evaluation(evaluation_set: str, tiny: bool, agents: int) -> None:
-    """Ask the agent's service to start an evaluation with up to N case agents."""
-    body = {"evaluation_set": evaluation_set, "tiny": tiny, "agents": agents}
-    send("/evaluations", body)
-
-
-def start_round(worker_id: str) -> None:
-    """Ask the agent's service to start a round of the improver."""
-    send("/rounds", {"worker_id": worker_id})
-
-
-def review_proposal(
-    round_id: str, proposal_id: str, review: str, worker_id: str, reason: str
-) -> None:
-    """Pass a worker's review of a proposal to the agent's service, which records
-    it and carries the improver on."""
-    body = {"review": review, "worker_id": worker_id, "reason": reason}
-    send(f"/rounds/{round_id}/proposals/{proposal_id}/review", body)
+    """Ask the agent to resume a paused case with its worker's answer, which it
+    reads from the case."""
+    ask({"operation": "resume_case", "case_id": case_id})

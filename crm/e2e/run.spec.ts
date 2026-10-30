@@ -1,21 +1,26 @@
 import { expect, test } from "@playwright/test";
 import {
-  createDispatch,
   failCase,
   finishRun,
   payCase,
-  recordDecision,
+  decide,
   recordModelCall,
   recordRunCases,
   recordStep,
   recordWorkTime,
   startCase,
+  startDispatch,
+  stopTheWork,
 } from "./api";
 
-// These tests stand in for the agent's service and its case agents by calling
-// the API through the dashboard's proxy, and watch the pages update without a
-// reload. Only this file records dispatches, and it uses cases no other test
-// touches.
+// These tests start a dispatch as Dana Whitfield, which the app creates, then
+// stand in for the agent and its case agents by calling the API through the
+// dashboard's proxy, and watch the pages update without a reload. They use
+// cases no other test touches.
+
+test.afterEach(async ({ request }) => {
+  await stopTheWork(request);
+});
 
 test("the dispatch panel follows a dispatch as it works", async ({
   page,
@@ -25,11 +30,11 @@ test("the dispatch panel follows a dispatch as it works", async ({
   const panel = page.getByRole("region", { name: "Dispatch" });
   await expect(panel).toBeVisible();
 
-  const { run_id } = await createDispatch(request, 2);
+  const { run_id } = await startDispatch(request, 2);
   await recordRunCases(request, run_id, ["CLM-1013", "CLM-1014"]);
   const rows = panel.getByRole("row");
   await expect(panel.getByText("Running", { exact: true })).toBeVisible();
-  await expect(panel.getByText(/with 2 entry agents at once/)).toBeVisible();
+  await expect(panel.getByText(/with 2 case agents at once/)).toBeVisible();
   await expect(rows).toHaveText([
     /^Case/,
     /^CLM-1013.*Waiting/,
@@ -49,14 +54,14 @@ test("the dispatch panel follows a dispatch as it works", async ({
     /^CLM-1014.*In progress/,
   ]);
 
-  await recordDecision(request, "CLM-1013", {
+  await decide(request, "CLM-1013", {
     decision: "approve",
     award: 300,
     section: "Section 3, Trip Delay",
     reason: "The delay was covered.",
   });
   await payCase(request, "CLM-1013", 300);
-  await recordDecision(request, "CLM-1014", {
+  await decide(request, "CLM-1014", {
     decision: "refer",
     award: 0,
     section: "Manual, section 2",
@@ -95,8 +100,16 @@ test("a case that fails twice is left for a worker", async ({
   await recordStep(
     request,
     "CLM-1016",
-    "reading",
+    "lookup",
     "Contract wording, section 7: Emergency Medical",
+    [
+      {
+        file: "wording.md",
+        system: "Published contract documents",
+        owner: "Legal",
+        reviewed: "2026-09-01",
+      },
+    ],
   );
   await failCase(request, "CLM-1016", "RuntimeError: The model timed out");
   await expect(
@@ -116,8 +129,10 @@ test("a case that fails twice is left for a worker", async ({
     ),
   ).toBeVisible();
 
-  const read = page.locator(".sections-read");
-  await expect(read.getByRole("listitem")).toHaveText([
+  const used = page.locator("section", {
+    has: page.getByRole("heading", { name: "Context used" }),
+  });
+  await expect(used.getByRole("listitem")).toHaveText([
     "Contract wording, section 7: Emergency Medical",
   ]);
   const failed = page.locator(".step", { hasText: "Failed" });

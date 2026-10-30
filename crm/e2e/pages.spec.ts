@@ -6,9 +6,11 @@ test("the queue lists every case", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Cases queue" }),
   ).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(25);
-  const last = page.getByRole("row").filter({ hasText: "CLM-1025" });
-  await expect(last.getByText("Waiting")).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(26);
+  for (const caseId of ["CLM-1025", "CLM-1901"]) {
+    const row = page.getByRole("row").filter({ hasText: caseId });
+    await expect(row.getByText("Waiting")).toBeVisible();
+  }
 });
 
 test("a case opens from the queue", async ({ page }) => {
@@ -33,7 +35,7 @@ test("signing out from the account menu lands on the sign-in page", async ({
   await page.goto("/scoreboard");
   const who = page.getByLabel("Signed in");
   await expect(who.getByText("Dana Whitfield")).toBeVisible();
-  await expect(who.getByText("Senior Cases Worker")).toBeVisible();
+  await expect(who.getByText("Senior Claims Handler")).toBeVisible();
   await who.getByRole("button", { name: "Account" }).click();
   await who.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL("/sign-in");

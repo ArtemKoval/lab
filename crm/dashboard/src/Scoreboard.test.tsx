@@ -189,11 +189,18 @@ it("shows a copy's evaluation, and no sign-off for a held copy", async () => {
     decision: {
       decision: "approve",
       award: 1200,
+      calculation: {
+        lines: [{ step: "Laptop", amount: 1200 }],
+        award: 1200,
+      },
       section: "Section 5",
       reason: "The loss is covered.",
+      decided_by: "CRM Agent, version 1",
       decided_at: "2026-10-03T17:03:00+00:00",
+      manual_version: "2026.2",
       signed_off_by: null,
       signed_off_at: null,
+      gateway_refusal: null,
     },
   };
   stubApi({
@@ -230,6 +237,7 @@ it("shows a stopped evaluation as stopped, with no run time", async () => {
     "GET /api/evaluations/run-9": {
       ...scored,
       status: "stopped",
+      stopped_because: "Stopped by Dana Whitfield",
       measures: running.measures,
     },
   });
@@ -249,6 +257,7 @@ it("shows a stopped evaluation as stopped, with no run time", async () => {
   expect(measures.getByText("Run time").nextSibling?.textContent).toBe(
     "Not finished",
   );
+  expect(measures.getByText("Stopped by Dana Whitfield")).toBeDefined();
 });
 
 it("says the judge found a check from even odds", () => {

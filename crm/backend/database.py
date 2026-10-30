@@ -1,6 +1,7 @@
-"""The CRM database, seeded from the business data in data/.
+"""The CRM database, seeded from the business data in data/, and the plans
+and the documents from the context layer's files in context/.
 
-The same tables and queries serve Postgres at DATABASE_URL, when it is set, and
+The same tables and queries serve Postgres on Supabase, when DATABASE_URL is set, and
 SQLite otherwise, as in the tests.
 """
 
@@ -22,6 +23,7 @@ from sqlalchemy import (
     MetaData,
     Table,
     Text,
+    UniqueConstraint,
     create_engine,
     insert,
     inspect,
@@ -31,6 +33,7 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema
 
+from backend import context_files
 from backend.free_models import model_or_free, models_or_free
 from backend.models import (
     EvaluationSet,
@@ -42,8 +45,8 @@ from backend.models import (
 from domains import loader
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"
-DOCUMENTS = {"wording": "Contract wording", "manual": "Cases manual"}
+MANUAL = "manual"
+DOCUMENTS = {"wording": "Contract wording", MANUAL: "Cases manual"}
 # Version 1 is kept from the start, so the current version is the newest kept.
 FIRST_VERSION = {
     "number": 1,
@@ -107,6 +110,8 @@ documents = Table(
     Column("position", Integer, nullable=False),
     Column("title", Text, nullable=False),
     Column("text", Text, nullable=False),
+    # The version in the document's front matter, such as the manual's 2026.2.
+    Column("version", Text, nullable=False),
 )
 workers = Table(
     "workers",
@@ -141,6 +146,8 @@ cases = Table(
     Column("attempts", Integer, nullable=False),
     Column("evaluation_id", Text, ForeignKey("runs.run_id")),
     Column("copy_of", Text),
+    # When the agent last said a resume was working on the case.
+    Column("resume_heard_at", Text),
 )
 held_out_cases = Table(
     "held_out_cases",
@@ -168,10 +175,48 @@ decisions = Table(
     Column("section", Text, nullable=False),
     Column("reason", Text, nullable=False),
     Column("decided_at", Text, nullable=False),
+    # Who or what made the decision, and the cases manual's version in force.
+    Column("decided_by", Text, nullable=False),
+    Column("manual_version", Text, nullable=False),
+    # An approval's calculation, its lines and its award, and none otherwise.
+    Column("calculation", JSON),
     # The approval limit in force when the decision was recorded.
     Column("approval_limit", Float, nullable=False),
     Column("signed_off_by", Text),
     Column("signed_off_at", Text),
+    # Why the Gateway refused to pay an approval, which then waits for sign-off.
+    Column("gateway_refusal", Text),
+)
+# The decisions workers sent back to the agent, each with its note, who sent it
+# back and when.
+sent_back_decisions = Table(
+    "sent_back_decisions",
+    metadata,
+    Column("sent_back_id", Integer, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
+    Column("decision", Text, nullable=False),
+    Column("award", Float, nullable=False),
+    Column("calculation", JSON),
+    Column("section", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("decided_by", Text, nullable=False),
+    Column("decided_at", Text, nullable=False),
+    Column("manual_version", Text, nullable=False),
+    Column("gateway_refusal", Text),
+    Column("note", Text, nullable=False),
+    Column("sent_back_by", Text, nullable=False),
+    Column("sent_back_at", Text, nullable=False),
+)
+# Each case's latest calculation of its award, on the thread of the attempt it was
+# made in, which an approval in that attempt must match.
+calculations = Table(
+    "calculations",
+    metadata,
+    Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
+    Column("thread_id", Text, nullable=False),
+    Column("lines", JSON, nullable=False),
+    Column("award", Float, nullable=False),
+    Column("calculated_at", Text, nullable=False),
 )
 payments = Table(
     "payments",
@@ -188,6 +233,8 @@ steps = Table(
     Column("thread_id", Text, nullable=False),
     Column("kind", Text, nullable=False),
     Column("content", Text, nullable=False),
+    # The context files a lookup came from, each with its source.
+    Column("sources", JSON, nullable=False),
     Column("created_at", Text, nullable=False),
 )
 # The improver's rounds, each to the settings, the recipe and the version of the
@@ -213,6 +260,9 @@ rounds = Table(
     Column("stopped_because", Text),
     Column("held_out_before", JSON),
     Column("held_out_after", JSON),
+    # When the app last heard of the round's work: as it started the round or
+    # recorded a review, or from the agent's heartbeat.
+    Column("heard_at", Text),
 )
 recipes = Table(
     "recipes",
@@ -285,7 +335,20 @@ runs = Table(
     Column("started_at", Text, nullable=False),
     Column("finished_at", Text),
     Column("summary", JSON),
+    Column("stopped_because", Text),
+    # When the app last heard of the run's work: as it created the run, or from
+    # the agent's heartbeat.
+    Column("heard_at", Text),
 )
+# One row, which a start of the agent's work updates first in its transaction, so
+# two starts at the same moment take turns.
+locks = Table(
+    "locks",
+    metadata,
+    Column("name", Text, primary_key=True),
+    Column("taken_at", Text),
+)
+AGENTS_WORK = "the agent's work"
 # The judge's grade of each copy in an evaluation, empty when it couldn't grade it.
 grades = Table(
     "grades",
@@ -330,9 +393,76 @@ work_times = Table(
 )
 
 
+# The Copilot's conversations, each its worker's, with how many turns it has, which
+# a new turn moves on from n to n + 1 with a conditional update, so a conversation
+# takes one message at a time.
+conversations = Table(
+    "conversations",
+    metadata,
+    Column("conversation_id", Text, primary_key=True),
+    Column("worker_id", Text, ForeignKey("workers.worker_id"), nullable=False),
+    Column("title", Text, nullable=False),
+    Column("turns", Integer, nullable=False),
+    Column("created_at", Text, nullable=False),
+)
+# Each message to the Copilot and its answer: where the turn stands, how it ended,
+# and the card of a sign-off waiting for the worker's confirmation, with the held
+# decision's decided_at, and the worker's answer.
+copilot_turns = Table(
+    "copilot_turns",
+    metadata,
+    Column("turn_id", Text, primary_key=True),
+    Column(
+        "conversation_id",
+        Text,
+        ForeignKey("conversations.conversation_id"),
+        nullable=False,
+    ),
+    Column("number", Integer, nullable=False),
+    Column("message", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("started_at", Text, nullable=False),
+    Column("paused_at", Text),
+    Column("answered_at", Text),
+    Column("finished_at", Text),
+    Column("answer", Text),
+    Column("model_calls", Integer),
+    Column("cost", Float),
+    Column("failure", Text),
+    Column("confirmation", JSON),
+    Column("confirmation_answer", Text),
+    Column("canceled_because", Text),
+    UniqueConstraint("conversation_id", "number"),
+)
+# The cards of a turn: each tool the Copilot called, what was asked and what came
+# back.
+copilot_steps = Table(
+    "copilot_steps",
+    metadata,
+    Column("step_id", Integer, primary_key=True),
+    Column(
+        "turn_id",
+        Text,
+        ForeignKey("copilot_turns.turn_id"),
+        nullable=False,
+        index=True,
+    ),
+    Column("tool", Text, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("input", Text, nullable=False),
+    Column("asked", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("answer", Text),
+    Column("reason", Text),
+    Column("sources", JSON, nullable=False),
+    Column("started_at", Text, nullable=False),
+    Column("finished_at", Text),
+)
+
+
 class LabeledSet(NamedTuple):
     """A set of cases our workers have decided: the table its cases are kept in,
-    and the file in data/evals/ with the workers' decisions, which only seeding
+    and the eval file with the workers' decisions, which only seeding
     reads."""
 
     cases: Table
@@ -353,15 +483,20 @@ case_view = (
         cases.c.attempts,
         cases.c.evaluation_id,
         cases.c.copy_of,
+        cases.c.resume_heard_at,
         customers.c.name.label("customer_name"),
         decisions.c.decision,
         decisions.c.award,
         decisions.c.section,
         decisions.c.reason,
         decisions.c.decided_at,
+        decisions.c.decided_by,
+        decisions.c.manual_version,
+        decisions.c.calculation,
         decisions.c.approval_limit,
         decisions.c.signed_off_by,
         decisions.c.signed_off_at,
+        decisions.c.gateway_refusal,
         payments.c.amount,
         payments.c.paid_at,
     )
@@ -381,6 +516,17 @@ def now() -> str:
     return stamp(datetime.now(UTC))
 
 
+def stamp_precisely(moment: datetime) -> str:
+    """Write a moment in UTC to the millisecond, as the Copilot's turns and cards
+    have it, since many of them take less than a second."""
+    return moment.isoformat(timespec="milliseconds")
+
+
+def now_precisely() -> str:
+    """Return the current time in UTC, to the millisecond."""
+    return stamp_precisely(datetime.now(UTC))
+
+
 def database_url() -> URL:
     """Return Postgres at DATABASE_URL, through psycopg and in our own schema, or
     SQLite at CRM_DB or crm.db."""
@@ -396,10 +542,23 @@ def on_postgres(url: URL) -> bool:
     return url.get_backend_name() == "postgresql"
 
 
+def on_lambda() -> bool:
+    """Say whether the backend runs on AWS Lambda, which sets this for every
+    function."""
+    return "AWS_LAMBDA_FUNCTION_NAME" in os.environ
+
+
 @cache
-def engine_for(url: URL) -> Engine:
-    """Open a database: Postgres with at most CONNECTIONS connections, waiting up to
-    CONNECTION_WAIT seconds for one, or SQLite with a connection for each request."""
+def engine_for(url: URL, for_lambda: bool) -> Engine:
+    """Open a database: on Lambda, Postgres with a connection for each request and
+    no prepared statements, for Supabase's transaction pooler, since each copy of
+    the function would keep its own pool; elsewhere Postgres with at most
+    CONNECTIONS connections, waiting up to CONNECTION_WAIT seconds for one, or
+    SQLite with a connection for each request."""
+    if on_postgres(url) and for_lambda:
+        return create_engine(
+            url, poolclass=NullPool, connect_args={"prepare_threshold": None}
+        )
     if on_postgres(url):
         return create_engine(
             url,
@@ -413,7 +572,7 @@ def engine_for(url: URL) -> Engine:
 
 def engine() -> Engine:
     """Return the backend's database."""
-    return engine_for(database_url())
+    return engine_for(database_url(), on_lambda())
 
 
 def location(db: Engine) -> str:
@@ -431,6 +590,12 @@ def is_seeded(db: Engine) -> bool:
 def load(name: str) -> Any:
     """Read one of the JSON files in the pack data folder."""
     return loader.pack().load_json(name)
+
+
+def queue_records(name: str) -> list[dict[str, Any]]:
+    """Read the queue's records of one kind: those in data/ and the security team's
+    in data/security/, whose worker's decision is never seeded."""
+    return load(name) + load(f"security/{name}")
 
 
 def waiting_case(record: dict[str, Any], **columns: Any) -> dict[str, Any]:
@@ -451,9 +616,9 @@ def seed(db: Engine) -> dict[str, int]:
     active = loader.pack()
     company = active.load_json("company.json")
     worker_rows = load("workers.json")
-    customer_rows = load("customers.json")
-    contract_rows = load("contracts.json")
-    case_rows = load("cases.json")
+    customer_rows = queue_records("customers.json")
+    contract_rows = queue_records("contracts.json")
+    case_rows = queue_records("cases.json")
     with db.begin() as connection:
         if on_postgres(db.url):
             connection.execute(CreateSchema(SCHEMA, if_not_exists=True))
@@ -462,20 +627,9 @@ def seed(db: Engine) -> dict[str, int]:
         metadata.drop_all(connection)
         metadata.create_all(connection)
         seed_settings(connection, company["award_approval_limit"])
-        connection.execute(insert(award_rules).values(plans=load("plans.json")))
+        connection.execute(insert(award_rules).values(plans=context_files.plans()))
         seed_models_allowed(connection)
-        connection.execute(
-            insert(documents),
-            [
-                {
-                    "name": name,
-                    "position": position,
-                    "title": title,
-                    "text": active.read_doc(name),
-                }
-                for position, (name, title) in enumerate(DOCUMENTS.items())
-            ],
-        )
+        seed_documents(connection)
         connection.execute(
             insert(workers),
             [
@@ -503,6 +657,7 @@ def seed(db: Engine) -> dict[str, int]:
         connection.execute(insert(cases), [waiting_case(c) for c in case_rows])
         seed_first_version(connection)
         connection.execute(insert(recipes).values(**FIRST_RECIPE, created_at=now()))
+        connection.execute(insert(locks).values(name=AGENTS_WORK))
         labeled = seed_evaluations(connection)
     return {
         "cases": len(case_rows),
@@ -510,6 +665,24 @@ def seed(db: Engine) -> dict[str, int]:
         "customers": len(customer_rows),
         "workers": len(worker_rows),
     } | labeled
+
+
+def seed_documents(connection: Connection) -> None:
+    """Store the contract wording and the cases manual from the context layer's
+    files, each with its version."""
+    rows = []
+    for position, (name, title) in enumerate(DOCUMENTS.items()):
+        text, version = context_files.document(name)
+        rows.append(
+            {
+                "name": name,
+                "position": position,
+                "title": title,
+                "text": text,
+                "version": version,
+            }
+        )
+    connection.execute(insert(documents), rows)
 
 
 def seed_settings(connection: Connection, approval_limit: float) -> None:

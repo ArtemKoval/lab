@@ -2,11 +2,23 @@
 
 from sqlalchemy import RowMapping
 
-from backend.models import Case, CaseSummary, Decision, Payment
+from backend.agent_work import heard_lately
+from backend.models import (
+    Case,
+    CaseSummary,
+    Decision,
+    Payment,
+    SentBackDecision,
+    Status,
+)
 
 
 def to_summary(row: RowMapping) -> CaseSummary:
-    """Build a case's line in the queue from its row."""
+    """Build a case's line in the queue from its row, saying whether a resume is
+    working on it: one in progress that the agent spoke of lately."""
+    resuming = row["status"] == Status.IN_PROGRESS and heard_lately(
+        row["resume_heard_at"]
+    )
     return CaseSummary(
         **row["record"]
         | {
@@ -14,12 +26,14 @@ def to_summary(row: RowMapping) -> CaseSummary:
             "customer_name": row["customer_name"],
             "decision": row["decision"],
             "award": row["award"],
+            "resuming": resuming,
         }
     )
 
 
-def to_case(row: RowMapping) -> Case:
-    """Build a case in full, with its decision and payment, from its row."""
+def to_case(row: RowMapping, sent_back: list[SentBackDecision]) -> Case:
+    """Build a case in full, with its decision and payment, from its row, and the
+    decisions workers sent back on it."""
     decision = None
     if row["decision"] is not None:
         decision = Decision(**{field: row[field] for field in Decision.model_fields})
@@ -37,5 +51,6 @@ def to_case(row: RowMapping) -> Case:
             "copy_of": row["copy_of"],
             "decision": decision,
             "payment": payment,
+            "sent_back_decisions": sent_back,
         }
     )
