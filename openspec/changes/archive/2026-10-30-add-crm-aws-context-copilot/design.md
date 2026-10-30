@@ -8,21 +8,21 @@ The upstream briefs `docs/SECURE.md`, `docs/CONTEXT.md`, `docs/RUNTIME.md`, and 
 
 The seam comes from ADR 0007. This change adds three decisions of its own, reviewed against the port:
 
-- The local AWS emulator stands in for the deployment targets. One compose file at `crm/deploy/compose.yaml` starts the emulator on port 4566, and the runtime and gateway targets resolve from `CRM_AGENT_RUNTIME` and `CRM_GATEWAY_URL` exactly as real AWS would at rollout. The agent-behavior tests stay hermetic on stand-ins, because the emulator's runtime answers with canned payloads by design.
+- The local AWS emulator stands in for the deployment targets. One compose file at `crm/deploy/compose.yaml` starts the emulator on port 4566. The runtime and gateway targets resolve from `CRM_AGENT_RUNTIME` and `CRM_GATEWAY_URL` exactly as real AWS would at rollout. The agent-behavior tests stay hermetic on stand-ins, because the emulator's runtime answers with canned payloads by design.
 - The context server is the upstream `context/` package ported as `crm/context/`, serving the pack's governed files through the loader instead of its own folder. The file list moves into the pack manifest.
 - The copilot's sign-off confirmation stays code, as upstream has it: the graph pauses, and the worker's confirmation card fires the recorded action.
 
 ## Key decisions
 
-- The agent key: `CRM_AGENT_KEY` gates the agent routes; a request with both the key and a worker token is refused, as upstream has it.
-- Memory: `CRM_MEMORY_ID` is optional; the memory client sits behind the same factory as the saver, so a run without memory works hermetically.
-- The runtime entry points land at `crm/runtime/` as plain ASGI apps; the AgentCore-specific packaging stays out until the rollout change, which owns the real deploy.
-- Send-back adds a status and a decisions table; the agent resumes a sent-back case with the note and the old calculation cleared.
+- The agent key: `CRM_AGENT_KEY` gates the agent routes. A request with both the key and a worker token is refused, as upstream has it.
+- Memory: `CRM_MEMORY_ID` is optional. The memory client sits behind the same factory as the saver, so a run without memory works hermetically.
+- The runtime entry points land at `crm/runtime/` as plain ASGI apps. The AgentCore-specific packaging stays out until the rollout change, which owns the real deploy.
+- Send-back adds a status and a decisions table. The agent resumes a sent-back case with the note, and the old calculation is cleared.
 - Langfuse stays optional behind its keys, as in change two.
 
 ## Mandated skills
 
-One adversarial review round runs on the artifacts before the proposal pull request, and one on the diff before the merge, as in the changes before.
+One adversarial review round runs on the artifacts before the proposal pull request. Another runs on the diff before the merge, as in the changes before.
 
 ## Failure modes
 

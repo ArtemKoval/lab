@@ -1,7 +1,15 @@
-## ADDED Requirements
+# crm-secure Specification
+
+## Purpose
+
+The agent's routes carry the agent's key, a screening step reads each
+case before the case agent and refers the injected ones, and the backend
+serves the same API from a Lambda-style handler.
+
+## Requirements
 
 ### Requirement: The agent key gate
-The agent's routes SHALL require the `CRM_AGENT_KEY` header to match the configured key, and a request that carries both the key and a worker token SHALL be refused.
+The agent's routes SHALL require the `CRM_AGENT_KEY` header to match the configured key. A request that carries both the key and a worker token SHALL be refused.
 
 #### Scenario: A request with the key passes
 - **GIVEN** the configured agent key
@@ -14,7 +22,7 @@ The agent's routes SHALL require the `CRM_AGENT_KEY` header to match the configu
 - **THEN** the API refuses with a named error
 
 ### Requirement: Screening
-A screening step SHALL read the case before the case agent and refuse instructions hidden in it. A screened case SHALL be referred, never decided, and the case agent SHALL not see the injected text.
+A screening step SHALL read the case before the case agent. It SHALL refuse instructions hidden in the case. A screened case SHALL be referred, never decided. The case agent SHALL not see the injected text.
 
 #### Scenario: An injected case is referred
 - **GIVEN** the pack's injection case in the queue
