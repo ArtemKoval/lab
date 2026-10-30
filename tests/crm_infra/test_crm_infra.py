@@ -28,6 +28,13 @@ ALLOWLIST: tuple[tuple[str, str], ...] = (
     ("crm/backend/tests/test_documents.py", ""),
     ("crm/agent/tests/test_case_agent.py", ""),
     ("crm/agent/harness.py", "handler"),
+    # These pin the served text of the insurance pack, which keeps the
+    # pack's own words for the worker's role and the configuration diff.
+    ("crm/backend/tests/test_sign_in.py", "Senior Claims Handler"),
+    ("crm/backend/tests/test_configuration.py", "working a claim"),
+    ("crm/backend/tests/sign_in.py", "undercover.example"),
+    ("crm/dashboard/src/auth.test.ts", "undercover.example"),
+    ("crm/e2e/workers.ts", "undercover.example"),
 )
 
 
