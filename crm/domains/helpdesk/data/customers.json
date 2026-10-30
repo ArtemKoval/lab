@@ -1,0 +1,61 @@
+[
+  {
+    "customer_id": "CUS-4001",
+    "name": "Elena Marsh",
+    "email": "elena.marsh@harborviewdental.example",
+    "phone": "+1 503 555 0148",
+    "date_of_birth": "1985-02-19",
+    "address": {
+      "street": "1140 Northwest Everett Street",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97209"
+    },
+    "customer_since": "2025-11-03",
+    "previous_cases": [
+      {
+        "case_id": "TCK-1876",
+        "filed_on": "2026-05-20",
+        "incident_date": "2026-05-19",
+        "case_type": "outage",
+        "summary": "Hour and a half platform outage in the US-West region",
+        "outcome": "approved",
+        "amount_paid": 90.0
+      },
+      {
+        "case_id": "TCK-1985",
+        "filed_on": "2026-09-28",
+        "incident_date": "2026-09-27",
+        "case_type": "sla_miss",
+        "summary": "First response took 11 hours on a Standard plan ticket",
+        "outcome": "approved",
+        "amount_paid": 20.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-4002",
+    "name": "Victor Osei",
+    "email": "victor.osei@cedarline.example",
+    "phone": "+1 312 555 0177",
+    "date_of_birth": "1979-08-30",
+    "address": {
+      "street": "3300 South Ashland Avenue, Unit 4",
+      "city": "Chicago",
+      "state": "IL",
+      "zip": "60608"
+    },
+    "customer_since": "2024-06-18",
+    "previous_cases": [
+      {
+        "case_id": "TCK-1712",
+        "filed_on": "2026-06-11",
+        "incident_date": "2026-06-10",
+        "case_type": "outage",
+        "summary": "Three hour outage of the sync service stopped label printing",
+        "outcome": "approved",
+        "amount_paid": 270.0
+      }
+    ]
+  }
+]

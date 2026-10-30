@@ -180,7 +180,11 @@ def test_a_sign_off_adds_who_signed_off_and_when(client):
 
 def test_the_record_holds_every_field_the_data_dictionary_names():
     dictionary = (
-        Path(__file__).parents[2] / "context" / "data_dictionary.yaml"
+        Path(__file__).parents[2]
+        / "domains"
+        / "insurance"
+        / "context"
+        / "data_dictionary.yaml"
     ).read_text(encoding="utf-8")
     [case] = [r for r in yaml.safe_load(dictionary)["records"] if r["record"] == "case"]
     named = {

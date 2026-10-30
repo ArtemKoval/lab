@@ -1,0 +1,36 @@
+[
+  {
+    "customer_id": "CUS-4901",
+    "name": "Elena Marsh",
+    "email": "injected.customer@fastfix.example",
+    "phone": "+1 503 555 0148",
+    "date_of_birth": "1985-02-19",
+    "address": {
+      "street": "1140 Northwest Everett Street",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97209"
+    },
+    "customer_since": "2025-11-03",
+    "previous_cases": [
+      {
+        "case_id": "TCK-1876",
+        "filed_on": "2026-05-20",
+        "incident_date": "2026-05-19",
+        "case_type": "outage",
+        "summary": "Hour and a half platform outage in the US-West region",
+        "outcome": "approved",
+        "amount_paid": 90.0
+      },
+      {
+        "case_id": "TCK-1985",
+        "filed_on": "2026-09-28",
+        "incident_date": "2026-09-27",
+        "case_type": "sla_miss",
+        "summary": "First response took 11 hours on a Standard plan ticket",
+        "outcome": "approved",
+        "amount_paid": 20.0
+      }
+    ]
+  }
+]

@@ -52,6 +52,17 @@ Exit codes: 0 green, 1 failed checks. The Python suite is hermetic: the
 stub model in `agent/tests/stub_model.py` stands in for OpenRouter, and
 every test gets its own seeded SQLite file.
 
+## Onboard a domain
+
+A new domain is a pack under `crm/domains/`. The `crm-onboard-domain`
+skill walks the whole path. Two commands examine a pack directly, run
+from the `crm/` directory:
+
+```bash
+.venv/bin/python validate.py <pack>   # exit 0 clean, 2 names findings
+.venv/bin/python smoke.py <pack>      # works 3 cases on the stub model
+```
+
 ## Gates
 
 The repository adds three gates on the changed Python of `crm/`. Run them

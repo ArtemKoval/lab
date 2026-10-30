@@ -1,0 +1,67 @@
+# The terms the support wording defines, each in the wording's own words, with
+# the section it comes from.
+
+source:
+  system: The support wording, version 2026.1
+  owner: Legal
+  reviewed: "2026-10-01"
+
+terms:
+  - term: Service credit
+    definition: Money back on your plan fee under the support wording.
+    sections: [2, 11]
+
+  - term: Platform outage
+    definition: >-
+      A period on our status page that names one of our services as down and your
+      account among the accounts affected. It runs from the start time on the
+      status page to the time it shows as resolved.
+    sections: [3, 11]
+
+  - term: Response target
+    definition: >-
+      How fast our first engineer must reply to a ticket. Standard gives eight
+      business hours and Priority gives two hours around the clock. We miss a
+      target when the first reply comes more than five minutes after it.
+    sections: [1, 4]
+
+  - term: Per-incident cap
+    definition: The most we credit for one incident. The cap is $150 on Standard and $400 on Priority.
+    sections: [1, 4, 11]
+
+  - term: Priority multiplier
+    definition: >-
+      The number we multiply a Priority plan credit by, after we take off any
+      credit already issued for the same incident and before we apply the
+      per-incident cap. The multiplier is 1.5 and the Standard plan carries none.
+    sections: [8, 10]
+
+  - term: Business hours
+    definition: >-
+      8:00 to 18:00 in the time zone of your main site, Monday to Friday, without
+      public holidays.
+    sections: [1]
+
+  - term: Named contact
+    definition: A person on your plan record who may open tickets.
+    sections: [11]
+
+  - term: Support term
+    definition: The dates on your plan record, from the start date to the end date.
+    sections: [6, 11]
+
+  - term: Planned maintenance
+    definition: >-
+      Work on our platform that we announce on the status page at least five days
+      before it starts.
+    sections: [6]
+
+  - term: Indirect losses
+    definition: >-
+      Losses that follow indirectly from an incident, such as lost sales, missed
+      deadlines or contractual penalties.
+    sections: [6]
+
+  - term: Status page
+    definition: Our page at status.fastfix.example, which records outages and planned maintenance.
+    sections: [3, 11]

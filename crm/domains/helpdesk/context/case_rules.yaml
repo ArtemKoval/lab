@@ -1,0 +1,44 @@
+# The rules support operations applies to every ticket, with the numbers they
+# use and the sections of the wording and the manual they come from.
+
+source:
+  system: Support operations
+  owner: Head of support
+  reviewed: "2026-10-01"
+
+rules:
+  - rule: filing_window
+    name: Filing window
+    days: 30
+    applies: A ticket must be filed within 30 days of the incident.
+    sections: [Support wording 5, Support manual 4]
+
+  - rule: outage_credit_rate
+    name: Outage credit rate
+    amount: 60.00
+    per: hour of a platform outage, or part of an hour
+    applies: >-
+      The outage runs from the start time on the status page to the time it shows
+      as resolved. The credit counts each hour or part of an hour at $60, before
+      the multiplier and the per-incident cap.
+    sections: [Support wording 3, Support manual 7]
+
+  - rule: missed_response_credit
+    name: Missed response credit
+    amount: 20.00
+    grace_minutes: 5
+    applies: >-
+      We miss a response target when our first engineer's reply comes more than
+      five minutes after the target. Each missed target credits a flat $20.
+    sections: [Support wording 4, Support manual 7]
+
+  - rule: repeat_incidents
+    name: Repeat incidents
+    cases: 3
+    within_months: 6
+    applies: >-
+      A customer's third incident within any six month period goes to a support
+      lead before any decision on it, whatever its merits. Count incidents by the
+      date the ticket was filed, and count every ticket, credited, closed or open.
+      A first or second incident in six months is decided in the normal way.
+    sections: [Support wording 9, Support manual 9]

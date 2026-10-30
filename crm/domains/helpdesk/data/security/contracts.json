@@ -1,0 +1,21 @@
+[
+  {
+    "contract_id": "CON-3901",
+    "customer_id": "CUS-4001",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2025-11-01",
+    "sold_through": "FastFix website checkout",
+    "trip": {
+      "destination": "Harborview Dental Group, four clinics in Oregon",
+      "departs_on": "2025-11-02",
+      "returns_on": "2026-11-01",
+      "trip_cost": 4680.0
+    },
+    "travelers": [
+      "Elena Marsh",
+      "Tim Dooley"
+    ],
+    "status": "active"
+  }
+]

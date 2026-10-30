@@ -12,12 +12,16 @@ import yaml
 
 from domains import loader
 
-# The yaml lookups live in this package. The two documents stay in the
-# active pack, which owns their words, and arrive through the loader.
-FOLDER = Path(__file__).parent
+
+# Every governed file lives in the active pack, which owns its words, and
+# arrives through the loader.
+def _pack_folder() -> Path:
+    return loader.pack().root / "context"
+
+
 DocumentName = Literal["wording", "manual"]
 RecordName = Literal["case", "contract", "previous_case"]
-PlanName = Literal["economy", "premium", "first"]
+PlanName = str
 TITLES: dict[DocumentName, str] = {
     "wording": "Contract wording",
     "manual": "Cases manual",
@@ -66,7 +70,7 @@ def file_source(file: str, source: dict[str, str]) -> dict[str, str]:
 
 def read_yaml(file: str) -> dict[str, Any]:
     """Read one of the YAML files, with its source."""
-    data = yaml.safe_load((FOLDER / file).read_text(encoding="utf-8"))
+    data = yaml.safe_load((_pack_folder() / file).read_text(encoding="utf-8"))
     return data | {"source": file_source(file, data["source"])}
 
 

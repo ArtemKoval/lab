@@ -1,0 +1,16 @@
+[
+  {
+    "worker_id": "SUP-01",
+    "name": "Priya Nair",
+    "role": "Support Lead",
+    "email": "priya.nair@fastfix.example",
+    "can_approve_over_limit": true
+  },
+  {
+    "worker_id": "SUP-02",
+    "name": "Marcus Bell",
+    "role": "Support Agent",
+    "email": "marcus.bell@fastfix.example",
+    "can_approve_over_limit": false
+  }
+]

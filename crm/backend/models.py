@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 from pydantic import (
     AfterValidator,
     BaseModel,
+    ConfigDict,
     Field,
     StringConstraints,
 )
@@ -134,15 +135,7 @@ NOTE_LENGTH = 1000
 Agents = Annotated[
     int, Field(ge=1, le=MOST_AGENTS, description="How many case agents work at once")
 ]
-Benefit = Literal[
-    "trip_cancellation",
-    "trip_interruption",
-    "trip_delay",
-    "baggage_delay",
-    "baggage",
-    "passport",
-    "emergency_medical",
-]
+Benefit = str
 LineKind = Literal[
     "item", "electronics", "cash", "expense", "hotel", "meals_without_receipts"
 ]
@@ -402,18 +395,15 @@ class HoldRequest(BaseModel):
 
 
 class Plan(BaseModel):
+    """A plan of the active pack. The benefit maxima are the insurance pack's;
+    another pack declares its own fields, which its rules module reads."""
+
+    model_config = ConfigDict(extra="allow")
+
     plan: str
     name: str
-    trip_cancellation_max: float
-    trip_delay_waiting_hours: int
-    trip_delay_max: float
-    baggage_delay_waiting_hours: int
-    baggage_delay_max: float
-    baggage_max: float
-    per_item_limit: float
-    passport_max: float
-    emergency_medical_max: float
-    deductible: float
+    per_item_limit: float = 0.0
+    deductible: float = 0.0
 
 
 class AddOn(BaseModel):

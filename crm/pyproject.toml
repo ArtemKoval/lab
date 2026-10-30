@@ -50,6 +50,9 @@ dev = [
     "pytest-xdist>=3.8.0",
     "ruff>=0.16.9",
 ]
+deploy = [
+    "bedrock-agentcore-starter-toolkit>=0.1.0",
+]
 runtime = [
     "bedrock-agentcore>=1.24.1",
     "boto3>=1.43.108",

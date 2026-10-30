@@ -21,15 +21,7 @@ StepKind = Literal[
 ]
 # The context files a lookup came from, each with its system, owner and review date.
 Sources = list[dict[str, str]]
-Benefit = Literal[
-    "trip_cancellation",
-    "trip_interruption",
-    "trip_delay",
-    "baggage_delay",
-    "baggage",
-    "passport",
-    "emergency_medical",
-]
+Benefit = str
 
 
 LineKind = Literal[

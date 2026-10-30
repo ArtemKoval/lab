@@ -89,7 +89,10 @@ def eligible_amount(line: Line, limits: Limits) -> CalculationStep:
 
 def benefit_maximum(contract: Contract, plan: Plan, benefit: Benefit) -> float:
     """Return the most the plan pays for a benefit, capped at the trip cost for
-    Trip Cancellation and Interruption."""
+    Trip Cancellation and Interruption. A benefit the schedule does not carry is
+    refused, as a wrong request rather than a server error."""
+    if benefit not in BENEFIT_MAXIMUM:
+        raise ValueError(f"The schedule carries no benefit called {benefit!r}")
     maximum: float = getattr(plan, BENEFIT_MAXIMUM[benefit])
     if benefit in ("trip_cancellation", "trip_interruption"):
         return min(maximum, contract.trip.trip_cost)

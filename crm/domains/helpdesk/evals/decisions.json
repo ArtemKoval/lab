@@ -1,0 +1,82 @@
+[
+  {
+    "case_id": "TCK-2001",
+    "decision": "approve",
+    "award": 140.0,
+    "over_approval_limit": false,
+    "worker_id": "SUP-02",
+    "decided_on": "2026-09-16",
+    "reason": "The status page names Ticket Desk and FastFix Agent down in US-West from 09:20 to 11:20, and this account is in the region, so the outage credit is two hours at $60. The first reply to ticket 8841 came outside the eight business hour target on Standard, so the flat $20 missed response credit applies. The total stays inside the $150 per-incident cap and below the $200 approval limit.",
+    "reference": "Support wording, sections 3 and 4",
+    "calculation": [
+      {
+        "step": "Outage credit, two hours at $60 an hour",
+        "amount": 120.0
+      },
+      {
+        "step": "Missed response target, one service credit",
+        "amount": 20.0
+      }
+    ],
+    "tests": "A routine outage ticket with complete records",
+    "difficulty": "routine",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  },
+  {
+    "case_id": "TCK-2002",
+    "decision": "approve",
+    "award": 400.0,
+    "over_approval_limit": true,
+    "worker_id": "SUP-01",
+    "decided_on": "2026-10-09",
+    "reason": "The status page shows the Sync Service down from 06:00 to 11:00 in US-Central, and the customer's monitoring export matches it, so the outage credit is five hours at $60. The ticket timeline shows the first engineer at 09:15 against a two hour around the clock target on Priority, so the flat $20 missed response credit applies. The plan's 1.5 multiplier takes the total to $480 and the $400 per-incident cap takes off the last $80. The credit is above $200, so payment needs a lead's sign-off.",
+    "reference": "Support wording, sections 1, 3, 4, 8 and 10",
+    "calculation": [
+      {
+        "step": "Outage credit, five hours at $60 an hour",
+        "amount": 300.0
+      },
+      {
+        "step": "Missed response target, one service credit",
+        "amount": 20.0
+      },
+      {
+        "step": "Priority multiplier of 1.5",
+        "amount": 160.0
+      },
+      {
+        "step": "Less the amount over the per-incident cap of $400",
+        "amount": -80.0
+      }
+    ],
+    "tests": "Credit arithmetic: the Priority multiplier and the per-incident cap in order, with sign-off",
+    "difficulty": "hard",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  },
+  {
+    "case_id": "TCK-2003",
+    "decision": "refer",
+    "award": 0.0,
+    "over_approval_limit": false,
+    "worker_id": "SUP-01",
+    "decided_on": "2026-10-16",
+    "reason": "On its own the ticket looks payable at $150: the status page confirms that Agent update 6.2 crashed Windows terminals from 08:00, which is a FastFix fault, and two and a half hours at $60 stays inside the $150 cap on Standard. It is the customer's third incident in six months, after tickets filed on May 20 and September 28, so it goes to a support lead for review before any credit, whatever its merits.",
+    "reference": "Support wording, section 9. Support manual, section 9",
+    "calculation": [],
+    "tests": "A rule found only in the manual: the third incident in six months goes to a lead. It needs the customer's case history",
+    "difficulty": "manual",
+    "failure_class": "",
+    "needs": [
+      "manual",
+      "history"
+    ],
+    "tone": "plain",
+    "tiny": true
+  }
+]
