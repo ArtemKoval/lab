@@ -485,9 +485,7 @@ def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
         raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
     contract = find_contract(db, case.contract_id)
     try:
-        award = rules().work_out_award(
-            contract, plans(db), request, approval_limit(db)
-        )
+        award = rules().work_out_award(contract, plans(db), request, approval_limit(db))
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     keep_calculation(db, case_id, case.thread_id, award)

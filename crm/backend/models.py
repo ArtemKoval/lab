@@ -4,9 +4,9 @@ from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import (
-    ConfigDict,
     AfterValidator,
     BaseModel,
+    ConfigDict,
     Field,
     StringConstraints,
 )

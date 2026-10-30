@@ -1,0 +1,54 @@
+[
+  {
+    "case_id": "TCK-2101",
+    "decision": "approve",
+    "award": 140.0,
+    "over_approval_limit": false,
+    "worker_id": "SUP-02",
+    "decided_on": "2026-09-16",
+    "reason": "The status page names Ticket Desk and FastFix Agent down in US-West from 09:20 to 11:20, and this account is in the region, so the outage credit is two hours at $60. The first reply to ticket 8841 came outside the eight business hour target on Standard, so the flat $20 missed response credit applies. The total stays inside the $150 per-incident cap and below the $200 approval limit.",
+    "reference": "Support wording, sections 3 and 4",
+    "calculation": [
+      {
+        "step": "Outage credit, two hours at $60 an hour",
+        "amount": 120.0
+      },
+      {
+        "step": "Missed response target, one service credit",
+        "amount": 20.0
+      }
+    ],
+    "tests": "A routine outage ticket with complete records",
+    "difficulty": "routine",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  },
+  {
+    "case_id": "TCK-2102",
+    "decision": "approve",
+    "award": 140.0,
+    "over_approval_limit": false,
+    "worker_id": "SUP-02",
+    "decided_on": "2026-09-16",
+    "reason": "The status page names Ticket Desk and FastFix Agent down in US-West from 09:20 to 11:20, and this account is in the region, so the outage credit is two hours at $60. The first reply to ticket 8841 came outside the eight business hour target on Standard, so the flat $20 missed response credit applies. The total stays inside the $150 per-incident cap and below the $200 approval limit.",
+    "reference": "Support wording, sections 3 and 4",
+    "calculation": [
+      {
+        "step": "Outage credit, two hours at $60 an hour",
+        "amount": 120.0
+      },
+      {
+        "step": "Missed response target, one service credit",
+        "amount": 20.0
+      }
+    ],
+    "tests": "A routine outage ticket with complete records",
+    "difficulty": "routine",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  }
+]

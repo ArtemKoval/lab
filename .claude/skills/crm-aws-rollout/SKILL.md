@@ -65,6 +65,8 @@ Run these from `crm/`:
 rm -rf target/lambda && mkdir -p target/lambda
 # copies the backend code into the build folder
 cp -r backend target/lambda/backend
+# copies the domains package: the backend reads the active pack from disk
+cp -r domains target/lambda/domains
 # writes the server dependency group, with Mangum and psycopg, for the zip
 uv export --only-group server --no-hashes --no-emit-project -o target/lambda/requirements.txt
 # installs the server packages into the build folder
@@ -72,6 +74,18 @@ uv pip install -r target/lambda/requirements.txt --target target/lambda
 # makes target/crm-app.zip
 cd target/lambda && zip -qr ../crm-app.zip . && cd ../..
 ```
+
+### 3b. The database seed
+
+The Lambda handler runs with `lifespan="off"`, so nothing seeds the
+database on deploy. From `crm/`, with `DATABASE_URL` set:
+
+```bash
+uv run --env-file .env -m backend.seed
+```
+
+Gate: the command prints the seeded counts. The human test in step 6
+fails on missing tables without it.
 
 ### 4. Deploy
 
@@ -88,24 +102,27 @@ cd target/lambda && zip -qr ../crm-app.zip . && cd ../..
    refuse requests without the `X-API-Key` header.
 4. Write the function URL into `crm/agentcore/.env.local` as `CRM_API`.
    The CDK stack gives it to the runtimes.
-5. Deploy the runtimes, from `crm/`: `uv run agentcore deploy`. The command
-   packages `runtime/main.py` as the agent runtime and `runtime/copilot.py`
-   as the copilot runtime. It deploys the CDK stack at
-   `crm/agentcore/cdk`. It asks for the three credential values of step 2.
-   It prints the addresses of the runtimes, the gateway, and the memory.
+5. Deploy the runtimes, from `crm/`. The `agentcore` CLI ships in the
+   `deploy` extra, not the base install: run `uv sync --extra deploy`
+   once. Then `uv run agentcore deploy`. The command packages
+   `runtime/main.py` as the agent runtime and `runtime/copilot.py` as the
+   copilot runtime. It deploys the CDK stack at `crm/agentcore/cdk`. It
+   asks for the three credential values of step 2. It prints the
+   addresses of the runtimes, the gateway, and the memory.
 
 ### 5. The variables
 
-Write the printed addresses into the variables, in `crm/.env` for the local
-tools, and in the environment of each service:
+The CDK deploy reads `crm/agentcore/.env.local` and gives the values to
+the runtimes. After the deploy prints the addresses:
 
-- `CRM_AGENT_RUNTIME`: the deployed agent runtime.
-- `CRM_COPILOT_RUNTIME`: the deployed copilot runtime.
-- `CRM_GATEWAY_URL`: the gateway address.
-- `CRM_MEMORY_ID`: the memory id.
-- `DATABASE_URL`: the database address of step 1.
-- `CRM_AGENT_KEY`: the agent key of step 2.
-- `AUTH_URL` and `VITE_AUTH_URL`: the address of the deployed auth service.
+1. Write `CRM_AGENT_RUNTIME`, `CRM_COPILOT_RUNTIME`, `CRM_GATEWAY_URL`,
+   and `CRM_MEMORY_ID` into `crm/agentcore/.env.local`.
+2. Run `uv run agentcore deploy` again, so the runtimes receive them.
+3. Set the function's own variables:
+   `aws lambda update-function-configuration --function-name crm-app --environment "variables={DATABASE_URL=<address of step 1>, CRM_AGENT_KEY=<key of step 2>, CRM_DOMAIN=<pack name>, CRM_AGENT_API=<function URL>}"`.
+4. Write the same values into `crm/.env` for the local tools, plus
+   `AUTH_URL` and `VITE_AUTH_URL`: the address of the deployed auth
+   service.
 
 ### 6. Smoke through the real address
 
@@ -127,7 +144,8 @@ The stop rule holds. Delete in the reverse order of Up:
    `crm/agentcore/.env.local`.
 2. Delete the runtimes, from `crm/`: `uv run agentcore destroy`. The
    command deletes the agent runtime, the copilot runtime, the gateway, and
-   the memory that the deploy made.
+   the memory that the deploy made. The CLI ships in the `deploy` extra
+   (`uv sync --extra deploy`) if it is gone from the venv.
 3. Delete the function URL:
    `aws lambda delete-function-url-config --function-name crm-app`.
 4. Delete the function:

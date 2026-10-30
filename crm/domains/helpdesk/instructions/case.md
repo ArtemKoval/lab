@@ -18,4 +18,4 @@ FastFix's credit rules are built into `calculate_award`. Which lines of the tick
 ## When you are done
 
 - You have recorded one decision with `record_decision`, which stands unless a lead sends the ticket back with a note. A resolution's credit is the one `calculate_award` worked out for the lines you judged covered, and the record keeps that calculation. An escalation's reason says what is needed and who should look at it.
-- Recording the decision is the last thing you do, so its reason carries your explanation. The system pays a resolved ticket, after a lead's sign-off when the credit is over $200.
+- Recording the decision is the last thing you do, so its reason carries your explanation. The system pays a resolved ticket, after a lead's sign-off when the credit is over the approval limit.

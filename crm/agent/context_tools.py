@@ -15,7 +15,7 @@ from agent.routes import Route, Target
 Query = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 DocumentName = Literal["wording", "manual"]
 RecordName = Literal["case", "contract", "previous_case"]
-PlanName = Literal["economy", "premium", "first"]
+PlanName = str
 # The context files an answer came from, each with its system, owner and review
 # date, and the lookup step a tool gives as its artifact.
 Sources = list[dict[str, str]]

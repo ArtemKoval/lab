@@ -13,7 +13,7 @@ topics:
     facts:
       - >-
         FastFix status page, incident INC-4082, September 14, 2026: Ticket Desk
-        and FastFix Agent down in the US-West region from 09:20 to 11:30. Cause:
+        and FastFix Agent down in the US-West region from 09:20 to 11:20. Cause:
         a failed database failover during a storage upgrade. All accounts in the
         region were affected.
       - >-
