@@ -1,0 +1,17 @@
+{
+  "name": "helpdesk",
+  "display_name": "FastFix IT Support",
+  "engine_api": 1,
+  "rules": "rules",
+  "settings": {
+    "award_approval_limit": 200.0
+  },
+  "documents": ["wording", "manual"],
+  "seed": {
+    "cases": "cases.json",
+    "customers": "customers.json",
+    "contracts": "contracts.json",
+    "workers": "workers.json",
+    "company": "company.json"
+  }
+}

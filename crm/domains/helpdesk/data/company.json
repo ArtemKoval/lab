@@ -1,0 +1,21 @@
+{
+  "name": "FastFix IT Support",
+  "currency": "USD",
+  "award_approval_limit": 200.0,
+  "case_filing_window_days": 30,
+  "repeat_case_review": {
+    "cases": 3,
+    "within_months": 6
+  },
+  "outage_credit_rate": {
+    "amount": 60.0,
+    "per": "hour of platform outage, or part of an hour, per contract"
+  },
+  "missed_response_credit": {
+    "amount": 20.0,
+    "per": "response target missed, per contract"
+  },
+  "response_grace_minutes": 5,
+  "wording_version": "2026.1",
+  "manual_version": "2026.1"
+}
