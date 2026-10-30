@@ -9,10 +9,17 @@ from fastapi.testclient import TestClient
 from openrouter import OpenRouter
 
 from backend import agent_service, auth, judge
+from backend.dashboard import DashboardFiles
+from backend.dashboard import mount as dashboard_mount
 from backend.database import engine, seed
+from backend.dependencies import API_KEY_HEADER
 from backend.main import app
+from backend.tests.dashboard_build import stand_in_build
 from backend.tests.judging import JUDGE_URL, answer
 from backend.tests.sign_in import AUTH_URL, PUBLIC_KEYS
+
+# The agent's API key in the tests, which the backend and the agent share.
+TEST_KEY = "test-agent-key-0123456789abcdefghijklmnop"
 
 
 @pytest.fixture(autouse=True)
@@ -27,9 +34,16 @@ def database(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def auth_keys(monkeypatch):
+def agent_key(monkeypatch):
+    """Give the backend and the agent the same API key in every test."""
+    monkeypatch.setenv("CRM_AGENT_KEY", TEST_KEY)
+    return TEST_KEY
+
+
+@pytest.fixture(autouse=True)
+def supabase_keys(monkeypatch):
     """Check sign-ins against the tests' own public key, in place of fetching
-    the auth service's."""
+    Supabase's."""
     monkeypatch.setenv("AUTH_URL", AUTH_URL)
     monkeypatch.setattr(jwt.PyJWKClient, "fetch_data", lambda _: PUBLIC_KEYS)
     auth.public_keys.cache_clear()
@@ -43,8 +57,13 @@ def judge_answers(monkeypatch):
 
     def answer_with(worker):
         transport = httpx.MockTransport(worker)
+        # With both clients its own, the SDK closes neither when the stand-in is
+        # collected; closing an async client it made runs asyncio.run, which
+        # takes the main thread's event loop away from the Lambda worker.
         stand_in = OpenRouter(
-            api_key="test-key", client=httpx.Client(transport=transport)
+            api_key="test-key",
+            client=httpx.Client(transport=transport),
+            async_client=httpx.AsyncClient(transport=transport),
         )
         monkeypatch.setattr(judge, "client", lambda: stand_in)
 
@@ -97,4 +116,26 @@ def agent_calls(agent_answers):
 
 @pytest.fixture
 def client():
+    """The backend, called as the agent's side calls it, with the agent's key."""
+    return TestClient(app, headers={API_KEY_HEADER: TEST_KEY})
+
+
+@pytest.fixture
+def dashboard():
+    """The backend, called as a worker's browser calls it, with no key."""
     return TestClient(app)
+
+
+@pytest.fixture
+def build(tmp_path, monkeypatch):
+    """Serve a stand-in for the dashboard's build in place of dashboard/dist."""
+    folder = stand_in_build(tmp_path / "dist")
+    monkeypatch.setattr(dashboard_mount, "app", DashboardFiles(directory=folder))
+    return folder
+
+
+@pytest.fixture
+def no_build(tmp_path, monkeypatch):
+    """Serve no build, as when dashboard/dist hasn't been built."""
+    unbuilt = DashboardFiles(directory=tmp_path / "dist", check_dir=False)
+    monkeypatch.setattr(dashboard_mount, "app", unbuilt)

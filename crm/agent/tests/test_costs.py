@@ -1,7 +1,5 @@
 """The cost of each model call and the time spent on each case, with their run."""
 
-import time
-
 import httpx
 import pytest
 
@@ -9,9 +7,10 @@ from agent import api, harness
 from agent.tests.dispatching import dispatch, new_dispatch
 from agent.tests.failures import fail_once
 from agent.tests.queue_setup import leave_waiting
-from agent.tests.records import case_of, model_calls_of, steps_of, work_times_of
+from agent.tests.records import case_of, model_calls_of, work_times_of
 from agent.tests.stubs import USAGE, call, decide, graph_on, stub, swarm
 from backend.tests.case_requests import sign_off
+from backend.tests.dashboard_reads import steps_of
 from backend.tests.run_requests import latest_dispatch
 
 
@@ -21,7 +20,7 @@ def test_each_model_call_and_spell_of_work_is_recorded(client):
     calls = model_calls_of("CLM-1001")
     assert [
         (c["input_tokens"], c["output_tokens"], c["cost"], c["run_id"]) for c in calls
-    ] == [(USAGE["prompt_tokens"], USAGE["completion_tokens"], USAGE["cost"], None)] * 2
+    ] == [(USAGE["prompt_tokens"], USAGE["completion_tokens"], USAGE["cost"], None)] * 3
     assert {c["thread_id"] for c in calls} == {thread_id}
     [spell] = work_times_of("CLM-1001")
     assert (spell["thread_id"], spell["run_id"]) == (thread_id, None)
@@ -33,7 +32,8 @@ def test_a_run_records_its_calls_and_spells_and_tags_its_traces(client, traces):
 
     run_id = latest_dispatch(client)["run_id"]
     for case_id in ("CLM-1001", "CLM-1003"):
-        assert [c["run_id"] for c in model_calls_of(case_id)] == [run_id] * 2
+        # The check's call, then the case agent's two.
+        assert [c["run_id"] for c in model_calls_of(case_id)] == [run_id] * 3
         assert [w["run_id"] for w in work_times_of(case_id)] == [run_id]
     assert [t["langfuse_tags"] for t in traces] == [[run_id], [run_id]]
 
@@ -51,38 +51,22 @@ def test_both_attempts_of_a_case_are_under_the_run(client):
 
     run_id = latest_dispatch(client)["run_id"]
     calls, spells = model_calls_of("CLM-1004"), work_times_of("CLM-1004")
-    assert [c["run_id"] for c in calls] == [run_id] * 3
+    assert [c["run_id"] for c in calls] == [run_id] * 5
     assert [s["run_id"] for s in spells] == [run_id] * 2
     first, second = (s["thread_id"] for s in spells)
     assert first != second
-    assert [c["thread_id"] for c in calls] == [first, second, second]
+    # Each attempt is checked first.
+    assert [c["thread_id"] for c in calls] == [first, first, second, second, second]
 
 
-class MovedClock:
-    """The harness's clock, which a test can move on, as if time had passed."""
-
-    def __init__(self):
-        self.moved = 0.0
-
-    def monotonic(self):
-        return time.monotonic() + self.moved
-
-
-def test_the_wait_for_a_sign_off_isnt_counted(client, monkeypatch):
-    clock = MovedClock()
-    monkeypatch.setattr(harness, "time", clock)
+def test_a_held_case_has_one_spell_and_its_sign_off_adds_none(client):
     run_id = new_dispatch()["run_id"]
-    graph = graph_on(stub(*decide("approve", 1350.0)))
-    harness.work_case("CLM-1002", run_id, graph)
-    wait = 3600
-    clock.moved += wait
+    harness.work_case("CLM-1002", run_id, graph_on(stub(*decide("approve", 1350.0))))
     sign_off(client, "CLM-1002")
-    harness.carry_on("CLM-1002", None, graph)
 
     assert case_of(client, "CLM-1002")["status"] == "decided"
-    spells = work_times_of("CLM-1002")
-    assert [s["run_id"] for s in spells] == [run_id, None]
-    assert sum(s["seconds"] for s in spells) < 1
+    [spell] = work_times_of("CLM-1002")
+    assert spell["run_id"] == run_id
 
 
 def test_a_failed_recording_still_settles_the_case(client, monkeypatch):

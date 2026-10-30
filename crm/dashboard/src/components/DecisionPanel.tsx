@@ -27,7 +27,6 @@ export function DecisionPanel({
   onSignedOff,
 }: Readonly<{ entry: Case; onSignedOff: () => void }>) {
   const { decision, payment } = entry;
-  const signedOff = decision && whoAndWhen(decision);
   const paidSignedOff = payment && whoAndWhen(payment);
 
   return (
@@ -56,10 +55,7 @@ export function DecisionPanel({
       {decision?.decision === "approve" &&
         !payment &&
         entry.status === "in_progress" && (
-          <p className="payment">
-            {signedOff && `Signed off by ${signedOff}. `}
-            Waiting for the agent to pay it.
-          </p>
+          <p className="payment">Waiting for the agent to pay it.</p>
         )}
       {decision && entry.status === "waiting_for_sign_off" && (
         <HeldPayment

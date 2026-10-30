@@ -44,23 +44,20 @@ def traces(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def no_waits(monkeypatch):
-    """Take the waits out of the dispatcher's RetryContract, keeping its tries, so the
-    tests never sleep through the backoff. Returns the real contract."""
+    """Take the waits out of the dispatcher's RetryContract and the check's, keeping
+    their tries, so the tests never sleep through the backoff. Returns the
+    dispatcher's real contract."""
     real = dispatcher.RETRY
     monkeypatch.setattr(
         dispatcher, "RETRY", real._replace(initial_interval=0, jitter=False)
     )
+    check = harness.SCREEN_RETRY._replace(initial_interval=0, jitter=False)
+    monkeypatch.setattr(harness, "SCREEN_RETRY", check)
     return real
 
 
 @pytest.fixture
-def versions_served():
-    """The versions the agent's service built case agents for, in order."""
-    return []
-
-
-@pytest.fixture
-def serve(versions_served):
+def serve():
     """Run the agent's service, without its lifespan, with each version's case
     agents on a stub model, given the version's instructions, whose graphs share a
     saver."""
@@ -69,7 +66,6 @@ def serve(versions_served):
         saver = saver or InMemorySaver()
 
         def case_agents(version):
-            versions_served.append(version["number"])
             return partial(graph_on, model, saver, version["instructions"])
 
         service.app.dependency_overrides[service.case_agents] = lambda: case_agents
@@ -81,12 +77,10 @@ def serve(versions_served):
 
 @dataclass
 class HeldRun:
-    """A run the service is working, held open until the test releases it, and the
-    cases being resumed that the service handed the dispatcher."""
+    """A run the service is working, held open until the test releases it."""
 
     working: threading.Event = field(default_factory=threading.Event)
     release: threading.Event = field(default_factory=threading.Event)
-    resuming: list[set[str]] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -98,11 +92,10 @@ def hold_runs(monkeypatch):
         held = HeldRun()
         work_run = service.work_run
 
-        def hold(run, work, resuming):
-            held.resuming.append(resuming)
+        def hold(run, work):
             held.working.set()
             held.release.wait(5)
-            return work_run(run, work, resuming)
+            return work_run(run, work)
 
         monkeypatch.setattr(service, "work_run", hold)
         return held
@@ -117,14 +110,13 @@ def held_run(hold_runs):
 
 
 @pytest.fixture
-def serve_rounds(versions_served):
+def serve_rounds():
     """Run the agent's service, without its lifespan, with a stub improver and stub
     case agents for each version, which save their progress in memory."""
     saver = InMemorySaver()
 
     def with_models(improver_model, case_model):
         def case_agents(version):
-            versions_served.append(version["number"])
             return partial(graph_on, case_model, saver, version["instructions"])
 
         workers = service.RoundWorkers(case_agents, lambda round: improver_model, saver)

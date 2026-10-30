@@ -2,19 +2,11 @@
 
 from sqlalchemy import select
 
-from backend.database import engine, model_calls, work_times
+from backend.database import engine, model_calls, payments, work_times
 
 
 def case_of(client, case_id):
     return client.get(f"/api/cases/{case_id}").json()
-
-
-def steps_of(client, case_id):
-    return client.get(f"/api/cases/{case_id}/steps").json()
-
-
-def evaluations(client):
-    return client.get("/api/evaluations").json()
 
 
 def rows_of(table, case_id):
@@ -31,3 +23,7 @@ def model_calls_of(case_id):
 
 def work_times_of(case_id):
     return rows_of(work_times, case_id)
+
+
+def payments_of(case_id):
+    return rows_of(payments, case_id)

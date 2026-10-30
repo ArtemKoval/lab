@@ -8,9 +8,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from agent import api, harness
 from agent.connection import Refused
-from agent.tests.records import case_of, steps_of
+from agent.tests.records import case_of, payments_of
 from agent.tests.stubs import (
     INSTRUCTIONS,
+    PASSED,
     StubModel,
     call,
     decide,
@@ -18,6 +19,8 @@ from agent.tests.stubs import (
     record,
     stub,
 )
+from backend.tests.case_requests import sign_off
+from backend.tests.dashboard_reads import steps_of
 from backend.tests.settings_requests import change_settings
 
 
@@ -33,22 +36,24 @@ def test_the_graph():
     graph = graph_on(stub()).get_graph()
     assert set(graph.nodes) == {
         "__start__",
+        "screen",
+        "refer",
         "agent",
         "tools",
-        "wait_for_sign_off",
         "pay",
         "__end__",
     }
     edges = {(e.source, e.target, e.conditional) for e in graph.edges}
     assert edges == {
-        ("__start__", "agent", False),
+        ("__start__", "screen", False),
+        ("screen", "refer", True),
+        ("screen", "agent", True),
+        ("refer", "__end__", False),
         ("agent", "tools", True),
         ("agent", "__end__", True),
         ("tools", "agent", True),
-        ("tools", "wait_for_sign_off", True),
         ("tools", "pay", True),
         ("tools", "__end__", True),
-        ("wait_for_sign_off", "pay", False),
         ("pay", "__end__", False),
     }
 
@@ -72,14 +77,18 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
     assert case["payment"]["amount"] == 420.0
     assert len(case["thread_id"]) == 36
 
-    steps = steps_of(client, "CLM-1001")
+    check, *steps = steps_of(client, "CLM-1001")
+    assert (check["kind"], check["content"]) == (
+        "screening",
+        f"No instructions found. {PASSED}",
+    )
     assert [s["kind"] for s in steps] == ["tool_call", "tool_result"] * 4
     assert steps[0]["content"] == "get_case()"
     assert steps[1]["content"].startswith('get_case: {"case_id": "CLM-1001"')
     assert steps[6]["content"].startswith("record_decision(")
     assert steps[7]["content"].startswith('record_decision: {"case_id": "CLM-1001"')
     assert "pay_case" not in "".join(s["content"] for s in steps)
-    assert {s["thread_id"] for s in steps} == {case["thread_id"]}
+    assert {s["thread_id"] for s in [check, *steps]} == {case["thread_id"]}
 
 
 def test_the_case_agent_reads_its_instructions_then_its_case(client):
@@ -91,18 +100,25 @@ def test_the_case_agent_reads_its_instructions_then_its_case(client):
     assert first.content == "Case CLM-1003"
 
 
-def test_pauses_before_a_award_over_the_limit(client):
+def test_a_award_held_for_sign_off_ends_the_cases_work(client, monkeypatch):
+    paid = []
+    monkeypatch.setattr(api, "pay_case", lambda *payment: paid.append(payment))
     model = stub(*decide("approve", 1350.0))
     graph = graph_on(model)
     report = harness.work_case("CLM-1002", None, graph)
     assert report == "CLM-1002  approve  $1,350.00, waiting for sign-off"
     assert len(model.prompts) == 2
-
-    state = state_of(graph, client, "CLM-1002")
-    assert state.next == (harness.PAUSE,)
-    assert len(state.interrupts) == 1
+    assert state_of(graph, client, "CLM-1002").next == ()
     case = case_of(client, "CLM-1002")
     assert (case["status"], case["payment"]) == ("waiting_for_sign_off", None)
+
+    sign_off(client, "CLM-1002")
+    steps = steps_of(client, "CLM-1002")
+    assert harness.carry_on("CLM-1002", None, graph) == "CLM-1002  approve  $1,350.00"
+    assert paid == []
+    assert len(model.prompts) == 2
+    assert steps_of(client, "CLM-1002") == steps
+    assert [p["amount"] for p in payments_of("CLM-1002")] == [1350.0]
 
 
 def test_the_graph_follows_the_backend_on_the_limit(client):
@@ -151,7 +167,7 @@ def test_reading_a_section_is_recorded(client):
     )
     work("CLM-1004", model)
 
-    steps = [(s["kind"], s["content"]) for s in steps_of(client, "CLM-1004")]
+    _, *steps = [(s["kind"], s["content"]) for s in steps_of(client, "CLM-1004")]
     assert steps[0] == (
         "tool_call",
         'read_section(document="manual", number=9)',
@@ -208,7 +224,8 @@ def test_working_out_the_award(client):
         *decide("approve", 420.0),
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
-    result = steps_of(client, "CLM-1001")[1]
+    # After the check's step and the call.
+    result = steps_of(client, "CLM-1001")[2]
     assert result["kind"] == "tool_result"
     content = result["content"].removeprefix("calculate_award: ")
     assert json.loads(content)["award"] == 420.0

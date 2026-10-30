@@ -15,9 +15,10 @@ from agent import api, dispatcher, harness
 from agent.tests.dispatching import dispatch
 from agent.tests.failures import fail_once
 from agent.tests.queue_setup import leave_waiting
-from agent.tests.records import case_of, steps_of, work_times_of
+from agent.tests.records import case_of, work_times_of
 from agent.tests.stubs import call, decide, graph_on, record, stub, swarm
 from backend.tests.case_requests import sign_off
+from backend.tests.dashboard_reads import steps_of
 from backend.tests.run_requests import latest_dispatch
 
 
@@ -142,7 +143,8 @@ def test_a_case_that_fails_is_tried_once_more_in_the_same_dispatch(client):
     again = case_of(client, "CLM-1001")
     assert (again["status"], again["attempts"]) == ("decided", 2)
     steps = steps_of(client, "CLM-1001")
-    assert steps[0]["kind"] == "error"
+    # Each attempt starts with the check.
+    assert [s["kind"] for s in steps[:3]] == ["screening", "error", "screening"]
     assert steps[-1]["thread_id"] == again["thread_id"] != steps[0]["thread_id"]
     left = case_of(client, "CLM-1004")
     assert (left["status"], left["attempts"]) == ("left_for_worker", 2)
@@ -230,28 +232,15 @@ def test_a_dispatch_stopped_partway_is_finished_by_the_next(client):
     assert {c["status"] for c in stopped.values()} == {"in_progress"}
     sign_off(client, "CLM-1002")
 
+    # The sign-off paid CLM-1002, so the next dispatch leaves it alone.
     reports = dispatch(model, saver, agents=2)
-    assert sorted(reports) == [
-        "CLM-1001  refer  $0.00",
-        "CLM-1002  approve  $1,350.00",
-        "CLM-1003  decline  $0.00",
-    ]
+    assert sorted(reports) == ["CLM-1001  refer  $0.00", "CLM-1003  decline  $0.00"]
     for case_id, before in stopped.items():
         case = case_of(client, case_id)
         assert (case["status"], case["attempts"]) == ("decided", 1)
         assert case["thread_id"] == before["thread_id"]
     paid = case_of(client, "CLM-1002")["payment"]
     assert (paid["amount"], paid["signed_off_by"]) == (1350.0, "Dana Whitfield")
-
-
-def test_a_dispatch_leaves_a_case_being_resumed_alone(client):
-    leave_waiting("CLM-1001", "CLM-1002")
-    harness.work_case("CLM-1002", None, graph_on(stub(*decide("approve", 1350.0))))
-    sign_off(client, "CLM-1002")
-    dispatch(swarm({"CLM-1001": decide("refer", 0)}), resuming={"CLM-1002"})
-
-    assert [c["case_id"] for c in latest_dispatch(client)["cases"]] == ["CLM-1001"]
-    assert case_of(client, "CLM-1002")["status"] == "in_progress"
 
 
 def test_an_approval_whose_payment_failed_is_paid_by_the_next_dispatch(

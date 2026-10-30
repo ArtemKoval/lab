@@ -1,4 +1,4 @@
-"""Workers sign in through the auth service, and the backend checks the worker on
+"""Workers sign in through Supabase Auth, and the backend checks the worker on
 every action a worker takes."""
 
 import jwt
@@ -8,28 +8,8 @@ from sqlalchemy import select
 from backend import auth
 from backend.database import engine, load, metadata, workers
 from backend.tests.case_requests import decide, start
-from backend.tests.settings_requests import STARTING
+from backend.tests.gates import WORKER_OPERATIONS
 from backend.tests.sign_in import AUTH_URL, DANA, OTHER_KEY, signed_in
-
-ROUND = "/api/improvement/rounds/round-1"
-PROPOSAL = f"{ROUND}/proposals/proposal-1"
-
-# Every operation a worker takes, with a body it would accept.
-WORKER_ACTIONS = {
-    "get_signed_in_worker": ("GET", "/api/me", None),
-    "sign_off_case": ("POST", "/api/cases/CLM-1002/sign-off", None),
-    "start_dispatch": ("POST", "/api/dispatches", {"agents": 3}),
-    "start_evaluation": (
-        "POST",
-        "/api/evaluations",
-        {"evaluation_set": "held_out", "tiny": True, "agents": 5},
-    ),
-    "change_settings": ("PUT", "/api/settings", STARTING),
-    "start_round": ("POST", "/api/improvement/rounds", None),
-    "stop_round": ("POST", f"{ROUND}/stop", None),
-    "approve_proposal": ("POST", f"{PROPOSAL}/approval", None),
-    "reject_proposal": ("POST", f"{PROPOSAL}/rejection", {"reason": "Too broad"}),
-}
 
 NOT_SIGNED_IN = {
     "no token": {},
@@ -74,7 +54,7 @@ def test_an_out_of_reach_auth_service_isnt_a_bad_sign_in(client, monkeypatch):
     refused = client.get("/api/me", headers=signed_in(DANA))
     assert (refused.status_code, refused.json()["detail"]) == (
         503,
-        "Sign-in can't be checked: the auth service is out of reach",
+        "Sign-in can't be checked: Supabase is out of reach",
     )
 
 
@@ -86,21 +66,16 @@ def test_a_sign_in_that_isnt_a_workers_is_refused(client):
     )
 
 
-def test_these_are_every_operation_that_needs_a_worker(client):
-    schema = client.get("/openapi.json").json()
-    secured = {
-        operation["operationId"]
-        for operations in schema["paths"].values()
-        for operation in operations.values()
-        if operation.get("security")
-    }
-    assert secured == set(WORKER_ACTIONS)
-
-
 @pytest.mark.parametrize(
-    ("method", "path", "body"), WORKER_ACTIONS.values(), ids=WORKER_ACTIONS.keys()
+    ("method", "path", "body"),
+    WORKER_OPERATIONS.values(),
+    ids=WORKER_OPERATIONS.keys(),
 )
-def test_every_worker_action_needs_a_sign_in(client, agent_calls, method, path, body):
+def test_every_worker_operation_needs_a_sign_in_and_the_key_wont_do(
+    client, agent_calls, method, path, body
+):
+    """The client sends the agent's key with every request, which never stands in
+    for a worker."""
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 1350.0)
     before = everything_recorded()
@@ -125,7 +100,7 @@ def test_seeding_stores_each_workers_email_and_who_can_sign_off_over_the_limit()
     assert [can for _, _, can in seeded] == [True, False, False]
 
 
-def test_the_public_keys_are_fetched_from_the_auth_service():
+def test_the_public_keys_are_fetched_from_the_supabase_project():
     keys = auth.public_keys()
     assert keys.uri == f"{AUTH_URL}/jwks.json"
     assert auth.public_keys() is keys

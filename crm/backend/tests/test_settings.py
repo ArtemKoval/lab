@@ -2,15 +2,24 @@
 
 import pytest
 
-from backend.database import award_rules, engine, load, models_allowed, seed, settings
+from backend.database import (
+    award_rules,
+    engine,
+    load,
+    models_allowed,
+    payments,
+    seed,
+    settings,
+)
 from backend.tests.case_requests import decide, pay, sign_off, start
+from backend.tests.dashboard_reads import settings_page
 from backend.tests.rows import count
 from backend.tests.settings_requests import STARTING, change_settings
 from backend.tests.sign_in import MARCUS
 
 
 def test_seeding_makes_the_first_settings_and_the_models_allowed(client):
-    page = client.get("/api/settings").json()
+    page = settings_page(client)
     current = page["current"]
     assert {key: current[key] for key in STARTING} == STARTING
     assert (current["number"], current["changed_by"]) == (1, None)
@@ -22,7 +31,7 @@ def test_seeding_makes_the_first_settings_and_the_models_allowed(client):
 def test_a_student_on_a_free_model_has_only_that_model(client, monkeypatch):
     monkeypatch.setenv("MODEL_NAME", "openrouter/free")
     seed(engine())
-    assert client.get("/api/settings").json()["models_allowed"] == [
+    assert settings_page(client)["models_allowed"] == [
         {
             "model": "openrouter/free",
             "reasoning_efforts": ["default"],
@@ -35,7 +44,7 @@ def test_a_student_on_a_free_model_has_only_that_model(client, monkeypatch):
 def test_a_senior_worker_changes_the_settings(client):
     response = change_settings(client, spending_limit=0.75)
     assert response.status_code == 200
-    page = client.get("/api/settings").json()
+    page = settings_page(client)
     current = page["current"]
     assert (current["number"], current["spending_limit"]) == (2, 0.75)
     assert current["changed_by"] == "Dana Whitfield"
@@ -108,5 +117,18 @@ def test_a_award_held_names_the_limit_it_was_held_under(client):
     assert refused.json()["detail"] == (
         "An award over $1,000.00 needs a worker's sign-off"
     )
-    assert sign_off(client, "CLM-1002").status_code == 200
-    assert pay(client, "CLM-1002", 1350.0).json()["status"] == "decided"
+    paid = sign_off(client, "CLM-1002").json()
+    assert (paid["status"], paid["payment"]["amount"]) == ("decided", 1350.0)
+    assert count(payments) == 1
+
+
+def test_a_lower_limit_holds_an_approval_not_yet_paid(client):
+    """A known gap: the payment checks the limit in force before it reads the
+    case, and only a award held when it was decided can be signed off, so an
+    approval left unpaid when the limit drops below it waits for a worker."""
+    start(client, "CLM-1001")
+    decide(client, "CLM-1001", "approve", 420.0)
+    change_settings(client, approval_limit=300.0)
+    assert pay(client, "CLM-1001", 420.0).status_code == 403
+    assert sign_off(client, "CLM-1001").status_code == 409
+    assert client.get("/api/cases/CLM-1001").json()["status"] == "in_progress"

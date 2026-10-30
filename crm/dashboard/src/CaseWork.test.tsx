@@ -165,7 +165,9 @@ it("shows the sections read once each, and failed attempts", async () => {
 
 it("lists no sections when the agent has read none", async () => {
   showCase(approved, steps);
-  expect(await screen.findByText('get_case(case_id="CLM-1002")')).toBeDefined();
+  expect(
+    await screen.findByText('get_case(case_id="CLM-1002")'),
+  ).toBeDefined();
   expect(screen.queryByText("Sections read")).toBeNull();
 });
 
@@ -219,7 +221,9 @@ it("shows a decline without an award", async () => {
 
 it("shows each kind of step, with results folded", async () => {
   showCase(approved, steps);
-  expect(await screen.findByText('get_case(case_id="CLM-1002")')).toBeDefined();
+  expect(
+    await screen.findByText('get_case(case_id="CLM-1002")'),
+  ).toBeDefined();
   const result = screen.getAllByText(/^get_case: /)[0].closest("details");
   expect(result?.open).toBe(false);
   expect(result?.querySelector("summary")?.textContent).toMatch(/\.\.\.$/);
@@ -247,29 +251,26 @@ it("shows new steps and the decision as the agent works", async () => {
   expect(screen.getAllByText("Decided").length).toBeGreaterThan(0);
 });
 
-it("lets a worker sign off a held payment as themselves", async () => {
+it("lets a worker sign off a held payment as themselves, which pays it", async () => {
   const { routes, fetchMock } = showCase(held);
   const panel = await decisionPanel();
   expect(panel.getByText(/waits for a worker's sign-off/)).toBeDefined();
   expect(panel.queryByRole("combobox")).toBeNull();
 
-  const signedOff: Case = {
+  const signOff = { signed_off_by: "Dana Whitfield", signed_off_at: decidedAt };
+  const paid: Case = {
     ...held,
-    status: "in_progress",
-    decision: {
-      ...approval,
-      award: 1350,
-      signed_off_by: "Dana Whitfield",
-      signed_off_at: decidedAt,
-    },
+    status: "decided",
+    decision: { ...approval, award: 1350, ...signOff },
+    payment: { amount: 1350, paid_at: decidedAt, ...signOff },
   };
-  routes["POST /api/cases/CLM-1002/sign-off"] = signedOff;
-  routes["GET /api/cases/CLM-1002"] = signedOff;
+  routes["POST /api/cases/CLM-1002/sign-off"] = paid;
+  routes["GET /api/cases/CLM-1002"] = paid;
   fireEvent.click(panel.getByRole("button", { name: "Sign off" }));
 
-  const waiting = await panel.findByText(/Signed off by Dana Whitfield/);
-  expect(waiting.textContent).toBe(
-    `Signed off by Dana Whitfield at ${time(decidedAt)}. Waiting for the agent to pay it.`,
+  const payment = await panel.findByText(/^Paid/);
+  expect(payment.textContent).toBe(
+    `Paid $1,350.00, signed off by Dana Whitfield at ${time(decidedAt)}`,
   );
   expect(sent(fetchMock, "POST /api/cases/CLM-1002/sign-off")).toEqual([
     undefined,
@@ -301,4 +302,24 @@ it("shows why a sign-off was refused", async () => {
   expect((await panel.findByRole("alert")).textContent).toBe(
     "Case CLM-1002 is not waiting for sign-off",
   );
+});
+
+it("shows the security check as the first step", async () => {
+  showCase({ ...entry, status: "in_progress", thread_id: "t-1" }, [
+    {
+      step_id: 1,
+      thread_id: "t-1",
+      kind: "screening",
+      content: "No instructions found. The case describes a delayed flight.",
+      created_at: decidedAt,
+    },
+    ...steps,
+  ]);
+  const check = await screen.findByText("Security check");
+  expect(check.parentElement?.textContent).toBe(
+    "Security check No instructions found. The case describes a delayed flight.",
+  );
+  const [first] = (await panel("Agent at work")).getAllByRole("listitem");
+  expect(first.textContent).toContain("Security check");
+  expect(first.querySelector("svg.lucide-shield")).not.toBeNull();
 });

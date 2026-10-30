@@ -1,40 +1,37 @@
-// The workers the end-to-end tests sign in as, read from the active pack so
-// the identities stay the pack's own, with the password the Auth stand-in
-// signs every worker in with, and where each one's signed-in browser storage
-// is kept for the tests.
-import { readFileSync } from "node:fs";
+import { type APIRequestContext, expect } from "@playwright/test";
+import { AUTH_STAND_IN } from "./servers";
 
+// The workers the end-to-end tests sign in as, with the password the Auth
+// stand-in signs every worker in with, and where each one's signed-in browser
+// storage is kept for the tests.
 export const TEST_PASSWORD = "e2e-worker-password";
 
-interface PackWorker {
-  worker_id: string;
-  name: string;
-  email: string;
-}
-
-const pack_workers = JSON.parse(
-  readFileSync("domains/insurance/data/workers.json", "utf8"),
-) as PackWorker[];
-
-const STORAGE: Record<string, string> = {
-  "dana.whitfield@undercover.example": "e2e/.auth/dana.json",
-  "marcus.oyelaran@undercover.example": "e2e/.auth/marcus.json",
-  "priya.raman@undercover.example": "e2e/.auth/priya.json",
+export const WORKERS = {
+  dana: {
+    worker_id: "HND-01",
+    name: "Dana Whitfield",
+    email: "dana.whitfield@crm.example",
+    storage: "e2e/.auth/dana.json",
+  },
+  marcus: {
+    worker_id: "HND-02",
+    name: "Marcus Oyelaran",
+    email: "marcus.oyelaran@crm.example",
+    storage: "e2e/.auth/marcus.json",
+  },
 };
 
-function key_of(email: string): string {
-  return email.split("@")[0].split(".")[0];
+// Signs a worker in through the Auth stand-in, as the dashboard does, and
+// returns the headers of a request from them.
+export async function signedInAs(
+  request: APIRequestContext,
+  worker: { email: string },
+) {
+  const response = await request.post(
+    `${AUTH_STAND_IN}/auth/v1/token?grant_type=password`,
+    { data: { email: worker.email, password: TEST_PASSWORD } },
+  );
+  await expect(response).toBeOK();
+  const { access_token } = (await response.json()) as { access_token: string };
+  return { Authorization: `Bearer ${access_token}` };
 }
-
-export const WORKERS = Object.fromEntries(
-  pack_workers.map((worker) => [
-    key_of(worker.email),
-    {
-      worker_id: worker.worker_id,
-      name: worker.name,
-      email: worker.email,
-      storage:
-        STORAGE[worker.email] ?? `e2e/.auth/${key_of(worker.email)}.json`,
-    },
-  ]),
-);

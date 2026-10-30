@@ -1,4 +1,7 @@
-"""Requests the backend's tests send to record runs, as the agent's service does."""
+"""Requests the backend's tests send to record runs, as the agent's service does, and
+to read them, as the dashboard does."""
+
+from backend.tests.dashboard_reads import read
 
 
 def create_dispatch(client, agents=3):
@@ -21,7 +24,7 @@ def finish(client, run_id):
 
 
 def latest_dispatch(client):
-    return client.get("/api/dispatches/latest").json()
+    return read(client, "/api/dispatches/latest").json()
 
 
 def create_evaluation(client, evaluation_set="held_out", tiny=True, agents=5):
@@ -32,7 +35,7 @@ def create_evaluation(client, evaluation_set="held_out", tiny=True, agents=5):
 
 
 def get_evaluation(client, run_id):
-    return client.get(f"/api/evaluations/{run_id}").json()
+    return read(client, f"/api/evaluations/{run_id}").json()
 
 
 def queue(client):

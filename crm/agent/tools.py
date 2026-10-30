@@ -29,19 +29,28 @@ def keep_last(_: Any, new: Any) -> Any:
 
 
 class CaseState(TypedDict):
-    """What the case graph keeps for one case, saved after every step. The decision
-    and the case's status are as the backend recorded them, and empty until then."""
+    """What the case graph keeps for one case, saved after every step: the check
+    for hidden instructions' result, its reason and instructions_found, empty until
+    the check has run, and the decision and the case's status as the backend
+    recorded them, empty until then."""
 
     messages: Annotated[list[AnyMessage], add_messages]
     model_calls: Annotated[int, operator.add]
+    screening: Annotated[dict[str, Any], keep_last]
     decision: Annotated[dict[str, Any], keep_last]
     status: Annotated[str, keep_last]
+
+
+def case_as_read(case_id: str) -> str:
+    """A case in full, as the case agent reads it, which is also what the check for
+    hidden instructions reads."""
+    return as_json(api.get_case(case_id))
 
 
 @tool
 def get_case(runtime: ToolRuntime[CaseContext]) -> str:
     """Get your case in full: the story, the items claimed and the documents."""
-    return as_json(api.get_case(runtime.context.case_id))
+    return case_as_read(runtime.context.case_id)
 
 
 @tool

@@ -1,6 +1,6 @@
 """The CRM database, seeded from the business data in data/.
 
-The same tables and queries serve Postgres at DATABASE_URL, when it is set, and
+The same tables and queries serve Postgres on Supabase, when DATABASE_URL is set, and
 SQLite otherwise, as in the tests.
 """
 
@@ -42,7 +42,6 @@ from backend.models import (
 from domains import loader
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "data"
 DOCUMENTS = {"wording": "Contract wording", "manual": "Cases manual"}
 # Version 1 is kept from the start, so the current version is the newest kept.
 FIRST_VERSION = {
@@ -332,7 +331,7 @@ work_times = Table(
 
 class LabeledSet(NamedTuple):
     """A set of cases our workers have decided: the table its cases are kept in,
-    and the file in data/evals/ with the workers' decisions, which only seeding
+    and the eval file with the workers' decisions, which only seeding
     reads."""
 
     cases: Table
@@ -396,10 +395,23 @@ def on_postgres(url: URL) -> bool:
     return url.get_backend_name() == "postgresql"
 
 
+def on_lambda() -> bool:
+    """Say whether the backend runs on AWS Lambda, which sets this for every
+    function."""
+    return "AWS_LAMBDA_FUNCTION_NAME" in os.environ
+
+
 @cache
-def engine_for(url: URL) -> Engine:
-    """Open a database: Postgres with at most CONNECTIONS connections, waiting up to
-    CONNECTION_WAIT seconds for one, or SQLite with a connection for each request."""
+def engine_for(url: URL, for_lambda: bool) -> Engine:
+    """Open a database: on Lambda, Postgres with a connection for each request and
+    no prepared statements, for Supabase's transaction pooler, since each copy of
+    the function would keep its own pool; elsewhere Postgres with at most
+    CONNECTIONS connections, waiting up to CONNECTION_WAIT seconds for one, or
+    SQLite with a connection for each request."""
+    if on_postgres(url) and for_lambda:
+        return create_engine(
+            url, poolclass=NullPool, connect_args={"prepare_threshold": None}
+        )
     if on_postgres(url):
         return create_engine(
             url,
@@ -413,7 +425,7 @@ def engine_for(url: URL) -> Engine:
 
 def engine() -> Engine:
     """Return the backend's database."""
-    return engine_for(database_url())
+    return engine_for(database_url(), on_lambda())
 
 
 def location(db: Engine) -> str:
@@ -431,6 +443,12 @@ def is_seeded(db: Engine) -> bool:
 def load(name: str) -> Any:
     """Read one of the JSON files in the pack data folder."""
     return loader.pack().load_json(name)
+
+
+def queue_records(name: str) -> list[dict[str, Any]]:
+    """Read the queue's records of one kind: those in data/ and the security team's
+    in data/security/, whose worker's decision is never seeded."""
+    return load(name) + load(f"security/{name}")
 
 
 def waiting_case(record: dict[str, Any], **columns: Any) -> dict[str, Any]:
@@ -451,9 +469,9 @@ def seed(db: Engine) -> dict[str, int]:
     active = loader.pack()
     company = active.load_json("company.json")
     worker_rows = load("workers.json")
-    customer_rows = load("customers.json")
-    contract_rows = load("contracts.json")
-    case_rows = load("cases.json")
+    customer_rows = queue_records("customers.json")
+    contract_rows = queue_records("contracts.json")
+    case_rows = queue_records("cases.json")
     with db.begin() as connection:
         if on_postgres(db.url):
             connection.execute(CreateSchema(SCHEMA, if_not_exists=True))

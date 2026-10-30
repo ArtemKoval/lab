@@ -10,6 +10,7 @@ from backend.tests.case_requests import (
     sign_off,
     start,
 )
+from backend.tests.dashboard_reads import read
 from backend.tests.run_requests import (
     create_dispatch,
     dispatch_of,
@@ -20,7 +21,7 @@ from backend.tests.run_requests import (
 
 
 def test_no_dispatch_yet(client):
-    response = client.get("/api/dispatches/latest")
+    response = read(client, "/api/dispatches/latest")
     assert response.status_code == 200
     assert response.json() is None
 
@@ -112,7 +113,7 @@ def test_each_case_shows_where_it_stands_with_its_cost_and_time(client):
 
 def test_finishing_a_dispatch_sums_up_its_cases(client):
     started = ["CLM-1001", "CLM-1003", "CLM-1004", "CLM-1008", "CLM-1016"]
-    started += ["CLM-1012", "CLM-1002"]
+    started += ["CLM-1012", "CLM-1002", "CLM-1006"]
     run_id = dispatch_of(client, *started, "CLM-1005")
     for case_id in started:
         start(client, case_id)
@@ -126,18 +127,20 @@ def test_finishing_a_dispatch_sums_up_its_cases(client):
     fail(client, "CLM-1016")
     decide(client, "CLM-1002", "approve", 1350.0)
     sign_off(client, "CLM-1002")
+    decide(client, "CLM-1006", "approve", 300.0)
 
     dispatch = finish(client, run_id).json()
     assert dispatch["status"] == "finished"
     assert dispatch["finished_at"]
     assert dispatch["seconds"] >= 0
+    # CLM-1002's sign-off paid it; CLM-1006's approval isn't paid yet.
     assert dispatch["summary"] == {
-        "approved": 2,
+        "approved": 3,
         "declined": 1,
         "referred": 1,
         "waiting_for_sign_off": [{"case_id": "CLM-1008", "award": 2240.0}],
         "left_for_worker": ["CLM-1016"],
-        "unfinished": ["CLM-1012", "CLM-1002", "CLM-1005"],
+        "unfinished": ["CLM-1012", "CLM-1006", "CLM-1005"],
     }
     assert latest_dispatch(client) == dispatch
     again = finish(client, run_id)

@@ -10,7 +10,7 @@ export const statuses = [
 export type Status = (typeof statuses)[number];
 export type DecisionKind = "approve" | "decline" | "refer";
 export type StepKind =
-  "tool_call" | "tool_result" | "message" | "reading" | "error";
+  "screening" | "tool_call" | "tool_result" | "message" | "reading" | "error";
 
 export interface CaseSummary {
   case_id: string;
@@ -459,7 +459,7 @@ export class ApiError extends Error {
 
 // Sends a request with the signed-in worker's access token, if any.
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = accessToken();
+  const token = await accessToken();
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(path, { ...init, headers });
@@ -484,7 +484,8 @@ function send<T>(method: "POST" | "PUT", path: string, body?: object) {
 const post = <T>(path: string, body?: object) => send<T>("POST", path, body);
 
 const CASES = "/api/cases";
-const casePath = (caseId: string) => `${CASES}/${encodeURIComponent(caseId)}`;
+const casePath = (caseId: string) =>
+  `${CASES}/${encodeURIComponent(caseId)}`;
 const DISPATCHES = "/api/dispatches";
 const CONFIGURATION = "/api/configuration";
 const SETTINGS = "/api/settings";
@@ -499,7 +500,8 @@ const proposalPath = (roundId: string, proposalId: string) =>
 export const api = {
   listCases: () => request<CaseSummary[]>(CASES),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
-  listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
+  listSteps: (caseId: string) =>
+    request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>
     request<Contract>(`/api/contracts/${encodeURIComponent(contractId)}`),
   getCaseHistory: (customerId: string) =>

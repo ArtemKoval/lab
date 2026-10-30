@@ -80,7 +80,7 @@ it("lists the evaluations in the backend's order, with their measures", async ()
   expect(older.getByText("2 min 41 s")).toBeDefined();
   expect(newest.queryByText("2 min 41 s")).toBeNull();
   expect(
-    older.getByText(/Oct 3, .*, version 1, 25 case agents at once/),
+    older.getByText(/Oct 3, .*, version 1, 25 entry agents at once/),
   ).toBeDefined();
   const link = older.getByRole("link", { name: "Evaluation #7" });
   expect(link.getAttribute("href")).toBe("/scoreboard/run-7");

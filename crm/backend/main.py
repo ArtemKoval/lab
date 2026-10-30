@@ -3,12 +3,13 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
+from mangum import Mangum
 from sqlalchemy import Connection, RowMapping, insert, select, update
 
-from backend import agent_service
+from backend import agent_api, dashboard
 from backend.configuration import router as configuration
 from backend.database import (
     award_rules,
@@ -27,7 +28,14 @@ from backend.database import (
     steps,
     work_times,
 )
-from backend.dependencies import Database, SignedIn, senior
+from backend.dependencies import (
+    AgentKey,
+    Database,
+    SignedIn,
+    SignedInWorker,
+    WorkerOrAgent,
+    senior,
+)
 from backend.documents import search, sections, titles
 from backend.improvement import router as improvement
 from backend.lookups import CASE_NOT_FOUND, current_settings, run_row
@@ -115,6 +123,20 @@ def find_contract(db: Connection, contract_id: str) -> Contract:
     return Contract(**record)
 
 
+def over_the_limit(limit: float) -> str:
+    """Say that a award over a limit needs a worker's sign-off."""
+    return f"An award over {dollars(limit)} needs a worker's sign-off"
+
+
+def record_payment(db: Connection, case: RowMapping) -> None:
+    """Pay an approved case its award, which decides it."""
+    case_id = case["case_id"]
+    db.execute(
+        insert(payments).values(case_id=case_id, amount=case["award"], paid_at=now())
+    )
+    set_status(db, case_id, Status.DECIDED)
+
+
 def set_status(db: Connection, case_id: str, status: Status) -> None:
     """Move a case to a new status."""
     db.execute(update(cases).where(cases.c.case_id == case_id).values(status=status))
@@ -169,7 +191,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/api/cases", operation_id="list_cases")
+@app.get("/api/cases", operation_id="list_cases", dependencies=[WorkerOrAgent])
 def list_cases(db: Database) -> list[CaseSummary]:
     """List every case in the queue, in id order, leaving out evaluations' copies."""
     query = case_view.where(cases.c.evaluation_id.is_(None))
@@ -177,19 +199,27 @@ def list_cases(db: Database) -> list[CaseSummary]:
     return [to_summary(row) for row in rows]
 
 
-@app.get("/api/cases/{case_id}", operation_id="get_case")
+@app.get("/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent])
 def get_case(case_id: str, db: Database) -> Case:
     """Get one case in full: the story, the items claimed and the documents."""
     return to_case(find_case(db, case_id))
 
 
-@app.get("/api/contracts/{contract_id}", operation_id="get_contract")
+@app.get(
+    "/api/contracts/{contract_id}",
+    operation_id="get_contract",
+    dependencies=[WorkerOrAgent],
+)
 def get_contract(contract_id: str, db: Database) -> Contract:
     """Get a contract: the plan, add-ons, purchase date, trip and travelers."""
     return find_contract(db, contract_id)
 
 
-@app.get("/api/customers/{customer_id}/cases", operation_id="get_case_history")
+@app.get(
+    "/api/customers/{customer_id}/cases",
+    operation_id="get_case_history",
+    dependencies=[WorkerOrAgent],
+)
 def get_case_history(customer_id: str, db: Database) -> list[PreviousCase]:
     """Get a customer's earlier cases, with the outcome and the amount paid."""
     query = select(customers.c.record).where(customers.c.customer_id == customer_id)
@@ -199,7 +229,9 @@ def get_case_history(customer_id: str, db: Database) -> list[PreviousCase]:
     return [PreviousCase(**case) for case in record["previous_cases"]]
 
 
-@app.get("/api/documents/search", operation_id="search_documents")
+@app.get(
+    "/api/documents/search", operation_id="search_documents", dependencies=[AgentKey]
+)
 def search_documents(
     query: Annotated[str, Query(min_length=1)], db: Database
 ) -> list[SectionMatch]:
@@ -207,7 +239,11 @@ def search_documents(
     return search(db, query)
 
 
-@app.get("/api/documents/{document}/sections/{number}", operation_id="read_section")
+@app.get(
+    "/api/documents/{document}/sections/{number}",
+    operation_id="read_section",
+    dependencies=[AgentKey],
+)
 def read_section(document: DocumentName, number: int, db: Database) -> Section:
     """Read one section of the contract wording or the cases manual in full."""
     for section in sections(db, document):
@@ -217,13 +253,25 @@ def read_section(document: DocumentName, number: int, db: Database) -> Section:
     raise HTTPException(404, f"Section {number} of the {title} not found")
 
 
+@app.get(
+    "/api/agent/openapi.json",
+    operation_id="get_agent_api",
+    dependencies=[WorkerOrAgent],
+)
+def get_agent_api() -> dict[str, Any]:
+    """Get the OpenAPI document of the case agent's own operations, for the Gateway."""
+    return agent_api.document(app)
+
+
 @app.get("/api/me", operation_id="get_signed_in_worker")
 def get_signed_in_worker(worker: SignedIn) -> Worker:
     """Get the worker signed in, with what they may sign off."""
     return worker
 
 
-@app.post("/api/cases/{case_id}/start", operation_id="start_case")
+@app.post(
+    "/api/cases/{case_id}/start", operation_id="start_case", dependencies=[AgentKey]
+)
 def start_case(case_id: str, request: StartRequest, db: Database) -> Case:
     """Start work on a waiting case, which moves it to in progress."""
     case = find_case(db, case_id)
@@ -243,14 +291,20 @@ def start_case(case_id: str, request: StartRequest, db: Database) -> Case:
     return to_case(find_case(db, case_id))
 
 
-@app.post("/api/cases/{case_id}/steps", operation_id="record_step")
+@app.post(
+    "/api/cases/{case_id}/steps", operation_id="record_step", dependencies=[AgentKey]
+)
 def record_step(case_id: str, request: StepRequest, db: Database) -> Step:
     """Record one step of the agent's work on a case."""
     thread_id = started_thread(db, case_id)
     return add_step(db, case_id, thread_id, request.kind, request.content)
 
 
-@app.post("/api/cases/{case_id}/model-calls", operation_id="record_model_call")
+@app.post(
+    "/api/cases/{case_id}/model-calls",
+    operation_id="record_model_call",
+    dependencies=[AgentKey],
+)
 def record_model_call(
     case_id: str, request: ModelCallRequest, db: Database
 ) -> ModelCall:
@@ -270,7 +324,11 @@ def record_model_call(
     return ModelCall(**db.execute(query).mappings().one())
 
 
-@app.post("/api/cases/{case_id}/work-times", operation_id="record_work_time")
+@app.post(
+    "/api/cases/{case_id}/work-times",
+    operation_id="record_work_time",
+    dependencies=[AgentKey],
+)
 def record_work_time(case_id: str, request: WorkTimeRequest, db: Database) -> WorkTime:
     """Record one spell of the agent's work on a started case, ending now."""
     thread_id = started_thread(db, case_id)
@@ -290,7 +348,11 @@ def record_work_time(case_id: str, request: WorkTimeRequest, db: Database) -> Wo
     return WorkTime(**db.execute(query).mappings().one())
 
 
-@app.get("/api/cases/{case_id}/steps", operation_id="list_steps")
+@app.get(
+    "/api/cases/{case_id}/steps",
+    operation_id="list_steps",
+    dependencies=[SignedInWorker],
+)
 def list_steps(case_id: str, db: Database) -> list[Step]:
     """List the steps of the agent's work on a case, in order."""
     find_case(db, case_id)
@@ -298,7 +360,11 @@ def list_steps(case_id: str, db: Database) -> list[Step]:
     return [Step(**row) for row in db.execute(query).mappings()]
 
 
-@app.post("/api/cases/{case_id}/decision", operation_id="record_decision")
+@app.post(
+    "/api/cases/{case_id}/decision",
+    operation_id="record_decision",
+    dependencies=[AgentKey],
+)
 def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Case:
     """Record a case's decision once; an approval waits to be paid or signed off."""
     case = find_case(db, case_id)
@@ -328,49 +394,46 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
     return to_case(find_case(db, case_id))
 
 
-@app.post("/api/cases/{case_id}/award", operation_id="calculate_award")
+@app.post(
+    "/api/cases/{case_id}/award",
+    operation_id="calculate_award",
+    dependencies=[AgentKey],
+)
 def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
     """Work out an approval's award with CRM's award rules; records nothing."""
     contract = find_contract(db, to_case(find_case(db, case_id)).contract_id)
     return rules().work_out_award(contract, plans(db), request, approval_limit(db))
 
 
-@app.post("/api/cases/{case_id}/payment", operation_id="pay_case")
+@app.post(
+    "/api/cases/{case_id}/payment", operation_id="pay_case", dependencies=[AgentKey]
+)
 def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
-    """Pay an approved case its award once, unless it needs a worker's sign-off."""
+    """Pay an approved case its award once, unless it is over the limit."""
+    amount = round(request.amount, 2)
+    limit = approval_limit(db)
+    if rules().needs_sign_off(amount, limit):
+        raise HTTPException(403, over_the_limit(limit))
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:
         raise HTTPException(409, f"Case {case_id} has not been approved")
-    amount = round(request.amount, 2)
     if case["paid_at"] is not None:
         if amount == case["amount"]:
             return to_case(case)
         raise HTTPException(409, f"Case {case_id} has already been paid")
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
-        raise HTTPException(
-            403,
-            f"An award over {dollars(case['approval_limit'])} needs a worker's "
-            "sign-off",
-        )
+        raise HTTPException(403, over_the_limit(case["approval_limit"]))
     if amount != case["award"]:
         raise HTTPException(
             422, f"The amount must be the approved award of {dollars(case['award'])}"
         )
-    db.execute(
-        insert(payments).values(case_id=case_id, amount=case["award"], paid_at=now())
-    )
-    set_status(db, case_id, Status.DECIDED)
+    record_payment(db, case)
     return to_case(find_case(db, case_id))
 
 
 @app.post("/api/cases/{case_id}/sign-off", operation_id="sign_off_case")
-def sign_off_case(
-    case_id: str,
-    worker: SignsOffOverTheLimit,
-    db: Database,
-    background: BackgroundTasks,
-) -> Case:
-    """Sign off a held award as the worker signed in, so the agent pays it."""
+def sign_off_case(case_id: str, worker: SignsOffOverTheLimit, db: Database) -> Case:
+    """Sign off a held award as the worker signed in, which pays it."""
     case = find_case(db, case_id)
     if case["evaluation_id"] is not None:
         raise HTTPException(
@@ -383,12 +446,13 @@ def sign_off_case(
         .where(decisions.c.case_id == case_id)
         .values(signed_off_by=worker.name, signed_off_at=now())
     )
-    set_status(db, case_id, Status.IN_PROGRESS)
-    background.add_task(agent_service.resume_case, case_id)
+    record_payment(db, case)
     return to_case(find_case(db, case_id))
 
 
-@app.post("/api/cases/{case_id}/failure", operation_id="fail_case")
+@app.post(
+    "/api/cases/{case_id}/failure", operation_id="fail_case", dependencies=[AgentKey]
+)
 def fail_case(case_id: str, request: FailureRequest, db: Database) -> Case:
     """Put a failed case back in the queue, or leave it for a worker after two."""
     case = find_case(db, case_id)
@@ -400,3 +464,10 @@ def fail_case(case_id: str, request: FailureRequest, db: Database) -> Case:
     status = Status.LEFT_FOR_WORKER if case["attempts"] >= ATTEMPTS else Status.WAITING
     set_status(db, case_id, status)
     return to_case(find_case(db, case_id))
+
+
+# After every route, so the dashboard's build only answers what no route does.
+app.router.routes.append(dashboard.mount)
+
+# AWS Lambda's entry point. Nothing seeds the database there.
+worker = Mangum(app, lifespan="off")

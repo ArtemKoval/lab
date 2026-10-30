@@ -1,7 +1,6 @@
 """The agent's service: it works the dispatches, evaluations and rounds of the improver
-the backend starts, one at a time, picks a case back up after a worker's
-sign-off, and carries a round on after a worker's review. npm run dev starts it
-beside the backend and the dashboard."""
+the backend starts, one at a time, and carries a round on after a worker's review.
+npm run dev starts it beside the backend and the dashboard."""
 
 import logging
 import threading
@@ -19,16 +18,10 @@ from langgraph.checkpoint.postgres import PostgresSaver
 from pydantic import BaseModel, Field
 
 from agent import api, improver, improver_api
-from agent.connection import Refused
+from agent.connection import Refused, api_key
 from agent.console import describe, show_reports
 from agent.dispatcher import WorkInRun, work_run
-from agent.harness import (
-    NewGraph,
-    carry_on,
-    case_graphs,
-    checkpoint_pool,
-    work_in_run,
-)
+from agent.harness import NewGraph, case_graphs, checkpoint_pool, work_in_run
 
 ACCEPTED = {"status": "accepted"}
 # The most case agents at once, as the backend and the dashboard also allow.
@@ -46,8 +39,10 @@ log = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Keep the checkpoint pool open while the service runs, after marking the runs
     an earlier service left running as stopped, and its rounds, unless a round
-    waits for a worker: the improver's progress is saved."""
+    waits for a worker: the improver's progress is saved. Without the agent's
+    API key it doesn't start."""
     show_reports()
+    api_key()
     with checkpoint_pool() as pool:
         app.state.pool = pool
         api.stop_runs()
@@ -85,8 +80,6 @@ class OneAtATime:
 
 
 one_at_a_time = OneAtATime()
-# The cases being resumed after a sign-off, which a dispatch leaves alone.
-resuming: set[str] = set()
 
 
 @app.exception_handler(Refused)
@@ -159,7 +152,7 @@ def case_work(run: dict[str, Any], case_agents: CaseAgents) -> WorkInRun:
 
 def evaluate(run: dict[str, Any], case_agents: CaseAgents) -> None:
     """Work one of a round's evaluations through the dispatcher."""
-    work_run(run, case_work(run, case_agents), resuming)
+    work_run(run, case_work(run, case_agents))
 
 
 def work_in_background(
@@ -169,7 +162,7 @@ def work_in_background(
     dispatcher fails is marked stopped."""
     try:
         run = create()
-        work_run(run, case_work(run, case_agents), resuming)
+        work_run(run, case_work(run, case_agents))
     except Exception:
         log.exception("The run stopped")
         api.stop_runs()
@@ -271,29 +264,6 @@ def start_dispatch(
     one_at_a_time.take(A_DISPATCH)
     create = partial(api.create_dispatch, request.agents)
     background.add_task(work_in_background, create, case_agents)
-    return ACCEPTED
-
-
-def resume(case_id: str, case_agents: CaseAgents) -> None:
-    """Carry a signed-off case on with the current version, keeping dispatches away
-    from it meanwhile."""
-    try:
-        carry_on(case_id, None, case_agents(api.get_current_version())())
-    finally:
-        resuming.discard(case_id)
-
-
-@app.post("/api/cases/{case_id}/resume", operation_id="resume_case", status_code=202)
-def resume_case(
-    case_id: str, case_agents: CaseAgentsDep, background: BackgroundTasks
-) -> dict[str, str]:
-    """Pick a case back up after a worker's sign-off, without waiting for it."""
-    case = api.get_case(case_id)
-    signed_off = case["decision"] and case["decision"]["signed_off_by"]
-    if case["status"] != api.Status.IN_PROGRESS or not signed_off:
-        raise HTTPException(409, f"Case {case_id} has no sign-off waiting to be paid")
-    resuming.add(case_id)
-    background.add_task(resume, case_id, case_agents)
     return ACCEPTED
 
 

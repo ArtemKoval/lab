@@ -7,12 +7,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from agent.connection import call, get, post
+from agent.connection import call
 
 DecisionKind = Literal["approve", "decline", "refer"]
 APPROVE: DecisionKind = "approve"
+REFER: DecisionKind = "refer"
 DocumentName = Literal["wording", "manual"]
-StepKind = Literal["tool_call", "tool_result", "message", "reading"]
+StepKind = Literal["screening", "tool_call", "tool_result", "message", "reading"]
 EvaluationSet = Literal["evaluation", "held_out"]
 RunKind = Literal["dispatch", "evaluation"]
 DISPATCH: RunKind = "dispatch"
@@ -76,27 +77,31 @@ class Line(BaseModel):
 
 
 def list_cases() -> list[dict[str, Any]]:
-    return get("/cases")
+    return call("GET", "/cases")
 
 
 def get_case(case_id: str) -> dict[str, Any]:
-    return get(f"/cases/{case_id}")
+    return call("GET", f"/cases/{case_id}")
 
 
 def get_contract(contract_id: str) -> dict[str, Any]:
-    return get(f"/contracts/{contract_id}")
+    return call("GET", f"/contracts/{contract_id}")
 
 
 def get_case_history(customer_id: str) -> list[dict[str, Any]]:
-    return get(f"/customers/{customer_id}/cases")
+    return call("GET", f"/customers/{customer_id}/cases")
 
 
 def get_version(number: int) -> dict[str, Any]:
-    return get(f"/versions/{number}")
+    return call("GET", f"/versions/{number}")
 
 
 def get_current_version() -> dict[str, Any]:
-    return get("/versions/current")
+    return call("GET", "/versions/current")
+
+
+def get_screening() -> dict[str, Any]:
+    return call("GET", "/screening")
 
 
 def search_documents(query: str) -> list[dict[str, Any]]:
@@ -104,7 +109,7 @@ def search_documents(query: str) -> list[dict[str, Any]]:
 
 
 def read_section(document: DocumentName, number: int) -> dict[str, Any]:
-    return get(f"/documents/{document}/sections/{number}")
+    return call("GET", f"/documents/{document}/sections/{number}")
 
 
 def calculate_award(
@@ -115,16 +120,16 @@ def calculate_award(
         "lines": [line.model_dump() for line in lines],
         "paid_by_others": paid_by_others,
     }
-    return post(f"/cases/{case_id}/award", **body)
+    return call("POST", f"/cases/{case_id}/award", json=body)
 
 
 def start_case(case_id: str, thread_id: str) -> dict[str, Any]:
-    return post(f"/cases/{case_id}/start", **{"thread_id": thread_id})
+    return call("POST", f"/cases/{case_id}/start", json={"thread_id": thread_id})
 
 
 def record_step(case_id: str, kind: StepKind, content: str) -> dict[str, Any]:
     body = {"kind": kind, "content": content}
-    return post(f"/cases/{case_id}/steps", **body)
+    return call("POST", f"/cases/{case_id}/steps", json=body)
 
 
 def record_decision(
@@ -136,15 +141,15 @@ def record_decision(
         "section": section,
         "reason": reason,
     }
-    return post(f"/cases/{case_id}/decision", **body)
+    return call("POST", f"/cases/{case_id}/decision", json=body)
 
 
 def pay_case(case_id: str, amount: float) -> dict[str, Any]:
-    return post(f"/cases/{case_id}/payment", **{"amount": amount})
+    return call("POST", f"/cases/{case_id}/payment", json={"amount": amount})
 
 
 def fail_case(case_id: str, reason: str) -> dict[str, Any]:
-    return post(f"/cases/{case_id}/failure", **{"reason": reason})
+    return call("POST", f"/cases/{case_id}/failure", json={"reason": reason})
 
 
 def record_model_call(
@@ -160,26 +165,25 @@ def record_model_call(
         "output_tokens": output_tokens,
         "cost": cost,
     }
-    return post(f"/cases/{case_id}/model-calls", **body)
+    return call("POST", f"/cases/{case_id}/model-calls", json=body)
 
 
 def record_work_time(
     case_id: str, run_id: str | None, seconds: float
 ) -> dict[str, Any]:
-    return post(
-        f"/cases/{case_id}/work-times", **{"run_id": run_id, "seconds": seconds}
-    )
+    body = {"run_id": run_id, "seconds": seconds}
+    return call("POST", f"/cases/{case_id}/work-times", json=body)
 
 
 def create_dispatch(agents: int) -> dict[str, Any]:
-    return post("/runs/dispatches", **{"agents": agents})
+    return call("POST", "/runs/dispatches", json={"agents": agents})
 
 
 def create_evaluation(
     evaluation_set: EvaluationSet, tiny: bool, agents: int
 ) -> dict[str, Any]:
     body = {"evaluation_set": evaluation_set, "tiny": tiny, "agents": agents}
-    return post("/runs/evaluations", **body)
+    return call("POST", "/runs/evaluations", json=body)
 
 
 def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
@@ -187,8 +191,8 @@ def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
 
 
 def finish_run(run_id: str) -> dict[str, Any]:
-    return post(f"/runs/{run_id}/finish")
+    return call("POST", f"/runs/{run_id}/finish")
 
 
 def stop_runs() -> list[str]:
-    return post("/runs/stop")
+    return call("POST", "/runs/stop")

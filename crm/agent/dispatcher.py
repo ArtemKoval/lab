@@ -53,12 +53,10 @@ LEFT = {api.DISPATCH: "left for the next dispatch", api.EVALUATION: "left in pro
 
 @dataclass
 class DispatchContext:
-    """The run being worked, how to work one of its cases, and the cases the
-    service is resuming after a sign-off, which a dispatch leaves alone."""
+    """The run being worked, and how to work one of its cases."""
 
     run: dict[str, Any]
     work: WorkInRun
-    resuming: set[str]
 
 
 Dispatcher = CompiledStateGraph[Dispatch, DispatchContext, Any, Any]
@@ -66,17 +64,13 @@ Dispatcher = CompiledStateGraph[Dispatch, DispatchContext, Any, Any]
 
 def list_cases(state: Dispatch, runtime: Runtime[DispatchContext]) -> dict[str, Any]:
     """Choose the cases to work: an evaluation's copies, which the backend made, or
-    the queue's cases in progress and waiting, oldest submitted first, less any
-    being resumed, which the dispatch records."""
-    run, resuming = runtime.context.run, runtime.context.resuming
+    the queue's cases in progress and waiting, oldest submitted first, which the
+    dispatch records."""
+    run = runtime.context.run
     if run["kind"] == api.EVALUATION:
         return {"cases": [case["case_id"] for case in run["cases"]]}
     queue = sorted(api.list_cases(), key=lambda c: (c["submitted_on"], c["case_id"]))
-    cases = [
-        c["case_id"]
-        for c in queue
-        if c["status"] in TO_WORK and c["case_id"] not in resuming
-    ]
+    cases = [c["case_id"] for c in queue if c["status"] in TO_WORK]
     api.record_run_cases(run["run_id"], cases)
     return {"cases": cases}
 
@@ -98,7 +92,7 @@ def hand_over(case_id: str, context: DispatchContext) -> str:
 
 
 def work_case(state: CaseToWork, runtime: Runtime[DispatchContext]) -> dict[str, Any]:
-    """Work one case. A rate limit or a timeout goes to the RetryPolicy, which waits
+    """Work one case. A rate limit or a timeout goes to the RetryContract, which waits
     and carries the case on, until the last try leaves it in progress. No error
     stops the dispatch."""
     case_id = state["case_id"]
@@ -133,10 +127,10 @@ def dispatcher() -> Dispatcher:
     return builder.compile()
 
 
-def work_run(run: dict[str, Any], work: WorkInRun, resuming: set[str]) -> list[str]:
+def work_run(run: dict[str, Any], work: WorkInRun) -> list[str]:
     """Work a dispatch or an evaluation with up to its N case agents at once, and
     return each case's report line."""
-    context = DispatchContext(run, work, resuming)
+    context = DispatchContext(run, work)
     config: RunnableConfig = {"max_concurrency": run["agents"]}
     state = as_root_run(
         dispatcher().invoke, {"cases": [], "reports": []}, config, context=context
