@@ -4,6 +4,7 @@ import {
   AGENT_STAND_IN,
   BACKEND,
   AUTH_STAND_IN,
+  COPILOT_STAND_IN,
   DASHBOARD,
   JUDGE_STAND_IN,
 } from "./e2e/servers";
@@ -32,13 +33,17 @@ export default defineConfig({
     {
       command: `uv run -m backend.seed && uv run -m uvicorn backend.main:app --port ${new URL(BACKEND).port}`,
       url: `${BACKEND}/api/health`,
-      // Empty DATABASE_URL and MODEL_NAME keep the tests on SQLite and the
-      // default model, whatever the shell has.
+      // Empty DATABASE_URL, MODEL_NAME, CRM_AGENT_RUNTIME and
+      // CRM_COPILOT_RUNTIME keep the tests on SQLite, the default model and
+      // the stand-ins for the agent and the Copilot, whatever the shell has.
       env: {
         CRM_DB: "e2e/crm.db",
         DATABASE_URL: "",
         MODEL_NAME: "",
         CRM_AGENT_SERVICE: AGENT_STAND_IN,
+        CRM_AGENT_RUNTIME: "",
+        CRM_COPILOT: COPILOT_STAND_IN,
+        CRM_COPILOT_RUNTIME: "",
         VITE_SUPABASE_URL: AUTH_STAND_IN,
         JUDGE_URL: JUDGE_STAND_IN,
         OPENROUTER_API_KEY: "e2e-key",
@@ -52,8 +57,17 @@ export default defineConfig({
     },
     {
       command: "node e2e/agent_stand_in.ts",
-      url: `${AGENT_STAND_IN}/api/health`,
-      env: { PORT: new URL(AGENT_STAND_IN).port },
+      url: `${AGENT_STAND_IN}/ping`,
+      env: {
+        PORT: new URL(AGENT_STAND_IN).port,
+        CRM_API: BACKEND,
+        CRM_AGENT_KEY: AGENT_KEY,
+      },
+    },
+    {
+      command: "node e2e/copilot_stand_in.ts",
+      url: `${COPILOT_STAND_IN}/ping`,
+      env: { PORT: new URL(COPILOT_STAND_IN).port, CRM_API: BACKEND },
     },
     {
       command: "node e2e/auth_stand_in.ts",

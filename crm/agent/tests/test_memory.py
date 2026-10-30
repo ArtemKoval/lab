@@ -9,7 +9,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
-from agent import api, harness, memory
+from agent import agentcore_memory, api, app_terms, checkpoints, harness, memory
 from agent.memory import MEMORY_ID
 from agent.tests.dispatching import new_dispatch
 from agent.tests.failures import fail_once
@@ -60,11 +60,6 @@ def test_an_approval_paid_saves_the_case_and_the_decision(client):
     [
         ("CLM-1003", partial(decide, "decline", 0), "CLM-1003  decline  $0.00"),
         ("CLM-1004", partial(decide, "refer", 0), "CLM-1004  refer  $0.00"),
-        (
-            "CLM-1002",
-            partial(approve, "CLM-1002", 1350.0),
-            "CLM-1002  approve  $1,350.00, waiting for sign-off",
-        ),
     ],
 )
 def test_each_decision_the_case_agent_makes_is_saved(
@@ -155,11 +150,11 @@ def test_with_no_memory_or_in_an_evaluation_there_is_nothing_to_remember(
     monkeypatch.setattr(harness, "PostgresSaver", lambda pool: InMemorySaver())
     monkeypatch.setattr(memory, "memory_store", MemoryStandIn)
     version = api.get_current_version()
-    no_pool = cast(harness.Pool, None)
-    evaluation = harness.case_graphs(version, api.EVALUATION, no_pool)()
+    no_pool = cast(checkpoints.Pool, None)
+    evaluation = harness.case_graphs(version, app_terms.EVALUATION, no_pool)()
     assert harness.REMEMBER not in evaluation.graph.nodes
     assert "search_memory" not in tools_of(evaluation)
-    dispatch = harness.case_graphs(version, api.DISPATCH, no_pool)()
+    dispatch = harness.case_graphs(version, app_terms.DISPATCH, no_pool)()
     assert harness.REMEMBER in dispatch.graph.nodes
     assert "search_memory" in tools_of(dispatch)
 
@@ -187,12 +182,12 @@ def test_the_memory_is_read_when_the_case_agents_are_built(monkeypatch):
         made.append(settings)
         return MemoryStandIn()
 
-    monkeypatch.setattr(memory, "AgentCoreMemoryStore", recorder)
+    monkeypatch.setattr(agentcore_memory, "AgentCoreMemoryStore", recorder)
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("AWS_DEFAULT_REGION", "eu-west-2")
     monkeypatch.setattr(harness, "PostgresSaver", lambda pool: InMemorySaver())
     version = api.get_current_version()
-    no_pool = cast(harness.Pool, None)
+    no_pool = cast(checkpoints.Pool, None)
     without = harness.case_graphs(version, None, no_pool)()
     assert harness.REMEMBER not in without.graph.nodes
     monkeypatch.setenv(MEMORY_ID, "crm_memory-abc")

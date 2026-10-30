@@ -1,25 +1,30 @@
 import { expect, test } from "@playwright/test";
 import type { DecisionKind } from "../dashboard/src/api";
 import {
-  createEvaluation,
   finishRun,
   payCase,
   decide,
   recordModelCall,
   recordWorkTime,
   startCase,
+  startEvaluation,
+  stopTheWork,
 } from "./api";
 
-// This test stands in for the agent's service and its case agents, playing
-// out an evaluation of the held-out set's tiny cases through the API, and
-// checks the Scoreboard and the evaluation's page. Only this file records
-// evaluations, and its copies are its own.
+// This test starts an evaluation of the held-out set's tiny cases as Dana
+// Whitfield, which the app creates, then stands in for the agent and its case
+// agents, playing it out through the API, and checks the Scoreboard and the
+// evaluation's page. Its copies are its own.
+
+test.afterEach(async ({ request }) => {
+  await stopTheWork(request);
+});
 
 test("the Scoreboard shows an evaluation played out through the API", async ({
   page,
   request,
 }) => {
-  const { run_id, number, cases } = await createEvaluation(
+  const { run_id, number, cases } = await startEvaluation(
     request,
     "held_out",
     true,

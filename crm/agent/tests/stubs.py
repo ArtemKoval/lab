@@ -25,7 +25,8 @@ USAGE = {"prompt_tokens": 1200, "completion_tokens": 300, "cost": 0.0042}
 
 class StubModel(GenericFakeChatModel):
     """A chat model that gives scripted replies, with OpenRouter's token usage, or
-    raises a scripted error, and keeps the prompts it was sent."""
+    a reply worked out from its prompt, or raises a scripted error, and keeps the
+    prompts it was sent."""
 
     prompts: list[list[BaseMessage]] = []
     # The tools each binding gave the model, and the settings it asked for, such as
@@ -44,6 +45,8 @@ class StubModel(GenericFakeChatModel):
     def _generate(self, messages, stop=None, run_manager=None, **kwargs):
         self.prompts.append(messages)
         reply = self.next_reply(messages)
+        if callable(reply):
+            reply = reply(messages)
         if isinstance(reply, BaseException):
             raise reply
         message = AIMessage(content=reply) if isinstance(reply, str) else reply
@@ -177,23 +180,26 @@ def flags():
 
 class Surroundings(TypedDict, total=False):
     """What a test may give a case agent in place of what it has by default: a
-    check of its own, a route, and a memory of each customer."""
+    check of its own, a route, a memory of each customer, and whether it pauses for
+    a worker, as an evaluation's doesn't."""
 
     screener: BaseChatModel
     route: Route
-    store: BaseStore
+    store: BaseStore | None
+    pauses: bool
 
 
 def agent_on(model, saver=None, version=VERSION, **given: Unpack[Surroundings]):
     """A case agent of a version of the configuration, on a stub model, saving its
-    progress in memory, after a check that passes every case, on the direct route
-    and with no memory, unless the test gives it a check, a route or a memory."""
+    progress in memory, after a check that passes every case, on the direct route,
+    with no memory and pausing for a worker like a dispatch's, unless the test
+    gives it a check, a route, a memory or no pause."""
     graph = harness.case_graph(
         model,
         given.get("screener") or passes(),
         saver or InMemorySaver(),
         version["instructions"],
-        given.get("store"),
+        harness.RunTraits(given.get("store"), given.get("pauses", True)),
     )
     route = given.get("route") or direct.from_environment()
     return harness.CaseAgent(graph, route, harness.maker_of(version))

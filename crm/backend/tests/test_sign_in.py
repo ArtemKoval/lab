@@ -6,10 +6,11 @@ import pytest
 from sqlalchemy import select
 
 from backend import auth
-from backend.database import engine, load, metadata, workers
+from backend.database import engine, workers, load
 from backend.tests.case_requests import decide, start
 from backend.tests.gates import WORKER_OPERATIONS
-from backend.tests.sign_in import AUTH_URL, DANA, OTHER_KEY, signed_in
+from backend.tests.rows import everything_recorded
+from backend.tests.sign_in import AUTH_URL, DANA, OTHER_KEY, signed_in, token
 
 NOT_SIGNED_IN = {
     "no token": {},
@@ -20,25 +21,21 @@ NOT_SIGNED_IN = {
 }
 
 
-def everything_recorded():
-    """Every row of every table, to show that a request changed nothing."""
-    with engine().connect() as db:
-        return {
-            table.name: [dict(row) for row in db.execute(select(table)).mappings()]
-            for table in metadata.sorted_tables
-        }
-
-
 def test_the_signed_in_worker(client):
     response = client.get("/api/me", headers=signed_in(DANA))
     assert response.status_code == 200
     assert response.json() == {
         "worker_id": "HND-01",
         "name": "Dana Whitfield",
-        "role": "Senior Claims Handler",
+        "role": "Senior Cases Worker",
         "email": DANA,
         "can_approve_over_limit": True,
     }
+
+
+def test_a_browsers_request_with_no_key_header_at_all_is_the_workers(dashboard):
+    headers = {"Authorization": f"Bearer {token(DANA)}"}
+    assert dashboard.get("/api/me", headers=headers).status_code == 200
 
 
 def test_a_sign_in_issued_a_little_ahead_of_our_clock_is_fine(client):
@@ -46,7 +43,7 @@ def test_a_sign_in_issued_a_little_ahead_of_our_clock_is_fine(client):
     assert client.get("/api/me", headers=headers).status_code == 200
 
 
-def test_an_out_of_reach_auth_service_isnt_a_bad_sign_in(client, monkeypatch):
+def test_supabase_out_of_reach_isnt_a_bad_sign_in(client, monkeypatch):
     def unreachable(_):
         raise jwt.PyJWKClientConnectionError("Fail to fetch data from the url")
 
@@ -100,7 +97,7 @@ def test_seeding_stores_each_workers_email_and_who_can_sign_off_over_the_limit()
     assert [can for _, _, can in seeded] == [True, False, False]
 
 
-def test_the_public_keys_are_fetched_from_the_supabase_project():
+def test_the_public_keys_are_fetched_from_the_auth_service():
     keys = auth.public_keys()
     assert keys.uri == f"{AUTH_URL}/jwks.json"
     assert auth.public_keys() is keys

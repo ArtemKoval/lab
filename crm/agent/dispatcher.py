@@ -5,6 +5,7 @@ import logging
 import operator
 from collections.abc import Callable
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Annotated, Any, TypedDict, cast
 
 from langchain_core.runnables import RunnableConfig
@@ -13,7 +14,8 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import ExecutionInfo, Runtime
 from langgraph.types import RetryPolicy, Send
 
-from agent import api, harness
+from agent import api, app_terms, harness
+from agent.connection import Refused
 from agent.console import describe
 from agent.root_run import as_root_run
 
@@ -22,7 +24,12 @@ log = logging.getLogger(__name__)
 LIST_CASES = "list_cases"
 WORK_CASE = "work_case"
 FINISH_RUN = "finish_run"
-TO_WORK = (api.Status.IN_PROGRESS, api.Status.WAITING)
+TO_WORK = (
+    app_terms.Status.IN_PROGRESS,
+    app_terms.Status.WAITING,
+    app_terms.Status.SENT_BACK,
+)
+TAKEN_BY_A_RESUME = "{case_id}  taken by a resume"
 
 # A rate limit or a timeout waits about 10 seconds, then about 20, on top of the
 # model client's own retries, and carries the case on from its last saved step.
@@ -48,7 +55,10 @@ class CaseToWork(TypedDict):
 WorkInRun = Callable[[str, str], str]
 
 # How a case still failing after its tries is left, by the kind of run.
-LEFT = {api.DISPATCH: "left for the next dispatch", api.EVALUATION: "left in progress"}
+LEFT = {
+    app_terms.DISPATCH: "left for the next dispatch",
+    app_terms.EVALUATION: "left in progress",
+}
 
 
 @dataclass
@@ -64,15 +74,38 @@ Dispatcher = CompiledStateGraph[Dispatch, DispatchContext, Any, Any]
 
 def list_cases(state: Dispatch, runtime: Runtime[DispatchContext]) -> dict[str, Any]:
     """Choose the cases to work: an evaluation's copies, which the backend made, or
-    the queue's cases in progress and waiting, oldest submitted first, which the
-    dispatch records."""
+    the queue's cases in progress, waiting and sent back, oldest submitted first,
+    which the dispatch records. It leaves out a case a resume is working on, and
+    takes each sent-back case as it lists it, so a resume can't take it
+    afterwards; one a resume took first is reported and left out."""
     run = runtime.context.run
-    if run["kind"] == api.EVALUATION:
+    if run["kind"] == app_terms.EVALUATION:
         return {"cases": [case["case_id"] for case in run["cases"]]}
     queue = sorted(api.list_cases(), key=lambda c: (c["submitted_on"], c["case_id"]))
-    cases = [c["case_id"] for c in queue if c["status"] in TO_WORK]
+    cases, reports = [], []
+    for case in queue:
+        if case["status"] not in TO_WORK or case["resuming"]:
+            continue
+        case_id = case["case_id"]
+        if case["status"] == app_terms.Status.SENT_BACK and not took(case_id, run):
+            reports.append(TAKEN_BY_A_RESUME.format(case_id=case_id))
+        else:
+            cases.append(case_id)
     api.record_run_cases(run["run_id"], cases)
-    return {"cases": cases}
+    return {"cases": cases, "reports": reports}
+
+
+def took(case_id: str, run: dict[str, Any]) -> bool:
+    """Take a sent-back case for the run, and say whether the run got it rather
+    than a resume."""
+    try:
+        api.take_case(case_id, run["run_id"])
+    except Refused as refusal:
+        if refusal.status_code != HTTPStatus.CONFLICT:
+            raise
+        log.info(TAKEN_BY_A_RESUME.format(case_id=case_id))
+        return False
+    return True
 
 
 def fan_out(state: Dispatch) -> list[Send] | str:
@@ -86,13 +119,13 @@ def hand_over(case_id: str, context: DispatchContext) -> str:
     put it back in the queue."""
     run_id = context.run["run_id"]
     report = context.work(case_id, run_id)
-    if api.get_case(case_id)["status"] == api.Status.WAITING:
+    if api.get_case(case_id)["status"] == app_terms.Status.WAITING:
         report = context.work(case_id, run_id)
     return report
 
 
 def work_case(state: CaseToWork, runtime: Runtime[DispatchContext]) -> dict[str, Any]:
-    """Work one case. A rate limit or a timeout goes to the RetryContract, which waits
+    """Work one case. A rate limit or a timeout goes to the RetryPolicy, which waits
     and carries the case on, until the last try leaves it in progress. No error
     stops the dispatch."""
     case_id = state["case_id"]

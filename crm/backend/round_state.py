@@ -3,11 +3,10 @@ runs router and the case operations all need: finding a round, where it has got
 to, what it has spent against its limit, and stopping it."""
 
 from fastapi import HTTPException
-from sqlalchemy import Connection, RowMapping, select, update
+from sqlalchemy import ColumnElement, Connection, RowMapping, select, update
 
 from backend import spending
 from backend.database import now, proposals, rounds, runs, settings, versions
-from backend.lookups import row_fetcher
 from backend.models import (
     EvaluationSet,
     ProposalKind,
@@ -18,15 +17,22 @@ from backend.models import (
     Verdict,
 )
 from backend.money import dollars
+from backend.stops import stop_runs
 from backend.verdict import STOPPED_BEFORE_VERDICT
 
-ROUND_NOT_FOUND = "Round {value} not found"
+ROUND_NOT_FOUND = "Round {round_id} not found"
 NOT_OPEN = "Round {number} is {status}"
 # A version's evaluations: once on the evaluation set and twice on the held-out set.
 EVALUATIONS = [EvaluationSet.EVALUATION, EvaluationSet.HELD_OUT, EvaluationSet.HELD_OUT]
 
 
-round_row = row_fetcher(rounds, rounds.c.round_id, ROUND_NOT_FOUND)
+def round_row(db: Connection, round_id: str) -> RowMapping:
+    """Return one round's row, or raise a 404."""
+    query = select(rounds).where(rounds.c.round_id == round_id)
+    row = db.execute(query).mappings().first()
+    if row is None:
+        raise HTTPException(404, ROUND_NOT_FOUND.format(round_id=round_id))
+    return row
 
 
 def open_round(db: Connection, round_id: str) -> RowMapping:
@@ -145,12 +151,24 @@ def roll_back(db: Connection, version: int, reason: str) -> None:
     )
 
 
-def stop(db: Connection, row: RowMapping, by: str | None, because: str) -> None:
-    """Stop an open round, rolling back a version it hadn't yet given a verdict.
-    The current version stays as it was."""
-    db.execute(
+def stop(
+    db: Connection,
+    row: RowMapping,
+    by: str | None,
+    because: str,
+    *also: ColumnElement[bool],
+) -> bool:
+    """Stop a round that is still open, and still matches `also`, with its running
+    evaluation, both with why, rolling back a version it hadn't yet given a
+    verdict, and say whether it stopped. A round finished or stopped since `row`
+    was read is left as it is. The current version stays as it was."""
+    stopped = db.execute(
         update(rounds)
-        .where(rounds.c.round_id == row["round_id"])
+        .where(
+            rounds.c.round_id == row["round_id"],
+            rounds.c.status == RoundStatus.OPEN,
+            *also,
+        )
         .values(
             status=RoundStatus.STOPPED,
             stopped_by=by,
@@ -158,6 +176,10 @@ def stop(db: Connection, row: RowMapping, by: str | None, because: str) -> None:
             finished_at=now(),
         )
     )
+    if stopped.rowcount == 0:
+        return False
+    stop_runs(db, because, runs.c.round_id == row["round_id"])
     version = tried_version(db, row["round_id"])
     if version and version["verdict"] is None:
         roll_back(db, version["number"], STOPPED_BEFORE_VERDICT)
+    return True

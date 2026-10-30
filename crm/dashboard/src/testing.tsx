@@ -160,6 +160,7 @@ export const entry: Case = {
   copy_of: null,
   decision: null,
   payment: null,
+  sent_back_decisions: [],
 };
 
 export const summary: CaseSummary = {
@@ -172,6 +173,7 @@ export const summary: CaseSummary = {
   status: "waiting",
   decision: null,
   award: null,
+  resuming: false,
 };
 
 export const contract: Contract = {

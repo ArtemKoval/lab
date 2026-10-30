@@ -8,7 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from agent import api, harness
 from agent.connection import Refused
-from agent.tests.records import case_of, payments_of
+from agent.tests.records import case_of
 from agent.tests.stubs import (
     INSTRUCTIONS,
     PASSED,
@@ -21,17 +21,12 @@ from agent.tests.stubs import (
     record,
     stub,
 )
-from backend.tests.case_requests import sign_off
 from backend.tests.dashboard_reads import steps_of
 from backend.tests.settings_requests import change_settings
 
 
 def work(case_id, model, saver=None):
     return harness.work_case(case_id, None, agent_on(model, saver))
-
-
-def state_of(agent, client, case_id):
-    return agent.graph.get_state(harness.thread_of(case_of(client, case_id)))
 
 
 def test_the_graph():
@@ -43,6 +38,7 @@ def test_the_graph():
         "agent",
         "tools",
         "pay",
+        "wait_for_worker",
         "__end__",
     }
     edges = {(e.source, e.target, e.conditional) for e in graph.edges}
@@ -55,9 +51,20 @@ def test_the_graph():
         ("agent", "__end__", True),
         ("tools", "agent", True),
         ("tools", "pay", True),
+        ("tools", "wait_for_worker", True),
         ("tools", "__end__", True),
-        ("pay", "__end__", False),
+        ("pay", "wait_for_worker", True),
+        ("pay", "__end__", True),
+        ("wait_for_worker", "agent", True),
+        ("wait_for_worker", "__end__", True),
     }
+
+
+def test_an_evaluations_graph_has_no_pause():
+    graph = agent_on(stub(), pauses=False).graph.get_graph()
+    assert "wait_for_worker" not in graph.nodes
+    edges = {(e.source, e.target) for e in graph.edges}
+    assert {("tools", "__end__"), ("pay", "__end__")} <= edges
 
 
 def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
@@ -102,27 +109,6 @@ def test_the_case_agent_reads_its_instructions_then_its_case(client):
     assert isinstance(system, SystemMessage)
     assert system.content == INSTRUCTIONS
     assert first.content == "Case CLM-1003"
-
-
-def test_a_award_held_for_sign_off_ends_the_cases_work(client, monkeypatch):
-    paid = []
-    monkeypatch.setattr(api, "pay_case", lambda **payment: paid.append(payment))
-    model = stub(*approve("CLM-1002", 1350.0))
-    agent = agent_on(model)
-    report = harness.work_case("CLM-1002", None, agent)
-    assert report == "CLM-1002  approve  $1,350.00, waiting for sign-off"
-    assert len(model.prompts) == 3
-    assert state_of(agent, client, "CLM-1002").next == ()
-    case = case_of(client, "CLM-1002")
-    assert (case["status"], case["payment"]) == ("waiting_for_sign_off", None)
-
-    sign_off(client, "CLM-1002")
-    steps = steps_of(client, "CLM-1002")
-    assert harness.carry_on("CLM-1002", None, agent) == "CLM-1002  approve  $1,350.00"
-    assert paid == []
-    assert len(model.prompts) == 3
-    assert steps_of(client, "CLM-1002") == steps
-    assert [p["amount"] for p in payments_of("CLM-1002")] == [1350.0]
 
 
 def test_the_graph_follows_the_backend_on_the_limit(client):

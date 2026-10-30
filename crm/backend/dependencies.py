@@ -1,11 +1,12 @@
 """The FastAPI dependencies the backend's routers share: the database, the gates on
 who may call each route (the agent with its key, a signed-in worker, or either),
-the worker signed in, and the senior worker an action needs."""
+the worker signed in and their own sign-in, and the senior worker an action
+needs."""
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, Header, HTTPException
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import Connection, select
 
@@ -19,16 +20,23 @@ SIGN_IN_OUT_OF_REACH = "Sign-in can't be checked: Supabase is out of reach"
 NOT_SIGNED_IN = "The sign-in isn't valid. Please sign in again."
 NEEDS_THE_KEY = "This needs the agent's API key"
 NEEDS_A_SIGN_IN_OR_THE_KEY = "Sign in, or send the agent's API key"
+THE_AGENTS_REQUEST = (
+    "A request with the agent's API key is the agent's, not a worker's"
+)
 API_KEY_HEADER = "X-API-Key"
 # The challenges a 401 carries, for a missing or bad sign-in or key.
 BEARER_CHALLENGE = {"WWW-Authenticate": "Bearer"}
 API_KEY_CHALLENGE = {"WWW-Authenticate": "APIKey"}
 
 
-def database() -> Iterator[Connection]:
-    """Open the database for one request, in a transaction committed at its end."""
-    with engine().begin() as connection:
+def database() -> Generator[Connection]:
+    """Open the database for one request on one connection, and commit at its end.
+    A route may commit sooner, as one that asks the agent for something does first,
+    so the agent sees it; what it writes afterwards is committed at the end. A
+    request that fails is rolled back to its last commit."""
+    with engine().connect() as connection:
         yield connection
+        connection.commit()
 
 
 # Committed before the response is sent.
@@ -63,9 +71,27 @@ def worker_with(token: str, db: Connection) -> Worker:
 def signed_in_worker(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
     db: Database,
+    key: Annotated[
+        str | None, Header(alias=API_KEY_HEADER, include_in_schema=False)
+    ] = None,
 ) -> Worker:
-    """Return the worker signed in with the request's token."""
-    return worker_with(credentials.credentials, db)
+    """Return the worker signed in with the request's token. A request that also
+    carries the agent's key is the agent's, and is refused with a 403, so the key
+    never stands in for a worker, whatever else the request carries. A worker's
+    route doesn't offer the key in the API document."""
+    worker = worker_with(credentials.credentials, db)
+    if api_key.is_the_agents(key):
+        raise HTTPException(403, THE_AGENTS_REQUEST)
+    return worker
+
+
+def sign_in_of(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+    worker: Annotated[Worker, Depends(signed_in_worker)],
+) -> str:
+    """Return the signed-in worker's own access token, which the app passes on to
+    the Copilot, so it works as the worker signed in."""
+    return credentials.credentials
 
 
 def the_agent(key: AgentKeyHeader) -> None:
@@ -98,6 +124,8 @@ AgentKey = Depends(the_agent)
 WorkerOrAgent = Depends(worker_or_agent)
 SignedInWorker = Depends(signed_in_worker)
 SignedIn = Annotated[Worker, Depends(signed_in_worker)]
+# The signed-in worker's own token, for a route that passes it on to the Copilot.
+SignIn = Annotated[str, Depends(sign_in_of)]
 
 
 def senior(action: str) -> Callable[[Worker, Connection], Worker]:

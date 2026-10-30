@@ -1,3 +1,4 @@
+from domains import loader
 import json
 
 import pytest
@@ -18,7 +19,6 @@ from backend.tests.run_requests import (
     queue,
     record_cases,
 )
-from domains import loader
 
 TINY_HELD_OUT = ["CLM-1114", "CLM-1106", "CLM-1112", "CLM-1104", "CLM-1110"]
 
@@ -52,7 +52,7 @@ def test_the_whole_evaluation_set(client):
 
 
 def test_each_evaluation_numbers_its_copies(client):
-    create_evaluation(client)
+    finish(client, create_evaluation(client).json()["run_id"])
     second = create_evaluation(client, "evaluation").json()
     assert [c["case_id"] for c in second["cases"]] == [
         "CLM-1015-E2",
@@ -95,6 +95,7 @@ def test_nothing_the_agent_reads_holds_the_workers_decisions(
 
 def test_a_copy_cant_be_signed_off(client, agent_calls):
     create_evaluation(client)
+    asked = list(agent_calls)
     start(client, "CLM-1112-E1")
     decide(client, "CLM-1112-E1", "approve", 1200.0)
     held = client.get("/api/cases/CLM-1112-E1").json()
@@ -106,7 +107,7 @@ def test_a_copy_cant_be_signed_off(client, agent_calls):
         "Case CLM-1112-E1 is a copy in an evaluation and can't be signed off"
     )
     assert client.get("/api/cases/CLM-1112-E1").json() == held
-    assert agent_calls == []
+    assert agent_calls == asked
 
 
 def test_an_evaluations_cases_are_its_copies(client):
@@ -193,6 +194,7 @@ def test_an_unknown_evaluation(client):
 
 def test_the_newest_evaluation_is_listed_first(client):
     first = create_evaluation(client).json()
+    finish(client, first["run_id"])
     second = create_evaluation(client, "evaluation").json()
     listed = [e["run_id"] for e in evaluations(client)]
     assert listed == [second["run_id"], first["run_id"]]

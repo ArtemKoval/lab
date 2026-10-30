@@ -36,11 +36,16 @@ export const signIn = vi.fn<typeof auth.signIn>(() => {
 export const signOut = vi.fn<typeof auth.signOut>(() => {
   token = undefined;
   tell();
+  return Promise.resolve();
 });
 
-export function accessToken(): string | undefined {
-  return token;
+export function accessToken(): Promise<string | undefined> {
+  return Promise.resolve(token);
 }
+
+export const freshAccessToken = vi.fn<typeof auth.freshAccessToken>(() =>
+  Promise.resolve(token),
+);
 
 export function followSession(
   callback: (signedIn: boolean) => void,

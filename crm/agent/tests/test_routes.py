@@ -9,7 +9,7 @@ import pytest
 from langchain_core.messages import HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
-from agent import api, direct, harness
+from agent import api, checkpoints, direct, harness
 from agent.direct import CONTEXT_URL
 from agent.gateway import GATEWAY_URL, Gateway
 from agent.mcp_tools import McpTools
@@ -188,9 +188,11 @@ def test_a_payment_the_gateway_refuses_waits_for_a_workers_sign_off(client, gate
         f"{APP}pay_case: Refused by the Gateway: {DENIED}",
     )
 
+    assert harness.paused(case, agent)
+
     assert sign_off(client, "CLM-1002").status_code == 200
     steps = steps_of(client, "CLM-1002")
-    assert harness.carry_on("CLM-1002", None, agent) == "CLM-1002  approve  $1,500.00"
+    assert harness.resume("CLM-1002", agent) == "CLM-1002  approve  $1,500.00"
     assert len(model.prompts) == 3
     assert steps_of(client, "CLM-1002") == steps
     assert [p["amount"] for p in payments_of("CLM-1002")] == [1500.0]
@@ -201,7 +203,7 @@ def test_the_route_is_read_when_the_case_agents_are_built(gateway, monkeypatch):
     monkeypatch.setattr(harness, "PostgresSaver", lambda pool: InMemorySaver())
     version = api.get_current_version()
     monkeypatch.setenv(GATEWAY_URL, gateway.url)
-    no_pool = cast(harness.Pool, None)
+    no_pool = cast(checkpoints.Pool, None)
     assert isinstance(harness.case_graphs(version, None, no_pool)().route, Gateway)
     monkeypatch.delenv(GATEWAY_URL)
     assert isinstance(

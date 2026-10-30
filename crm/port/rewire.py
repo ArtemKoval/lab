@@ -162,6 +162,21 @@ REPLACEMENTS: dict[str, list[tuple[str, str]]] = {
             '    improver = loader.pack().instruction("improver")',
         ),
     ],
+    "conftest.py": [
+        (
+            "from backend.tests.sign_in import PUBLIC_KEYS, SUPABASE_URL",
+            "from backend.tests.sign_in import AUTH_URL, PUBLIC_KEYS",
+        ),
+        (
+            'monkeypatch.setenv("VITE_SUPABASE_URL", SUPABASE_URL)',
+            'monkeypatch.setenv("AUTH_URL", AUTH_URL)',
+        ),
+    ],
+    "backend/tests/test_database.py": [
+        ('SUPABASE = "postgresql', 'POSTGRES_URL = "postgresql'),
+        ('setenv("DATABASE_URL", SUPABASE)', 'setenv("DATABASE_URL", POSTGRES_URL)'),
+        ('setenv("DATABASE_URL", f"{SUPABASE}?sslmode', 'setenv("DATABASE_URL", f"{POSTGRES_URL}?sslmode'),
+    ],
     "backend/agent_service.py": [
         (
             'AGENT_URL = os.getenv("CRM_AGENT_API", "http://127.0.0.1:8002")',

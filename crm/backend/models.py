@@ -1,14 +1,13 @@
 """The shapes of the backend's requests and responses."""
 
 from enum import StrEnum
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal
 
 from pydantic import (
     AfterValidator,
     BaseModel,
     Field,
     StringConstraints,
-    model_validator,
 )
 
 
@@ -18,6 +17,7 @@ class Status(StrEnum):
     WAITING = "waiting"
     IN_PROGRESS = "in_progress"
     WAITING_FOR_SIGN_OFF = "waiting_for_sign_off"
+    SENT_BACK = "sent_back"
     DECIDED = "decided"
     LEFT_FOR_WORKER = "left_for_worker"
 
@@ -115,7 +115,8 @@ def to_the_cent(amount: float) -> float:
 NO_REASONING_EFFORT = "default"
 
 
-StepKind = Literal[
+# The kinds of step recorded through record_step.
+RecordedStepKind = Literal[
     "screening",
     "tool_call",
     "tool_result",
@@ -126,7 +127,10 @@ StepKind = Literal[
     "refusal",
     "error",
 ]
+# A worker's note on a decision sent back, which only the app records.
+StepKind = RecordedStepKind | Literal["sent_back"]
 MOST_AGENTS = 25
+NOTE_LENGTH = 1000
 Agents = Annotated[
     int, Field(ge=1, le=MOST_AGENTS, description="How many case agents work at once")
 ]
@@ -166,7 +170,9 @@ class Calculation(BaseModel):
     award: float
 
 
-class Decision(BaseModel):
+class DecisionRecord(BaseModel):
+    """A decision as cases manual section 14 records it."""
+
     decision: DecisionKind
     award: float
     calculation: Calculation | None
@@ -175,9 +181,12 @@ class Decision(BaseModel):
     decided_by: str
     decided_at: str
     manual_version: str
+    gateway_refusal: str | None
+
+
+class Decision(DecisionRecord):
     signed_off_by: str | None
     signed_off_at: str | None
-    gateway_refusal: str | None
 
 
 class Payment(BaseModel):
@@ -185,6 +194,14 @@ class Payment(BaseModel):
     paid_at: str
     signed_off_by: str | None
     signed_off_at: str | None
+
+
+class SentBackDecision(DecisionRecord):
+    """A decision a senior worker sent back to the agent, with their note."""
+
+    note: str
+    sent_back_by: str
+    sent_back_at: str
 
 
 class CaseSummary(BaseModel):
@@ -197,6 +214,7 @@ class CaseSummary(BaseModel):
     status: Status
     decision: DecisionKind | None
     award: float | None
+    resuming: bool = Field(description="A resume is working on the case")
 
 
 class Case(BaseModel):
@@ -220,6 +238,9 @@ class Case(BaseModel):
     copy_of: str | None
     decision: Decision | None
     payment: Payment | None
+    sent_back_decisions: list[SentBackDecision] = Field(
+        description="The decisions workers sent back, oldest first"
+    )
 
 
 class Trip(BaseModel):
@@ -327,10 +348,31 @@ class StartRequest(BaseModel):
 
 
 class StepRequest(BaseModel):
-    kind: StepKind
+    kind: RecordedStepKind
     content: str = Field(min_length=1)
     sources: list[Source] = Field(
         description="The context files a lookup came from, and none for other steps"
+    )
+
+
+class NewStep(BaseModel):
+    """A step the app adds to a case, recorded by the agent or the app itself."""
+
+    kind: StepKind
+    content: str
+    sources: list[Source]
+
+
+class SendBackRequest(BaseModel):
+    note: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=1, max_length=NOTE_LENGTH),
+    ] = Field(description="What the agent should look at again")
+
+
+class TakeRequest(BaseModel):
+    run_id: str | None = Field(
+        description="The dispatch taking the case, or null for a resume"
     )
 
 
@@ -485,6 +527,7 @@ class RunDetails(BaseModel):
     model: str
     reasoning_effort: str
     status: RunStatus
+    stopped_because: str | None
     started_at: str
     finished_at: str | None
     seconds: float | None
@@ -624,12 +667,8 @@ class NewNumber(BaseModel):
     number: int
 
 
-class CreateRoundRequest(BaseModel):
-    worker_id: str = Field(description="The worker who started the round")
-
-
-class RoundForService(BaseModel):
-    """A round as the agent's service needs it to work."""
+class RoundForTheAgent(BaseModel):
+    """A round as the agent needs it to work."""
 
     round_id: str
     number: int
@@ -675,19 +714,6 @@ class Proposal(BaseModel):
     rejection_reason: str | None
 
 
-class ReviewRequest(BaseModel):
-    review: Review
-    worker_id: str
-    reason: str = Field(description="Why a proposal was rejected, or empty")
-
-    @model_validator(mode="after")
-    def check_reason(self) -> Self:
-        """A rejection says why, so the improver can take it into account."""
-        if self.review == Review.REJECTED and not self.reason.strip():
-            raise ValueError("A rejection needs a reason")
-        return self
-
-
 class RejectionRequest(BaseModel):
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)] = (
         Field(description="Why, for the improver to read")
@@ -698,10 +724,6 @@ class ImproverCallRequest(BaseModel):
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
     cost: float = Field(ge=0, description="In US dollars, as OpenRouter reports it")
-
-
-class StopRoundsRequest(BaseModel):
-    reason: str = Field(min_length=1)
 
 
 class VerdictScores(BaseModel):
@@ -882,3 +904,184 @@ class Improvement(BaseModel):
     first_version: VersionPoint
     versions_tried: list[VersionPoint]
     recipes: list[RecipeSummary]
+
+
+# The Copilot's conversations and what the Copilot records of them.
+
+MESSAGE_LENGTH = 4000
+Message = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=MESSAGE_LENGTH),
+]
+
+
+class TurnStatus(StrEnum):
+    """Where one of the Copilot's turns stands. A turn reads as stopped when it has
+    been working too long; it is never recorded as stopped."""
+
+    WORKING = "working"
+    WAITING_FOR_CONFIRMATION = "waiting_for_confirmation"
+    DONE = "done"
+    FAILED = "failed"
+    STOPPED = "stopped"
+
+
+class CardKind(StrEnum):
+    """What a card's tool does: looks up cases, customers and contracts or the
+    context layer, works with the agent's work or the memory, or acts."""
+
+    CASES = "cases"
+    CUSTOMERS = "customers"
+    CONTEXT = "context"
+    WORK = "work"
+    MEMORY = "memory"
+    ACTION = "action"
+
+
+class CardStatus(StrEnum):
+    WORKING = "working"
+    DONE = "done"
+    REFUSED = "refused"
+    FAILED = "failed"
+
+
+class ConfirmationAnswer(StrEnum):
+    SIGN_OFF = "sign_off"
+    CANCEL = "cancel"
+
+
+class MessageRequest(BaseModel):
+    message: Message = Field(description="The worker's message to the Copilot")
+
+
+class ConfirmationRequest(BaseModel):
+    turn_id: str = Field(description="The turn whose confirmation card was shown")
+    answer: ConfirmationAnswer
+
+
+class Confirmation(BaseModel):
+    """A sign-off waiting for the worker's confirmation, from the app's records."""
+
+    case_id: str
+    customer_name: str
+    award: float
+    reason: str
+
+
+class CopilotStep(BaseModel):
+    """A card: one tool the Copilot called, what was asked and what came back."""
+
+    step_id: int
+    tool: str
+    kind: CardKind
+    input: str = Field(description="The tool's main input, such as CLM-1012")
+    asked: str
+    status: CardStatus
+    answer: str | None
+    reason: str | None
+    sources: list[Source]
+    started_at: str
+    finished_at: str | None
+    seconds: float = Field(description="So far, while it works")
+
+
+class CopilotTurn(BaseModel):
+    turn_id: str
+    number: int
+    message: str
+    status: TurnStatus
+    started_at: str
+    paused_at: str | None
+    answered_at: str | None
+    finished_at: str | None
+    seconds: float | None = Field(
+        description="Once it has finished, leaving out the wait for the worker"
+    )
+    answer: str | None
+    model_calls: int | None
+    cost: float | None
+    failure: str | None
+    confirmation: Confirmation | None
+    confirmation_answer: ConfirmationAnswer | None
+    canceled_because: str | None
+    steps: list[CopilotStep]
+
+
+class ConversationSummary(BaseModel):
+    conversation_id: str
+    title: str = Field(description="The first message")
+    created_at: str
+
+
+class Conversation(ConversationSummary):
+    turns: list[CopilotTurn]
+
+
+class CopilotModel(BaseModel):
+    """The model the Copilot runs on."""
+
+    model: str
+    reasoning_effort: str
+
+
+class CopilotStepRequest(BaseModel):
+    tool: str = Field(min_length=1)
+    kind: CardKind
+    input: str = Field(description="The tool's main input, or nothing")
+    asked: str = Field(description="What the tool was asked")
+
+
+class CopilotStepResult(BaseModel):
+    status: Literal[CardStatus.DONE, CardStatus.REFUSED, CardStatus.FAILED]
+    answer: str | None = Field(description="What came back, or null")
+    reason: str | None = Field(description="Why it was refused or failed, or null")
+    sources: list[Source] = Field(
+        description="The context files an answer came from, and none otherwise"
+    )
+
+
+class TurnFinishRequest(BaseModel):
+    answer: str = Field(min_length=1)
+    model_calls: int = Field(ge=0)
+    cost: float = Field(ge=0, description="In US dollars, as OpenRouter reports it")
+
+
+class PauseRequest(BaseModel):
+    case_id: str = Field(description="The case the sign-off waits on")
+
+
+class TurnFailureRequest(BaseModel):
+    reason: str = Field(min_length=1, description="What went wrong")
+
+
+# Customers, as the Copilot finds them.
+
+
+class CustomerMatch(BaseModel):
+    customer_id: str
+    name: str
+
+
+class Customer(CustomerMatch):
+    """Who a customer is, without their contact details or date of birth, their
+    contracts, their earlier cases and their cases in our queue."""
+
+    customer_since: str
+    contracts: list[Contract]
+    earlier_cases: list[PreviousCase]
+    cases_in_the_queue: list[CaseSummary]
+
+
+class AwardsOverTheLimit(BaseModel):
+    """The queue's cases paid more than the approval limit on their decision, and
+    how many of those a worker signed off."""
+
+    paid_over_the_limit: int
+    signed_off: int
+
+
+class RunStarted(Accepted):
+    """A dispatch or an evaluation a worker started, which the agent works."""
+
+    run_id: str
+    number: int

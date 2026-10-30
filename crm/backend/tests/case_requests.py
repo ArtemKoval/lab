@@ -58,6 +58,13 @@ def decide(client, case_id, decision, award, section="Section 3, Trip Delay"):
     )
 
 
+def held(client, case_id, award):
+    """Start a case and approve it over the limit, which holds it for sign-off,
+    and return it."""
+    start(client, case_id)
+    return decide(client, case_id, "approve", award).json()
+
+
 def pay(client, case_id, amount):
     return client.post(f"/api/cases/{case_id}/payment", json={"amount": amount})
 
@@ -90,3 +97,25 @@ GATEWAY_REFUSAL = "Tool Execution Denied: the Contract forbids it"
 
 def hold(client, case_id, reason=GATEWAY_REFUSAL):
     return client.post(f"/api/cases/{case_id}/hold", json={"reason": reason})
+
+
+# A senior worker's note on a decision they send back, in the tests.
+NOTE = "Meridian Air has already paid $350 for the lost bag; take it off the award."
+
+
+def send_back(client, case_id, note=NOTE, email=DANA):
+    return client.post(
+        f"/api/cases/{case_id}/send-back",
+        json={"note": note},
+        headers=signed_in(email),
+    )
+
+
+def take(client, case_id, run_id=None):
+    """Take a sent-back case, as a dispatch does with its run or a resume with
+    none."""
+    return client.post(f"/api/cases/{case_id}/take", json={"run_id": run_id})
+
+
+def record_heartbeat(client, case_id):
+    return client.post(f"/api/cases/{case_id}/heartbeat")

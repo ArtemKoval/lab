@@ -18,12 +18,13 @@ from backend.tests.case_requests import decide, start
 from backend.tests.dashboard_reads import read
 from backend.tests.gates import (
     AGENT_OPERATIONS,
+    WORKER_OPERATIONS,
     OPEN,
     SHARED_READS,
-    WORKER_OPERATIONS,
 )
 from backend.tests.round_requests import create_round, propose_change, review
 from backend.tests.rows import count
+from backend.tests.run_requests import create_dispatch
 from backend.tests.sign_in import signed_in
 
 WRONG_KEY = {API_KEY_HEADER: "not-the-agents-key"}
@@ -96,6 +97,7 @@ def test_every_agent_operation_refuses_a_request_without_the_key(
 
 @pytest.mark.parametrize("path", SHARED_READS.values(), ids=SHARED_READS.keys())
 def test_a_shared_read_takes_the_key_or_a_sign_in(client, dashboard, path):
+    path = path.format(run_id=create_dispatch(client).json()["run_id"])
     assert client.get(path).status_code == 200
     assert read(dashboard, path).status_code == 200
     for headers in ({}, WRONG_KEY):
@@ -120,16 +122,16 @@ def test_with_no_key_set_workers_still_work_and_the_agents_routes_refuse(
 
 def test_an_empty_key_set_doesnt_match_an_empty_header(dashboard, monkeypatch):
     monkeypatch.setenv("CRM_AGENT_KEY", "")
-    refused = dashboard.post("/api/runs/stop", headers={API_KEY_HEADER: ""})
+    refused = dashboard.get("/api/runs/run-1", headers={API_KEY_HEADER: ""})
     assert refused.status_code == 401
 
 
 def test_a_key_outside_ascii_is_refused_rather_than_raising(dashboard):
     headers = {API_KEY_HEADER: "clé-de-l-agent".encode()}
-    assert dashboard.post("/api/runs/stop", headers=headers).status_code == 401
+    assert dashboard.get("/api/runs/run-1", headers=headers).status_code == 401
 
 
-def test_the_service_records_a_round_and_a_review_for_a_worker_with_the_key(client):
+def test_the_agent_reads_a_review_a_worker_gave(client):
     round_id = create_round(client).json()["round_id"]
     proposal_id = propose_change(client, round_id).json()["proposal_id"]
     reviewed = review(client, round_id, proposal_id)

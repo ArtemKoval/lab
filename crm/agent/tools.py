@@ -1,27 +1,22 @@
-"""The case agent's tools, the app's operations and the context layer's tools it
-calls on its route and the search of its memory, and the context and state they
-read."""
+"""The case agent's tools, the app's operations it calls on its route, the context
+layer's lookups both agents have, and the search of its memory, and the context and
+state they read."""
 
 import operator
 from dataclasses import dataclass
-from typing import Annotated, Any, Literal, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from langchain.tools import BaseTool, ToolException, ToolRuntime, tool
 from langchain_core.messages import AnyMessage, ToolMessage
 from langgraph.graph.message import add_messages
 from langgraph.store.base import BaseStore
 from langgraph.types import Command
-from pydantic import StringConstraints
 
-from agent import api, memory
+from agent import api, app_terms, memory
+from agent.agentcore_memory import UNREACHABLE
+from agent.context_tools import CONTEXT_TOOLS, Query
 from agent.json_text import as_json
 from agent.routes import Route, Target
-
-# A search needs a word or phrase to look for.
-Query = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
-DocumentName = Literal["wording", "manual"]
-RecordName = Literal["case", "contract", "previous_case"]
-PlanName = Literal["economy", "premium", "first"]
 
 
 @dataclass
@@ -56,10 +51,15 @@ class CaseState(TypedDict):
     status: Annotated[str, keep_last]
 
 
+# What the case agent never reads of a case: the decisions workers sent back,
+# whose notes reach its model only as a worker's message.
+UNREAD = "sent_back_decisions"
+
+
 def case_as_read(case: dict[str, Any]) -> str:
     """A case in full, as the case agent reads it, which is also what the check for
     hidden instructions reads."""
-    return as_json(case)
+    return as_json({field: value for field, value in case.items() if field != UNREAD})
 
 
 def on_app(runtime: ToolRuntime[CaseContext], operation: str, **inputs: Any) -> Any:
@@ -67,22 +67,9 @@ def on_app(runtime: ToolRuntime[CaseContext], operation: str, **inputs: Any) -> 
     return runtime.context.route.call(Target.APP, operation, inputs)
 
 
-def on_context(
-    runtime: ToolRuntime[CaseContext], operation: str, **inputs: Any
-) -> Any:
-    """Call one of the context layer's tools on the case agent's route."""
-    return runtime.context.route.call(Target.CONTEXT, operation, inputs)
-
-
 # A step a tool gives as its artifact, which the harness records on the case: its
 # kind, its content and the context files it came from.
 Step = tuple[api.StepKind, str, api.Sources]
-
-
-def looked_up(answer: dict[str, Any], what: str) -> tuple[str, Step]:
-    """A context layer's answer for the model, and a lookup step that says what
-    was looked up and the files the answer came from."""
-    return as_json(answer), ("lookup", what, answer["sources"])
 
 
 @tool
@@ -108,62 +95,6 @@ def get_case_history(runtime: ToolRuntime[CaseContext]) -> str:
 
 
 @tool(response_format="content_and_artifact")
-def lookup_term(term: str, runtime: ToolRuntime[CaseContext]) -> tuple[str, Step]:
-    """Look up a term the contract wording defines: its definition and sections."""
-    answer = on_context(runtime, "lookup_term", term=term)
-    return looked_up(answer, f'Term "{term}"')
-
-
-@tool(response_format="content_and_artifact")
-def describe_fields(
-    record: RecordName, runtime: ToolRuntime[CaseContext]
-) -> tuple[str, Step]:
-    """Describe a record you read and the meaning of each of its fields."""
-    answer = on_context(runtime, "describe_fields", record=record)
-    return looked_up(answer, f"Fields of a {record.replace('_', ' ')}")
-
-
-@tool(response_format="content_and_artifact")
-def get_plan(plan: PlanName, runtime: ToolRuntime[CaseContext]) -> tuple[str, Step]:
-    """Get a plan's limits, waiting periods, deductible and the add-ons."""
-    return looked_up(on_context(runtime, "get_plan", plan=plan), f"Plan: {plan}")
-
-
-@tool(response_format="content_and_artifact")
-def get_case_rules(runtime: ToolRuntime[CaseContext]) -> tuple[str, Step]:
-    """Get the rules cases operations applies to every case."""
-    return looked_up(on_context(runtime, "get_case_rules"), "The case rules")
-
-
-@tool(response_format="content_and_artifact")
-def search_reference_data(
-    query: Query, runtime: ToolRuntime[CaseContext]
-) -> tuple[str, Step]:
-    """Find outside facts, such as storms, strikes and prices, with every word."""
-    answer = on_context(runtime, "search_reference_data", query=query)
-    return looked_up(answer, f'Reference data: "{query}"')
-
-
-@tool(response_format="content_and_artifact")
-def search_documents(
-    query: Query, runtime: ToolRuntime[CaseContext]
-) -> tuple[str, Step]:
-    """Find the sections of the wording and the manual containing one word or phrase."""
-    answer = on_context(runtime, "search_documents", query=query)
-    return looked_up(answer, f'Documents: "{query}"')
-
-
-@tool(response_format="content_and_artifact")
-def read_section(
-    document: DocumentName, number: int, runtime: ToolRuntime[CaseContext]
-) -> tuple[str, Step]:
-    """Read one section of the contract wording or the cases manual in full."""
-    section = on_context(runtime, "read_section", document=document, number=number)
-    read = f"{section['document_title']}, section {number}: {section['title']}"
-    return looked_up(section, read)
-
-
-@tool(response_format="content_and_artifact")
 def search_memory(query: Query, runtime: ToolRuntime[CaseContext]) -> tuple[str, Step]:
     """Search what we remember about this case's customer from their earlier cases."""
     context = runtime.context
@@ -174,7 +105,7 @@ def search_memory(query: Query, runtime: ToolRuntime[CaseContext]) -> tuple[str,
             context.case_id,
             query,
         )
-    except memory.UNREACHABLE as error:
+    except UNREACHABLE as error:
         raise ToolException(f"The memory can't be reached. {error}") from error
     return as_json(found), ("memory_search", what_was_found(query, found), [])
 
@@ -213,7 +144,7 @@ def calculate_award(
 
 @tool
 def record_decision(
-    decision: api.DecisionKind,
+    decision: app_terms.DecisionKind,
     award: Annotated[float, "In US dollars, and 0 for a decline or a referral"],
     section: Annotated[str, "The sections of the wording and the manual relied on"],
     reason: Annotated[str, "Two or three plain sentences for a colleague"],
@@ -230,7 +161,7 @@ def record_decision(
         reason=reason,
         decided_by=runtime.context.decided_by,
     )
-    message = ToolMessage(as_json(case), tool_call_id=runtime.tool_call_id)
+    message = ToolMessage(case_as_read(case), tool_call_id=runtime.tool_call_id)
     update = {
         "messages": [message],
         "decision": case["decision"],
@@ -245,15 +176,6 @@ APP_TOOLS = [
     get_case_history,
     calculate_award,
     record_decision,
-]
-CONTEXT_TOOLS = [
-    lookup_term,
-    describe_fields,
-    get_plan,
-    get_case_rules,
-    search_reference_data,
-    search_documents,
-    read_section,
 ]
 CASE_TOOLS = APP_TOOLS + CONTEXT_TOOLS
 

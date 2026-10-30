@@ -1,17 +1,14 @@
-"""The CRM backend's API for the case agent and the agent's service: one
+"""The CRM backend's API for the case agent and the agent's entry point: one
 function for each operation they use. It has no way to the scores, the settings,
 the rounds or the workers' decisions."""
 
-from enum import StrEnum
 from typing import Any, Literal, TypedDict, Unpack
 
 from pydantic import BaseModel, Field
 
+from agent.app_terms import DecisionKind
 from agent.connection import call
 
-DecisionKind = Literal["approve", "decline", "refer"]
-APPROVE: DecisionKind = "approve"
-REFER: DecisionKind = "refer"
 StepKind = Literal[
     "screening",
     "tool_call",
@@ -24,10 +21,6 @@ StepKind = Literal[
 ]
 # The context files a lookup came from, each with its system, owner and review date.
 Sources = list[dict[str, str]]
-EvaluationSet = Literal["evaluation", "held_out"]
-RunKind = Literal["dispatch", "evaluation"]
-DISPATCH: RunKind = "dispatch"
-EVALUATION: RunKind = "evaluation"
 Benefit = Literal[
     "trip_cancellation",
     "trip_interruption",
@@ -37,16 +30,6 @@ Benefit = Literal[
     "passport",
     "emergency_medical",
 ]
-
-
-class Status(StrEnum):
-    """Where a case stands."""
-
-    WAITING = "waiting"
-    IN_PROGRESS = "in_progress"
-    WAITING_FOR_SIGN_OFF = "waiting_for_sign_off"
-    DECIDED = "decided"
-    LEFT_FOR_WORKER = "left_for_worker"
 
 
 LineKind = Literal[
@@ -161,6 +144,14 @@ def fail_case(case_id: str, reason: str) -> dict[str, Any]:
     return call("POST", f"/cases/{case_id}/failure", json={"reason": reason})
 
 
+def take_case(case_id: str, run_id: str | None) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/take", json={"run_id": run_id})
+
+
+def record_case_heartbeat(case_id: str) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/heartbeat")
+
+
 def record_model_call(
     case_id: str,
     run_id: str | None,
@@ -184,15 +175,16 @@ def record_work_time(
     return call("POST", f"/cases/{case_id}/work-times", json=body)
 
 
-def create_dispatch(agents: int) -> dict[str, Any]:
-    return call("POST", "/runs/dispatches", json={"agents": agents})
+def get_run(run_id: str) -> dict[str, Any]:
+    return call("GET", f"/runs/{run_id}")
 
 
-def create_evaluation(
-    evaluation_set: EvaluationSet, tiny: bool, agents: int
-) -> dict[str, Any]:
-    body = {"evaluation_set": evaluation_set, "tiny": tiny, "agents": agents}
-    return call("POST", "/runs/evaluations", json=body)
+def record_run_heartbeat(run_id: str) -> dict[str, Any]:
+    return call("POST", f"/runs/{run_id}/heartbeat")
+
+
+def fail_run(run_id: str, reason: str) -> dict[str, Any]:
+    return call("POST", f"/runs/{run_id}/failure", json={"reason": reason})
 
 
 def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
@@ -201,7 +193,3 @@ def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
 
 def finish_run(run_id: str) -> dict[str, Any]:
     return call("POST", f"/runs/{run_id}/finish")
-
-
-def stop_runs() -> list[str]:
-    return call("POST", "/runs/stop")

@@ -1,9 +1,17 @@
-import { accessToken } from "./auth";
+import { freshAccessToken } from "./auth";
+import { post, request, send } from "./connection";
+import type {
+  ConfirmationAnswer,
+  Conversation,
+  ConversationSummary,
+} from "./conversation";
+import type { Source } from "./sources";
 
 export const statuses = [
   "waiting",
   "in_progress",
   "waiting_for_sign_off",
+  "sent_back",
   "decided",
   "left_for_worker",
 ] as const;
@@ -18,15 +26,9 @@ export type StepKind =
   | "memory_search"
   | "memory_save"
   | "refusal"
-  | "error";
-
-// A context file a lookup came from, with that file's source.
-export interface Source {
-  file: string;
-  system: string;
-  owner: string;
-  reviewed: string;
-}
+  | "error"
+  // A worker's note on a decision sent back, which only the app records.
+  | "sent_back";
 
 export interface CaseSummary {
   case_id: string;
@@ -38,6 +40,8 @@ export interface CaseSummary {
   status: Status;
   decision: DecisionKind | null;
   award: number | null;
+  // A resume is working on the case, so a dispatch leaves it alone.
+  resuming: boolean;
 }
 
 export interface Item {
@@ -63,7 +67,8 @@ export interface Calculation {
   award: number;
 }
 
-export interface Decision {
+// A decision as cases manual section 14 records it.
+export interface DecisionRecord {
   decision: DecisionKind;
   award: number;
   // None for a decline or a referral.
@@ -74,10 +79,13 @@ export interface Decision {
   decided_at: string;
   // The cases manual's version in force when the decision was made.
   manual_version: string;
-  signed_off_by: string | null;
-  signed_off_at: string | null;
   // Why the Gateway refused to pay the approval, which then waits for sign-off.
   gateway_refusal: string | null;
+}
+
+export interface Decision extends DecisionRecord {
+  signed_off_by: string | null;
+  signed_off_at: string | null;
 }
 
 export interface Payment {
@@ -85,6 +93,16 @@ export interface Payment {
   paid_at: string;
   signed_off_by: string | null;
   signed_off_at: string | null;
+}
+
+// The longest note a worker can send a decision back with.
+export const NOTE_LENGTH = 1000;
+
+// A decision a senior worker sent back to the agent, with their note.
+export interface SentBackDecision extends DecisionRecord {
+  note: string;
+  sent_back_by: string;
+  sent_back_at: string;
 }
 
 export interface Case {
@@ -109,6 +127,8 @@ export interface Case {
   copy_of: string | null;
   decision: Decision | null;
   payment: Payment | null;
+  // Oldest first.
+  sent_back_decisions: SentBackDecision[];
 }
 
 export interface Contract {
@@ -195,6 +215,8 @@ export interface RunDetails {
   model: string;
   reasoning_effort: string;
   status: RunStatus;
+  // Why it stopped, for a run that stopped.
+  stopped_because: string | null;
   started_at: string;
   finished_at: string | null;
   seconds: number | null;
@@ -453,71 +475,9 @@ export interface Improvement {
   recipes: RecipeSummary[];
 }
 
-export const REQUEST_FAILED = "The request failed";
-
-// How FastAPI refuses a request it can't accept, one entry for each input.
-interface InputError {
-  loc: (string | number)[];
-  msg: string;
-}
-
-function isInputErrors(detail: unknown): detail is InputError[] {
-  return (
-    Array.isArray(detail) &&
-    detail.every(
-      (error: unknown) =>
-        typeof error === "object" &&
-        error !== null &&
-        "loc" in error &&
-        "msg" in error,
-    )
-  );
-}
-
-// The backend's reason for refusing, as a sentence a worker can act on.
-function reasonFor(detail: unknown): string {
-  if (typeof detail === "string") return detail;
-  if (isInputErrors(detail))
-    return detail
-      .map((error) => `${error.loc.slice(1).join(".")}: ${error.msg}`)
-      .join("; ");
-  return REQUEST_FAILED;
-}
-
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-// Sends a request with the signed-in worker's access token, if any.
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = await accessToken();
-  const headers = new Headers(init.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(path, { ...init, headers });
-  if (!response.ok) {
-    const body = (await response.json().catch(() => ({}))) as {
-      detail?: unknown;
-    };
-    throw new ApiError(response.status, reasonFor(body.detail));
-  }
-  return (await response.json()) as T;
-}
-
-function send<T>(method: "POST" | "PUT", path: string, body?: object) {
-  if (body === undefined) return request<T>(path, { method });
-  return request<T>(path, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-const post = <T>(path: string, body?: object) => send<T>("POST", path, body);
+// What the Copilot is asked to work on, with a sign-in that won't run out first.
+const askTheCopilot = (path: string, body: object) =>
+  send<Conversation>("POST", path, body, freshAccessToken);
 
 const CASES = "/api/cases";
 const casePath = (caseId: string) =>
@@ -532,6 +492,9 @@ const roundPath = (roundId: string) =>
   `${ROUNDS}/${encodeURIComponent(roundId)}`;
 const proposalPath = (roundId: string, proposalId: string) =>
   `${roundPath(roundId)}/proposals/${encodeURIComponent(proposalId)}`;
+const CONVERSATIONS = "/api/copilot/conversations";
+const conversationPath = (conversationId: string) =>
+  `${CONVERSATIONS}/${encodeURIComponent(conversationId)}`;
 
 export const api = {
   listCases: () => request<CaseSummary[]>(CASES),
@@ -569,6 +532,8 @@ export const api = {
       agents,
     }),
   signOff: (caseId: string) => post<Case>(`${casePath(caseId)}/sign-off`),
+  sendBack: (caseId: string, note: string) =>
+    post<Case>(`${casePath(caseId)}/send-back`, { note }),
   getImprovement: () => request<Improvement>(IMPROVEMENT),
   getRecipe: (number: string) =>
     request<RecipeDetails>(
@@ -582,5 +547,21 @@ export const api = {
   rejectProposal: (roundId: string, proposalId: string, reason: string) =>
     post<Accepted>(`${proposalPath(roundId, proposalId)}/rejection`, {
       reason,
+    }),
+  listConversations: () => request<ConversationSummary[]>(CONVERSATIONS),
+  getConversation: (conversationId: string) =>
+    request<Conversation>(conversationPath(conversationId)),
+  startConversation: (message: string) =>
+    askTheCopilot(CONVERSATIONS, { message }),
+  sendMessage: (conversationId: string, message: string) =>
+    askTheCopilot(`${conversationPath(conversationId)}/messages`, { message }),
+  answerConfirmation: (
+    conversationId: string,
+    turnId: string,
+    answer: ConfirmationAnswer,
+  ) =>
+    askTheCopilot(`${conversationPath(conversationId)}/confirmation`, {
+      turn_id: turnId,
+      answer,
     }),
 };

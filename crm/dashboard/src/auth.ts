@@ -1,47 +1,50 @@
-// The dashboard's way to the auth service. The service's address is public,
-// and the browser keeps the access token for the session. The AWS rollout
-// later points VITE_AUTH_URL at Cognito's token endpoint, on the same shape.
+import { createClient } from "@supabase/supabase-js";
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? "http://127.0.0.1:8004";
-const TOKEN = "crm-access-token";
+// The dashboard's only way to Supabase Auth. The project's address and its
+// publishable key are meant to be public, and supabase-js keeps the session
+// in the browser and refreshes its access token.
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+);
 
 export const WRONG_PASSWORD = "The email or password is wrong.";
 
-interface TokenReply {
-  access_token: string;
-}
-
-// Signs a worker in, or throws the service's reason for refusing.
+// Signs a worker in, or throws Supabase's reason for refusing.
 export async function signIn(email: string, password: string): Promise<void> {
-  const response = await fetch(`${AUTH_URL}/signin`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!response.ok) {
-    const detail = (await response.json().catch(() => ({}))) as {
-      detail?: string;
-    };
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error)
     throw new Error(
-      response.status === 401
-        ? WRONG_PASSWORD
-        : (detail.detail ?? response.statusText),
+      error.code === "invalid_credentials" ? WRONG_PASSWORD : error.message,
     );
-  }
-  const reply = (await response.json()) as TokenReply;
-  localStorage.setItem(TOKEN, reply.access_token);
-  window.dispatchEvent(new Event("crm-session"));
 }
 
 // Signs the worker out of this browser only.
-export function signOut(): void {
-  localStorage.removeItem(TOKEN);
-  window.dispatchEvent(new Event("crm-session"));
+export async function signOut(): Promise<void> {
+  await supabase.auth.signOut({ scope: "local" });
 }
 
 // The session's access token, or nothing when no one is signed in.
-export function accessToken(): string | undefined {
-  return localStorage.getItem(TOKEN) ?? undefined;
+export async function accessToken(): Promise<string | undefined> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token;
+}
+
+// A sign-in lasts an hour; one with less than this left is renewed before the
+// Copilot is given it, so it lasts the Copilot's turn.
+export const RENEW_WITHIN_SECONDS = 20 * 60;
+
+// The session's access token, renewed first when it has less than
+// RENEW_WITHIN_SECONDS left, or nothing when no one is signed in.
+export async function freshAccessToken(): Promise<string | undefined> {
+  const { data } = await supabase.auth.getSession();
+  const session = data.session;
+  if (!session) return undefined;
+  const left = (session.expires_at ?? 0) - Date.now() / 1000;
+  if (left >= RENEW_WITHIN_SECONDS) return session.access_token;
+  const { data: renewed, error } = await supabase.auth.refreshSession();
+  if (error) throw new Error(error.message);
+  return renewed.session?.access_token;
 }
 
 // Tells the callback whether a worker is signed in, at once and again on each
@@ -49,14 +52,10 @@ export function accessToken(): string | undefined {
 export function followSession(
   callback: (signedIn: boolean) => void,
 ): () => void {
-  const tell = () => {
-    callback(localStorage.getItem(TOKEN) !== null);
-  };
-  tell();
-  window.addEventListener("crm-session", tell);
-  window.addEventListener("storage", tell);
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    callback(session !== null);
+  });
   return () => {
-    window.removeEventListener("crm-session", tell);
-    window.removeEventListener("storage", tell);
+    data.subscription.unsubscribe();
   };
 }

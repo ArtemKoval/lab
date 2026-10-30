@@ -7,6 +7,7 @@ import { DecisionPanel } from "../components/DecisionPanel";
 import { StateMessage } from "../components/StateMessage";
 import { PageHeader } from "../components/PageHeader";
 import { HistoryPanel, ContractPanel } from "../components/ContractPanels";
+import { SentBackDecisions } from "../components/SentBackDecisions";
 import { StepList } from "../components/StepList";
 import { date, label, money } from "../format";
 import { evaluationPage, QUEUE } from "../paths";
@@ -69,7 +70,8 @@ export function CasePage() {
           <ContextUsed steps={steps.data} />
         </div>
         <div className="column">
-          <DecisionPanel entry={entry} onSignedOff={reload} />
+          <DecisionPanel entry={entry} onAnswered={reload} />
+          <SentBackDecisions decisions={entry.sent_back_decisions} />
           <StepList steps={steps.data} error={steps.error} />
         </div>
       </div>

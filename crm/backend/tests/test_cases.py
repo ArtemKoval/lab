@@ -2,7 +2,7 @@ from sqlalchemy import select
 
 from backend import seed
 from backend.database import engine, worker_decisions
-from backend.tests.run_requests import create_evaluation, queue
+from backend.tests.run_requests import create_evaluation, finish, queue
 
 
 def test_list_cases(client):
@@ -22,6 +22,7 @@ def test_list_cases(client):
         "status": "waiting",
         "decision": None,
         "award": None,
+        "resuming": False,
     }
 
 
@@ -95,3 +96,4 @@ def test_the_security_teams_case_is_in_neither_evaluation_set(client):
             copied = [case["case_id"] for case in run["cases"]]
             assert copied
             assert not [c for c in copied if c.startswith("CLM-1901")]
+            finish(client, run["run_id"])

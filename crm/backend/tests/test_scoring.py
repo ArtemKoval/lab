@@ -56,6 +56,7 @@ def scored(agent, worker, seconds, grade=None):
         status=Status.DECIDED if decision else Status.WAITING,
         decision=decision,
         award=award,
+        resuming=False,
         started_at=None,
         seconds=seconds,
         model_cost=0.01,
