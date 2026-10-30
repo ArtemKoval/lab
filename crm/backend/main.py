@@ -25,10 +25,12 @@ from backend.database import (
     cases,
     contracts,
     decisions,
+    effect_runs,
     engine,
     is_seeded,
     model_calls,
     now,
+    outcomes,
     payments,
     seed,
     stamp,
@@ -63,6 +65,7 @@ from backend.models import (
     Contract,
     DecisionKind,
     DecisionRequest,
+    EffectRun,
     FailureRequest,
     HoldRequest,
     ModelCall,
@@ -94,6 +97,8 @@ NOT_APPROVED = "Case {case_id} has not been approved"
 ALREADY_PAID = "Case {case_id} has already been paid"
 NOT_STARTED = "Case {case_id} has not been started"
 NOT_IN_PROGRESS = "Case {case_id} is not in progress"
+NOT_RESOLVED = "Case {case_id} has no resolved outcome {outcome!r}"
+ALREADY_RAN = "Case {case_id} already ran the effect {effect!r}"
 ALREADY_DECIDED = "Case {case_id} has already been decided"
 NOT_WAITING = "Case {case_id} is not waiting"
 NOT_SENT_BACK = "Case {case_id} isn't sent back"
@@ -123,6 +128,11 @@ SendsBack = Annotated[Worker, Depends(senior("send this back"))]
 def rules():
     """Return the active pack's deterministic rules module."""
     return loader.pack().rules_module()
+
+
+def protocol():
+    """Return the active pack's protocol module, with its four verbs."""
+    return loader.pack().protocol_module()
 
 
 def approval_limit(db: Connection) -> float:
@@ -155,13 +165,32 @@ def over_the_limit(limit: float) -> str:
     return f"An award over {dollars(limit)} needs a worker's sign-off"
 
 
-def record_payment(db: Connection, case: RowMapping) -> None:
-    """Pay an approved case its award."""
+def keep_outcome(db: Connection, case_id: str, outcome: str, payload: dict) -> None:
+    """Store one resolved outcome's payload, over any earlier one."""
     db.execute(
-        insert(payments).values(
-            case_id=case["case_id"], amount=case["award"], paid_at=now()
+        delete(outcomes).where(
+            outcomes.c.case_id == case_id, outcomes.c.outcome == outcome
         )
     )
+    db.execute(
+        insert(outcomes).values(
+            case_id=case_id, outcome=outcome, payload=payload, resolved_at=now()
+        )
+    )
+
+
+def record_payment(
+    db: Connection, case: RowMapping, outcome: dict | None = None
+) -> dict:
+    """Pay an approved case its award: the record comes from the pack's
+    execute verb, and the write stays the engine's."""
+    record = protocol().execute(dict(case), outcome)
+    db.execute(
+        insert(payments).values(
+            case_id=case["case_id"], amount=record["amount"], paid_at=now()
+        )
+    )
+    return record
 
 
 def set_status(db: Connection, case_id: str, status: Status) -> None:
@@ -477,19 +506,58 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
     dependencies=[AgentKey],
 )
 def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
-    """Work out and keep an approval's award with CRM's award rules."""
+    """Work out and keep an approval's award with the pack's resolve verb."""
     case = case_in_full(db, case_id)
     if case.thread_id is None:
         raise HTTPException(409, NOT_STARTED.format(case_id=case_id))
     if case.status != Status.IN_PROGRESS:
         raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
     contract = find_contract(db, case.contract_id)
+    config = {"plans": plans(db), "approval_limit": approval_limit(db)}
     try:
-        award = rules().work_out_award(contract, plans(db), request, approval_limit(db))
+        award = protocol().resolve({"contract": contract}, config, request)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     keep_calculation(db, case_id, case.thread_id, award)
+    keep_outcome(db, case_id, "award", award.model_dump())
     return award
+
+
+@app.post(
+    "/api/cases/{case_id}/effects/{effect}",
+    operation_id="run_effect",
+    dependencies=[AgentKey],
+)
+def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
+    """Run one of a case's effects once, through the pack's execute verb."""
+    case = find_case(db, case_id)
+    if case["decision"] != DecisionKind.APPROVE:
+        raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
+    if case["status"] == Status.WAITING_FOR_SIGN_OFF:
+        raise HTTPException(403, over_the_limit(case["approval_limit"]))
+    payload = db.execute(
+        select(outcomes.c.payload).where(
+            outcomes.c.case_id == case_id, outcomes.c.outcome == effect
+        )
+    ).scalar_one_or_none()
+    if payload is None:
+        raise HTTPException(404, NOT_RESOLVED.format(case_id=case_id, outcome=effect))
+    prior = db.execute(
+        select(effect_runs)
+        .where(effect_runs.c.case_id == case_id, effect_runs.c.effect == effect)
+    ).first()
+    if prior is not None:
+        raise HTTPException(409, ALREADY_RAN.format(case_id=case_id, effect=effect))
+    # Stage 2 serves one effect per pack, the award payment; the declared
+    # effects of a later stage give every effect its own write.
+    record = record_payment(db, case, payload)
+    db.execute(
+        insert(effect_runs).values(
+            case_id=case_id, effect=effect, result=record, ran_at=now()
+        )
+    )
+    set_status(db, case_id, Status.DECIDED)
+    return EffectRun(case_id=case_id, effect=effect, result=record, ran_at=now())
 
 
 @app.post(

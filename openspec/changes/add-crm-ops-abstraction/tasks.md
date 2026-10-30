@@ -7,9 +7,9 @@
 
 ## Stage 2 — the protocol and the execute seam
 
-- [ ] 2.1 Add `protocol.py` to both packs with `resolve`, `gate`, `execute`, `summarize`. the loader validates the verbs.
-- [ ] 2.2 Add the `outcomes` and `effect_runs` tables (unique per case and effect) and the generic execute route.
-- [ ] 2.3 `pay_case` writes through the execute seam. The gateway effect moves into the insurance protocol.
+- [x] 2.1 Add `protocol.py` to both packs with `resolve`, `gate`, `execute`, `summarize`. the loader validates the verbs.
+- [x] 2.2 Add the `outcomes` and `effect_runs` tables (unique per case and effect) and the generic execute route.
+- [x] 2.3 `pay_case` writes through the execute seam. The gateway effect moves into the insurance protocol.
 
 ## Stage 3 — the payload
 

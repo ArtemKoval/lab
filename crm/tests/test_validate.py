@@ -43,6 +43,27 @@ def work_out_award(
     return Award(calculation=[], award=award, needs_sign_off=needs_sign_off(award, approval_limit))
 '''
 
+GOOD_PROTOCOL = '''"""Tiny protocol."""
+
+from backend.models import Award, AwardRequest
+
+
+def resolve(case: dict, config: dict, request: AwardRequest) -> Award:
+    raise NotImplementedError
+
+
+def gate(outcome: dict, config: dict) -> bool:
+    raise NotImplementedError
+
+
+def execute(case: dict, outcome: dict | None) -> dict:
+    raise NotImplementedError
+
+
+def summarize(outcome: dict) -> str:
+    raise NotImplementedError
+'''
+
 GOOD_DOC = """---
 source:
   system: Tiny
@@ -81,6 +102,7 @@ def make_pack(root: Path, **overrides) -> Path:
     manifest["name"] = root.name
     (root / "manifest.json").write_text(json.dumps(manifest))
     (root / "rules.py").write_text(overrides.get("rules", GOOD_RULES))
+    (root / "protocol.py").write_text(overrides.get("protocol", GOOD_PROTOCOL))
     policy = root / "policy"
     policy.mkdir(parents=True, exist_ok=True)
     (policy / "wording.md").write_text(overrides.get("wording", GOOD_DOC))
@@ -223,3 +245,33 @@ def test_a_domain_noun_in_a_file_name_is_named(tmp_path):
     assert any(
         "claims.json" in message for message in findings_for(root)["data/claims.json"]
     )
+
+
+def test_a_pack_without_a_protocol_is_named(tmp_path):
+    make_pack(tmp_path / "tiny")
+    (tmp_path / "tiny" / "protocol.py").unlink()
+    assert (
+        findings_for(tmp_path / "tiny")["protocol.py"]
+        == ["the pack has no protocol module"]
+    )
+
+
+@pytest.mark.parametrize(
+    "verb", ["resolve", "gate", "execute", "summarize"]
+)
+def test_a_protocol_verb_that_lacks_the_contract_is_named(tmp_path, verb):
+    make_pack(
+        tmp_path / "tiny",
+        protocol=GOOD_PROTOCOL.replace(f"def {verb}", f"def moved_{verb}"),
+    )
+    findings = findings_for(tmp_path / "tiny")["protocol.py"]
+    assert any(f"lacks the function '{verb}'" in message for message in findings)
+
+
+def test_a_protocol_signature_drift_is_named(tmp_path):
+    make_pack(
+        tmp_path / "tiny",
+        protocol=GOOD_PROTOCOL.replace("outcome: dict, config: dict", "outcome: dict"),
+    )
+    findings = findings_for(tmp_path / "tiny")["protocol.py"]
+    assert any("gate takes" in message for message in findings)

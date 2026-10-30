@@ -41,6 +41,14 @@ RULES_CONTRACT = {
     "needs_sign_off": ["award", "approval_limit"],
 }
 
+# The protocol contract: the four verbs, with the exact parameter names, in order.
+PROTOCOL_CONTRACT = {
+    "resolve": ["case", "config", "request"],
+    "gate": ["outcome", "config"],
+    "execute": ["case", "outcome"],
+    "summarize": ["outcome"],
+}
+
 # The tools the engine serves to the case agent; instructions may only name these.
 SERVED_TOOLS = (
     "get_case",
@@ -96,6 +104,7 @@ class Examiner:
         self.examine_manifest()
         if self.manifest:
             self.examine_rules()
+            self.examine_protocol()
             self.examine_documents()
             self.examine_seeds()
             self.examine_evals()
@@ -135,37 +144,44 @@ class Examiner:
                 )
 
     def examine_rules(self) -> None:
-        rules_path = self.root / "rules.py"
-        if not rules_path.is_file():
-            self.findings.append(Finding("rules.py", "the pack has no rules module"))
+        self.examine_module("rules.py", RULES_CONTRACT, "rules module")
+
+    def examine_protocol(self) -> None:
+        self.examine_module("protocol.py", PROTOCOL_CONTRACT, "protocol module")
+
+    def examine_module(
+        self, file: str, contract: dict[str, list[str]], kind: str
+    ) -> None:
+        """Load one pack module by file, and examine its functions against a
+        contract of exact parameter names."""
+        path = self.root / file
+        if not path.is_file():
+            self.findings.append(Finding(file, f"the pack has no {kind}"))
             return
         sys.path.insert(0, str(self.root))
         try:
             spec = importlib.util.spec_from_file_location(
-                f"{self.name}_rules", rules_path
+                f"{self.name}_{path.stem}", path
             )
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
         except Exception as error:  # the module is the pack's own code
             self.findings.append(
-                Finding("rules.py", f"the rules module does not import: {error}")
+                Finding(file, f"the {kind} does not import: {error}")
             )
             return
-        for function_name, parameters in RULES_CONTRACT.items():
+        for function_name, parameters in contract.items():
             function = getattr(module, function_name, None)
             if function is None:
                 self.findings.append(
-                    Finding(
-                        "rules.py",
-                        f"the rules module lacks the function '{function_name}'",
-                    )
+                    Finding(file, f"the {kind} lacks the function '{function_name}'")
                 )
                 continue
             actual = list(inspect.signature(function).parameters)
             if actual != parameters:
                 self.findings.append(
                     Finding(
-                        "rules.py",
+                        file,
                         f"{function_name} takes {actual}, but the contract is {parameters}",
                     )
                 )

@@ -17,6 +17,7 @@ AGENT_OPERATIONS = {
     "record_decision",
     "calculate_award",
     "pay_case",
+    "run_effect",
     "hold_payment",
     "fail_case",
     "take_case",

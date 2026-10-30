@@ -1,0 +1,144 @@
+"""The pack protocol: the loader's verb gate, the stored outcomes, and the
+generic execute route."""
+
+import importlib.util
+import sys
+import types
+
+import pytest
+from sqlalchemy import select
+
+from backend.database import engine, outcomes
+from backend.tests.case_requests import decide, line, start, work_out_award
+from backend.tests.settings_requests import change_settings
+from domains.loader import Pack, PackError
+
+TRIP_DELAY = [
+    line("Hotel", 245, "hotel", nights=1),
+    line("Meals", 95, "expense"),
+    line("Taxis", 80, "expense"),
+]
+
+GOOD = '''"""A protocol."""
+
+
+def resolve(case, config, request):
+    raise NotImplementedError
+
+
+def gate(outcome, config):
+    raise NotImplementedError
+
+
+def execute(case, outcome):
+    raise NotImplementedError
+
+
+def summarize(outcome):
+    raise NotImplementedError
+'''
+
+
+def a_pack(monkeypatch, source: str, tmp_path) -> Pack:
+    """A throwaway pack whose protocol module is the given source."""
+    root = tmp_path / "protocolcheck"
+    root.mkdir()
+    (root / "protocol.py").write_text(source)
+    package = types.ModuleType("domains.protocolcheck")
+    package.__path__ = [str(root)]
+    name = "domains.protocolcheck.protocol"
+    spec = importlib.util.spec_from_file_location(name, root / "protocol.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setitem(sys.modules, "domains.protocolcheck", package)
+    monkeypatch.setitem(sys.modules, name, module)
+    return Pack(name="protocolcheck", root=root, manifest={})
+
+
+def test_the_loader_takes_a_protocol_with_all_four_verbs(monkeypatch, tmp_path):
+    module = a_pack(monkeypatch, GOOD, tmp_path).protocol_module()
+    verbs = ("resolve", "gate", "execute", "summarize")
+    seen = [callable(getattr(module, verb, None)) for verb in verbs]
+    assert seen == [True, True, True, True]
+
+
+@pytest.mark.parametrize("verb", ["resolve", "gate", "execute", "summarize"])
+def test_the_loader_refuses_a_protocol_that_lacks_a_verb(monkeypatch, verb, tmp_path):
+    body = GOOD.replace(f"def {verb}", f"def moved_{verb}")
+    with pytest.raises(PackError) as error:
+        a_pack(monkeypatch, body, tmp_path).protocol_module()
+    assert f"lacks {verb}" in str(error.value)
+
+
+def test_the_loader_refuses_a_verb_that_is_not_callable(monkeypatch, tmp_path):
+    with pytest.raises(PackError) as error:
+        a_pack(
+            monkeypatch, GOOD + "\n\nresolve = None\n", tmp_path
+        ).protocol_module()
+    assert "lacks resolve" in str(error.value)
+
+
+def an_approved_case(client, approval_limit=None):
+    """CLM-1001 started, its award worked out, and approved at $420.00."""
+    if approval_limit is not None:
+        change_settings(client, approval_limit=approval_limit)
+    start(client, "CLM-1001")
+    work_out_award(client, "CLM-1001", "trip_delay", TRIP_DELAY)
+    decide(client, "CLM-1001", "approve", 420.0)
+
+
+def test_an_effect_runs_once_through_the_pack(client):
+    an_approved_case(client)
+    response = client.post("/api/cases/CLM-1001/effects/award")
+    assert response.status_code == 200
+    run = response.json()
+    assert (run["case_id"], run["effect"]) == ("CLM-1001", "award")
+    assert run["result"] == {"amount": 420.0}
+    assert run["ran_at"]
+    case = client.get("/api/cases/CLM-1001").json()
+    assert (case["status"], case["payment"]["amount"]) == ("decided", 420.0)
+
+
+def test_a_repeated_effect_is_refused_with_the_recorded_run(client):
+    an_approved_case(client)
+    client.post("/api/cases/CLM-1001/effects/award")
+    repeat = client.post("/api/cases/CLM-1001/effects/award")
+    assert repeat.status_code == 409
+    assert repeat.json()["detail"] == "Case CLM-1001 already ran the effect 'award'"
+
+
+def test_an_effect_needs_a_resolved_outcome(client):
+    an_approved_case(client)
+    missing = client.post("/api/cases/CLM-1001/effects/refund")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "Case CLM-1001 has no resolved outcome 'refund'"
+
+
+def test_only_an_approved_case_runs_an_effect(client):
+    start(client, "CLM-1001")
+    response = client.post("/api/cases/CLM-1001/effects/award")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Case CLM-1001 has not been approved"
+
+
+def test_a_held_case_runs_no_effect(client):
+    an_approved_case(client, approval_limit=400.0)
+    case = client.get("/api/cases/CLM-1001").json()
+    assert case["status"] == "waiting_for_sign_off"
+    response = client.post("/api/cases/CLM-1001/effects/award")
+    assert response.status_code == 403
+    refused = "An award over $400.00 needs a worker's sign-off"
+    assert response.json()["detail"] == refused
+
+
+def test_a_calculated_award_is_stored_as_one_outcome_payload(client):
+    start(client, "CLM-1001")
+    work_out_award(client, "CLM-1001", "trip_delay", TRIP_DELAY)
+    work_out_award(client, "CLM-1001", "trip_delay", TRIP_DELAY)
+    with engine().connect() as db:
+        rows = db.execute(
+            select(outcomes.c.case_id, outcomes.c.outcome, outcomes.c.payload)
+        ).mappings().all()
+    assert len(rows) == 1
+    assert (rows[0]["case_id"], rows[0]["outcome"]) == ("CLM-1001", "award")
+    assert rows[0]["payload"]["award"] == 420.0

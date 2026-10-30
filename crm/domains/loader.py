@@ -17,6 +17,9 @@ from typing import Any
 DOMAINS = Path(__file__).resolve().parent
 DEFAULT_DOMAIN = "insurance"
 
+# The verbs every pack's protocol module carries, and the loader validates.
+PROTOCOL_VERBS = ("resolve", "gate", "execute", "summarize")
+
 
 class PackError(Exception):
     """A pack is absent, incomplete, or misnamed."""
@@ -79,6 +82,22 @@ class Pack:
 
         name = self.manifest.get("rules", "rules")
         return importlib.import_module(f"domains.{self.name}.{name}")
+
+    def protocol_module(self):
+        """Import the pack's protocol module, and refuse a pack whose
+        protocol lacks one of the verbs."""
+        import importlib
+
+        name = self.manifest.get("protocol", "protocol")
+        module = importlib.import_module(f"domains.{self.name}.{name}")
+        missing = [
+            verb for verb in PROTOCOL_VERBS if not callable(getattr(module, verb, None))
+        ]
+        if missing:
+            raise PackError(
+                f"pack {self.name!r} protocol lacks {', '.join(missing)}"
+            )
+        return module
 
     def _read(self, folder: Path, name: str, kind: str) -> str:
         """Read one markdown file of the pack, or name it in an error."""

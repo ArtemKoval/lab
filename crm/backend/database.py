@@ -225,6 +225,27 @@ payments = Table(
     Column("amount", Float, nullable=False),
     Column("paid_at", Text, nullable=False),
 )
+# Each case's resolved outcomes, one opaque payload per outcome kind. The
+# engine stores a payload and reads it only through the pack's verbs.
+outcomes = Table(
+    "outcomes",
+    metadata,
+    Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
+    Column("outcome", Text, primary_key=True),
+    Column("payload", JSON, nullable=False),
+    Column("resolved_at", Text, nullable=False),
+)
+# One executed effect per case and effect; the engine refuses a repeat.
+effect_runs = Table(
+    "effect_runs",
+    metadata,
+    Column("effect_run_id", Integer, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
+    Column("effect", Text, nullable=False),
+    Column("result", JSON, nullable=False),
+    Column("ran_at", Text, nullable=False),
+    UniqueConstraint("case_id", "effect", name="uq_effect_runs_case_effect"),
+)
 steps = Table(
     "steps",
     metadata,

@@ -189,6 +189,15 @@ class Payment(BaseModel):
     signed_off_at: str | None
 
 
+class EffectRun(BaseModel):
+    """One executed effect on a case, with the record the pack's execute gave."""
+
+    case_id: str
+    effect: str
+    result: dict
+    ran_at: str
+
+
 class SentBackDecision(DecisionRecord):
     """A decision a senior worker sent back to the agent, with their note."""
 
