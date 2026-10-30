@@ -1,7 +1,6 @@
 """The case agent's tools, each calling the backend operation it is named after, and
 the context and state they read."""
 
-import json
 import operator
 from dataclasses import dataclass
 from typing import Annotated, Any, TypedDict
@@ -12,6 +11,7 @@ from langgraph.graph.message import add_messages
 from langgraph.types import Command
 
 from agent import api
+from agent.json_text import as_json
 
 
 @dataclass
@@ -41,25 +41,25 @@ class CaseState(TypedDict):
 @tool
 def get_case(runtime: ToolRuntime[CaseContext]) -> str:
     """Get your case in full: the story, the items claimed and the documents."""
-    return json.dumps(api.get_case(runtime.context.case_id))
+    return as_json(api.get_case(runtime.context.case_id))
 
 
 @tool
 def get_contract(contract_id: str) -> str:
     """Get a contract: the plan, add-ons, purchase date, trip and travelers."""
-    return json.dumps(api.get_contract(contract_id))
+    return as_json(api.get_contract(contract_id))
 
 
 @tool
 def get_case_history(customer_id: str) -> str:
     """Get a customer's earlier cases, with the outcome and the amount paid."""
-    return json.dumps(api.get_case_history(customer_id))
+    return as_json(api.get_case_history(customer_id))
 
 
 @tool
 def search_documents(query: str) -> str:
     """Find the sections of the wording and the manual containing one word or phrase."""
-    return json.dumps(api.search_documents(query))
+    return as_json(api.search_documents(query))
 
 
 @tool(response_format="content_and_artifact")
@@ -69,7 +69,7 @@ def read_section(
     """Read one section of the contract wording or the cases manual in full."""
     section = api.read_section(document, number)
     read = f"{section['document_title']}, section {number}: {section['title']}"
-    return json.dumps(section), ("reading", read)
+    return as_json(section), ("reading", read)
 
 
 @tool
@@ -87,7 +87,7 @@ def calculate_award(
 ) -> str:
     """Work out the award on your case with CRM's award rules."""
     case_id = runtime.context.case_id
-    return json.dumps(api.calculate_award(case_id, benefit, lines, paid_by_others))
+    return as_json(api.calculate_award(case_id, benefit, lines, paid_by_others))
 
 
 @tool
@@ -101,7 +101,7 @@ def record_decision(
     """Record the decision on your case, once, which ends your work on it."""
     case_id = runtime.context.case_id
     case = api.record_decision(case_id, decision, award, section, reason)
-    message = ToolMessage(json.dumps(case), tool_call_id=runtime.tool_call_id)
+    message = ToolMessage(as_json(case), tool_call_id=runtime.tool_call_id)
     update = {
         "messages": [message],
         "decision": case["decision"],

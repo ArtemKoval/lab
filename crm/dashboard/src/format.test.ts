@@ -1,5 +1,19 @@
 import { expect, it } from "vitest";
-import { addOnName, date, duration, label, modelCost, money } from "./format";
+import {
+  addOnName,
+  date,
+  duration,
+  grade,
+  initials,
+  label,
+  modelCost,
+  money,
+} from "./format";
+
+it("takes a worker's initials from their first and last names", () => {
+  expect(initials("Dana Whitfield")).toBe("DW");
+  expect(initials("Mary Ann Okafor")).toBe("MO");
+});
 
 it("formats money in US dollars", () => {
   expect(money(1150)).toBe("$1,150.00");
@@ -25,4 +39,10 @@ it("formats lengths of time in minutes and seconds", () => {
   expect(duration(41.4)).toBe("41 s");
   expect(duration(161)).toBe("2 min 41 s");
   expect(duration(0)).toBe("0 s");
+  expect(duration(120)).toBe("2 min");
+});
+
+it("shows the judge's grade to two places", () => {
+  expect(grade(2.2)).toBe("2.20");
+  expect(grade(0)).toBe("0.00");
 });

@@ -34,7 +34,7 @@ def test_create_a_dispatch(client):
     )
     assert (dispatch["model"], dispatch["reasoning_effort"]) == (
         "openai/gpt-6-luna",
-        "low",
+        "none",
     )
     assert (dispatch["evaluation_set"], dispatch["tiny"]) == (None, None)
     assert dispatch["number"] == 1
@@ -125,7 +125,7 @@ def test_finishing_a_dispatch_sums_up_its_cases(client):
     start(client, "CLM-1016")
     fail(client, "CLM-1016")
     decide(client, "CLM-1002", "approve", 1350.0)
-    sign_off(client, "CLM-1002", "HND-01")
+    sign_off(client, "CLM-1002")
 
     dispatch = finish(client, run_id).json()
     assert dispatch["status"] == "finished"

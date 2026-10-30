@@ -7,7 +7,11 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import type { Run, RunCase } from "./api";
+import type { Run } from "./api";
+import {
+  runningDispatch as running,
+  waitingInRun as waiting,
+} from "./fixtures";
 import {
   Refusal,
   type Routes,
@@ -24,47 +28,6 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
-
-const waiting: RunCase = {
-  ...caseSummary,
-  case_id: "CLM-1013",
-  customer_name: "Grace Liu",
-  started_at: null,
-  seconds: 0,
-  model_cost: 0,
-};
-
-const running: Run = {
-  run_id: "run-4",
-  number: 4,
-  kind: "dispatch",
-  agents: 3,
-  model: "openai/gpt-6-luna",
-  reasoning_effort: "low",
-  evaluation_set: null,
-  tiny: null,
-  status: "running",
-  started_at: "2026-10-03T17:02:13+00:00",
-  finished_at: null,
-  seconds: null,
-  summary: null,
-  model_cost: 0.0125,
-  cases: [
-    {
-      ...waiting,
-      case_id: "CLM-1001",
-      customer_name: "Maya Patel",
-      status: "decided",
-      decision: "approve",
-      award: 420,
-      started_at: "2026-10-03T17:02:14+00:00",
-      seconds: 41,
-      model_cost: 0.0125,
-    },
-    { ...waiting, case_id: "CLM-1014", status: "in_progress", seconds: 12 },
-    waiting,
-  ],
-};
 
 const finished: Run = {
   ...running,
@@ -101,6 +64,7 @@ function showQueue(dispatch: Run | null) {
 }
 
 const dispatchPanel = () => panel("Dispatch");
+const NO_DISPATCH = /^No dispatch yet\. Start one to work the waiting cases/;
 
 const started = (fetchMock: ReturnType<typeof stubApi>) =>
   sent(fetchMock, "POST /api/dispatches");
@@ -108,14 +72,16 @@ const started = (fetchMock: ReturnType<typeof stubApi>) =>
 it("says when there's no dispatch yet", async () => {
   showQueue(null);
   const panel = await dispatchPanel();
-  expect(await panel.findByText("No dispatch yet.")).toBeDefined();
+  expect(await panel.findByText(NO_DISPATCH)).toBeDefined();
 });
 
 it("shows a running dispatch with its cases", async () => {
   showQueue(running);
   const panel = await dispatchPanel();
   expect(await panel.findByText("Running")).toBeDefined();
-  expect(panel.getByText(/with 3 case agents at once/)).toBeDefined();
+  expect(
+    panel.getByText(/with 3 case agents at once, on version 1\./),
+  ).toBeDefined();
   expect(panel.getByText("$0.0125", { selector: "p > span" })).toBeDefined();
   expect(panel.queryByText(/took/)).toBeNull();
   const rows = panel.getAllByRole("row").slice(1);
@@ -131,7 +97,7 @@ it("shows a running dispatch with its cases", async () => {
   expect(within(rows[2]).getByText("Waiting")).toBeDefined();
   const link = first.getByRole("link", { name: "CLM-1001" });
   expect(link.getAttribute("href")).toBe("/cases/CLM-1001");
-  expect(panel.queryByText("Summary")).toBeNull();
+  expect(panel.queryByText("When it finished")).toBeNull();
 });
 
 it("shows a finished dispatch with its summary", async () => {
@@ -139,7 +105,7 @@ it("shows a finished dispatch with its summary", async () => {
   const panel = await dispatchPanel();
   expect(await panel.findByText("Finished")).toBeDefined();
   expect(panel.getByText("2 min 41 s")).toBeDefined();
-  const lines = within(panel.getByRole("list", { name: "Summary" }))
+  const lines = within(panel.getByRole("list", { name: "When it finished" }))
     .getAllByRole("listitem")
     .map((line) => line.textContent);
   expect(lines).toEqual([
@@ -168,7 +134,7 @@ it("follows a dispatch as it works", async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   const routes = showQueue(null);
   const panel = await dispatchPanel();
-  expect(await panel.findByText("No dispatch yet.")).toBeDefined();
+  expect(await panel.findByText(NO_DISPATCH)).toBeDefined();
 
   routes["GET /api/dispatches/latest"] = { ...running, cases: [waiting] };
   await act(() => vi.advanceTimersByTimeAsync(REFRESH_MS));
@@ -206,7 +172,7 @@ it("starts a dispatch with the case agents chosen", async () => {
   };
   const fetchMock = stubApi(routes);
   renderAt("/");
-  await screen.findByText("No dispatch yet.");
+  await screen.findByText(NO_DISPATCH);
   startWith("7");
   await waitFor(() => {
     expect(started(fetchMock)).toEqual([{ agents: 7 }]);
@@ -215,7 +181,7 @@ it("starts a dispatch with the case agents chosen", async () => {
 });
 
 it.each([
-  [409, "A dispatch or an evaluation is already running"],
+  [409, "An evaluation is running"],
   [503, "The agent's service isn't running"],
 ])("shows a refusal with status %i", async (status, detail) => {
   const routes: Routes = {
@@ -225,7 +191,7 @@ it.each([
   };
   const fetchMock = stubApi(routes);
   renderAt("/");
-  await screen.findByText("No dispatch yet.");
+  await screen.findByText(NO_DISPATCH);
   startWith("3");
   expect((await screen.findByRole("alert")).textContent).toBe(detail);
   const button = screen.getByRole("button", { name: "Start a dispatch" });

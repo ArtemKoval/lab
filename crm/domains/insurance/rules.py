@@ -103,38 +103,9 @@ def work_out_award(
     a worker's sign-off."""
     plan = next(plan for plan in plans.plans if plan.plan == contract.plan)
     limits = limits_for(contract, plan, plans)
-    lines = request.lines
-    calculation = [
-        eligible_amount(line, limits) for line in lines if line.kind != "cash"
-    ]
-    cash = sum(line.amount for line in lines if line.kind == "cash")
-    if cash:
-        calculation.append(
-            step(f"Cash, up to ${CASH_LIMIT:,.0f} in all", min(cash, CASH_LIMIT))
-        )
-    total = sum(entry.amount for entry in calculation)
-
-    if request.paid_by_others:
-        calculation.append(
-            step("Less what others have paid or refunded", -request.paid_by_others)
-        )
-        total -= request.paid_by_others
-
-    if request.benefit in plans.deductible_applies_to and total > 0:
-        deductible = min(plan.deductible, total)
-        if deductible:
-            calculation.append(step("Less the deductible", -deductible))
-            total -= deductible
-
-    maximum = benefit_maximum(contract, plan, request.benefit)
-    if total > maximum:
-        calculation.append(
-            step(
-                f"Less the amount over the maximum of ${maximum:,.0f}", maximum - total
-            )
-        )
-        total = maximum
-
+    calculation, total = line_steps(request, limits)
+    total = deductions(calculation, total, request, plan, plans)
+    total = cap_at_maximum(calculation, total, contract, plan, request.benefit)
     if total < 0:
         calculation.append(step("Nothing is left to pay", -total))
         total = 0.0
@@ -145,3 +116,58 @@ def work_out_award(
         award=award,
         needs_sign_off=needs_sign_off(award, approval_limit),
     )
+
+
+def line_steps(
+    request: AwardRequest, limits: Limits
+) -> tuple[list[CalculationStep], float]:
+    """The steps for each line of the case, with their total."""
+    calculation = [
+        eligible_amount(line, limits) for line in request.lines if line.kind != "cash"
+    ]
+    cash = sum(line.amount for line in request.lines if line.kind == "cash")
+    if cash:
+        calculation.append(
+            step(f"Cash, up to ${CASH_LIMIT:,.0f} in all", min(cash, CASH_LIMIT))
+        )
+    return calculation, sum(entry.amount for entry in calculation)
+
+
+def deductions(
+    calculation: list[CalculationStep],
+    total: float,
+    request: AwardRequest,
+    plan: Plan,
+    plans: Plans,
+) -> float:
+    """Less what others have paid, and less the deductible when it applies."""
+    if request.paid_by_others:
+        calculation.append(
+            step("Less what others have paid or refunded", -request.paid_by_others)
+        )
+        total -= request.paid_by_others
+    if request.benefit in plans.deductible_applies_to and total > 0:
+        deductible = min(plan.deductible, total)
+        if deductible:
+            calculation.append(step("Less the deductible", -deductible))
+            total -= deductible
+    return total
+
+
+def cap_at_maximum(
+    calculation: list[CalculationStep],
+    total: float,
+    contract: Contract,
+    plan: Plan,
+    benefit: str,
+) -> float:
+    """Cap the total at the plan's maximum for the benefit."""
+    maximum = benefit_maximum(contract, plan, benefit)
+    if total > maximum:
+        calculation.append(
+            step(
+                f"Less the amount over the maximum of ${maximum:,.0f}", maximum - total
+            )
+        )
+        total = maximum
+    return total

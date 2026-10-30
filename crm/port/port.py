@@ -44,6 +44,8 @@ PATH_MAP = [
     ("backend/instructions.md", "domains/insurance/instructions/case.md"),
     ("backend/instructions/claim.md", "domains/insurance/instructions/case.md"),
     ("backend/instructions/queue.md", "domains/insurance/instructions/queue.md"),
+    ("backend/instructions/improver.md", "domains/insurance/instructions/improver.md"),
+    ("backend/instructions/recipe.md", "domains/insurance/instructions/recipe.md"),
     ("docs/SPEC.md", "docs/BRIEF.md"),
 ]
 

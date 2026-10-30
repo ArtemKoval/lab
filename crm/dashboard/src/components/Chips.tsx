@@ -1,5 +1,20 @@
-import type { DecisionKind, RunStatus, Status } from "../api";
-import { decisionLabels, money, runLabels, statusLabels } from "../format";
+import type {
+  DecisionKind,
+  RoundStatus,
+  RunStatus,
+  Status,
+  Verdict,
+  VersionStatus,
+} from "../api";
+import {
+  decisionLabels,
+  money,
+  roundLabels,
+  runLabels,
+  statusLabels,
+  verdictLabels,
+  versionLabels,
+} from "../format";
 
 export function StatusChip({ status }: Readonly<{ status: Status }>) {
   return (
@@ -19,6 +34,22 @@ export function DecisionChip({
 
 export function RunChip({ status }: Readonly<{ status: RunStatus }>) {
   return <span className={`chip run-${status}`}>{runLabels[status]}</span>;
+}
+
+export function VersionChip({ status }: Readonly<{ status: VersionStatus }>) {
+  return (
+    <span className={`chip version-${status}`}>{versionLabels[status]}</span>
+  );
+}
+
+export function RoundChip({ status }: Readonly<{ status: RoundStatus }>) {
+  return <span className={`chip round-${status}`}>{roundLabels[status]}</span>;
+}
+
+export function VerdictChip({ verdict }: Readonly<{ verdict: Verdict }>) {
+  return (
+    <span className={`chip verdict-${verdict}`}>{verdictLabels[verdict]}</span>
+  );
 }
 
 // Whether the agent's decision and award match the worker's.

@@ -5,11 +5,13 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from sqlalchemy import Connection, RowMapping, insert, select, update
 
 from backend import agent_service
+from backend.configuration import router as configuration
 from backend.database import (
+    award_rules,
     case_view,
     cases,
     contracts,
@@ -21,15 +23,14 @@ from backend.database import (
     now,
     payments,
     seed,
-    settings,
     stamp,
     steps,
     work_times,
-    workers,
 )
-from backend.dependencies import Database
-from backend.documents import contents, search, sections, titles
-from backend.lookups import CASE_NOT_FOUND, run_row
+from backend.dependencies import Database, SignedIn, senior
+from backend.documents import search, sections, titles
+from backend.improvement import router as improvement
+from backend.lookups import CASE_NOT_FOUND, current_settings, run_row
 from backend.models import (
     Award,
     AwardRequest,
@@ -40,7 +41,6 @@ from backend.models import (
     DecisionRequest,
     DocumentName,
     FailureRequest,
-    Instructions,
     ModelCall,
     ModelCallRequest,
     PaymentRequest,
@@ -48,7 +48,6 @@ from backend.models import (
     PreviousCase,
     Section,
     SectionMatch,
-    SignOffRequest,
     StartRequest,
     Status,
     Step,
@@ -57,7 +56,9 @@ from backend.models import (
     WorkTime,
     WorkTimeRequest,
 )
-from backend.runs import router
+from backend.money import dollars
+from backend.round_state import round_row, why_no_case_starts
+from backend.runs import router as runs
 from backend.views import to_case, to_summary
 from domains import loader
 
@@ -73,12 +74,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="CRM", lifespan=lifespan)
-app.include_router(router)
+app.include_router(runs)
+app.include_router(configuration)
+app.include_router(improvement)
 
-
-def dollars(amount: float) -> str:
-    """Format an amount like $1,250.00."""
-    return f"${amount:,.2f}"
+SignsOffOverTheLimit = Annotated[Worker, Depends(senior("sign this off"))]
 
 
 def rules():
@@ -87,13 +87,14 @@ def rules():
 
 
 def approval_limit(db: Connection) -> float:
-    """Return the largest award that can be paid without a worker's sign-off."""
-    return db.execute(select(settings.c.award_approval_limit)).scalar_one()
+    """Return the largest award that can be paid without a worker's sign-off, as
+    the settings in force have it."""
+    return current_settings(db).approval_limit
 
 
 def plans(db: Connection) -> Plans:
     """Return the plans and add-ons, and the benefits the deductible applies to."""
-    return Plans(**db.execute(select(settings.c.plans)).scalar_one())
+    return Plans(**db.execute(select(award_rules.c.plans)).scalar_one())
 
 
 def find_case(db: Connection, case_id: str) -> RowMapping:
@@ -125,6 +126,17 @@ def started_thread(db: Connection, case_id: str) -> str:
     if thread_id is None:
         raise HTTPException(409, f"Case {case_id} has not been started")
     return thread_id
+
+
+def refuse_a_round_that_cant_go_on(db: Connection, run_id: str) -> None:
+    """Raise a 409 when an evaluation belongs to a round that was stopped or has
+    spent its limit, so no new case starts in it."""
+    round_id = run_row(db, run_id)["round_id"]
+    if round_id is None:
+        return
+    reason = why_no_case_starts(db, round_row(db, round_id))
+    if reason:
+        raise HTTPException(409, reason)
 
 
 def check_run(db: Connection, run_id: str | None) -> None:
@@ -187,13 +199,6 @@ def get_case_history(customer_id: str, db: Database) -> list[PreviousCase]:
     return [PreviousCase(**case) for case in record["previous_cases"]]
 
 
-@app.get("/api/instructions", operation_id="get_instructions")
-def get_instructions(db: Database) -> Instructions:
-    """Get the case agent's instructions, ending with the documents' contents."""
-    case = loader.pack().instruction("case")
-    return Instructions(case=f"{case}\n{contents(db)}")
-
-
 @app.get("/api/documents/search", operation_id="search_documents")
 def search_documents(
     query: Annotated[str, Query(min_length=1)], db: Database
@@ -212,18 +217,20 @@ def read_section(document: DocumentName, number: int, db: Database) -> Section:
     raise HTTPException(404, f"Section {number} of the {title} not found")
 
 
-@app.get("/api/workers", operation_id="list_workers")
-def list_workers(db: Database) -> list[Worker]:
-    """List the cases workers."""
-    rows = db.execute(select(workers).order_by(workers.c.worker_id)).mappings()
-    return [Worker(**row) for row in rows]
+@app.get("/api/me", operation_id="get_signed_in_worker")
+def get_signed_in_worker(worker: SignedIn) -> Worker:
+    """Get the worker signed in, with what they may sign off."""
+    return worker
 
 
 @app.post("/api/cases/{case_id}/start", operation_id="start_case")
 def start_case(case_id: str, request: StartRequest, db: Database) -> Case:
     """Start work on a waiting case, which moves it to in progress."""
-    if find_case(db, case_id)["status"] != Status.WAITING:
+    case = find_case(db, case_id)
+    if case["status"] != Status.WAITING:
         raise HTTPException(409, f"Case {case_id} is not waiting")
+    if case["evaluation_id"]:
+        refuse_a_round_that_cant_go_on(db, case["evaluation_id"])
     db.execute(
         update(cases)
         .where(cases.c.case_id == case_id)
@@ -302,6 +309,7 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
         raise HTTPException(409, f"Case {case_id} has already been decided")
     if case["status"] != Status.IN_PROGRESS:
         raise HTTPException(409, f"Case {case_id} is not in progress")
+    limit = approval_limit(db)
     db.execute(
         insert(decisions).values(
             case_id=case_id,
@@ -310,11 +318,12 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
             section=request.section,
             reason=request.reason,
             decided_at=now(),
+            approval_limit=limit,
         )
     )
     if request.decision != DecisionKind.APPROVE:
         set_status(db, case_id, Status.DECIDED)
-    elif rules().needs_sign_off(award, approval_limit(db)):
+    elif rules().needs_sign_off(award, limit):
         set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
     return to_case(find_case(db, case_id))
 
@@ -340,7 +349,8 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(
             403,
-            f"An award over {dollars(approval_limit(db))} needs a worker's sign-off",
+            f"An award over {dollars(case['approval_limit'])} needs a worker's "
+            "sign-off",
         )
     if amount != case["award"]:
         raise HTTPException(
@@ -355,9 +365,12 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
 
 @app.post("/api/cases/{case_id}/sign-off", operation_id="sign_off_case")
 def sign_off_case(
-    case_id: str, request: SignOffRequest, db: Database, background: BackgroundTasks
+    case_id: str,
+    worker: SignsOffOverTheLimit,
+    db: Database,
+    background: BackgroundTasks,
 ) -> Case:
-    """Sign off a held award as a worker, so the agent picks the case up and pays."""
+    """Sign off a held award as the worker signed in, so the agent pays it."""
     case = find_case(db, case_id)
     if case["evaluation_id"] is not None:
         raise HTTPException(
@@ -365,16 +378,6 @@ def sign_off_case(
         )
     if case["status"] != Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(409, f"Case {case_id} is not waiting for sign-off")
-    query = select(workers).where(workers.c.worker_id == request.worker_id)
-    row = db.execute(query).mappings().first()
-    if row is None:
-        raise HTTPException(404, f"Worker {request.worker_id} not found")
-    worker = Worker(**row)
-    if not worker.can_approve_over_limit:
-        raise HTTPException(
-            403,
-            f"{worker.name} can't sign off awards over {dollars(approval_limit(db))}",
-        )
     db.execute(
         update(decisions)
         .where(decisions.c.case_id == case_id)

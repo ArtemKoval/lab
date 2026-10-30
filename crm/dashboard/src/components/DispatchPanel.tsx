@@ -1,3 +1,4 @@
+import { Play } from "lucide-react";
 import { Fragment, useState } from "react";
 import { api, type DispatchSummary, type Run, type RunCase } from "../api";
 import {
@@ -11,7 +12,7 @@ import {
 import { REFRESH_MS, useLoad } from "../useLoad";
 import { DecisionChip, RunChip, StatusChip } from "./Chips";
 import { CaseLink } from "./CaseLink";
-import { Message } from "./Message";
+import { StateMessage } from "./StateMessage";
 import { ActionForm } from "./ActionForm";
 import { AgentsChoice, FIRST_CHOICE } from "./AgentsChoice";
 
@@ -27,12 +28,15 @@ export function DispatchPanel() {
       </div>
       <ActionForm
         label="Start a dispatch"
+        icon={<Play />}
         action={() => api.startDispatch(agents)}
       >
         <AgentsChoice agents={agents} onChange={setAgents} />
       </ActionForm>
-      {dispatch === undefined && <Message error={error} />}
-      {dispatch === null && <p className="muted">No dispatch yet.</p>}
+      {dispatch === undefined && <StateMessage error={error} />}
+      {dispatch === null && (
+        <StateMessage empty="No dispatch yet. Start one to work the waiting cases." />
+      )}
       {dispatch && <DispatchDetails dispatch={dispatch} />}
     </section>
   );
@@ -43,8 +47,8 @@ function DispatchDetails({ dispatch }: Readonly<{ dispatch: Run }>) {
     <>
       <p className="muted small">
         <span className="mono">#{dispatch.number}</span> started at{" "}
-        {dateTime(dispatch.started_at)} with {agentsAtOnce(dispatch.agents)}.
-        Model cost{" "}
+        {dateTime(dispatch.started_at)} with {agentsAtOnce(dispatch.agents)}, on
+        version {dispatch.version}. Model cost{" "}
         <span className="mono">{modelCost(dispatch.model_cost)}</span>
         {dispatch.seconds !== null && (
           <>
@@ -61,7 +65,7 @@ function DispatchDetails({ dispatch }: Readonly<{ dispatch: Run }>) {
       {dispatch.cases.length > 0 ? (
         <RunCases cases={dispatch.cases} />
       ) : (
-        <p className="muted">No cases in this dispatch.</p>
+        <StateMessage empty="No cases in this dispatch: the queue had none waiting or in progress when it started." />
       )}
       {dispatch.summary && <Summary summary={dispatch.summary} />}
     </>
@@ -121,7 +125,7 @@ function Summary({ summary }: Readonly<{ summary: DispatchSummary }>) {
   const only = (ids: string[]) => ids.map((case_id) => ({ case_id }));
   return (
     <div className="dispatch-summary">
-      <h3 id="dispatch-summary-title">Summary</h3>
+      <h3 id="dispatch-summary-title">When it finished</h3>
       <ul aria-labelledby="dispatch-summary-title">
         <li>
           {summary.approved} approved, {summary.declined} declined and{" "}

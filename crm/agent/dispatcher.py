@@ -15,6 +15,7 @@ from langgraph.types import RetryPolicy, Send
 
 from agent import api, harness
 from agent.console import describe
+from agent.root_run import as_root_run
 
 log = logging.getLogger(__name__)
 
@@ -137,5 +138,7 @@ def work_run(run: dict[str, Any], work: WorkInRun, resuming: set[str]) -> list[s
     return each case's report line."""
     context = DispatchContext(run, work, resuming)
     config: RunnableConfig = {"max_concurrency": run["agents"]}
-    state = dispatcher().invoke({"cases": [], "reports": []}, config, context=context)
+    state = as_root_run(
+        dispatcher().invoke, {"cases": [], "reports": []}, config, context=context
+    )
     return state["reports"]

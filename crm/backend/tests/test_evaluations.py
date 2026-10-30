@@ -28,7 +28,7 @@ def test_an_evaluation_works_copies_of_its_cases(client):
     assert (evaluation["kind"], evaluation["status"]) == ("evaluation", "running")
     assert (evaluation["evaluation_set"], evaluation["tiny"]) == ("held_out", True)
     assert (evaluation["agents"], evaluation["model"]) == (5, "openai/gpt-6-luna")
-    assert evaluation["reasoning_effort"] == "low"
+    assert evaluation["reasoning_effort"] == "none"
     copies = [c["case_id"] for c in evaluation["cases"]]
     assert copies == [f"{case_id}-E1" for case_id in TINY_HELD_OUT]
     assert {c["status"] for c in evaluation["cases"]} == {"waiting"}
@@ -99,7 +99,7 @@ def test_a_copy_cant_be_signed_off(client, agent_calls):
     held = client.get("/api/cases/CLM-1112-E1").json()
     assert held["status"] == "waiting_for_sign_off"
 
-    response = sign_off(client, "CLM-1112-E1", "HND-01")
+    response = sign_off(client, "CLM-1112-E1")
     assert response.status_code == 409
     assert response.json()["detail"] == (
         "Case CLM-1112-E1 is a copy in an evaluation and can't be signed off"
@@ -124,6 +124,7 @@ def test_an_evaluation_not_yet_worked_counts_every_copy_as_a_referral(client):
         "accuracy": 0.2,
         "cost_of_mistakes": 200.0,
         "straight_through": 0.0,
+        "grade": None,
         "model_cost_per_case": 0.0,
         "seconds_per_case": 0.0,
         "run_seconds": None,

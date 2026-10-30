@@ -1,5 +1,7 @@
 """Requests the backend's tests send to work a case."""
 
+from backend.tests.sign_in import DANA, signed_in
+
 
 def start(client, case_id):
     return client.post(f"/api/cases/{case_id}/start", json={"thread_id": "t-1"})
@@ -21,8 +23,8 @@ def pay(client, case_id, amount):
     return client.post(f"/api/cases/{case_id}/payment", json={"amount": amount})
 
 
-def sign_off(client, case_id, worker_id):
-    return client.post(f"/api/cases/{case_id}/sign-off", json={"worker_id": worker_id})
+def sign_off(client, case_id, email=DANA):
+    return client.post(f"/api/cases/{case_id}/sign-off", headers=signed_in(email))
 
 
 def fail(client, case_id, reason="The model timed out"):

@@ -1,4 +1,14 @@
-import type { DecisionKind, EvaluationSet, RunStatus, Status } from "./api";
+import type {
+  DecisionKind,
+  EvaluationSet,
+  RoundStage,
+  RoundStatus,
+  RoundSummary,
+  RunStatus,
+  Status,
+  Verdict,
+  VersionStatus,
+} from "./api";
 
 const dollars = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -42,6 +52,11 @@ export function percent(share: number): string {
   return `${String(Math.round(share * 100))}%`;
 }
 
+// The judge's grade, from 0 to 3, to two places: 2.20.
+export function grade(score: number): string {
+  return score.toFixed(2);
+}
+
 export function modelCost(amount: number): string {
   return modelDollars.format(amount);
 }
@@ -51,7 +66,10 @@ export function duration(seconds: number): string {
   const whole = Math.round(seconds);
   const minutes = Math.floor(whole / 60);
   const rest = `${String(whole % 60)} s`;
-  return minutes > 0 ? `${String(minutes)} min ${rest}` : rest;
+  if (minutes === 0) return rest;
+  return whole % 60 === 0
+    ? `${String(minutes)} min`
+    : `${String(minutes)} min ${rest}`;
 }
 
 export function date(isoDate: string): string {
@@ -68,6 +86,14 @@ export function dateTime(isoTime: string): string {
 
 export function agentsAtOnce(agents: number): string {
   return `${String(agents)} case ${agents === 1 ? "agent" : "agents"} at once`;
+}
+
+// A worker's initials, from their first and last names, such as DW for Dana
+// Whitfield.
+export function initials(name: string): string {
+  const [first = "", ...rest] = name.split(" ");
+  const last = rest.at(-1) ?? "";
+  return (first.charAt(0) + last.charAt(0)).toUpperCase();
 }
 
 export function label(code: string): string {
@@ -88,6 +114,54 @@ export const runLabels: Record<RunStatus, string> = {
   finished: "Finished",
   stopped: "Stopped",
 };
+
+export const versionLabels: Record<VersionStatus, string> = {
+  current: "Current",
+  kept: "Kept",
+  rolled_back: "Rolled back",
+  under_test: "Under test",
+};
+
+// Who approved a version or a recipe that needed no approval.
+export const NO_APPROVAL_NEEDED = "Nobody needed to";
+
+export const roundLabels: Record<RoundStatus, string> = {
+  open: "Open",
+  finished: "Finished",
+  stopped: "Stopped",
+};
+
+// A verdict keeps or rolls back a version, so it reads as the version's status.
+export const verdictLabels: Record<Verdict, string> = {
+  kept: versionLabels.kept,
+  rolled_back: versionLabels.rolled_back,
+};
+
+// Each stage of a round in order, as the page names it in the round's progress.
+export const stageLabels: Record<RoundStage, string> = {
+  first_evaluations: "First evaluations",
+  improving: "The improver is working",
+  change_waiting: "A change is waiting for approval",
+  evaluating: "Evaluations",
+  verdict: "Verdict",
+  recipe_waiting: "A new recipe is waiting for approval",
+};
+export const roundStages = Object.keys(stageLabels) as RoundStage[];
+
+// A verdict's reason in words: the rule names measures such as cost_per_case.
+export function inWords(reason: string | null): string {
+  return (reason ?? "").replaceAll("_", " ");
+}
+
+// Where an open round has got to, such as "First evaluations, 2 of 3", or
+// "Kept: accuracy improved" once its verdict is in.
+export function whereRoundIs(round: RoundSummary): string {
+  if (round.stage === null) return "";
+  if (round.stage === "verdict" && round.verdict)
+    return `${verdictLabels[round.verdict]}: ${inWords(round.verdict_reason)}`;
+  const name = stageLabels[round.stage];
+  return round.progress ? `${name}, ${round.progress}` : name;
+}
 
 export const evaluationSetLabels: Record<EvaluationSet, string> = {
   evaluation: "Evaluation set",

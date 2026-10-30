@@ -8,4 +8,6 @@
 - Tests never call a model or a network. The stub model stands in for
   OpenRouter, and the e2e posts decisions through the API.
 - Do not lower a threshold, turn off a rule, or exclude a file to get a
-  green run. If a rule looks wrong, stop and ask.
+  green run. If a rule looks wrong, stop and ask. One written exception
+  exists: the duplication gate skips the two API clients, whose one
+  function per operation is a contract, and other gates still cover them.

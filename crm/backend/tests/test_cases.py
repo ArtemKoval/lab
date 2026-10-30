@@ -64,5 +64,5 @@ def test_seed_command(capsys):
     assert capsys.readouterr().out == (
         "Seeded 25 cases, 50 contracts, 49 customers and 3 workers "
         "into crm.db, with 25 held-out cases and 50 workers' decisions "
-        "for evaluations\n"
+        "for evaluations, and version 1 of the configuration and of the recipe\n"
     )

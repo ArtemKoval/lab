@@ -1,6 +1,8 @@
 import type { Case, Payment } from "../api";
 import { money, time } from "../format";
+import { useWorker } from "../worker";
 import { DecisionChip } from "./Chips";
+import { NotAllowed } from "./NotAllowed";
 import { SignOffForm } from "./SignOffForm";
 
 type SignOff = Pick<Payment, "signed_off_by" | "signed_off_at">;
@@ -77,6 +79,7 @@ function HeldPayment({
   award,
   onSignedOff,
 }: Readonly<{ entry: Case; award: number; onSignedOff: () => void }>) {
+  const worker = useWorker();
   if (entry.evaluation_id)
     return (
       <p className="payment">
@@ -90,7 +93,11 @@ function HeldPayment({
         The payment of <span className="mono">{money(award)}</span> is over the
         approval limit and waits for a worker's sign-off.
       </p>
-      <SignOffForm caseId={entry.case_id} onSignedOff={onSignedOff} />
+      {worker.can_approve_over_limit ? (
+        <SignOffForm caseId={entry.case_id} onSignedOff={onSignedOff} />
+      ) : (
+        <NotAllowed action="sign this off" />
+      )}
     </div>
   );
 }

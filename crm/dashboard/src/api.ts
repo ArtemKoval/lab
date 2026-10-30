@@ -1,3 +1,5 @@
+import { accessToken } from "./auth";
+
 export const statuses = [
   "waiting",
   "in_progress",
@@ -106,6 +108,7 @@ export interface Worker {
   worker_id: string;
   name: string;
   role: string;
+  email: string;
   can_approve_over_limit: boolean;
 }
 
@@ -149,6 +152,10 @@ export interface RunDetails {
   number: number;
   kind: RunKind;
   agents: number;
+  version: number;
+  round_id: string | null;
+  // The round that ran it, if any.
+  round_number: number | null;
   model: string;
   reasoning_effort: string;
   status: RunStatus;
@@ -170,15 +177,30 @@ export interface Measures {
   accuracy: number;
   cost_of_mistakes: number;
   straight_through: number;
+  // The judge's average grade from 0 to 3, or null when it graded no case.
+  grade: number | null;
   model_cost_per_case: number;
   seconds_per_case: number;
   run_seconds: number | null;
+}
+
+export type Letter = "F" | "C" | "B" | "A";
+
+// The judge's grade of an explanation: its score from 0 to 3, the likeliest
+// level, and the chances it gave the same grounds and section as the worker.
+export interface CaseGrade {
+  score: number;
+  letter: Letter;
+  same_grounds: number;
+  same_section: number;
+  cost: number;
 }
 
 // An evaluation's copy of a case beside the worker's decision on it.
 export interface ScoredCase extends RunCase {
   copy_of: string;
   reason: string | null;
+  grade: CaseGrade | null;
   worker_decision: DecisionKind;
   worker_award: number;
   right: boolean;
@@ -189,6 +211,7 @@ export interface Evaluation extends RunDetails {
   evaluation_set: EvaluationSet;
   tiny: boolean;
   size: number;
+  judge_cost: number;
   measures: Measures;
 }
 
@@ -200,11 +223,230 @@ export interface Accepted {
   status: "accepted";
 }
 
-export interface Instructions {
-  case: string;
+export type VersionStatus = "current" | "kept" | "rolled_back" | "under_test";
+export type Verdict = "kept" | "rolled_back";
+export type DiffLineKind = "context" | "added" | "removed";
+
+export interface DiffLine {
+  kind: DiffLineKind;
+  text: string;
+}
+
+// The lines that differ between two texts, in hunks with their context.
+export interface Diff {
+  added: number;
+  removed: number;
+  hunks: DiffLine[][];
+}
+
+// A version's scores on each set, from the evaluations rounds ran on it.
+export interface VersionScores {
+  evaluation: Measures | null;
+  held_out: Measures | null;
+}
+
+export interface VersionSummary {
+  number: number;
+  status: VersionStatus;
+  model: string;
+  reasoning_effort: string;
+  // The version this one changes, and its model, or null for version 1.
+  based_on: number | null;
+  model_before: string | null;
+  reasoning_effort_before: string | null;
+  lines_added: number;
+  lines_removed: number;
+  reason: string;
+  proposed_by: string;
+  round_id: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  verdict: Verdict | null;
+  verdict_reason: string | null;
+  scores: VersionScores;
+}
+
+export interface VersionDetails extends VersionSummary {
+  instructions: string;
+  diff: Diff | null;
+}
+
+export interface Configuration {
+  current: number;
+  versions: VersionSummary[];
+}
+
+// A setting for each measure the rule compares: accuracy and the grade as
+// differences, cost and time per case as fractions of the old value.
+export interface MeasureSettings {
+  accuracy: number;
+  grade: number;
+  cost_per_case: number;
+  seconds_per_case: number;
+}
+
+export interface SettingsValues {
+  approval_limit: number;
+  objectives: { accuracy: number; grade: number };
+  noise: MeasureSettings;
+  tolerance: MeasureSettings;
+  spending_limit: number;
+  agents: number;
+}
+
+export interface Settings extends SettingsValues {
+  number: number;
+  changed_by: string | null;
+  changed_at: string;
+}
+
+export interface ModelAllowed {
+  model: string;
+  reasoning_efforts: string[];
+  // US dollars per million tokens.
+  input_price: number;
+  output_price: number;
+}
+
+export interface SettingsPage {
+  current: Settings;
+  changes: Settings[];
+  models_allowed: ModelAllowed[];
+}
+
+export type RoundStatus = "open" | "finished" | "stopped";
+export type RoundStage =
+  | "first_evaluations"
+  | "improving"
+  | "change_waiting"
+  | "evaluating"
+  | "verdict"
+  | "recipe_waiting";
+export type ProposalKind = "change" | "recipe";
+export type Review = "approved" | "rejected";
+
+// Who approved or rejected one of the improver's proposals, and when.
+export interface RoundReview {
+  kind: ProposalKind;
+  review: Review;
+  reviewed_by: string;
+  reviewed_at: string;
+  rejection_reason: string | null;
+}
+
+// The proposal waiting for a worker, with what it would change. A recipe has
+// no model.
+export interface WaitingProposal {
+  proposal_id: string;
+  kind: ProposalKind;
+  reason: string;
+  proposed_at: string;
+  diff: Diff;
+  model_before: string | null;
+  reasoning_effort_before: string | null;
+  model_after: string | null;
+  reasoning_effort_after: string | null;
+}
+
+export interface RoundSummary {
+  round_id: string;
+  number: number;
+  status: RoundStatus;
+  // Where an open round has got to, and how far, such as "2 of 3".
+  stage: RoundStage | null;
+  progress: string | null;
+  started_by: string;
+  started_at: string;
+  finished_at: string | null;
+  stopped_by: string | null;
+  stopped_because: string | null;
+  recipe: number;
+  settings: number;
+  spending_limit: number;
+  cost: number;
+  // The version the round tried, if any, and its verdict.
+  version: number | null;
+  model: string | null;
+  reasoning_effort: string | null;
+  reason: string | null;
+  verdict: Verdict | null;
+  verdict_reason: string | null;
+  held_out_before: Measures | null;
+  held_out_after: Measures | null;
+  reviews: RoundReview[];
+}
+
+export interface RoundView extends RoundSummary {
+  waiting: WaitingProposal | null;
+  evaluations: Evaluation[];
+}
+
+// A version's held-out accuracy and grade, for the chart.
+export interface VersionPoint {
+  number: number;
+  verdict: Verdict | null;
+  accuracy: number | null;
+  grade: number | null;
+}
+
+export interface RecipeSummary {
+  number: number;
+  current: boolean;
+  reason: string;
+  proposed_by: string;
+  round_id: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  lines_added: number;
+  lines_removed: number;
+}
+
+export interface RecipeDetails extends RecipeSummary {
+  recipe: string;
+  diff: Diff | null;
+}
+
+export interface Improvement {
+  // The open round, or the newest.
+  round: RoundView | null;
+  rounds: RoundSummary[];
+  first_version: VersionPoint;
+  versions_tried: VersionPoint[];
+  recipes: RecipeSummary[];
 }
 
 export const REQUEST_FAILED = "The request failed";
+
+// How FastAPI refuses a request it can't accept, one entry for each input.
+interface InputError {
+  loc: (string | number)[];
+  msg: string;
+}
+
+function isInputErrors(detail: unknown): detail is InputError[] {
+  return (
+    Array.isArray(detail) &&
+    detail.every(
+      (error: unknown) =>
+        typeof error === "object" &&
+        error !== null &&
+        "loc" in error &&
+        "msg" in error,
+    )
+  );
+}
+
+// The backend's reason for refusing, as a sentence a worker can act on.
+function reasonFor(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (isInputErrors(detail))
+    return detail
+      .map((error) => `${error.loc.slice(1).join(".")}: ${error.msg}`)
+      .join("; ");
+  return REQUEST_FAILED;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -215,33 +457,47 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
+// Sends a request with the signed-in worker's access token, if any.
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = accessToken();
+  const headers = new Headers(init.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(path, { ...init, headers });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as {
       detail?: unknown;
     };
-    const detail =
-      typeof body.detail === "string" ? body.detail : REQUEST_FAILED;
-    throw new ApiError(response.status, detail);
+    throw new ApiError(response.status, reasonFor(body.detail));
   }
   return (await response.json()) as T;
 }
 
-function post<T>(path: string, body: object): Promise<T> {
+function send<T>(method: "POST" | "PUT", path: string, body?: object) {
+  if (body === undefined) return request<T>(path, { method });
   return request<T>(path, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 }
 
-const casePath = (caseId: string) => `/api/cases/${encodeURIComponent(caseId)}`;
+const post = <T>(path: string, body?: object) => send<T>("POST", path, body);
+
+const CASES = "/api/cases";
+const casePath = (caseId: string) => `${CASES}/${encodeURIComponent(caseId)}`;
 const DISPATCHES = "/api/dispatches";
+const CONFIGURATION = "/api/configuration";
+const SETTINGS = "/api/settings";
 const EVALUATIONS = "/api/evaluations";
+const IMPROVEMENT = "/api/improvement";
+const ROUNDS = `${IMPROVEMENT}/rounds`;
+const roundPath = (roundId: string) =>
+  `${ROUNDS}/${encodeURIComponent(roundId)}`;
+const proposalPath = (roundId: string, proposalId: string) =>
+  `${roundPath(roundId)}/proposals/${encodeURIComponent(proposalId)}`;
 
 export const api = {
-  listCases: () => request<CaseSummary[]>("/api/cases"),
+  listCases: () => request<CaseSummary[]>(CASES),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
   listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>
@@ -250,8 +506,15 @@ export const api = {
     request<PreviousCase[]>(
       `/api/customers/${encodeURIComponent(customerId)}/cases`,
     ),
-  getInstructions: () => request<Instructions>("/api/instructions"),
-  listWorkers: () => request<Worker[]>("/api/workers"),
+  getConfiguration: () => request<Configuration>(CONFIGURATION),
+  getVersionDetails: (number: string) =>
+    request<VersionDetails>(
+      `${CONFIGURATION}/versions/${encodeURIComponent(number)}`,
+    ),
+  getSignedInWorker: () => request<Worker>("/api/me"),
+  getSettings: () => request<SettingsPage>(SETTINGS),
+  changeSettings: (values: SettingsValues) =>
+    send<SettingsPage>("PUT", SETTINGS, values),
   getLatestDispatch: () => request<Run | null>(`${DISPATCHES}/latest`),
   startDispatch: (agents: number) => post<Accepted>(DISPATCHES, { agents }),
   listEvaluations: () => request<Evaluation[]>(EVALUATIONS),
@@ -267,6 +530,19 @@ export const api = {
       tiny,
       agents,
     }),
-  signOff: (caseId: string, workerId: string) =>
-    post<Case>(`${casePath(caseId)}/sign-off`, { worker_id: workerId }),
+  signOff: (caseId: string) => post<Case>(`${casePath(caseId)}/sign-off`),
+  getImprovement: () => request<Improvement>(IMPROVEMENT),
+  getRecipe: (number: string) =>
+    request<RecipeDetails>(
+      `${IMPROVEMENT}/recipes/${encodeURIComponent(number)}`,
+    ),
+  startRound: () => post<Accepted>(ROUNDS),
+  stopRound: (roundId: string) =>
+    post<RoundSummary>(`${roundPath(roundId)}/stop`),
+  approveProposal: (roundId: string, proposalId: string) =>
+    post<Accepted>(`${proposalPath(roundId, proposalId)}/approval`),
+  rejectProposal: (roundId: string, proposalId: string, reason: string) =>
+    post<Accepted>(`${proposalPath(roundId, proposalId)}/rejection`, {
+      reason,
+    }),
 };

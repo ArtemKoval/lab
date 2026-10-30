@@ -1,11 +1,17 @@
 import { type APIRequestContext, expect } from "@playwright/test";
-import type { DecisionKind, EvaluationSet, Run } from "../dashboard/src/api";
+import type {
+  DecisionKind,
+  EvaluationSet,
+  Improvement,
+  Run,
+} from "../dashboard/src/api";
+import { WORKERS } from "./workers";
+import { AGENT_STAND_IN } from "./servers";
 
 // Stands in for the agent's service and its case agents, with one function for
 // each backend operation the tests use, sent through the dashboard's proxy.
 type Request = APIRequestContext;
 
-const MODEL = { model: "openai/gpt-6-luna", reasoning_effort: "low" };
 const casePath = (caseId: string) => `/api/cases/${encodeURIComponent(caseId)}`;
 const runPath = (runId: string) => `/api/runs/${runId}`;
 
@@ -86,7 +92,6 @@ export async function createDispatch(
 ): Promise<Run> {
   const response = await send(request, "POST", "/api/runs/dispatches", {
     agents,
-    ...MODEL,
   });
   return (await response.json()) as Run;
 }
@@ -101,7 +106,6 @@ export async function createEvaluation(
     evaluation_set: evaluationSet,
     tiny,
     agents,
-    ...MODEL,
   });
   return (await response.json()) as Run;
 }
@@ -115,8 +119,86 @@ export const recordRunCases = (
 export const finishRun = (request: Request, runId: string) =>
   send(request, "POST", `${runPath(runId)}/finish`);
 
-// The stand-in for the agent's service, which Playwright starts on its own port.
-export const AGENT_STAND_IN = "http://127.0.0.1:8003";
+// A round of the improver, played out as the agent's service would record it,
+// for Dana Whitfield.
+const ROUNDS = "/api/rounds";
+const roundPath = (roundId: string) => `${ROUNDS}/${roundId}`;
+const DANA = WORKERS.dana.worker_id;
+
+export async function createRound(request: Request): Promise<string> {
+  const response = await send(request, "POST", ROUNDS, { worker_id: DANA });
+  return ((await response.json()) as { round_id: string }).round_id;
+}
+
+export async function recordChangeProposal(
+  request: Request,
+  roundId: string,
+  instructions: string,
+): Promise<string> {
+  const response = await send(
+    request,
+    "POST",
+    `${roundPath(roundId)}/proposals/change`,
+    {
+      instructions,
+      model: "openai/gpt-6-luna",
+      reasoning_effort: "low",
+      reason: "Two stolen phones were approved without a police report",
+    },
+  );
+  return ((await response.json()) as { proposal_id: string }).proposal_id;
+}
+
+export async function recordRecipeProposal(
+  request: Request,
+  roundId: string,
+): Promise<string> {
+  const response = await send(
+    request,
+    "POST",
+    `${roundPath(roundId)}/proposals/recipe`,
+    { recipe: "1. Read the results.\n", reason: "A shorter recipe" },
+  );
+  return ((await response.json()) as { proposal_id: string }).proposal_id;
+}
+
+export const recordReview = (
+  request: Request,
+  roundId: string,
+  proposalId: string,
+  review: "approved" | "rejected",
+  reason = "",
+) =>
+  send(
+    request,
+    "POST",
+    `${roundPath(roundId)}/proposals/${proposalId}/review`,
+    { review, worker_id: DANA, reason },
+  );
+
+export const createVersion = (request: Request, roundId: string) =>
+  send(request, "POST", `${roundPath(roundId)}/version`);
+
+export const finishRound = (request: Request, roundId: string) =>
+  send(request, "POST", `${roundPath(roundId)}/finish`);
+
+// Finishes the open round, if any, rejecting a proposal it's waiting on first,
+// so the next test can start one.
+export async function finishOpenRound(request: Request) {
+  const response = await request.get("/api/improvement");
+  await expect(response).toBeOK();
+  const { round } = (await response.json()) as Improvement;
+  if (round?.status !== "open") return;
+  if (round.waiting)
+    await recordReview(
+      request,
+      round.round_id,
+      round.waiting.proposal_id,
+      "rejected",
+      "The test is over",
+    );
+  await finishRound(request, round.round_id);
+}
 
 export async function resumed(request: Request): Promise<string[]> {
   const response = await request.get(`${AGENT_STAND_IN}/api/resumed`);
@@ -131,6 +213,12 @@ export interface Started {
 
 export async function started(request: Request): Promise<Started[]> {
   const response = await request.get(`${AGENT_STAND_IN}/api/started`);
+  await expect(response).toBeOK();
+  return (await response.json()) as Started[];
+}
+
+export async function reviews(request: Request): Promise<Started[]> {
+  const response = await request.get(`${AGENT_STAND_IN}/api/reviews`);
   await expect(response).toBeOK();
   return (await response.json()) as Started[];
 }

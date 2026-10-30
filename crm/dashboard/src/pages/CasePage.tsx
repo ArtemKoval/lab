@@ -3,44 +3,74 @@ import { Link, useParams } from "react-router";
 import { api, type Case } from "../api";
 import { StatusChip } from "../components/Chips";
 import { DecisionPanel } from "../components/DecisionPanel";
-import { Message } from "../components/Message";
+import { StateMessage } from "../components/StateMessage";
+import { PageHeader } from "../components/PageHeader";
 import { HistoryPanel, ContractPanel } from "../components/ContractPanels";
+import { SectionsRead } from "../components/SectionsRead";
 import { StepList } from "../components/StepList";
 import { date, label, money } from "../format";
-import { evaluationPage } from "../paths";
+import { evaluationPage, QUEUE } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
 
 export function CasePage() {
   const { caseId = "" } = useParams();
   const load = useCallback(() => api.getCase(caseId), [caseId]);
   const { data: entry, error, reload } = useLoad(load, REFRESH_MS);
+  const loadSteps = useCallback(() => api.listSteps(caseId), [caseId]);
+  const steps = useLoad(loadSteps, REFRESH_MS);
 
-  if (!entry) return <Message error={error} notFound="Case not found" />;
+  if (!entry)
+    return (
+      <>
+        <PageHeader eyebrow={<Link to={QUEUE}>Queue</Link>} title={caseId} />
+        <StateMessage
+          error={error}
+          notFound="Case not found. Choose one from the queue."
+        />
+      </>
+    );
 
   return (
     <>
-      <div className="case-heading">
-        <p className="mono muted">{entry.case_id}</p>
-        {entry.evaluation_id && (
-          <p className="copy-note">
-            A copy of <span className="mono">{entry.copy_of}</span> in an{" "}
-            <Link to={evaluationPage(entry.evaluation_id)}>evaluation</Link>
-          </p>
-        )}
-        <h1>{entry.summary}</h1>
-        <StatusChip status={entry.status} />
-      </div>
+      <PageHeader
+        eyebrow={
+          <>
+            {entry.evaluation_id ? (
+              <Link to={evaluationPage(entry.evaluation_id)}>Evaluation</Link>
+            ) : (
+              <Link to={QUEUE}>Queue</Link>
+            )}{" "}
+            <span className="mono">/ {entry.case_id}</span>
+          </>
+        }
+        title={entry.summary}
+        status={<StatusChip status={entry.status} />}
+        lead={
+          entry.evaluation_id ? (
+            <>
+              A copy of <span className="mono">{entry.copy_of}</span> in an{" "}
+              <Link to={evaluationPage(entry.evaluation_id)}>evaluation</Link>
+            </>
+          ) : (
+            `${entry.customer_name}'s ${label(entry.case_type).toLowerCase()} entry`
+          )
+        }
+      />
+      {/* The agent's steps grow at the end of the right column, and the sections
+          it read at the end of the left, so neither moves anything as the
+          page refreshes. */}
       <div className="case-layout">
         <div className="column">
           <CaseDetails entry={entry} />
           <ItemsPanel entry={entry} />
           <DocumentsPanel entry={entry} />
+          <ContractPanel contractId={entry.contract_id} />
+          <HistoryPanel customerId={entry.customer_id} />
+          <SectionsRead steps={steps.data} />
         </div>
         <div className="column">
           <DecisionPanel entry={entry} onSignedOff={reload} />
-          <StepList caseId={entry.case_id} />
-          <ContractPanel contractId={entry.contract_id} />
-          <HistoryPanel customerId={entry.customer_id} />
+          <StepList steps={steps.data} error={steps.error} />
         </div>
       </div>
     </>

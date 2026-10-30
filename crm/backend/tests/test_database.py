@@ -6,11 +6,11 @@ from sqlalchemy.pool import QueuePool
 from backend.database import RETIRED, engine, location, seed
 from backend.main import app
 
-SUPABASE = "postgresql://postgres.ref:secret@pooler.example.com:5432/db"
+POSTGRES_URL = "postgresql://postgres.ref:secret@pooler.example.com:5432/db"
 
 
 def test_postgres_is_used_when_database_url_is_set(monkeypatch):
-    monkeypatch.setenv("DATABASE_URL", SUPABASE)
+    monkeypatch.setenv("DATABASE_URL", POSTGRES_URL)
     db = engine()
     assert db.url.drivername == "postgresql+psycopg"
     assert db.url.query["options"] == "-c search_path=crm"
@@ -21,7 +21,7 @@ def test_postgres_is_used_when_database_url_is_set(monkeypatch):
 
 
 def test_the_settings_in_database_url_are_kept(monkeypatch):
-    monkeypatch.setenv("DATABASE_URL", f"{SUPABASE}?sslmode=require")
+    monkeypatch.setenv("DATABASE_URL", f"{POSTGRES_URL}?sslmode=require")
     query = engine().url.query
     assert (query["sslmode"], query["options"]) == (
         "require",

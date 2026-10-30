@@ -62,7 +62,7 @@ def test_an_evaluation_through_the_service(client, serve):
 
 def test_a_dispatch_leaves_an_evaluations_copies_alone(client):
     leave_waiting("CLM-1001")
-    api.create_evaluation("held_out", True, 5, "stub", "none")
+    api.create_evaluation("held_out", True, 5)
     client.post("/api/cases/CLM-1104-E1/start", json={"thread_id": "copy-thread"})
     dispatch(swarm({"CLM-1001": decide("refer", 0)}))
 
@@ -70,6 +70,12 @@ def test_a_dispatch_leaves_an_evaluations_copies_alone(client):
     copy = case_of(client, "CLM-1104-E1")
     assert (copy["status"], copy["thread_id"]) == ("in_progress", "copy-thread")
     assert case_of(client, "CLM-1106-E1")["status"] == "waiting"
+
+
+RUNNING = {
+    "/api/dispatches": "A dispatch is running",
+    "/api/evaluations": "An evaluation is running",
+}
 
 
 @pytest.mark.parametrize(
@@ -91,7 +97,7 @@ def test_a_dispatch_and_an_evaluation_never_run_together(
 
     refused = agent.post(second, json=body)
     assert refused.status_code == 409
-    assert refused.json()["detail"] == "A dispatch or an evaluation is already running"
+    assert refused.json()["detail"] == RUNNING[first]
     held_run.release.set()
     running.join(5)
     assert not running.is_alive()
@@ -103,12 +109,14 @@ def test_the_agent_cant_read_the_scoreboard():
         "get_evaluation",
         "start_dispatch",
         "start_evaluation",
+        "get_configuration",
+        "get_version_details",
     ):
         assert not hasattr(api, name)
 
 
 def test_a_copy_still_failing_after_its_tries_is_left_in_progress(client):
-    run = api.create_evaluation("held_out", True, 5, "stub", "none")
+    run = api.create_evaluation("held_out", True, 5)
     limited = ModelRateLimitError("429 Too Many Requests")
     scripts = {copy["case_id"]: decide("refer", 0) for copy in run["cases"]}
     model = swarm(scripts | {"CLM-1104-E1": [limited] * 3})

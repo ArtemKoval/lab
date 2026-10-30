@@ -17,6 +17,7 @@ from agent.tests.failures import fail_once
 from agent.tests.queue_setup import leave_waiting
 from agent.tests.records import case_of, steps_of, work_times_of
 from agent.tests.stubs import call, decide, graph_on, record, stub, swarm
+from backend.tests.case_requests import sign_off
 from backend.tests.run_requests import latest_dispatch
 
 
@@ -179,7 +180,7 @@ class Item(TypedDict):
 
 
 def test_langgraph_raises_an_error_its_worker_took_beside_another_worker():
-    """LangGraph 1.2.12 still raises from invoke an error a node's error_worker
+    """LangGraph 1.2.12 still raises from invoke an error a node's error_handler
     took, when the node runs beside another, so the dispatcher doesn't use one.
     When this test fails, a release has fixed it."""
     handled = []
@@ -227,7 +228,7 @@ def test_a_dispatch_stopped_partway_is_finished_by_the_next(client):
         dispatch(model, saver, agents=2)
     stopped = {i: case_of(client, i) for i in ("CLM-1001", "CLM-1003")}
     assert {c["status"] for c in stopped.values()} == {"in_progress"}
-    client.post("/api/cases/CLM-1002/sign-off", json={"worker_id": "HND-01"})
+    sign_off(client, "CLM-1002")
 
     reports = dispatch(model, saver, agents=2)
     assert sorted(reports) == [
@@ -246,7 +247,7 @@ def test_a_dispatch_stopped_partway_is_finished_by_the_next(client):
 def test_a_dispatch_leaves_a_case_being_resumed_alone(client):
     leave_waiting("CLM-1001", "CLM-1002")
     harness.work_case("CLM-1002", None, graph_on(stub(*decide("approve", 1350.0))))
-    client.post("/api/cases/CLM-1002/sign-off", json={"worker_id": "HND-01"})
+    sign_off(client, "CLM-1002")
     dispatch(swarm({"CLM-1001": decide("refer", 0)}), resuming={"CLM-1002"})
 
     assert [c["case_id"] for c in latest_dispatch(client)["cases"]] == ["CLM-1001"]

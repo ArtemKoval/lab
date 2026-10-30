@@ -1,20 +1,13 @@
-"""The CRM backend's API: one function for each operation the agent uses."""
+"""The CRM backend's API for the case agent and the agent's service: one
+function for each operation they use. It has no way to the scores, the settings,
+the rounds or the workers' decisions."""
 
-import os
 from enum import StrEnum
 from typing import Any, Literal
 
-import httpx
 from pydantic import BaseModel, Field
 
-BACKEND_URL = os.getenv("CRM_API", "http://127.0.0.1:8000")
-
-# Retries a refused connection for about 7 seconds, while the backend starts.
-backend = httpx.Client(
-    base_url=f"{BACKEND_URL}/api",
-    timeout=30,
-    transport=httpx.HTTPTransport(retries=5),
-)
+from agent.connection import call, get, post
 
 DecisionKind = Literal["approve", "decline", "refer"]
 APPROVE: DecisionKind = "approve"
@@ -82,48 +75,36 @@ class Line(BaseModel):
     )
 
 
-class Refused(Exception):
-    """The backend refused a request, with its status code and reason."""
-
-    def __init__(self, status_code: int, detail: str) -> None:
-        super().__init__(f"{status_code}: {detail}")
-        self.status_code, self.detail = status_code, detail
-
-
-def _call(method: str, path: str, **request: Any) -> Any:
-    """Send one request to the backend and return its JSON, or raise Refused."""
-    response = backend.request(method, path, **request)
-    if response.is_error:
-        raise Refused(response.status_code, response.json()["detail"])
-    return response.json()
-
-
 def list_cases() -> list[dict[str, Any]]:
-    return _call("GET", "/cases")
+    return get("/cases")
 
 
 def get_case(case_id: str) -> dict[str, Any]:
-    return _call("GET", f"/cases/{case_id}")
+    return get(f"/cases/{case_id}")
 
 
 def get_contract(contract_id: str) -> dict[str, Any]:
-    return _call("GET", f"/contracts/{contract_id}")
+    return get(f"/contracts/{contract_id}")
 
 
 def get_case_history(customer_id: str) -> list[dict[str, Any]]:
-    return _call("GET", f"/customers/{customer_id}/cases")
+    return get(f"/customers/{customer_id}/cases")
 
 
-def get_instructions() -> dict[str, str]:
-    return _call("GET", "/instructions")
+def get_version(number: int) -> dict[str, Any]:
+    return get(f"/versions/{number}")
+
+
+def get_current_version() -> dict[str, Any]:
+    return get("/versions/current")
 
 
 def search_documents(query: str) -> list[dict[str, Any]]:
-    return _call("GET", "/documents/search", params={"query": query})
+    return call("GET", "/documents/search", params={"query": query})
 
 
 def read_section(document: DocumentName, number: int) -> dict[str, Any]:
-    return _call("GET", f"/documents/{document}/sections/{number}")
+    return get(f"/documents/{document}/sections/{number}")
 
 
 def calculate_award(
@@ -134,16 +115,16 @@ def calculate_award(
         "lines": [line.model_dump() for line in lines],
         "paid_by_others": paid_by_others,
     }
-    return _call("POST", f"/cases/{case_id}/award", json=body)
+    return post(f"/cases/{case_id}/award", **body)
 
 
 def start_case(case_id: str, thread_id: str) -> dict[str, Any]:
-    return _call("POST", f"/cases/{case_id}/start", json={"thread_id": thread_id})
+    return post(f"/cases/{case_id}/start", **{"thread_id": thread_id})
 
 
 def record_step(case_id: str, kind: StepKind, content: str) -> dict[str, Any]:
     body = {"kind": kind, "content": content}
-    return _call("POST", f"/cases/{case_id}/steps", json=body)
+    return post(f"/cases/{case_id}/steps", **body)
 
 
 def record_decision(
@@ -155,15 +136,15 @@ def record_decision(
         "section": section,
         "reason": reason,
     }
-    return _call("POST", f"/cases/{case_id}/decision", json=body)
+    return post(f"/cases/{case_id}/decision", **body)
 
 
 def pay_case(case_id: str, amount: float) -> dict[str, Any]:
-    return _call("POST", f"/cases/{case_id}/payment", json={"amount": amount})
+    return post(f"/cases/{case_id}/payment", **{"amount": amount})
 
 
 def fail_case(case_id: str, reason: str) -> dict[str, Any]:
-    return _call("POST", f"/cases/{case_id}/failure", json={"reason": reason})
+    return post(f"/cases/{case_id}/failure", **{"reason": reason})
 
 
 def record_model_call(
@@ -179,45 +160,35 @@ def record_model_call(
         "output_tokens": output_tokens,
         "cost": cost,
     }
-    return _call("POST", f"/cases/{case_id}/model-calls", json=body)
+    return post(f"/cases/{case_id}/model-calls", **body)
 
 
 def record_work_time(
     case_id: str, run_id: str | None, seconds: float
 ) -> dict[str, Any]:
-    body = {"run_id": run_id, "seconds": seconds}
-    return _call("POST", f"/cases/{case_id}/work-times", json=body)
+    return post(
+        f"/cases/{case_id}/work-times", **{"run_id": run_id, "seconds": seconds}
+    )
 
 
-def create_dispatch(agents: int, model: str, reasoning_effort: str) -> dict[str, Any]:
-    body = {"agents": agents, "model": model, "reasoning_effort": reasoning_effort}
-    return _call("POST", "/runs/dispatches", json=body)
+def create_dispatch(agents: int) -> dict[str, Any]:
+    return post("/runs/dispatches", **{"agents": agents})
 
 
 def create_evaluation(
-    evaluation_set: EvaluationSet,
-    tiny: bool,
-    agents: int,
-    model: str,
-    reasoning_effort: str,
+    evaluation_set: EvaluationSet, tiny: bool, agents: int
 ) -> dict[str, Any]:
-    body = {
-        "evaluation_set": evaluation_set,
-        "tiny": tiny,
-        "agents": agents,
-        "model": model,
-        "reasoning_effort": reasoning_effort,
-    }
-    return _call("POST", "/runs/evaluations", json=body)
+    body = {"evaluation_set": evaluation_set, "tiny": tiny, "agents": agents}
+    return post("/runs/evaluations", **body)
 
 
 def record_run_cases(run_id: str, case_ids: list[str]) -> dict[str, Any]:
-    return _call("PUT", f"/runs/{run_id}/cases", json={"case_ids": case_ids})
+    return call("PUT", f"/runs/{run_id}/cases", json={"case_ids": case_ids})
 
 
 def finish_run(run_id: str) -> dict[str, Any]:
-    return _call("POST", f"/runs/{run_id}/finish")
+    return post(f"/runs/{run_id}/finish")
 
 
 def stop_runs() -> list[str]:
-    return _call("POST", "/runs/stop")
+    return post("/runs/stop")

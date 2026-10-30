@@ -3,20 +3,19 @@ and records nothing of."""
 
 import httpx
 import pytest
-from sqlalchemy import func, select
 
-from backend.database import engine, runs
+from backend.agent_service import NO_ANSWER
+from backend.database import runs
+from backend.tests.rows import count
+from backend.tests.sign_in import MARCUS, signed_in
 
-RUNNING = "A dispatch or an evaluation is already running"
+RUNNING = "A dispatch is running"
 
 
 def start_dispatch(client, agents):
-    return client.post("/api/dispatches", json={"agents": agents})
-
-
-def runs_recorded():
-    with engine().connect() as db:
-        return db.execute(select(func.count()).select_from(runs)).scalar_one()
+    return client.post(
+        "/api/dispatches", json={"agents": agents}, headers=signed_in(MARCUS)
+    )
 
 
 def test_start_a_dispatch(client, agent_calls):
@@ -24,7 +23,7 @@ def test_start_a_dispatch(client, agent_calls):
     assert response.status_code == 202
     assert response.json() == {"status": "accepted"}
     assert agent_calls == [("/api/dispatches", {"agents": 7})]
-    assert runs_recorded() == 0
+    assert count(runs) == 0
 
 
 def test_the_services_refusal_is_passed_on(client, agent_answers):
@@ -42,7 +41,7 @@ def test_a_service_that_isnt_running(client, agent_answers):
     response = start_dispatch(client, 3)
     assert response.status_code == 503
     assert response.json()["detail"] == "The agent's service isn't running"
-    assert runs_recorded() == 0
+    assert count(runs) == 0
 
 
 @pytest.mark.parametrize("agents", [0, 26])
@@ -64,14 +63,16 @@ def test_a_service_that_took_the_start_but_didnt_answer_isnt_said_to_be_down(
         raise httpx.ReadTimeout("Timed out")
 
     agent_answers(slow)
-    with pytest.raises(httpx.ReadTimeout):
-        start_dispatch(client, 3)
+    refused = start_dispatch(client, 3)
+    assert (refused.status_code, refused.json()["detail"]) == (503, NO_ANSWER)
+    assert "isn't running" not in NO_ANSWER
 
 
 def start_evaluation(client, evaluation_set="held_out", tiny=True, agents=5):
     return client.post(
         "/api/evaluations",
         json={"evaluation_set": evaluation_set, "tiny": tiny, "agents": agents},
+        headers=signed_in(MARCUS),
     )
 
 
@@ -84,7 +85,7 @@ def test_start_an_evaluation(client, agent_calls):
             {"evaluation_set": "evaluation", "tiny": False, "agents": 25},
         )
     ]
-    assert runs_recorded() == 0
+    assert count(runs) == 0
 
 
 def test_an_evaluation_is_refused_as_a_dispatch_is(client, agent_answers):

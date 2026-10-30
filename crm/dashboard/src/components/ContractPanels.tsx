@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { api } from "../api";
 import { addOnName, date, label, money } from "../format";
 import { useLoad } from "../useLoad";
-import { Message } from "./Message";
+import { StateMessage } from "./StateMessage";
 
 export function ContractPanel({
   contractId,
@@ -56,7 +56,7 @@ export function ContractPanel({
           </div>
         </dl>
       ) : (
-        <Message error={error} />
+        <StateMessage error={error} />
       )}
     </section>
   );
@@ -69,8 +69,10 @@ export function HistoryPanel({ customerId }: Readonly<{ customerId: string }>) {
   return (
     <section className="panel" aria-labelledby="history-title">
       <h2 id="history-title">Earlier cases</h2>
-      {!history && <Message error={error} />}
-      {history?.length === 0 && <p className="muted">No earlier cases</p>}
+      {!history && <StateMessage error={error} />}
+      {history?.length === 0 && (
+        <StateMessage empty="No earlier cases: this is the customer's first case with us." />
+      )}
       {history && history.length > 0 && (
         <ul className="history">
           {history.map((entry) => (

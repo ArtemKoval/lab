@@ -11,7 +11,8 @@ def main() -> None:
         f"Seeded {counts['cases']} cases, {counts['contracts']} contracts, "
         f"{counts['customers']} customers and {counts['workers']} workers "
         f"into {location(db)}, with {counts['held_out_cases']} held-out cases "
-        f"and {counts['worker_decisions']} workers' decisions for evaluations"
+        f"and {counts['worker_decisions']} workers' decisions for evaluations, "
+        "and version 1 of the configuration and of the recipe"
     )
 
 

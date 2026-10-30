@@ -31,11 +31,37 @@ from sqlalchemy.engine import URL, make_url
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema
 
-from backend.models import EvaluationSet, Status
+from backend.free_models import model_or_free, models_or_free
+from backend.models import (
+    EvaluationSet,
+    ModelAllowed,
+    SettingsValues,
+    Status,
+    Verdict,
+)
 from domains import loader
 
 ROOT = Path(__file__).resolve().parent.parent
+DATA = ROOT / "data"
 DOCUMENTS = {"wording": "Contract wording", "manual": "Cases manual"}
+# Version 1 is kept from the start, so the current version is the newest kept.
+FIRST_VERSION = {
+    "number": 1,
+    "reason": "The case agent as the cases team built it",
+    "proposed_by": "The cases team",
+    "verdict": Verdict.KEPT,
+    "verdict_reason": "the first version",
+}
+# The model version 1 of the case agent is on, with no reasoning, so a higher
+# reasoning effort is an improvement to find, unless a student is on a free model.
+FIRST_MODEL = ("openai/gpt-6-luna", "none")
+FIRST_RECIPE = {
+    "number": 1,
+    "recipe": loader.pack().instruction("recipe"),
+    "reason": "The lab's first recipe, which tries the models and reasoning efforts "
+    "not yet tried, then adds a rule for each mistake",
+    "proposed_by": "The cases team",
+}
 HELD_OUT_CASES = "held_out_cases.json"
 SCHEMA = "crm"
 CONNECTIONS = 4
@@ -46,11 +72,33 @@ RETIRED = ["todos"]
 
 metadata = MetaData()
 
+# The platform's settings, one row for each change; the newest row is in force.
 settings = Table(
     "settings",
     metadata,
-    Column("award_approval_limit", Float, nullable=False),
+    Column("number", Integer, primary_key=True, autoincrement=False),
+    Column("approval_limit", Float, nullable=False),
+    Column("objectives", JSON, nullable=False),
+    Column("noise", JSON, nullable=False),
+    Column("tolerance", JSON, nullable=False),
+    Column("spending_limit", Float, nullable=False),
+    Column("agents", Integer, nullable=False),
+    Column("changed_by", Text),
+    Column("changed_at", Text, nullable=False),
+)
+award_rules = Table(
+    "award_rules",
+    metadata,
     Column("plans", JSON, nullable=False),
+)
+models_allowed = Table(
+    "models_allowed",
+    metadata,
+    Column("model", Text, primary_key=True),
+    Column("position", Integer, nullable=False),
+    Column("reasoning_efforts", JSON, nullable=False),
+    Column("input_price", Float, nullable=False),
+    Column("output_price", Float, nullable=False),
 )
 documents = Table(
     "documents",
@@ -66,6 +114,7 @@ workers = Table(
     Column("worker_id", Text, primary_key=True),
     Column("name", Text, nullable=False),
     Column("role", Text, nullable=False),
+    Column("email", Text, nullable=False, unique=True),
     Column("can_approve_over_limit", Boolean, nullable=False),
 )
 customers = Table(
@@ -107,6 +156,8 @@ worker_decisions = Table(
     Column("decision", Text, nullable=False),
     Column("award", Float, nullable=False),
     Column("tiny", Boolean, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("reference", Text, nullable=False),
 )
 decisions = Table(
     "decisions",
@@ -117,6 +168,8 @@ decisions = Table(
     Column("section", Text, nullable=False),
     Column("reason", Text, nullable=False),
     Column("decided_at", Text, nullable=False),
+    # The approval limit in force when the decision was recorded.
+    Column("approval_limit", Float, nullable=False),
     Column("signed_off_by", Text),
     Column("signed_off_at", Text),
 )
@@ -137,6 +190,84 @@ steps = Table(
     Column("content", Text, nullable=False),
     Column("created_at", Text, nullable=False),
 )
+# The improver's rounds, each to the settings, the recipe and the version of the
+# case agent in force when it started.
+rounds = Table(
+    "rounds",
+    metadata,
+    Column("number", Integer, primary_key=True),
+    Column("round_id", Text, nullable=False, unique=True),
+    Column("thread_id", Text, nullable=False),
+    Column("status", Text, nullable=False),
+    Column("settings", Integer, ForeignKey("settings.number"), nullable=False),
+    Column("recipe", Integer, nullable=False),
+    Column("starting_version", Integer, nullable=False),
+    # The sets of the first evaluations the starting version still needed.
+    Column("first_evaluations", JSON, nullable=False),
+    Column("improver_model", Text, nullable=False),
+    Column("improver_reasoning_effort", Text, nullable=False),
+    Column("started_by", Text, nullable=False),
+    Column("started_at", Text, nullable=False),
+    Column("finished_at", Text),
+    Column("stopped_by", Text),
+    Column("stopped_because", Text),
+    Column("held_out_before", JSON),
+    Column("held_out_after", JSON),
+)
+recipes = Table(
+    "recipes",
+    metadata,
+    Column("number", Integer, primary_key=True, autoincrement=False),
+    Column("recipe", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("proposed_by", Text, nullable=False),
+    Column("round_id", Text, ForeignKey("rounds.round_id")),
+    Column("approved_by", Text),
+    Column("approved_at", Text),
+    Column("created_at", Text, nullable=False),
+)
+# The improver's proposals, each waiting for a worker until it is reviewed.
+proposals = Table(
+    "proposals",
+    metadata,
+    Column("proposal_id", Text, primary_key=True),
+    Column("round_id", Text, ForeignKey("rounds.round_id"), nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("proposal", JSON, nullable=False),
+    Column("proposed_at", Text, nullable=False),
+    Column("review", Text),
+    Column("reviewed_by", Text),
+    Column("reviewed_at", Text),
+    Column("rejection_reason", Text),
+)
+improver_calls = Table(
+    "improver_calls",
+    metadata,
+    Column("improver_call_id", Integer, primary_key=True),
+    Column("round_id", Text, ForeignKey("rounds.round_id"), nullable=False),
+    Column("input_tokens", Integer, nullable=False),
+    Column("output_tokens", Integer, nullable=False),
+    Column("cost", Float, nullable=False),
+    Column("created_at", Text, nullable=False),
+)
+versions = Table(
+    "versions",
+    metadata,
+    Column("number", Integer, primary_key=True, autoincrement=False),
+    Column("instructions", Text, nullable=False),
+    Column("model", Text, nullable=False),
+    Column("reasoning_effort", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    Column("proposed_by", Text, nullable=False),
+    # The version this one changes, which was current when it was proposed.
+    Column("based_on", Integer, ForeignKey("versions.number")),
+    Column("round_id", Text, ForeignKey("rounds.round_id")),
+    Column("approved_by", Text),
+    Column("approved_at", Text),
+    Column("created_at", Text, nullable=False),
+    Column("verdict", Text),
+    Column("verdict_reason", Text),
+)
 runs = Table(
     "runs",
     metadata,
@@ -144,6 +275,8 @@ runs = Table(
     Column("run_id", Text, nullable=False, unique=True),
     Column("kind", Text, nullable=False),
     Column("agents", Integer, nullable=False),
+    Column("version", Integer, ForeignKey("versions.number"), nullable=False),
+    Column("round_id", Text, ForeignKey("rounds.round_id")),
     Column("model", Text, nullable=False),
     Column("reasoning_effort", Text, nullable=False),
     Column("evaluation_set", Text),
@@ -152,6 +285,19 @@ runs = Table(
     Column("started_at", Text, nullable=False),
     Column("finished_at", Text),
     Column("summary", JSON),
+)
+# The judge's grade of each copy in an evaluation, empty when it couldn't grade it.
+grades = Table(
+    "grades",
+    metadata,
+    Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
+    Column("run_id", Text, ForeignKey("runs.run_id"), nullable=False),
+    Column("score", Float),
+    Column("letter", Text),
+    Column("same_grounds", Float),
+    Column("same_section", Float),
+    Column("cost", Float, nullable=False),
+    Column("graded_at", Text, nullable=False),
 )
 run_cases = Table(
     "run_cases",
@@ -186,7 +332,7 @@ work_times = Table(
 
 class LabeledSet(NamedTuple):
     """A set of cases our workers have decided: the table its cases are kept in,
-    and the eval file with the workers' decisions, which only seeding
+    and the file in data/evals/ with the workers' decisions, which only seeding
     reads."""
 
     cases: Table
@@ -213,6 +359,7 @@ case_view = (
         decisions.c.section,
         decisions.c.reason,
         decisions.c.decided_at,
+        decisions.c.approval_limit,
         decisions.c.signed_off_by,
         decisions.c.signed_off_at,
         payments.c.amount,
@@ -302,6 +449,7 @@ def waiting_case(record: dict[str, Any], **columns: Any) -> dict[str, Any]:
 def seed(db: Engine) -> dict[str, int]:
     """Build the tables afresh from the pack and count what they hold."""
     active = loader.pack()
+    company = active.load_json("company.json")
     worker_rows = load("workers.json")
     customer_rows = load("customers.json")
     contract_rows = load("contracts.json")
@@ -313,13 +461,9 @@ def seed(db: Engine) -> dict[str, int]:
             Table(name, MetaData()).drop(connection, checkfirst=True)
         metadata.drop_all(connection)
         metadata.create_all(connection)
-        connection.execute(
-            insert(settings),
-            {
-                "award_approval_limit": active.settings["award_approval_limit"],
-                "plans": load("plans.json"),
-            },
-        )
+        seed_settings(connection, company["award_approval_limit"])
+        connection.execute(insert(award_rules).values(plans=load("plans.json")))
+        seed_models_allowed(connection)
         connection.execute(
             insert(documents),
             [
@@ -339,6 +483,7 @@ def seed(db: Engine) -> dict[str, int]:
                     "worker_id": h["worker_id"],
                     "name": h["name"],
                     "role": h["role"],
+                    "email": h["email"],
                     "can_approve_over_limit": h["can_approve_over_limit"],
                 }
                 for h in worker_rows
@@ -356,6 +501,8 @@ def seed(db: Engine) -> dict[str, int]:
             [{"contract_id": p["contract_id"], "record": p} for p in contract_rows],
         )
         connection.execute(insert(cases), [waiting_case(c) for c in case_rows])
+        seed_first_version(connection)
+        connection.execute(insert(recipes).values(**FIRST_RECIPE, created_at=now()))
         labeled = seed_evaluations(connection)
     return {
         "cases": len(case_rows),
@@ -363,6 +510,44 @@ def seed(db: Engine) -> dict[str, int]:
         "customers": len(customer_rows),
         "workers": len(worker_rows),
     } | labeled
+
+
+def seed_settings(connection: Connection, approval_limit: float) -> None:
+    """Store the first settings: the approval limit, and the rest from
+    data/improvement.json, checked as the settings page checks a change."""
+    values = SettingsValues(approval_limit=approval_limit, **load("improvement.json"))
+    connection.execute(
+        insert(settings).values(number=1, **values.model_dump(), changed_at=now())
+    )
+
+
+def seed_models_allowed(connection: Connection) -> None:
+    """Store the models the case agent may use, from data/models.json, or the free
+    model alone for students on free models."""
+    listed = [ModelAllowed(**model) for model in load("models.json")]
+    connection.execute(
+        insert(models_allowed),
+        [
+            model.model_dump() | {"position": position}
+            for position, model in enumerate(models_or_free(listed))
+        ],
+    )
+
+
+def seed_first_version(connection: Connection) -> None:
+    """Make version 1 of the case agent's configuration, from its instructions file,
+    on GPT-6 Luna with no reasoning, or the free model for students on free
+    models."""
+    model, reasoning_effort = model_or_free(*FIRST_MODEL)
+    connection.execute(
+        insert(versions).values(
+            **FIRST_VERSION,
+            instructions=loader.pack().instruction("case"),
+            model=model,
+            reasoning_effort=reasoning_effort,
+            created_at=now(),
+        )
+    )
 
 
 def seed_evaluations(connection: Connection) -> dict[str, int]:
@@ -380,6 +565,8 @@ def seed_evaluations(connection: Connection) -> dict[str, int]:
             "decision": d["decision"],
             "award": d["award"],
             "tiny": d["tiny"],
+            "reason": d["reason"],
+            "reference": d["reference"],
         }
         for evaluation_set, labeled in LABELED_SETS.items()
         for d in loader.pack().load_eval(labeled.decisions)

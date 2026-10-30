@@ -24,8 +24,11 @@ class StubModel(GenericFakeChatModel):
     raises a scripted error, and keeps the prompts it was sent."""
 
     prompts: list[list[BaseMessage]] = []
+    # The settings each binding of the tools asked for, such as parallel tool calls.
+    bound_with: list[dict[str, Any]] = []
 
     def bind_tools(self, tools, **kwargs):
+        self.bound_with.append(kwargs)
         return self
 
     def next_reply(self, messages):
@@ -105,6 +108,10 @@ def decide(decision, award):
     return [call("get_case"), record(decision, award)]
 
 
-def graph_on(model, saver=None):
+# The instructions of a case graph the tests build for themselves.
+INSTRUCTIONS = "Decide the case you are given."
+
+
+def graph_on(model, saver=None, instructions=INSTRUCTIONS):
     """The case graph on a stub model, saving its progress in memory."""
-    return harness.case_graph(model, saver or InMemorySaver())
+    return harness.case_graph(model, saver or InMemorySaver(), instructions)

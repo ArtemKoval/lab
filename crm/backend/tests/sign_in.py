@@ -1,0 +1,54 @@
+"""Signing in as a worker in the tests, with tokens signed by a key pair made here
+in place of the auth service's."""
+
+import time
+
+import jwt
+from cryptography.hazmat.primitives.asymmetric import ec
+from jwt.algorithms import ECAlgorithm
+
+from backend.auth import AUDIENCE
+
+# The auth service the tests stand in for.
+AUTH_URL = "https://auth.test"
+DANA = "dana.whitfield@undercover.example"
+MARCUS = "marcus.oyelaran@undercover.example"
+
+KEY_ID = "test-key"
+KEY = ec.generate_private_key(ec.SECP256R1())
+# Another key, which the service never published, under the same id.
+OTHER_KEY = ec.generate_private_key(ec.SECP256R1())
+
+# The public keys the tests publish in place of the service's.
+PUBLIC_KEYS = {
+    "keys": [
+        ECAlgorithm.to_jwk(KEY.public_key(), as_dict=True)
+        | {"kid": KEY_ID, "alg": "ES256", "use": "sig"}
+    ]
+}
+
+
+def token(
+    email: str,
+    key: ec.EllipticCurvePrivateKey = KEY,
+    audience: str = AUDIENCE,
+    expires_in: int = 3600,
+    issued_in: int = 0,
+) -> str:
+    """An access token for an email, as the auth service signs one, issued now by
+    the service's clock, or that many seconds ahead of ours."""
+    issued = int(time.time()) + issued_in
+    cases = {
+        "sub": email,
+        "email": email,
+        "aud": audience,
+        "role": "authenticated",
+        "iat": issued,
+        "exp": issued + expires_in,
+    }
+    return jwt.encode(cases, key, algorithm="ES256", headers={"kid": KEY_ID})
+
+
+def signed_in(email: str = DANA, **options) -> dict[str, str]:
+    """The headers of a request from the worker with this email."""
+    return {"Authorization": f"Bearer {token(email, **options)}"}

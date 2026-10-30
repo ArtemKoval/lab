@@ -3,12 +3,16 @@
 import json
 
 import httpx
+import jwt
 import pytest
 from fastapi.testclient import TestClient
+from openrouter import OpenRouter
 
-from backend import agent_service
+from backend import agent_service, auth, judge
 from backend.database import engine, seed
 from backend.main import app
+from backend.tests.judging import JUDGE_URL, answer
+from backend.tests.sign_in import AUTH_URL, PUBLIC_KEYS
 
 
 @pytest.fixture(autouse=True)
@@ -16,9 +20,49 @@ def database(tmp_path, monkeypatch):
     """Give every test its own freshly seeded SQLite database, never Postgres."""
     path = tmp_path / "crm.db"
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("MODEL_NAME", raising=False)
     monkeypatch.setenv("CRM_DB", str(path))
     seed(engine())
     return path
+
+
+@pytest.fixture(autouse=True)
+def supabase_keys(monkeypatch):
+    """Check sign-ins against the tests' own public key, in place of fetching
+    Supabase's."""
+    monkeypatch.setenv("AUTH_URL", AUTH_URL)
+    monkeypatch.setattr(jwt.PyJWKClient, "fetch_data", lambda _: PUBLIC_KEYS)
+    auth.public_keys.cache_clear()
+
+
+@pytest.fixture
+def judge_answers(monkeypatch):
+    """Answer the judge's calls with a worker of the test's own, in place of
+    OpenRouter's Decisions endpoint, at the tests' own address."""
+    monkeypatch.setattr(judge, "JUDGE_URL", JUDGE_URL)
+
+    def answer_with(worker):
+        transport = httpx.MockTransport(worker)
+        stand_in = OpenRouter(
+            api_key="test-key", client=httpx.Client(transport=transport)
+        )
+        monkeypatch.setattr(judge, "client", lambda: stand_in)
+
+    return answer_with
+
+
+@pytest.fixture(autouse=True)
+def judged(judge_answers):
+    """Stand in for the judge, grading every explanation a B, and keep the body of
+    each request to it."""
+    requests: list[dict] = []
+
+    def grade(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=answer())
+
+    judge_answers(grade)
+    return requests
 
 
 @pytest.fixture

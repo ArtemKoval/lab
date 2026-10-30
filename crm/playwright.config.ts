@@ -1,24 +1,52 @@
 import { defineConfig } from "@playwright/test";
-import { AGENT_STAND_IN } from "./e2e/api";
+import {
+  AGENT_STAND_IN,
+  BACKEND,
+  AUTH_STAND_IN,
+  DASHBOARD,
+  JUDGE_STAND_IN,
+} from "./e2e/servers";
+import { WORKERS, TEST_PASSWORD } from "./e2e/workers";
 
 // The tests run their own backend and dashboard, on their own ports and
-// database, so they never touch the servers started by `npm run dev`.
+// database, so they never touch the servers started by `npm run dev`. Every
+// test runs signed in as Dana Whitfield unless it chooses another worker.
 export default defineConfig({
   testDir: "e2e",
   outputDir: "e2e/test-results",
   reporter: "list",
-  use: { baseURL: "http://localhost:5174" },
+  // The test files share one database and one set of stand-ins, so they run one
+  // at a time and never see each other's work part done.
+  workers: 1,
+  use: { baseURL: DASHBOARD },
+  projects: [
+    { name: "sign in", testMatch: /sign_in\.setup\.ts/ },
+    {
+      name: "dashboard",
+      dependencies: ["sign in"],
+      use: { storageState: WORKERS.dana.storage },
+    },
+  ],
   webServer: [
     {
-      command:
-        "uv run -m backend.seed && uv run -m uvicorn backend.main:app --port 8001",
-      url: "http://127.0.0.1:8001/api/health",
-      // An empty DATABASE_URL keeps the tests on SQLite, whatever the shell has.
+      command: `uv run -m backend.seed && uv run -m uvicorn backend.main:app --port ${new URL(BACKEND).port}`,
+      url: `${BACKEND}/api/health`,
+      // Empty DATABASE_URL and MODEL_NAME keep the tests on SQLite and the
+      // default model, whatever the shell has.
       env: {
         CRM_DB: "e2e/crm.db",
         DATABASE_URL: "",
+        MODEL_NAME: "",
         CRM_AGENT_SERVICE: AGENT_STAND_IN,
+        AUTH_URL: AUTH_STAND_IN,
+        JUDGE_URL: JUDGE_STAND_IN,
+        OPENROUTER_API_KEY: "e2e-key",
       },
+    },
+    {
+      command: "node e2e/judge_stand_in.ts",
+      url: `${JUDGE_STAND_IN}/health`,
+      env: { PORT: new URL(JUDGE_STAND_IN).port },
     },
     {
       command: "node e2e/agent_stand_in.ts",
@@ -26,9 +54,21 @@ export default defineConfig({
       env: { PORT: new URL(AGENT_STAND_IN).port },
     },
     {
-      command: "npx vite dashboard --port 5174 --strictPort",
-      url: "http://localhost:5174",
-      env: { CRM_API: "http://127.0.0.1:8001" },
+      command: "node e2e/auth_stand_in.ts",
+      url: `${AUTH_STAND_IN}/jwks.json`,
+      env: {
+        PORT: new URL(AUTH_STAND_IN).port,
+        WORKER_PASSWORD: TEST_PASSWORD,
+        DASHBOARD,
+      },
+    },
+    {
+      command: `npx vite dashboard --port ${new URL(DASHBOARD).port} --strictPort --mode e2e`,
+      url: DASHBOARD,
+      env: {
+        CRM_API: BACKEND,
+        VITE_AUTH_URL: AUTH_STAND_IN,
+      },
     },
   ],
 });

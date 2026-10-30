@@ -29,7 +29,7 @@ test("the dispatch panel follows a dispatch as it works", async ({
   await recordRunCases(request, run_id, ["CLM-1013", "CLM-1014"]);
   const rows = panel.getByRole("row");
   await expect(panel.getByText("Running", { exact: true })).toBeVisible();
-  await expect(panel.getByText(/with 2 case agents at once/)).toBeVisible();
+  await expect(panel.getByText(/with 2 entry agents at once/)).toBeVisible();
   await expect(rows).toHaveText([
     /^Case/,
     /^CLM-1013.*Waiting/,
@@ -88,7 +88,7 @@ test("a case that fails twice is left for a worker", async ({
   request,
 }) => {
   await page.goto("/cases/CLM-1016");
-  const heading = page.locator(".case-heading");
+  const heading = page.locator(".page-header");
   await expect(heading.getByText("Waiting")).toBeVisible();
 
   await startCase(request, "CLM-1016", "e2e-3");

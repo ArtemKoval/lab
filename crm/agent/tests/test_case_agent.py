@@ -5,12 +5,20 @@ import logging
 import pytest
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
-from sqlalchemy import update
 
 from agent import api, harness
+from agent.connection import Refused
 from agent.tests.records import case_of, steps_of
-from agent.tests.stubs import StubModel, call, decide, graph_on, record, stub
-from backend.database import engine, settings
+from agent.tests.stubs import (
+    INSTRUCTIONS,
+    StubModel,
+    call,
+    decide,
+    graph_on,
+    record,
+    stub,
+)
+from backend.tests.settings_requests import change_settings
 
 
 def work(case_id, model, saver=None):
@@ -74,12 +82,12 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
     assert {s["thread_id"] for s in steps} == {case["thread_id"]}
 
 
-def test_uses_the_case_instructions_from_the_backend(client):
+def test_the_case_agent_reads_its_instructions_then_its_case(client):
     model = stub(*decide("refer", 0))
     work("CLM-1003", model)
     system, first = model.prompts[0]
     assert isinstance(system, SystemMessage)
-    assert system.content == client.get("/api/instructions").json()["case"]
+    assert system.content == INSTRUCTIONS
     assert first.content == "Case CLM-1003"
 
 
@@ -98,8 +106,7 @@ def test_pauses_before_a_award_over_the_limit(client):
 
 
 def test_the_graph_follows_the_backend_on_the_limit(client):
-    with engine().begin() as db:
-        db.execute(update(settings).values(award_approval_limit=2000))
+    change_settings(client, approval_limit=2000.0)
     report = work("CLM-1002", stub(*decide("approve", 1350.0)))
     assert report == "CLM-1002  approve  $1,350.00"
     assert case_of(client, "CLM-1002")["payment"]["amount"] == 1350.0
@@ -308,7 +315,7 @@ def test_a_failure_after_the_decision_keeps_it(client, monkeypatch, caplog):
 def test_a_case_that_isnt_waiting_is_not_started(client):
     work("CLM-1003", stub(*decide("refer", 0)))
     before = steps_of(client, "CLM-1003")
-    with pytest.raises(api.Refused, match="^409: Case CLM-1003 is not waiting$"):
+    with pytest.raises(Refused, match="^409: Case CLM-1003 is not waiting$"):
         work("CLM-1003", stub())
     assert steps_of(client, "CLM-1003") == before
     assert case_of(client, "CLM-1003")["attempts"] == 1

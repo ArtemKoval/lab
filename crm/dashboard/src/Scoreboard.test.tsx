@@ -1,12 +1,18 @@
 import {
   cleanup,
   fireEvent,
+  render,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import type { Case, Evaluation, ScoredCase, ScoredEvaluation } from "./api";
+import type { Case, Evaluation } from "./api";
+import { Check } from "./components/Judging";
+import {
+  finishedEvaluation as finished,
+  scoredEvaluation as scored,
+} from "./fixtures";
 import {
   Refusal,
   type Routes,
@@ -25,32 +31,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const finished: Evaluation = {
-  run_id: "run-7",
-  number: 7,
-  kind: "evaluation",
-  agents: 25,
-  model: "openai/gpt-6-luna",
-  reasoning_effort: "low",
-  evaluation_set: "evaluation",
-  tiny: false,
-  status: "finished",
-  started_at: "2026-10-03T17:02:13+00:00",
-  finished_at: "2026-10-03T17:04:54+00:00",
-  seconds: 161,
-  model_cost: 0.3125,
-  size: 25,
-  measures: {
-    decision_accuracy: 0.8,
-    accuracy: 0.64,
-    cost_of_mistakes: 1600,
-    straight_through: 0.88,
-    model_cost_per_case: 0.0125,
-    seconds_per_case: 40,
-    run_seconds: 161,
-  },
-};
-
 const running: Evaluation = {
   ...finished,
   run_id: "run-9",
@@ -62,7 +42,7 @@ const running: Evaluation = {
   finished_at: null,
   seconds: null,
   size: 5,
-  measures: { ...finished.measures, run_seconds: null },
+  measures: { ...finished.measures, grade: null, run_seconds: null },
 };
 
 function showScoreboard(routes: Routes = {}) {
@@ -86,11 +66,22 @@ it("lists the evaluations in the backend's order, with their measures", async ()
   expect(newest.getByText("Running")).toBeDefined();
   expect(older.getByText("Evaluation set, 25 cases")).toBeDefined();
   expect(older.getByText("openai/gpt-6-luna")).toBeDefined();
-  for (const shown of ["80%", "64%", "$1,600.00", "88%", "$0.0125", "40 s"])
+  for (const shown of [
+    "80%",
+    "64%",
+    "$1,600.00",
+    "88%",
+    "2.20",
+    "$0.0125",
+    "40 s",
+  ])
     expect(older.getByText(shown)).toBeDefined();
+  expect(newest.getByText("Not graded")).toBeDefined();
   expect(older.getByText("2 min 41 s")).toBeDefined();
   expect(newest.queryByText("2 min 41 s")).toBeNull();
-  expect(older.getByText(/Oct 3, .*, 25 case agents at once/)).toBeDefined();
+  expect(
+    older.getByText(/Oct 3, .*, version 1, 25 case agents at once/),
+  ).toBeDefined();
   const link = older.getByRole("link", { name: "Evaluation #7" });
   expect(link.getAttribute("href")).toBe("/scoreboard/run-7");
 });
@@ -98,7 +89,9 @@ it("lists the evaluations in the backend's order, with their measures", async ()
 it("says when there are no evaluations yet", async () => {
   stubApi({ "GET /api/evaluations": [] });
   renderAt("/scoreboard");
-  expect(await screen.findByText("No evaluations yet.")).toBeDefined();
+  expect(
+    await screen.findByText(/^No evaluations yet\. Start one above/),
+  ).toBeDefined();
 });
 
 it("starts an evaluation with the choices made", async () => {
@@ -125,7 +118,7 @@ it("starts an evaluation with the choices made", async () => {
 });
 
 it.each([
-  [409, "A dispatch or an evaluation is already running"],
+  [409, "A dispatch is running"],
   [503, "The agent's service isn't running"],
 ])("shows a refusal with status %i", async (status, detail) => {
   showScoreboard({ "POST /api/evaluations": new Refusal(status, detail) });
@@ -133,58 +126,6 @@ it.each([
   fireEvent.click(form.getByRole("button", { name: "Start an evaluation" }));
   expect((await form.findByRole("alert")).textContent).toBe(detail);
 });
-
-const copy: ScoredCase = {
-  ...summary,
-  case_id: "CLM-1104-E9",
-  started_at: "2026-10-03T17:02:14+00:00",
-  seconds: 40,
-  model_cost: 0.0125,
-  status: "decided",
-  decision: "approve",
-  award: 250,
-  copy_of: "CLM-1104",
-  reason: "The delay was covered.",
-  worker_decision: "approve",
-  worker_award: 250,
-  right: true,
-  mistake_cost: 0,
-};
-
-const scored: ScoredEvaluation = {
-  ...finished,
-  run_id: "run-9",
-  number: 9,
-  evaluation_set: "held_out",
-  tiny: true,
-  size: 5,
-  cases: [
-    copy,
-    {
-      ...copy,
-      case_id: "CLM-1112-E9",
-      copy_of: "CLM-1112",
-      status: "waiting_for_sign_off",
-      award: 1200,
-      worker_award: 680,
-      right: false,
-      mistake_cost: 520,
-    },
-    {
-      ...copy,
-      case_id: "CLM-1114-E9",
-      copy_of: "CLM-1114",
-      status: "in_progress",
-      decision: null,
-      award: null,
-      reason: null,
-      worker_decision: "decline",
-      worker_award: 0,
-      right: false,
-      mistake_cost: 50,
-    },
-  ],
-};
 
 it("shows an evaluation's cases beside the workers' decisions", async () => {
   stubApi({ "GET /api/evaluations/run-9": scored });
@@ -197,9 +138,23 @@ it("shows an evaluation's cases beside the workers' decisions", async () => {
     measures.getByText(label).nextSibling?.textContent;
   expect(shown("Decision accuracy")).toBe("80%");
   expect(shown("Run time")).toBe("2 min 41 s");
+  expect(shown("Grade (of 3)")).toBe("2.20");
+  expect(measures.getByText(/judge cost/).textContent).toContain(
+    "Model cost $0.3125 and judge cost $0.0005.",
+  );
   const rows = (await panel("Cases")).getAllByRole("row").slice(1);
   const [right, held, undecided] = rows.map((row) => within(row));
   expect(right.getByText("Right").className).toBe("chip score-right");
+  expect(right.getByText("B").className).toBe("chip grade-B");
+  expect(right.getByText("2.20")).toBeDefined();
+  const column = (name: string) =>
+    within(screen.getByRole("region", { name: "Cases" }))
+      .getAllByRole("columnheader")
+      .findIndex((header) => header.textContent === name);
+  const cells = right.getAllByRole("cell");
+  expect(cells[column("Same grounds")].textContent).toBe("Yes");
+  expect(cells[column("Same section")].textContent).toBe("No");
+  expect(undecided.getByText("Not graded")).toBeDefined();
   expect(right.getAllByText("$250.00")).toHaveLength(2);
   expect(held.getByText("Miss").className).toBe("chip score-miss");
   expect(held.getByText("$680.00")).toBeDefined();
@@ -215,7 +170,11 @@ it("shows an evaluation's cases beside the workers' decisions", async () => {
 it("says when an evaluation doesn't exist", async () => {
   stubApi({});
   renderAt("/scoreboard/run-404");
-  expect(await screen.findByText("Evaluation not found")).toBeDefined();
+  expect(
+    await screen.findByText(
+      "Evaluation not found. Choose one on the Scoreboard.",
+    ),
+  ).toBeDefined();
 });
 
 it("shows a copy's evaluation, and no sign-off for a held copy", async () => {
@@ -290,4 +249,13 @@ it("shows a stopped evaluation as stopped, with no run time", async () => {
   expect(measures.getByText("Run time").nextSibling?.textContent).toBe(
     "Not finished",
   );
+});
+
+it("says the judge found a check from even odds", () => {
+  render(
+    <p>
+      <Check chance={0.5} /> <Check chance={0.49} />
+    </p>,
+  );
+  expect(screen.getByText("Yes No")).toBeDefined();
 });

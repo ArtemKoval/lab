@@ -1,3 +1,4 @@
+import { Play } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import {
@@ -9,8 +10,9 @@ import {
 import { ActionForm } from "../components/ActionForm";
 import { AgentsChoice, FIRST_CHOICE } from "../components/AgentsChoice";
 import { RunChip } from "../components/Chips";
-import { Message } from "../components/Message";
+import { StateMessage } from "../components/StateMessage";
 import { ModelName } from "../components/ModelName";
+import { PageHeader } from "../components/PageHeader";
 import {
   agentsAtOnce,
   dateTime,
@@ -24,11 +26,10 @@ import { REFRESH_MS, useLoad } from "../useLoad";
 export function ScoreboardPage() {
   return (
     <>
-      <h1>Scoreboard</h1>
-      <p className="lead">
-        Each evaluation works copies of a labeled set's cases, which never show
-        in the queue, and scores the agent's decisions against our workers'.
-      </p>
+      <PageHeader
+        title="Scoreboard"
+        lead="How the case agent scores against our workers' decisions."
+      />
       <div className="column">
         <StartEvaluation />
         <Evaluations />
@@ -49,6 +50,7 @@ function StartEvaluation() {
       <h2 id="start-title">Start an evaluation</h2>
       <ActionForm
         label="Start an evaluation"
+        icon={<Play />}
         action={() => api.startEvaluation(evaluationSet, tiny, agents)}
       >
         <label>
@@ -93,9 +95,9 @@ function Evaluations() {
   return (
     <section className="panel" aria-labelledby="evaluations-title">
       <h2 id="evaluations-title">Evaluations</h2>
-      {!evaluations && <Message error={error} />}
+      {!evaluations && <StateMessage error={error} />}
       {evaluations?.length === 0 && (
-        <p className="muted">No evaluations yet.</p>
+        <StateMessage empty="No evaluations yet. Start one above to score the agent on a labeled set." />
       )}
       {evaluations && evaluations.length > 0 && (
         <div className="table-scroll">
@@ -135,8 +137,15 @@ function EvaluationRow({ evaluation }: Readonly<{ evaluation: Evaluation }>) {
         </Link>
         <p>{evaluationSetName(evaluation.evaluation_set, evaluation.size)}</p>
         <p className="muted small">
-          {dateTime(evaluation.started_at)}, {agentsAtOnce(evaluation.agents)},{" "}
-          <ModelName run={evaluation} />
+          {dateTime(evaluation.started_at)}, version {evaluation.version},{" "}
+          {evaluation.round_number !== null && (
+            <>round {evaluation.round_number}, </>
+          )}
+          {agentsAtOnce(evaluation.agents)},{" "}
+          <ModelName
+            model={evaluation.model}
+            reasoningEffort={evaluation.reasoning_effort}
+          />
         </p>
       </td>
       <td>

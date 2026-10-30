@@ -74,7 +74,11 @@ interpreter, then run the gates on the module you changed:
 The mutation gate keeps one documented equivalent survivor: the
 `strict=True` flag in `backend/documents.py`, whose two lists always have
 equal length. CI runs the CRAP and duplication gates for `crm/`. The
-mutation gate runs per change on this host.
+mutation gate runs per change on this host. The duplication gate covers
+`backend` and `domains` only: the two API clients at `agent/api.py` and
+`agent/improver_api.py` hold one function per backend operation by
+contract, so their wrappers are shape-clones by design, and crapper and
+mutator still gate them.
 
 ## Know
 

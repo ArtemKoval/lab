@@ -5,8 +5,9 @@ from contextlib import nullcontext
 import pytest
 
 from agent import __main__ as cli
-from agent import api, harness
-from agent.tests.stubs import stub
+from agent import harness
+from agent.connection import Refused
+from backend.tests.versions import add_version
 
 
 class FakePool:
@@ -73,18 +74,30 @@ def test_the_checkpoint_pool_settings(fakes):
         assert (saver.pool, saver.set_up) == (pool, True)
 
 
+VERSION = {
+    "number": 2,
+    "instructions": "Decide the case.",
+    "model": "google/gemini-3.5-flash-lite",
+    "reasoning_effort": "minimal",
+}
+
+
 def test_each_case_graph_has_a_saver_of_its_own(fakes, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     built = []
-    monkeypatch.setattr(
-        harness, "case_graph", lambda llm, saver: built.append((llm, saver))
-    )
-    model = stub()
+
+    def case_graph(llm, saver, instructions):
+        built.append((llm, saver, instructions))
+
+    monkeypatch.setattr(harness, "case_graph", case_graph)
     with harness.checkpoint_pool() as pool:
-        new_graph = harness.case_graphs(model, pool)
+        new_graph = harness.case_graphs(VERSION, pool)
         new_graph()
         new_graph()
     [first, second] = built
-    assert first[0] is second[0] is model
+    assert first[0] is second[0]
+    assert first[0].model_name == "google/gemini-3.5-flash-lite"
+    assert first[2] == second[2] == "Decide the case."
     assert first[1] is not second[1]
     assert {first[1].pool, second[1].pool} == {pool}
     assert [saver.set_up for saver in FakeSaver.made] == [True, False, False]
@@ -94,21 +107,21 @@ def test_command_line_works_one_case(monkeypatch, capsys):
     pool = object()
     built = []
     monkeypatch.setattr(cli, "checkpoint_pool", lambda: nullcontext(pool))
-    monkeypatch.setattr(cli, "model", lambda: "model")
+    add_version("Version 2's instructions", verdict="kept")
 
-    def case_graphs(llm, on):
-        built.append((llm, on))
+    def case_graphs(version, on):
+        built.append((version["number"], on))
         return lambda: "graph"
 
     monkeypatch.setattr(cli, "case_graphs", case_graphs)
     worked = []
     monkeypatch.setattr(cli, "work_case", lambda *args: worked.append(args))
     cli.main(["CLM-1001"])
-    assert built == [("model", pool)]
+    assert built == [(2, pool)]
     assert worked == [("CLM-1001", None, "graph")]
 
     def refuse(case_id, run_id, graph):
-        raise api.Refused(409, f"Case {case_id} is not waiting")
+        raise Refused(409, f"Case {case_id} is not waiting")
 
     monkeypatch.setattr(cli, "work_case", refuse)
     with pytest.raises(SystemExit) as refused:
@@ -125,14 +138,17 @@ def test_command_line_needs_a_case(capsys):
     assert "the following arguments are required: case_id" in capsys.readouterr().err
 
 
-def test_model_name(monkeypatch):
+def test_the_model_is_the_versions(monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    monkeypatch.delenv("MODEL_NAME", raising=False)
-    default = harness.model()
-    assert default.model_name == "openai/gpt-6-luna"
-    assert default.reasoning_effort == "low"
-    assert default.request_timeout == 120
-    assert default.max_retries == 5
     monkeypatch.setenv("MODEL_NAME", "openrouter/free")
-    assert harness.model().model_name == "openrouter/free"
-    assert harness.model().reasoning_effort is None
+    model = harness.model(VERSION | {"reasoning_effort": "medium"})
+    assert model.model_name == "google/gemini-3.5-flash-lite"
+    assert model.reasoning_effort == "medium"
+    assert model.openai_api_base == "https://openrouter.ai/api/v1"
+    assert (model.request_timeout, model.max_retries) == (120, 5)
+
+
+def test_default_sends_no_reasoning_effort(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    model = harness.model(VERSION | {"reasoning_effort": "default"})
+    assert model.reasoning_effort is None

@@ -52,16 +52,17 @@ class Pack:
 
     def load_json(self, name: str) -> Any:
         """Read one JSON file from the pack data folder."""
-        path = self.data / name
-        if not path.is_file():
-            raise PackError(f"missing pack file: {path}")
-        return json.loads(path.read_text(encoding="utf-8"))
+        return self._json(self.data, name, "pack file")
 
     def load_eval(self, name: str) -> Any:
         """Read one JSON file from the pack evals folder."""
-        path = self.evals / name
+        return self._json(self.evals, name, "pack eval file")
+
+    def _json(self, folder: Path, name: str, kind: str) -> Any:
+        """Read one JSON file of the pack, or name it in an error."""
+        path = folder / name
         if not path.is_file():
-            raise PackError(f"missing pack eval file: {path}")
+            raise PackError(f"missing {kind}: {path}")
         return json.loads(path.read_text(encoding="utf-8"))
 
     def read_doc(self, name: str) -> str:

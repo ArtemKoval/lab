@@ -6,13 +6,15 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import type { Case, Decision, Worker, Step } from "./api";
+import type { Case, Decision, Step } from "./api";
 import { time } from "./format";
 import {
+  wholeText,
   Refusal,
   type Routes,
   entry,
   history,
+  marcus,
   panel,
   contract,
   renderAt,
@@ -28,21 +30,6 @@ afterEach(() => {
 });
 
 const decidedAt = "2026-09-27T17:06:16+00:00";
-
-const workers: Worker[] = [
-  {
-    worker_id: "HND-01",
-    name: "Dana Whitfield",
-    role: "Senior Cases Worker",
-    can_approve_over_limit: true,
-  },
-  {
-    worker_id: "HND-04",
-    name: "Sam Trainee",
-    role: "Trainee",
-    can_approve_over_limit: false,
-  },
-];
 
 const steps: Step[] = [
   {
@@ -74,7 +61,6 @@ function showCase(shown: Case, stepsShown: Step[] = []) {
     "GET /api/cases/CLM-1002/steps": stepsShown,
     "GET /api/contracts/POL-2002": contract,
     "GET /api/customers/CUS-3002/cases": history,
-    "GET /api/workers": workers,
   };
   const fetchMock = stubApi(routes);
   renderAt("/cases/CLM-1002");
@@ -261,18 +247,11 @@ it("shows new steps and the decision as the agent works", async () => {
   expect(screen.getAllByText("Decided").length).toBeGreaterThan(0);
 });
 
-it("lets a worker sign off a held payment", async () => {
+it("lets a worker sign off a held payment as themselves", async () => {
   const { routes, fetchMock } = showCase(held);
   const panel = await decisionPanel();
   expect(panel.getByText(/waits for a worker's sign-off/)).toBeDefined();
-  const button = panel.getByRole("button", { name: "Sign off" });
-  expect(button.getAttribute("aria-disabled")).toBe("true");
-  fireEvent.click(button);
-  expect(sent(fetchMock, "POST /api/cases/CLM-1002/sign-off")).toEqual([]);
-
-  const select = panel.getByRole("combobox", { name: "Worker" });
-  expect(await within(select).findByText("Dana Whitfield")).toBeDefined();
-  expect(within(select).queryByText("Sam Trainee")).toBeNull();
+  expect(panel.queryByRole("combobox")).toBeNull();
 
   const signedOff: Case = {
     ...held,
@@ -285,17 +264,30 @@ it("lets a worker sign off a held payment", async () => {
     },
   };
   routes["POST /api/cases/CLM-1002/sign-off"] = signedOff;
-  fireEvent.change(select, { target: { value: "HND-01" } });
   routes["GET /api/cases/CLM-1002"] = signedOff;
-  fireEvent.click(button);
+  fireEvent.click(panel.getByRole("button", { name: "Sign off" }));
 
   const waiting = await panel.findByText(/Signed off by Dana Whitfield/);
   expect(waiting.textContent).toBe(
     `Signed off by Dana Whitfield at ${time(decidedAt)}. Waiting for the agent to pay it.`,
   );
   expect(sent(fetchMock, "POST /api/cases/CLM-1002/sign-off")).toEqual([
-    { worker_id: "HND-01" },
+    undefined,
   ]);
+});
+
+it("tells a worker who can't sign off over the limit why", async () => {
+  const { routes } = showCase(held);
+  routes["GET /api/me"] = marcus;
+  const panel = await decisionPanel();
+  expect(
+    await panel.findByText(
+      wholeText(
+        "Only a worker who can sign off awards over $1,000.00 can sign this off. Marcus Oyelaran can't.",
+      ),
+    ),
+  ).toBeDefined();
+  expect(panel.queryByRole("button", { name: "Sign off" })).toBeNull();
 });
 
 it("shows why a sign-off was refused", async () => {
@@ -305,9 +297,6 @@ it("shows why a sign-off was refused", async () => {
     409,
     "Case CLM-1002 is not waiting for sign-off",
   );
-  const select = panel.getByRole("combobox", { name: "Worker" });
-  await within(select).findByText("Dana Whitfield");
-  fireEvent.change(select, { target: { value: "HND-01" } });
   fireEvent.click(panel.getByRole("button", { name: "Sign off" }));
   expect((await panel.findByRole("alert")).textContent).toBe(
     "Case CLM-1002 is not waiting for sign-off",
