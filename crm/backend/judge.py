@@ -42,7 +42,7 @@ LEVELS = list(RUBRIC)
 QUESTIONS: dict[str, QuestionsTypedDict] = {
     "grade": {
         "type": "score",
-        "instructions": "An expert cases worker decided a travel insurance case "
+        "instructions": "An expert cases worker decided a customer case "
         "and gave `worker.reason`, resting on `worker.reference`. Grade how well "
         "`agent.reason`, citing `agent.section`, explains the same decision.",
         "criteria": [f"{letter}: {text}" for letter, text in RUBRIC.items()],

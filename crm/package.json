@@ -17,7 +17,7 @@
     "check:python": "uv run ruff format --check && uv run ruff check && pyright && uv run pytest -q",
     "check:ts": "prettier --check -u dashboard e2e *.config.* && eslint dashboard e2e *.config.* && tsc && vitest run --root dashboard --coverage",
     "e2e": "playwright test",
-    "dev:auth": "node auth/server.mjs"
+    "dev:auth": "node --env-file=.env auth/server.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

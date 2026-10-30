@@ -10,7 +10,7 @@
 // not a pack worker, so this service only proves the password.
 
 import { createServer } from "node:http";
-import { createPublicKey, generateKeyPairSync, sign } from "node:crypto";
+import { createPrivateKey, generateKeyPairSync, sign } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,9 +37,7 @@ function loadKey() {
   const material = {
     kid: KEY_ID,
     private: privateKey.export({ type: "sec1", format: "pem" }).toString(),
-    public_jwk: JSON.parse(
-      JSON.stringify(createPublicKey(publicKey).export({ format: "jwk" })),
-    ),
+    public_jwk: publicKey.export({ format: "jwk" }),
   };
   writeFileSync(KEY_FILE, JSON.stringify(material, null, 2));
   return material;
@@ -73,10 +71,31 @@ function signToken(email) {
   return `${head}.${body}.${signature}`;
 }
 
+// The dashboard origin the browser may sign in from.
+const ALLOW_ORIGIN = process.env.AUTH_ALLOW_ORIGIN ?? "http://127.0.0.1:5173";
+
+function answer(response, code, body) {
+  response.writeHead(
+    code,
+    ALLOW_ORIGIN
+      ? {
+          "content-type": "application/json",
+          "access-control-allow-origin": ALLOW_ORIGIN,
+          "access-control-allow-headers": "content-type",
+          "access-control-allow-methods": "POST, GET, OPTIONS",
+        }
+      : { "content-type": "application/json" },
+  );
+  response.end(JSON.stringify(body));
+}
+
 const server = createServer((request, response) => {
+  if (request.method === "OPTIONS") {
+    answer(response, 204, {});
+    return;
+  }
   if (request.method === "GET" && request.url === "/jwks.json") {
-    response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify(jwks()));
+    answer(response, 200, jwks());
     return;
   }
   if (request.method === "POST" && request.url === "/signin") {
@@ -87,22 +106,18 @@ const server = createServer((request, response) => {
     request.on("end", () => {
       const { email, password } = JSON.parse(body || "{}");
       if (password !== DEV_PASSWORD || !email) {
-        response.writeHead(401, { "content-type": "application/json" });
-        response.end(JSON.stringify({ detail: "The email or password is wrong." }));
+        answer(response, 401, { detail: "The email or password is wrong." });
         return;
       }
-      response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify({ access_token: signToken(email) }));
+      answer(response, 200, { access_token: signToken(email) });
     });
     return;
   }
   if (request.method === "GET" && request.url === "/api/health") {
-    response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify({ status: "ok" }));
+    answer(response, 200, { status: "ok" });
     return;
   }
-  response.writeHead(404);
-  response.end();
+  answer(response, 404, {});
 });
 
 server.listen(PORT, "127.0.0.1", () => {

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: The dispatcher
-A dispatch SHALL work every case left in progress and every waiting case, oldest first, with at most N case agents at once. Code SHALL choose the claims and keep the run, with no model.
+A dispatch SHALL work every case left in progress and every waiting case, oldest first, with at most N case agents at once. Code SHALL choose the cases and keep the run, with no model.
 
 #### Scenario: A dispatch works the queue in parallel
 - **GIVEN** a seeded queue and N case agents
@@ -18,7 +18,7 @@ A dispatch SHALL work every case left in progress and every waiting case, oldest
 - **WHEN** the user starts another
 - **THEN** the API refuses the start
 
-### Requirement: Cost and time per claim
+### Requirement: Cost and time per case
 The engine SHALL record the tokens, the cost, and the work time of each case. The record SHALL name the run it happened in, or no run when there is none. The work time SHALL leave out any wait for a sign-off.
 
 #### Scenario: A run's totals are its own

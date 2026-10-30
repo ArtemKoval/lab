@@ -1,7 +1,8 @@
 """Finding a run, a version, the settings and the models allowed, and the messages
 for what isn't found, which more than one of the backend's modules need."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import Connection, RowMapping, func, select

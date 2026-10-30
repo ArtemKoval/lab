@@ -27,9 +27,9 @@ def database(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def supabase_keys(monkeypatch):
+def auth_keys(monkeypatch):
     """Check sign-ins against the tests' own public key, in place of fetching
-    Supabase's."""
+    the auth service's."""
     monkeypatch.setenv("AUTH_URL", AUTH_URL)
     monkeypatch.setattr(jwt.PyJWKClient, "fetch_data", lambda _: PUBLIC_KEYS)
     auth.public_keys.cache_clear()

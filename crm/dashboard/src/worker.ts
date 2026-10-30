@@ -18,7 +18,7 @@ export function useWorker(): Worker {
   return worker;
 }
 
-// Whether a worker is signed in, or undefined until Supabase has said.
+// Whether a worker is signed in, or undefined until the auth service has said.
 export function useSignedIn(): boolean | undefined {
   const [signedIn, setSignedIn] = useState<boolean>();
   useEffect(() => followSession(setSignedIn), []);

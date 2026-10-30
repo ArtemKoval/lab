@@ -7,7 +7,7 @@ from functools import cache
 import jwt
 
 AUDIENCE = "crm"
-# Seconds of difference allowed between Supabase's clock and ours.
+# Seconds of difference allowed between the auth service's clock and ours.
 CLOCK_LEEWAY = 30
 
 

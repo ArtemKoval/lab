@@ -124,7 +124,7 @@ def dispatcher() -> Dispatcher:
     """Build the dispatcher's graph."""
     builder = StateGraph(Dispatch, context_schema=DispatchContext)
     builder.add_node(LIST_CASES, list_cases)
-    builder.add_node(WORK_CASE, work_case, retry=RETRY)
+    builder.add_node(WORK_CASE, work_case, retry_policy=RETRY)
     builder.add_node(FINISH_RUN, finish_run)
     builder.add_edge(START, LIST_CASES)
     builder.add_conditional_edges(LIST_CASES, fan_out, [WORK_CASE, FINISH_RUN])

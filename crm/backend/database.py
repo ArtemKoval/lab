@@ -1,6 +1,6 @@
 """The CRM database, seeded from the business data in data/.
 
-The same tables and queries serve Postgres on Supabase, when DATABASE_URL is set, and
+The same tables and queries serve Postgres at DATABASE_URL, when it is set, and
 SQLite otherwise, as in the tests.
 """
 
