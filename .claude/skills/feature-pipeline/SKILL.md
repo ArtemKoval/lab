@@ -390,7 +390,10 @@ skill gives the commands), and paste its redacted block into the issue. The
 block is mandatory in every handover issue. Remove
 secrets before you put artifacts in the issue. Report what was built, what
 review found, gate results, and anything the user should know (new
-dependencies, deliberate follow-ups).
+dependencies, deliberate follow-ups). A handover issue stays open until its
+follow-ups land, and it is opened at the archive merge, never deferred past
+it; if a stray command closes one, reopen and pin it instead of opening a
+replacement, and link the reopened issue from the follow-up that mentions it.
 
 ## Step 14 — Close the loop
 
