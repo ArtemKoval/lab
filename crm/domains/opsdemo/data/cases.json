@@ -1,0 +1,103 @@
+[
+  {
+    "case_id": "ESC-5001",
+    "contract_id": "CON-5001",
+    "customer_id": "CUS-5001",
+    "case_type": "access",
+    "submitted_on": "2026-10-12",
+    "incident_date": "2026-10-12",
+    "incident_location": "Northgate Clinic, Seattle, entrance and staff door",
+    "summary": "Both badge readers stopped accepting staff cards for a full morning",
+    "story": "From 07:30 the entrance and staff-door badge readers at Northgate rejected every staff card, and the site opened late at 11:40 after an engineer arrived. The readers show power and network, and the site rebooted them twice without change. The desk took the report at 07:52. Northgate is on the priority tier, and the site asks the desk to escalate the reader fault to the platform team, because the same fault happened in August and a site reboot fixed it then only for a day.",
+    "items": [
+      {
+        "description": "Diagnose both badge readers with the site lead",
+        "category": "work_item",
+        "amount": 2.0
+      },
+      {
+        "description": "Escalate the reader fault to the platform team with the August history",
+        "category": "work_item",
+        "amount": 4.0
+      },
+      {
+        "description": "Walk the site through the manual entry while the readers are down",
+        "category": "work_item",
+        "amount": 1.0
+      }
+    ],
+    "amount_claimed": 7.0,
+    "documents": [
+      {
+        "name": "Reader fault log from the site",
+        "type": "site_log",
+        "content": "Northgate site log, October 12, 2026. 07:30 both entrance readers reject staff cards. 07:41 power and network checked, both present. 07:45 and 07:52 readers rebooted, no change. 07:52 fault reported to the OpsDesk. 11:40 site opened after the engineer arrived."
+      },
+      {
+        "name": "August escalation ESC-4310",
+        "type": "prior_case",
+        "content": "Escalation ESC-4310, August 1, 2026. The same two readers rejected staff cards for one day after a site reboot. The platform team found a stale provisioning record and fixed it on August 3. The site log carries the same symptom pattern."
+      }
+    ],
+    "status": "waiting"
+  },
+  {
+    "case_id": "ESC-5002",
+    "contract_id": "CON-5002",
+    "customer_id": "CUS-5002",
+    "case_type": "printer",
+    "submitted_on": "2026-10-14",
+    "incident_date": "2026-10-13",
+    "incident_location": "Cedar Ridge Clinic, Bellevue, reception",
+    "summary": "Reception label printer jams on every third wristband",
+    "story": "The reception wristband printer at Cedar Ridge jams on roughly every third wristband since October 13. The site cleaned the rollers and replaced the roll with no change. The desk talked the site through a firmware check, which shows the version the desk expects. The site can print wristbands from the backup printer in the store room, so no clinic work is waiting on this one. Cedar Ridge is on the standard tier and asks whether the desk can fix the printer at the next site visit instead of escalating.",
+    "items": [
+      {
+        "description": "Walk the site through roller cleaning and a firmware check",
+        "category": "work_item",
+        "amount": 1.0
+      }
+    ],
+    "amount_claimed": 1.0,
+    "documents": [
+      {
+        "name": "Printer email thread with the site",
+        "type": "email",
+        "content": "From site.northgate@cedarridge.example, October 13 to 14, 2026. The reception printer jams on every third wristband. The rollers were cleaned on October 13 and the roll was replaced the same day. The firmware shows 4.2.1, the version the desk expects. The backup printer in the store room prints fine."
+      }
+    ],
+    "status": "waiting"
+  },
+  {
+    "case_id": "ESC-5003",
+    "contract_id": "CON-5003",
+    "customer_id": "CUS-5003",
+    "case_type": "network",
+    "submitted_on": "2026-10-15",
+    "incident_date": "2026-10-15",
+    "incident_location": "Harbor Point Clinic, Tacoma, east wing",
+    "summary": "Exam-room tablets in the east wing drop the wireless network under load",
+    "story": "Since October 15 the exam-room tablets in the Harbor Point east wing drop the wireless network whenever three or more consults run at once, and the site rebooted the access point twice without change. Harbor Point is on the priority tier, and the wing took 14 consults offline at the morning peak. The desk checked the controller: the east wing access point shows channel retries at four times the west wing. The site asks the desk to escalate the wireless fault to the platform team, and the lead warns that the same drop pattern returned on October 20 and 21 at each morning peak.",
+    "items": [
+      {
+        "description": "Review the controller retries against the west wing",
+        "category": "work_item",
+        "amount": 2.0
+      },
+      {
+        "description": "Escalate the east wing wireless fault to the platform team",
+        "category": "work_item",
+        "amount": 12.0
+      }
+    ],
+    "amount_claimed": 14.0,
+    "documents": [
+      {
+        "name": "Wireless controller export",
+        "type": "controller_export",
+        "content": "Harbor Point controller export, October 15, 2026. East wing access point AP-HP-E2: channel retries 4.1 times the west wing average between 07:00 and 10:00. Both access points carry firmware 8.4.0. Two reboots on October 15, no change in retries."
+      }
+    ],
+    "status": "waiting"
+  }
+]

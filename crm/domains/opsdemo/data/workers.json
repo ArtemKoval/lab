@@ -1,0 +1,16 @@
+[
+  {
+    "worker_id": "OPS-01",
+    "name": "Ida Sorensen",
+    "role": "Operations Lead",
+    "email": "ida.sorensen@nimbusops.example",
+    "can_approve_over_limit": true
+  },
+  {
+    "worker_id": "OPS-02",
+    "name": "Tomás Rivera",
+    "role": "Operations Worker",
+    "email": "tomas.rivera@nimbusops.example",
+    "can_approve_over_limit": false
+  }
+]

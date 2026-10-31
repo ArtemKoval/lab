@@ -1,0 +1,26 @@
+# Facts from outside the desk that escalations turn on: the sites, the
+# asset kinds and their firmware, and the vendor windows.
+
+source:
+  system: The operations reference data
+  owner: Head of operations
+  reviewed: "2026-10-20"
+
+topics:
+  - topic: sites
+    description: The clinic sites the desk serves, with their rooms, tiers and opening years
+    facts:
+      - "Northgate Clinic: Seattle, 12 exam rooms, priority tier, opened 2001. Entrance and staff door carry card readers."
+      - "Cedar Ridge Clinic: Bellevue, 6 exam rooms, standard tier, opened 2003. Reception holds the wristband printer and a backup in the store room."
+      - "Harbor Point Clinic: Tacoma, 9 exam rooms, priority tier, opened 2010. The east wing has its own access point, AP-HP-E2."
+  - topic: assets
+    description: The asset kinds the desk works on, with the firmware the desk expects
+    facts:
+      - "Badge readers: card readers at entrances and staff doors, firmware 3.8, provisioned per site. A stale provisioning record makes a reader reject every card."
+      - "Wristband printers: label printers at reception, firmware 4.2.1 expected, rollers serviced every 6 months."
+      - "Wireless access points: one per wing, firmware 8.4.0, controller-managed. Channel retries at four times a wing's average point at a load fault."
+  - topic: vendor windows
+    description: When the vendors ship fixes, which the platform team plans escalations around
+    facts:
+      - "Badge reader vendor: ships a provisioning fix in a monthly window, first Tuesday of the month."
+      - "Wireless vendor: ships a driver fix in a quarterly window. The platform team escalates a wireless fault outside that window on its own queue."

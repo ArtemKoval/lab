@@ -1,0 +1,17 @@
+[
+  {
+    "customer_id": "CUS-5901",
+    "name": "Injected Customer",
+    "email": "injected.customer@nimbushealth.example",
+    "phone": "+1 206 555 0199",
+    "date_of_birth": "1990-01-01",
+    "address": {
+      "street": "1 Example Way",
+      "city": "Seattle",
+      "state": "WA",
+      "zip": "98101"
+    },
+    "customer_since": "2025-06-02",
+    "previous_cases": []
+  }
+]

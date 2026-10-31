@@ -1,0 +1,67 @@
+[
+  {
+    "customer_id": "CUS-5001",
+    "name": "Northgate Clinic",
+    "email": "site.northgate@nimbushealth.example",
+    "phone": "+1 206 555 0134",
+    "date_of_birth": "2001-04-01",
+    "address": {
+      "street": "410 Northgate Way, Suite 2",
+      "city": "Seattle",
+      "state": "WA",
+      "zip": "98105"
+    },
+    "customer_since": "2025-06-02",
+    "previous_cases": [
+      {
+        "case_id": "ESC-4310",
+        "filed_on": "2026-08-02",
+        "incident_date": "2026-08-01",
+        "case_type": "access",
+        "summary": "Badge readers at the clinic entrance stopped accepting staff cards",
+        "outcome": "escalated",
+        "amount_paid": 6.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-5002",
+    "name": "Cedar Ridge Clinic",
+    "email": "site.cedarridge@nimbushealth.example",
+    "phone": "+1 206 555 0151",
+    "date_of_birth": "2003-09-15",
+    "address": {
+      "street": "88 Cedar Ridge Road",
+      "city": "Bellevue",
+      "state": "WA",
+      "zip": "98004"
+    },
+    "customer_since": "2025-08-16",
+    "previous_cases": []
+  },
+  {
+    "customer_id": "CUS-5003",
+    "name": "Harbor Point Clinic",
+    "email": "site.harborpoint@nimbushealth.example",
+    "phone": "+1 206 555 0162",
+    "date_of_birth": "2010-01-20",
+    "address": {
+      "street": "9 Harbor Point Drive, Floor 3",
+      "city": "Tacoma",
+      "state": "WA",
+      "zip": "98402"
+    },
+    "customer_since": "2026-01-11",
+    "previous_cases": [
+      {
+        "case_id": "ESC-4402",
+        "filed_on": "2026-09-05",
+        "incident_date": "2026-09-04",
+        "case_type": "network",
+        "summary": "Exam-room tablets lost the wireless network for a morning",
+        "outcome": "resolved",
+        "amount_paid": 0.0
+      }
+    ]
+  }
+]

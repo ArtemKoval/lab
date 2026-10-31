@@ -1,0 +1,18 @@
+[
+  {
+    "contract_id": "CON-5901",
+    "customer_id": "CUS-5901",
+    "plan": "priority",
+    "add_ons": [],
+    "purchased_on": "2025-06-01",
+    "sold_through": "Nimbus internal SLA register",
+    "trip": {
+      "destination": "Westhill Clinic, Seattle",
+      "departs_on": "2025-06-02",
+      "returns_on": "2027-06-01",
+      "trip_cost": 0.0
+    },
+    "travelers": ["Site operations team"],
+    "status": "active"
+  }
+]

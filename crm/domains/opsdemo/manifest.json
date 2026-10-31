@@ -1,0 +1,24 @@
+{
+  "name": "opsdemo",
+  "display_name": "Nimbus OpsDesk",
+  "engine_api": 2,
+  "rules": "rules",
+  "protocol": "protocol",
+  "settings": {
+    "award_approval_limit": 16.0
+  },
+  "resolutions": ["approve", "decline", "refer"],
+  "outcomes": {"effort": "resolve"},
+  "config": {
+    "award_approval_limit": "The most effort escalated without the operations lead's sign-off"
+  },
+  "effects": {"effort": {"outcome": "effort", "gated": true}},
+  "documents": ["wording", "manual"],
+  "seed": {
+    "cases": "cases.json",
+    "customers": "customers.json",
+    "contracts": "contracts.json",
+    "workers": "workers.json",
+    "company": "company.json"
+  }
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "case_id": "ESC-5001",
+    "decision": "approve",
+    "award": 10.5,
+    "over_approval_limit": false,
+    "worker_id": "OPS-02",
+    "decided_on": "2026-10-13",
+    "reason": "Both readers reject every card and a reboot does not clear it, so the fault meets section 3: the site could not open, and the platform team owns provisioning. The August escalation ESC-4310 is the same fault, so the history goes with the escalation. The items I judge covered take 7 hours, and the priority tier's on-call margin makes 10.5, inside the 16-hour limit.",
+    "reference": "Operations wording, sections 3 and 4; operations manual, section 3",
+    "calculation": [
+      {"step": "Diagnose both badge readers with the site lead", "amount": 2.0},
+      {"step": "Escalate the reader fault to the platform team with the August history", "amount": 4.0},
+      {"step": "Walk the site through the manual entry while the readers are down", "amount": 1.0},
+      {"step": "On-call margin, times 1.5", "amount": 3.5}
+    ],
+    "tests": "A repeat fault with a prior escalation and a priority tier",
+    "difficulty": "routine",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  },
+  {
+    "case_id": "ESC-5002",
+    "decision": "decline",
+    "award": 0.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-02",
+    "decided_on": "2026-10-15",
+    "reason": "The backup printer in the store room prints fine, so no clinic work stops, and section 3 asks the desk not to escalate a fault the site can work around. The desk fixes the printer at the next site visit instead, and the reason says so.",
+    "reference": "Operations wording, section 3",
+    "calculation": [],
+    "tests": "A fault the site can work around, on the standard tier",
+    "difficulty": "routine",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  },
+  {
+    "case_id": "ESC-5003",
+    "decision": "approve",
+    "award": 21.0,
+    "over_approval_limit": true,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-10-16",
+    "reason": "The east wing access point shows retries at four times the west wing under load, a reboot does not clear it, and 14 consults stopped at the morning peak, so section 3 is met. The items take 14 hours, and the priority tier's on-call margin makes 21, over the 16-hour limit, so the operations lead signs this one off.",
+    "reference": "Operations wording, sections 3 and 4",
+    "calculation": [
+      {"step": "Review the controller retries against the west wing", "amount": 2.0},
+      {"step": "Escalate the east wing wireless fault to the platform team", "amount": 12.0},
+      {"step": "On-call margin, times 1.5", "amount": 7.0}
+    ],
+    "tests": "An approval over the escalation limit, which needs the lead",
+    "difficulty": "hard",
+    "failure_class": "",
+    "needs": ["over_approval_limit"],
+    "tone": "plain",
+    "tiny": false
+  }
+]

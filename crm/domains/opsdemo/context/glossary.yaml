@@ -1,0 +1,20 @@
+# The terms the operations wording defines, each in the wording's own words,
+# with the section it comes from.
+
+source:
+  system: The operations wording, version 2026.1
+  owner: Head of operations
+
+terms:
+  - term: escalation
+    meaning: A fault a site cannot resolve, which the desk sends to the platform team with an estimate of the work.
+    section: Operations wording 2
+  - term: effort
+    meaning: The work an escalation takes, in engineer-hours, to half an hour.
+    section: Operations wording 4
+  - term: SLA tier
+    meaning: The service level a site holds, which carries the response target, the weekly capacity and the on-call margin.
+    section: Operations wording 1
+  - term: on-call margin
+    meaning: The extra effort a tier adds over two hours of work, to cover the engineer's night rotations.
+    section: Operations wording 4
