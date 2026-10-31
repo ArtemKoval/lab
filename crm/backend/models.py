@@ -202,6 +202,17 @@ class EffectRun(BaseModel):
     ran_at: str
 
 
+class PackView(BaseModel):
+    """The active pack's declarations, which the tools and the dashboard render."""
+
+    name: str
+    display_name: str
+    resolutions: list[str]
+    outcomes: dict[str, str]
+    config: dict[str, str]
+    effects: dict[str, dict]
+
+
 class SentBackDecision(DecisionRecord):
     """A decision a senior worker sent back to the agent, with their note."""
 

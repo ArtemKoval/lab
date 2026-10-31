@@ -1,5 +1,5 @@
-"""The case agent's own API document: the OpenAPI document of the six operations
-its tools and its payment call, which the Gateway turns into tools."""
+"""The case agent's own API document: the OpenAPI document of the reads, the
+resolution tools, and the effect executor, which the Gateway turns into tools."""
 
 from typing import Any
 
@@ -7,7 +7,11 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute, iter_route_contexts
 
-OPERATIONS = {
+from domains import loader
+
+# The reads and the resolution tools every pack serves. pay_case is the award
+# effect's alias, which the removal stage drops.
+BASE_OPERATIONS = {
     "get_case",
     "get_contract",
     "get_case_history",
@@ -15,6 +19,15 @@ OPERATIONS = {
     "record_decision",
     "pay_case",
 }
+
+
+def operations() -> set[str]:
+    """The operations the document serves: the base set, plus the generic
+    executor of every effect the pack declares."""
+    served = set(BASE_OPERATIONS)
+    if loader.pack().effects:
+        served.add("run_effect")
+    return served
 
 
 def document(app: FastAPI) -> dict[str, Any]:
@@ -26,13 +39,13 @@ def document(app: FastAPI) -> dict[str, Any]:
         context
         for context in iter_route_contexts(app.routes)
         if isinstance(context.route, APIRoute)
-        and context.route.operation_id in OPERATIONS
+        and context.route.operation_id in operations()
     ]
     agents = get_openapi(
         title=f"{app.title} case agent", version=app.version, routes=routes
     )
     del agents["components"]["securitySchemes"]
-    for operations in agents["paths"].values():
-        for operation in operations.values():
+    for path in agents["paths"].values():
+        for operation in path.values():
             del operation["security"]
     return agents

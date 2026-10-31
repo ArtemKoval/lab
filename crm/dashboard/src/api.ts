@@ -494,9 +494,21 @@ const proposalPath = (roundId: string, proposalId: string) =>
 const CONVERSATIONS = "/api/copilot/conversations";
 const conversationPath = (conversationId: string) =>
   `${CONVERSATIONS}/${encodeURIComponent(conversationId)}`;
+const PACK = "/api/pack";
+
+// The active pack's declarations, which the pages render.
+export interface PackView {
+  name: string;
+  display_name: string;
+  resolutions: string[];
+  outcomes: Record<string, string>;
+  config: Record<string, string>;
+  effects: Record<string, Record<string, unknown>>;
+}
 
 export const api = {
   listCases: () => request<CaseSummary[]>(CASES),
+  getPack: () => request<PackView>(PACK),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
   listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>

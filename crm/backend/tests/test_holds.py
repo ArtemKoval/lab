@@ -2,7 +2,7 @@
 
 import pytest
 
-from backend.agent_api import OPERATIONS
+from backend.agent_api import operations
 from backend.tests.case_requests import (
     GATEWAY_REFUSAL,
     decide,
@@ -69,4 +69,4 @@ def test_a_hold_needs_the_agents_key(dashboard):
 
 
 def test_the_hold_stays_off_the_gateway():
-    assert "hold_payment" not in OPERATIONS
+    assert "hold_payment" not in operations()

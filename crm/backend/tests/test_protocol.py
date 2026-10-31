@@ -234,3 +234,12 @@ def test_a_payload_that_does_not_fit_the_gate_is_refused(client):
 
 def test_the_metric_gives_the_number_the_scoring_reads(client):
     assert insurance_protocol.metric({"award": 420.0}) == 420.0
+
+
+def test_the_pack_serves_its_declarations(client):
+    declared = client.get("/api/pack").json()
+    assert declared["name"] == "insurance"
+    assert declared["resolutions"] == ["approve", "decline", "refer"]
+    assert declared["outcomes"] == {"award": "resolve"}
+    assert declared["effects"] == {"award": {"outcome": "award", "gated": True}}
+    assert "award_approval_limit" in declared["config"]

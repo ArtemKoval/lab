@@ -53,6 +53,7 @@ SHARED_READS = {
     "get_case_history": "/api/customers/CUS-3001/cases",
     "get_agent_api": "/api/agent/openapi.json",
     "get_run": "/api/runs/{run_id}",
+    "get_pack": "/api/pack",
 }
 
 CONVERSATION = "/api/copilot/conversations/conversation-1"

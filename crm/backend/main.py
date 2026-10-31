@@ -71,6 +71,7 @@ from backend.models import (
     ModelCall,
     ModelCallRequest,
     NewStep,
+    PackView,
     PaymentRequest,
     Plans,
     PreviousCase,
@@ -321,6 +322,20 @@ def list_cases(db: Database) -> list[CaseSummary]:
     query = case_view.where(cases.c.evaluation_id.is_(None))
     rows = db.execute(query.order_by(cases.c.case_id)).mappings()
     return [to_summary(row) for row in rows]
+
+
+@app.get("/api/pack", operation_id="get_pack", dependencies=[WorkerOrAgent])
+def get_pack() -> PackView:
+    """Serve the active pack's declarations for the tools and the dashboard."""
+    declared = loader.pack()
+    return PackView(
+        name=declared.name,
+        display_name=declared.manifest.get("display_name", declared.name),
+        resolutions=declared.resolutions,
+        outcomes=declared.outcomes,
+        config=declared.config,
+        effects=declared.effects,
+    )
 
 
 @app.get("/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent])

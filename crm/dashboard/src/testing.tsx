@@ -10,6 +10,7 @@ import type {
   PreviousCase,
   Settings,
   SettingsPage,
+  PackView,
 } from "./api";
 
 // Stands in for the backend: answers "METHOD /path" with the JSON given, or
@@ -37,6 +38,18 @@ export const marcus: Worker = {
   role: "Cases Worker",
   email: "marcus.oyelaran@crm.example",
   can_approve_over_limit: false,
+};
+
+// The insurance pack's declarations, as /api/pack serves them.
+export const pack: PackView = {
+  name: "insurance",
+  display_name: "UnderCover Travel Insurance",
+  resolutions: ["approve", "decline", "refer"],
+  outcomes: { award: "resolve" },
+  config: {
+    award_approval_limit: "The largest award paid without a worker's sign-off",
+  },
+  effects: { award: { outcome: "award", gated: true } },
 };
 
 const startingSettings: Settings = {
@@ -79,6 +92,7 @@ export function stubApi(routes: Routes) {
   const signedIn: Routes = {
     "GET /api/me": dana,
     "GET /api/settings": settings,
+    "GET /api/pack": pack,
   };
   const fetchMock = vi.fn((path: string, init?: RequestInit) => {
     const answer = { ...signedIn, ...routes }[

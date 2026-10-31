@@ -28,7 +28,7 @@ from agent.tests.stubs import (
     stub,
 )
 from agent.tools import case_as_read
-from backend.agent_api import OPERATIONS
+from backend.agent_api import operations
 from backend.tests.case_requests import sign_off, start
 from backend.tests.dashboard_reads import steps_of
 from backend.tests.settings_requests import change_settings
@@ -224,7 +224,7 @@ def test_the_stand_ins_app_tools_are_the_agents_api_documents_operations(
 ):
     document = client.get("/api/agent/openapi.json").json()
     tools = {op.tool.name: op.tool for op in gateway.operations.values()}
-    assert set(tools) == {f"{APP}{operation}" for operation in OPERATIONS}
+    assert set(tools) == {f"{APP}{operation}" for operation in operations()}
     for path, methods in document["paths"].items():
         for operation in methods.values():
             tool = tools[f"{APP}{operation['operationId']}"]
