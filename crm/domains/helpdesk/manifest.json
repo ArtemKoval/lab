@@ -12,7 +12,7 @@
   "config": {
     "award_approval_limit": "The largest credit issued without a lead's sign-off"
   },
-  "effects": {"award": {"outcome": "award", "gated": true}},
+  "effects": {"award": {"outcome": "award", "gated": true, "records": "payments"}},
   "documents": ["wording", "manual"],
   "seed": {
     "cases": "cases.json",

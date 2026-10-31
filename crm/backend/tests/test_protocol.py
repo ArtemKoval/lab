@@ -11,6 +11,7 @@ from sqlalchemy import insert, select
 from backend.database import engine, outcomes
 from backend.tests.case_requests import decide, line, start, work_out_award
 from backend.tests.settings_requests import change_settings
+from domains import loader as domain_loader
 from domains.insurance import protocol as insurance_protocol
 from domains.loader import Pack, PackError, check_declarations
 
@@ -19,7 +20,7 @@ DECLARED = {
     "resolutions": ["approve", "decline", "refer"],
     "outcomes": {"award": "resolve"},
     "config": {},
-    "effects": {"award": {"outcome": "award", "gated": True}},
+    "effects": {"award": {"outcome": "award", "gated": True, "records": "payments"}},
 }
 
 TRIP_DELAY = [
@@ -120,6 +121,15 @@ def test_an_effect_on_an_undeclared_outcome_is_refused():
     with pytest.raises(PackError) as error:
         check_declarations("tiny", manifest)
     assert "undeclared outcome" in str(error.value)
+
+
+def test_an_effect_into_an_unknown_write_is_refused():
+    manifest = DECLARED | {
+        "effects": {"award": {"outcome": "award", "records": "ledger"}}
+    }
+    with pytest.raises(PackError) as error:
+        check_declarations("tiny", manifest)
+    assert "unknown write" in str(error.value)
 
 
 def an_approved_case(client, approval_limit=None):
@@ -241,5 +251,28 @@ def test_the_pack_serves_its_declarations(client):
     assert declared["name"] == "insurance"
     assert declared["resolutions"] == ["approve", "decline", "refer"]
     assert declared["outcomes"] == {"award": "resolve"}
-    assert declared["effects"] == {"award": {"outcome": "award", "gated": True}}
+    assert declared["effects"] == {
+        "award": {"outcome": "award", "gated": True, "records": "payments"}
+    }
     assert "award_approval_limit" in declared["config"]
+
+
+def test_an_effect_under_another_outcome_name_records_no_payment(client, monkeypatch):
+    """A pack that names its outcome differently runs its effect through the
+    declarations, and no payment row moves."""
+    declared = domain_loader.pack()
+    manifest = declared.manifest | {
+        "outcomes": {"effort": "resolve"},
+        "effects": {"effort": {"outcome": "effort", "gated": True}},
+    }
+    monkeypatch.setattr(
+        domain_loader, "pack", lambda: Pack(declared.name, declared.root, manifest)
+    )
+    start(client, "CLM-1001")
+    work_out_award(client, "CLM-1001", "trip_delay", TRIP_DELAY)
+    decide(client, "CLM-1001", "approve", 420.0)
+    run = client.post("/api/cases/CLM-1001/effects/effort").json()
+    assert run["effect"] == "effort"
+    case = client.get("/api/cases/CLM-1001").json()
+    assert (case["status"], case["payment"]) == ("decided", None)
+    assert run["result"] == {"amount": 420.0}

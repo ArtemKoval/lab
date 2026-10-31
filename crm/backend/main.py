@@ -136,6 +136,12 @@ def protocol():
     return loader.pack().protocol_module()
 
 
+def outcome_kind() -> str:
+    """Return the outcome kind the pack declares, which the engine's routes
+    carry under its own name."""
+    return next(iter(loader.pack().outcomes), "award")
+
+
 def approval_limit(db: Connection) -> float:
     """Return the largest award that can be paid without a worker's sign-off, as
     the settings in force have it."""
@@ -521,11 +527,11 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
     # The outcome the pack resolved for the case, moved opaque. An approval
     # with no stored outcome carries none, which the removal stage drops.
     payload = None
-    outcome_kind = None
+    kind = None
     if request.decision == DecisionKind.APPROVE:
-        payload = stored_payload(db, case_id, "award")
+        payload = stored_payload(db, case_id, outcome_kind())
         if payload is not None:
-            outcome_kind = "award"
+            kind = outcome_kind()
     db.execute(
         insert(decisions).values(
             case_id=case_id,
@@ -538,7 +544,7 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
             manual_version=manual_version(db),
             calculation=calculation and calculation.model_dump(),
             approval_limit=limit,
-            outcome=outcome_kind,
+            outcome=kind,
             payload=payload,
         )
     )
@@ -568,7 +574,7 @@ def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
     keep_calculation(db, case_id, case.thread_id, award)
-    keep_outcome(db, case_id, "award", award.model_dump())
+    keep_outcome(db, case_id, outcome_kind(), award.model_dump())
     return award
 
 
@@ -595,9 +601,12 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
     ).first()
     if prior is not None:
         raise HTTPException(409, ALREADY_RAN.format(case_id=case_id, effect=effect))
-    # Stage 2 serves one effect per pack, the award payment; the declared
-    # effects of a later stage give every effect its own write.
-    record = record_payment(db, case, payload)
+    # The effect's declaration says which core write its record lands in;
+    # an effect with none records itself in the run alone.
+    if loader.pack().effects[effect].get("records") == "payments":
+        record = record_payment(db, case, payload)
+    else:
+        record = protocol().execute(dict(case), payload)
     db.execute(
         insert(effect_runs).values(
             case_id=case_id, effect=effect, result=record, ran_at=now()
@@ -614,7 +623,7 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
     """Pay an approved case its award once, unless it is over the limit."""
     amount = round(request.amount, 2)
     limit = approval_limit(db)
-    if gated(db, stored_payload(db, case_id, "award"), amount, limit):
+    if gated(db, stored_payload(db, case_id, outcome_kind()), amount, limit):
         raise HTTPException(403, over_the_limit(limit))
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:
