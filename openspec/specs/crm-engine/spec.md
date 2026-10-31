@@ -45,44 +45,46 @@ The API SHALL move a waiting case to in progress once per attempt. The API SHALL
 - **THEN** the API refuses the request with a conflict
 
 ### Requirement: Decisions
-An approval SHALL carry a positive award. A decline or a referral SHALL carry an award of zero. The decision SHALL keep the reason and the section reference.
+An approval SHALL carry the outcome the pack resolved for the attempt, as an
+opaque payload. A decline or a referral SHALL carry no outcome. The decision
+SHALL keep the reason and the section reference. The API SHALL refuse an
+approval whose outcome the pack has not resolved on the attempt in flight.
 
 #### Scenario: Record a decline
 - **GIVEN** a case in progress
 - **WHEN** the agent records a decline with a reason and a section reference
-- **THEN** the case is decided, the award is zero, and the decision keeps the reason and the reference
+- **THEN** the case is decided, the decision carries no outcome, and the
+  decision keeps the reason and the reference
 
 #### Scenario: An approval needs a positive award
-- **GIVEN** a case in progress
-- **WHEN** the agent records an approval with an award of zero
-- **THEN** the API refuses the record with a validation error
+- **GIVEN** a case in progress whose outcome the pack has not resolved
+- **WHEN** the agent records an approval
+- **THEN** the API refuses the record with a validation error that names
+  resolve_outcome
 
 ### Requirement: The award limit and sign-off
-An approval over the limit SHALL wait for a worker sign-off. The API SHALL refuse payment while the case waits. A sign-off SHALL record the worker and the time and SHALL NOT pay. The case graph SHALL pay after the sign-off resumes the case.
+The pack's gate SHALL decide whether an approval waits for a worker sign-off,
+under the limit in force. The API SHALL refuse to run the effect while the
+case waits. A sign-off SHALL record the worker and the time and SHALL run the
+held effect once. The case graph SHALL run the effect after the sign-off
+resumes the case.
 
 #### Scenario: An approval over the limit waits
 - **GIVEN** the approval limit in the settings
-- **WHEN** the agent records an approval with an award over the limit
-- **THEN** the case waits for sign off and a payment request is refused
+- **WHEN** the agent records an approval whose outcome the pack's gate holds
+- **THEN** the case waits for sign off and a request to run the effect is
+  refused
 
 #### Scenario: A worker signs off
 - **GIVEN** a case waiting for sign off
 - **WHEN** a worker signs off
-- **THEN** the sign-off records the worker and the time, and no payment happens
+- **THEN** the sign-off records the worker and the time, and the effect runs
+  once
 
 #### Scenario: A worker signs off and the agent pays
 - **GIVEN** a case waiting for sign off
 - **WHEN** a worker signs off and the agent runs
-- **THEN** the case resumes, and the payment records the award
-
-
-### Requirement: Payment
-The API SHALL pay an approved case under the limit once. The API SHALL refuse a second payment.
-
-#### Scenario: Payment happens once
-- **GIVEN** an approved case under the limit
-- **WHEN** the agent pays the award and then pays again
-- **THEN** the first payment succeeds and the second payment is refused
+- **THEN** the case resumes, and the effect run is already on the case
 
 ### Requirement: Queue runs
 A run SHALL work the whole waiting queue and finish with a short summary. A run with a cap SHALL work cases up to the cap and leave the rest waiting. The run SHALL keep a to-do list with a state for each case. A to-do item is to do, in progress, done, or left for a worker. A case that is not started maps to to do. A case in progress maps to in progress. A decided or paid case maps to done. A case left for a worker maps to left for a worker.
