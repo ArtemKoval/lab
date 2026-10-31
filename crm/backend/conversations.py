@@ -33,6 +33,7 @@ from backend.models import (
     TurnStatus,
     Worker,
 )
+from backend.views import outcome_line
 
 TITLE_LENGTH = 120
 # A turn still working this long after it started, or after the worker answered
@@ -370,7 +371,7 @@ def card_of(db: Connection, case_id: str) -> dict[str, Any]:
     return {
         "case_id": case_id,
         "customer_name": case["customer_name"],
-        "award": case["award"],
+        "outcome": outcome_line(case["payload"]),
         "reason": case["reason"],
         "decided_at": case["decided_at"],
     }
@@ -412,8 +413,9 @@ def why_not_sign_off(db: Connection, turn: RowMapping) -> str | None:
     card = turn["confirmation"]
     case = find_case(db, card["case_id"])
     held = case["status"] == Status.WAITING_FOR_SIGN_OFF
-    shown = (card["decided_at"], card["award"], card["reason"])
-    if not held or (case["decided_at"], case["award"], case["reason"]) != shown:
+    shown = (card["decided_at"], card["outcome"], card["reason"])
+    now_shown = (case["decided_at"], outcome_line(case["payload"]), case["reason"])
+    if not held or now_shown != shown:
         return CASE_CHANGED
     return None
 

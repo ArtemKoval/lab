@@ -186,7 +186,7 @@ export const summary: CaseSummary = {
   submitted_on: "2026-07-20",
   status: "waiting",
   decision: null,
-  award: null,
+  outcome: null,
   resuming: false,
 };
 

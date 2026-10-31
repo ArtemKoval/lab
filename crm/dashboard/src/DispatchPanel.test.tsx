@@ -45,8 +45,8 @@ const finished: Run = {
     declined: 1,
     referred: 1,
     waiting_for_sign_off: [
-      { case_id: "CLM-1008", award: 2240 },
-      { case_id: "CLM-1011", award: 1150 },
+      { case_id: "CLM-1008", outcome: "2,240.00 awarded" },
+      { case_id: "CLM-1011", outcome: "1,150.00 awarded" },
     ],
     left_for_worker: ["CLM-1016"],
     unfinished: ["CLM-1012"],
@@ -91,7 +91,7 @@ it("shows a running dispatch with its cases", async () => {
   const first = within(rows[0]);
   expect(first.getByText("Decided")).toBeDefined();
   expect(first.getByText("Approved")).toBeDefined();
-  expect(first.getByText("$420.00")).toBeDefined();
+  expect(first.getByText("420.00 awarded")).toBeDefined();
   expect(first.getByText("41 s")).toBeDefined();
   expect(within(rows[1]).getByText("In progress")).toBeDefined();
   expect(within(rows[2]).getByText("Waiting")).toBeDefined();
@@ -110,7 +110,7 @@ it("shows a finished dispatch with its summary", async () => {
     .map((line) => line.textContent);
   expect(lines).toEqual([
     "3 approved, 1 declined and 1 referred.",
-    "Waiting for sign-off: CLM-1008 $2,240.00, CLM-1011 $1,150.00",
+    "Waiting for sign-off: CLM-1008 2,240.00 awarded, CLM-1011 1,150.00 awarded",
     "Left for a worker: CLM-1016",
     "Left for the next dispatch: CLM-1012",
   ]);

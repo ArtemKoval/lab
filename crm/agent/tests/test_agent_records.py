@@ -22,9 +22,9 @@ from agent.tests.stubs import (
 from agent.tools import record_decision
 from backend.tests.dashboard_reads import steps_of
 
-NO_CALCULATION = (
-    "Cases manual section 14: an approval needs the calculation of its award for "
-    "this attempt. Work it out with calculate_award"
+NO_OUTCOME = (
+    "Cases manual section 14: an approval needs the outcome the pack resolved "
+    "for this attempt. Work it out with resolve_outcome"
 )
 
 
@@ -67,21 +67,21 @@ def test_an_approval_with_no_calculation_goes_back_to_the_model(client):
         record("approve", 420.0),
     )
     assert harness.work_case("CLM-1001", None, agent_on(model)) == (
-        "CLM-1001  approve  $420.00"
+        "CLM-1001  approve  420.00 awarded"
     )
     refusal = model.prompts[2][-1]
     assert isinstance(refusal, ToolMessage)
-    assert refusal.text == f"Refused with status 422: {NO_CALCULATION}"
+    assert refusal.text == f"Refused with status 422: {NO_OUTCOME}"
     steps = [(s["kind"], s["content"]) for s in steps_of(client, "CLM-1001")]
     refused = steps.index(("refusal", f"record_decision: {refusal.text}"))
     # The refusal is followed by the model's next attempt at the record.
     after = [content for kind, content in steps[refused:] if kind == "tool_call"]
-    assert after[0].startswith("calculate_award(")
+    assert after[0].startswith("resolve_outcome(")
     assert after[1].startswith('record_decision(decision="approve"')
     decisions = [c for k, c in steps if k == "tool_result" and "record_decision" in c]
     assert len(decisions) == 1
     case = case_of(client, "CLM-1001")
-    assert case["decision"]["calculation"]["award"] == 420.0
+    assert case["decision"]["payload"]["award"] == 420.0
     assert case["effect"]["result"]["amount"] == 420.0
 
 

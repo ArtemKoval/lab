@@ -1,6 +1,6 @@
 """Requests the backend's tests send to work a case."""
 
-from backend.tests.rows import calculated
+from backend.context_files import plans as pack_plans
 from backend.tests.sign_in import DANA, signed_in
 
 # Who makes the decisions the tests record, as the case agent says it.
@@ -30,9 +30,14 @@ def line(description, amount, kind="item", **extra):
     } | extra
 
 
+def resolve_outcome(client, case_id, outcome, body):
+    """Resolve one of the case's declared outcomes, as the agent's tool does."""
+    return client.post(f"/api/cases/{case_id}/outcomes/{outcome}", json=body)
+
+
 def work_out_award(client, case_id, benefit, lines, paid_by_others=0):
     body = {"benefit": benefit, "lines": lines, "paid_by_others": paid_by_others}
-    return client.post(f"/api/cases/{case_id}/award", json=body)
+    return resolve_outcome(client, case_id, "award", body)
 
 
 def record_decision(client, case_id, **changes):
@@ -40,7 +45,6 @@ def record_decision(client, case_id, **changes):
     unless told otherwise."""
     body = {
         "decision": "refer",
-        "award": 0,
         "section": "Section 3, Trip Delay",
         "reason": "The delay was covered.",
         "decided_by": MAKER,
@@ -48,14 +52,39 @@ def record_decision(client, case_id, **changes):
     return client.post(f"/api/cases/{case_id}/decision", json=body)
 
 
-def decide(client, case_id, decision, award, section="Section 3, Trip Delay"):
-    """Record a decision as the case agent does, an approval with a calculation of
-    the same award kept for the case's attempt first."""
-    if decision == "approve":
-        calculated(case_id, award)
-    return record_decision(
-        client, case_id, decision=decision, award=award, section=section
+def deductible_of(client, case_id):
+    """The deductible of the case's plan, from the pack's plans file."""
+    contract_id = client.get(f"/api/cases/{case_id}").json()["contract_id"]
+    contract = client.get(f"/api/contracts/{contract_id}").json()
+    plan = next(
+        plan for plan in pack_plans()["plans"] if plan["plan"] == contract["plan"]
     )
+    return plan.get("deductible", 0.0)
+
+
+def declared_outcome(client):
+    """The outcome kind the active pack declares, as its view serves it."""
+    return next(iter(client.get("/api/pack").json()["outcomes"]))
+
+
+def decide(client, case_id, decision, award, section="Section 3, Trip Delay"):
+    """Record a decision as the case agent does, with the case's outcome
+    resolved from one covered emergency line of the award first when it
+    approves, the way the case agent's own tool does it."""
+    if decision == "approve" and in_progress(client, case_id):
+        bill = award + deductible_of(client, case_id)
+        body = {
+            "benefit": "emergency_medical",
+            "lines": [line("The covered costs", bill, "expense")],
+            "paid_by_others": 0,
+        }
+        resolved = resolve_outcome(client, case_id, declared_outcome(client), body)
+        assert resolved.status_code == 200, resolved.json()
+    return record_decision(client, case_id, decision=decision, section=section)
+
+
+def in_progress(client, case_id):
+    return client.get(f"/api/cases/{case_id}").json()["status"] == "in_progress"
 
 
 def held(client, case_id, award):

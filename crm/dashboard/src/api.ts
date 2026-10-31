@@ -39,7 +39,8 @@ export interface CaseSummary {
   submitted_on: string;
   status: Status;
   decision: DecisionKind | null;
-  award: number | null;
+  // The pack's own line on the outcome it resolved, if it did.
+  outcome: string | null;
   // A resume is working on the case, so a dispatch leaves it alone.
   resuming: boolean;
 }
@@ -67,12 +68,15 @@ export interface Calculation {
   award: number;
 }
 
-// A decision as cases manual section 14 records it.
+// A decision as cases manual section 14 records it. An approval carries the
+// outcome payload the pack resolved, which the pages render.
 export interface DecisionRecord {
   decision: DecisionKind;
-  award: number;
-  // None for a decline or a referral.
-  calculation: Calculation | null;
+  payload: {
+    calculation?: CalculationStep[];
+    award?: number;
+    needs_sign_off?: boolean;
+  } | null;
   section: string;
   reason: string;
   decided_by: string;
@@ -186,7 +190,7 @@ export type EvaluationSet = (typeof evaluationSets)[number];
 
 export interface HeldAward {
   case_id: string;
-  award: number;
+  outcome: string;
 }
 
 export interface DispatchSummary {
@@ -261,6 +265,8 @@ export interface CaseGrade {
 export interface ScoredCase extends RunCase {
   copy_of: string;
   reason: string | null;
+  // The number the pack's metric reads from the outcome payload.
+  award: number;
   grade: CaseGrade | null;
   worker_decision: DecisionKind;
   worker_award: number;

@@ -77,7 +77,7 @@ def test_a_case_stopped_partway_carries_on_from_its_last_step(client):
 
     model = stub(calculate("CLM-1001", 420.0), record("approve", 420.0))
     report = harness.carry_on("CLM-1001", None, agent_on(model, saver))
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     case = case_of(client, "CLM-1001")
     assert (case["thread_id"], case["attempts"]) == (stopped["thread_id"], 1)
     assert case["effect"]["result"]["amount"] == 420.0
@@ -104,7 +104,7 @@ def test_stopped_just_after_the_decision_is_recorded(client, monkeypatch):
 
     model = stub()
     report = harness.carry_on("CLM-1001", None, agent_on(model, saver))
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
     assert model.prompts == []
 
@@ -121,7 +121,7 @@ def test_stopped_just_after_the_payment_is_recorded(client, monkeypatch):
     payments = calls_to(monkeypatch, "run_effect")
     agent = agent_on(stub(), saver)
     report = harness.carry_on("CLM-1001", None, agent)
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     assert payments == [("CLM-1001", "award")]
     assert case_of(client, "CLM-1001")["effect"] == paid
     thread = harness.thread_of(case_of(client, "CLM-1001"))
@@ -134,17 +134,17 @@ def test_stopped_after_a_step_was_written_but_before_its_checkpoint(client):
         harness.work_case(
             "CLM-1001", None, agent_on(stub(*approve("CLM-1001", 420.0)), saver)
         )
-    assert case_of(client, "CLM-1001")["decision"]["award"] == 420.0
+    assert case_of(client, "CLM-1001")["decision"]["payload"]["award"] == 420.0
 
     model = stub()
     agent = agent_on(model, saver)
     report = harness.carry_on("CLM-1001", None, agent)
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     assert model.prompts == []
     case = case_of(client, "CLM-1001")
     assert (case["effect"]["result"]["amount"], case["attempts"]) == (420.0, 1)
     thread = harness.thread_of(case)
-    assert agent.graph.get_state(thread).values["decision"]["award"] == 420.0
+    assert agent.graph.get_state(thread).values["decision"]["payload"]["award"] == 420.0
 
 
 def test_a_held_award_stopped_before_its_checkpoint_is_paid_by_the_sign_off(
@@ -160,7 +160,7 @@ def test_a_held_award_stopped_before_its_checkpoint_is_paid_by_the_sign_off(
     payments = calls_to(monkeypatch, "run_effect")
     model = stub()
     report = harness.carry_on("CLM-1002", None, agent_on(model, saver))
-    assert report == "CLM-1002  approve  $1,350.00"
+    assert report == "CLM-1002  approve  1,350.00 awarded"
     assert (payments, model.prompts) == ([], [])
     assert case_of(client, "CLM-1002")["decision"]["signed_off_by"] == "Dana Whitfield"
 
@@ -189,7 +189,7 @@ def test_a_case_stopped_before_its_first_step_was_saved(client):
     client.post("/api/cases/CLM-1001/start", json={"thread_id": "nothing-saved"})
     model = stub(*decide("refer", 0))
     report = harness.carry_on("CLM-1001", None, agent_on(model))
-    assert report == "CLM-1001  refer  $0.00"
+    assert report == "CLM-1001  refer"
     case = case_of(client, "CLM-1001")
     assert (case["thread_id"], case["attempts"]) == ("nothing-saved", 1)
     assert model.prompts[0][1].content == "Case CLM-1001"

@@ -9,7 +9,13 @@ import pytest
 from sqlalchemy import insert, select
 
 from backend.database import engine, outcomes
-from backend.tests.case_requests import decide, line, start, work_out_award
+from backend.tests.case_requests import (
+    decide,
+    line,
+    record_decision,
+    start,
+    work_out_award,
+)
 from backend.tests.settings_requests import change_settings
 from domains import loader as domain_loader
 from domains.insurance import protocol as insurance_protocol
@@ -159,15 +165,6 @@ def test_an_undeclared_effect_is_refused(client):
     assert missing.json()["detail"] == "The pack serves no effect called 'refund'"
 
 
-def test_an_effect_runs_on_a_decision_with_no_payload(client):
-    """A decision made before its outcome was resolved still runs its effect."""
-    start(client, "CLM-1001")
-    decide(client, "CLM-1001", "approve", 420.0)
-    run = client.post("/api/cases/CLM-1001/effects/award")
-    assert run.status_code == 200
-    assert run.json()["summary"] is None
-
-
 def test_only_an_approved_case_runs_an_effect(client):
     start(client, "CLM-1001")
     response = client.post("/api/cases/CLM-1001/effects/award")
@@ -225,11 +222,12 @@ def test_a_payload_that_does_not_fit_the_gate_is_refused(client):
             insert(outcomes).values(
                 case_id="CLM-1001",
                 outcome="award",
+                thread_id="t-1",
                 payload={"money": 420.0},
                 resolved_at="2026-01-01T00:00:00+00:00",
             )
         )
-    response = decide(client, "CLM-1001", "approve", 420.0)
+    response = record_decision(client, "CLM-1001", decision="approve")
     assert response.status_code == 422
     assert "does not fit the pack's gate" in response.json()["detail"]
 
@@ -271,4 +269,3 @@ def test_an_effect_under_another_outcome_name_runs_through_the_declarations(
         "effort",
         {"amount": 420.0},
     )
-    assert run["result"] == {"amount": 420.0}

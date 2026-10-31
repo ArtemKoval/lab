@@ -27,12 +27,11 @@ class RuleFollowingModel(StubModel):
         decision, award = ("refer", 0)
         if RULE.strip() in messages[0].content:
             decision, award = self.answers[copy_id.rsplit("-E", 1)[0]]
-        if decision == "approve" and messages[-1].name != "calculate_award":
+        if decision == "approve" and messages[-1].name != "resolve_outcome":
             return calculate(copy_id, award)
         return call(
             "record_decision",
             decision=decision,
-            award=award,
             section="Section 3",
             reason="The reason.",
         )

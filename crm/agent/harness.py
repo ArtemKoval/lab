@@ -50,6 +50,7 @@ from agent.tools import (
     case_as_read,
     case_tools,
 )
+from domains import loader
 
 log = logging.getLogger(__name__)
 
@@ -191,7 +192,6 @@ def refer(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
     case = api.record_decision(
         runtime.context.case_id,
         decision=app_terms.REFER,
-        award=0,
         section=SECURITY_CHECK,
         reason=reason,
         decided_by=CHECK_DECIDES,
@@ -470,18 +470,27 @@ def begin(case_id: str) -> Messages:
     return {"messages": [HumanMessage(f"Case {case_id}")]}
 
 
+def outcome_line(payload: dict[str, Any]) -> str:
+    """The pack's own line on a resolved outcome, through its summarize verb."""
+    return loader.pack().protocol_module().summarize(payload)
+
+
 def report(case: dict[str, Any], reason: str) -> str:
-    """Say in one line how a case ended: its decision and award, or why it failed."""
+    """Say in one line how a case ended: its decision with the pack's line on
+    its outcome, or why it failed."""
     case_id, status, decision = case["case_id"], case["status"], case["decision"]
     if status == app_terms.Status.WAITING:
         return f"{case_id}  failed: {reason}, back in the queue"
     if status == app_terms.Status.LEFT_FOR_WORKER:
         return f"{case_id}  failed: {reason}, left for a worker"
-    line = f"{case_id}  {decision['decision']}  ${decision['award']:,.2f}"
+    line = f"{case_id}  {decision['decision']}"
+    payload = decision.get("payload")
+    if payload is not None:
+        line = f"{line}  {outcome_line(payload)}"
     if status == app_terms.Status.WAITING_FOR_SIGN_OFF:
         return f"{line}, waiting for sign-off"
     if decision["decision"] == app_terms.APPROVE and case["effect"] is None:
-        return f"{line}, not paid yet"
+        return f"{line}, not run yet"
     return line
 
 

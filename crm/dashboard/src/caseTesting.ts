@@ -46,14 +46,14 @@ export const decisionPanel = () => panel("Decision");
 
 export const approval: Decision = {
   decision: "approve",
-  award: 420,
-  calculation: {
-    lines: [
+  payload: {
+    calculation: [
       { step: "Suitcase, limited to $300.00", amount: 300 },
       { step: "Clothes", amount: 170 },
       { step: "Less the deductible", amount: -50 },
     ],
     award: 420,
+    needs_sign_off: false,
   },
   section: "Section 5, Baggage and Personal Effects",
   reason: "The suitcase was lost by the carrier.",
@@ -82,6 +82,6 @@ export const approved: Case = {
 export const held: Case = {
   ...approved,
   status: "waiting_for_sign_off",
-  decision: { ...approval, award: 1350 },
+  decision: { ...approval, payload: { ...approval.payload, award: 1350 } },
   effect: null,
 };

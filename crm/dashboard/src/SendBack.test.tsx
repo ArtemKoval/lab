@@ -47,7 +47,7 @@ it("lets a senior worker send a held payment back with a note", async () => {
     sent_back_decisions: [
       {
         ...approval,
-        award: 1350,
+        payload: { ...approval.payload, award: 1350 },
         note: NOTE,
         sent_back_by: "Dana Whitfield",
         sent_back_at: sentBackAt,
@@ -103,7 +103,7 @@ it("shows why a send back was refused", async () => {
 it("shows each decision sent back with its note, beside the new decision", async () => {
   const sentBack = {
     ...approval,
-    award: 1350,
+    payload: { ...approval.payload, award: 1350 },
     note: NOTE,
     sent_back_by: "Dana Whitfield",
     sent_back_at: sentBackAt,
@@ -113,7 +113,7 @@ it("shows each decision sent back with its note, beside the new decision", async
   ]);
   const decisions = await panel("Decisions sent back");
   expect(decisions.getByText("Approved")).toBeDefined();
-  expect(decisions.getByText("$1,350.00")).toBeDefined();
+  expect(decisions.getAllByText("$1,350.00").length).toBeGreaterThan(0);
   expect(decisions.getByText(approval.reason)).toBeDefined();
   expect(decisions.getByText(NOTE)).toBeDefined();
   expect(

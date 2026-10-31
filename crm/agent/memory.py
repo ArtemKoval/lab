@@ -9,6 +9,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.store.base import BaseStore
 
 from agent.agentcore_memory import store_at
+from domains import loader
 
 MEMORY_ID = "CRM_MEMORY_ID"
 # Every memory of a customer is under /customers/<customer>, and the summary of
@@ -39,12 +40,18 @@ def what_was_claimed(case: dict[str, Any]) -> str:
 
 
 def what_was_decided(case: dict[str, Any]) -> str:
-    """The decision on a case, with its award, section and reason."""
+    """The decision on a case, with the pack's line on its outcome, its section
+    and reason."""
     decision = case["decision"]
+    if decision.get("payload") is not None:
+        figure = loader.pack().protocol_module().summarize(decision["payload"])
+        return (
+            f"Decision on {case['case_id']}: {decision['decision']}, {figure}, "
+            f"under {decision['section']}. {decision['reason']}"
+        )
     return (
-        f"Decision on {case['case_id']}: {decision['decision']}, paying "
-        f"${decision['award']:,.2f}, under {decision['section']}. "
-        f"{decision['reason']}"
+        f"Decision on {case['case_id']}: {decision['decision']}, under "
+        f"{decision['section']}. {decision['reason']}"
     )
 
 

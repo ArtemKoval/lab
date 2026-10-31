@@ -79,7 +79,7 @@ export function QueuePage() {
                 <th>Submitted</th>
                 <th>State</th>
                 <th>Decision</th>
-                <th className="num">{outcomeName}</th>
+                <th>{outcomeName}</th>
               </tr>
             </thead>
             <tbody>
@@ -101,9 +101,7 @@ export function QueuePage() {
                       <DecisionChip decision={entry.decision} />
                     )}
                   </td>
-                  <td className="num mono">
-                    {entry.award !== null && money(entry.award)}
-                  </td>
+                  <td>{entry.outcome}</td>
                 </tr>
               ))}
             </tbody>

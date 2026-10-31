@@ -141,10 +141,10 @@ def test_a_flagged_case_is_referred_without_the_case_agents_model(client):
     agent = agent_on(model, screener=flags())
     report = harness.work_case("CLM-1901", run_id, agent)
 
-    assert report == "CLM-1901  refer  $0.00"
+    assert report == "CLM-1901  refer"
     assert model.prompts == []
     decision = case_of(client, "CLM-1901")["decision"]
-    assert (decision["decision"], decision["award"]) == ("refer", 0)
+    assert (decision["decision"], decision["payload"]) == ("refer", None)
     assert (decision["reason"], decision["section"]) == (
         FLAGGED,
         harness.SECURITY_CHECK,
@@ -163,7 +163,7 @@ def test_a_passed_case_goes_to_the_case_agent(client):
     model = stub(*approve("CLM-1001", 420.0))
     report = harness.work_case("CLM-1001", None, agent_on(model, screener=screener))
 
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
     check, _, as_the_tool_gives_it, *_ = steps_of(client, "CLM-1001")
     assert (check["kind"], check["content"]) == (
@@ -183,7 +183,7 @@ def test_an_unreadable_answer_is_asked_again(client):
     model = stub(*decide("refer", 0))
     report = harness.work_case("CLM-1003", None, agent_on(model, screener=screener))
 
-    assert report == "CLM-1003  refer  $0.00"
+    assert report == "CLM-1003  refer"
     assert len(screener.prompts) == 3
     assert len(model_calls_of("CLM-1003")) == 3 + 2
 
@@ -244,7 +244,7 @@ def test_the_check_runs_once_for_each_thread(client):
     report = harness.carry_on(
         "CLM-1003", None, agent_on(model, saver, screener=screener)
     )
-    assert report == "CLM-1003  refer  $0.00"
+    assert report == "CLM-1003  refer"
     assert len(screener.prompts) == 1
 
 
@@ -256,7 +256,7 @@ def test_a_case_starting_again_from_its_first_message_is_checked_again(client):
 
     # Nothing saved: another process's saver, with none of this one's progress.
     fresh = agent_on(stub(*decide("refer", 0)), InMemorySaver(), screener=screener)
-    assert harness.carry_on("CLM-1003", None, fresh) == "CLM-1003  refer  $0.00"
+    assert harness.carry_on("CLM-1003", None, fresh) == "CLM-1003  refer"
     assert len(screener.prompts) == 2
 
 
@@ -265,7 +265,7 @@ def test_a_second_attempt_is_checked_again(client):
     outage = RuntimeError("503: The model is unavailable")
     harness.work_case("CLM-1003", None, agent_on(stub(outage), screener=screener))
     agent = agent_on(stub(*decide("refer", 0)), screener=screener)
-    assert harness.work_case("CLM-1003", None, agent) == "CLM-1003  refer  $0.00"
+    assert harness.work_case("CLM-1003", None, agent) == "CLM-1003  refer"
     assert len(screener.prompts) == 2
     kinds = [step["kind"] for step in steps_of(client, "CLM-1003")]
     assert [kinds[0], kinds[1], kinds[2]] == ["screening", "error", "screening"]

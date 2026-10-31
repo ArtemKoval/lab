@@ -34,7 +34,9 @@ from backend.dependencies import API_KEY_HEADER
 from backend.models import Worker
 from backend.tests.case_requests import (
     held,
+    line,
     record_decision,
+    resolve_outcome,
     send_back,
     sign_off,
     take,
@@ -57,7 +59,7 @@ from backend.tests.copilot_requests import (
     times_ago,
 )
 from backend.tests.dashboard_reads import read
-from backend.tests.rows import calculated, count, everything_recorded
+from backend.tests.rows import count, everything_recorded
 from backend.tests.run_requests import create_evaluation
 from backend.tests.sign_in import DANA, MARCUS, bearer, signed_in, token
 
@@ -337,7 +339,7 @@ def test_a_pause_fills_the_card_in_from_the_case(client, dashboard):
     assert paused["confirmation"] == {
         "case_id": "CLM-1003",
         "customer_name": case["customer_name"],
-        "award": 3750.0,
+        "outcome": "3,750.00 awarded",
         "reason": case["decision"]["reason"],
     }
     with engine().connect() as db:
@@ -449,16 +451,24 @@ def test_an_answer_to_a_card_already_canceled_is_refused(
 
 
 def changed_by_a_send_back(client, case_id="CLM-1003"):
-    """Send a held case back and decide it again with the same award and another
-    reason, as the agent does."""
+    """Send a held case back and decide it again with the same outcome and
+    another reason, as the agent does."""
     send_back(client, case_id)
     take(client, case_id)
-    calculated(case_id, 3750.0)
+    resolve_outcome(
+        client,
+        case_id,
+        "award",
+        {
+            "benefit": "emergency_medical",
+            "lines": [line("Hospital bill", 3800, "expense")],
+            "paid_by_others": 0,
+        },
+    )
     record_decision(
         client,
         case_id,
         decision="approve",
-        award=3750.0,
         reason="The hospital bill is covered, less what the airline paid.",
     )
 

@@ -77,6 +77,7 @@ from backend.scoreboard import (
     to_run_case,
 )
 from backend.stops import stop_runs
+from backend.views import outcome_line
 
 # A copy's id is its original's with the evaluation's number, such as CLM-1104-E7.
 COPY_ID = "{case_id}-E{number}"
@@ -130,7 +131,10 @@ def summarize(rows: list[RowMapping]) -> DispatchSummary:
         declined=decisions.count(DecisionKind.DECLINE),
         referred=decisions.count(DecisionKind.REFER),
         waiting_for_sign_off=[
-            HeldAward(case_id=row["case_id"], award=row["award"])
+            HeldAward(
+                case_id=row["case_id"],
+                outcome=outcome_line(row["payload"]),
+            )
             for row in rows
             if row["status"] == Status.WAITING_FOR_SIGN_OFF
         ],

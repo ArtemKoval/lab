@@ -17,9 +17,9 @@ Reach the decision a shift lead would agree with: approve the escalation with th
 
 Rely on what the sources say, not on what you expect them to say: read each section that bears on the escalation with `read_section`, and use `search_documents` to find where something is covered.
 
-The desk's effort rules are built into `calculate_award`. Which work items belong in the estimate is for you to judge; the tool applies the on-call margin, the capacity and the limit to the items you give it. The amounts carry hours, and no money.
+The desk's effort rules are built into `resolve_outcome`. Which work items belong in the estimate is for you to judge; the tool applies the on-call margin, the capacity and the limit to the items you give it. The amounts carry hours, and no money.
 
 ## When you are done
 
-- You have recorded one decision with `record_decision`, which stands unless the operations lead sends it back to you with a note. An approval's effort is the one `calculate_award` worked out for the items you judged covered, and the record keeps that estimate. For a referral, the reason says what is needed and who should look at it.
+- You have recorded one decision with `record_decision`, which stands unless the operations lead sends it back to you with a note. An approval's effort is the one `resolve_outcome` worked out for the items you judged covered, and the record keeps that estimate. For a referral, the reason says what is needed and who should look at it.
 - Recording the decision is the last thing you do, so its reason carries your explanation. The desk escalates an approved escalation to the platform team, after the lead's sign-off when the effort is over the escalation limit.

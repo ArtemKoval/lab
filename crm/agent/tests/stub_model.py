@@ -38,11 +38,10 @@ def call(name, text="", **args):
     return AIMessage(content=text, tool_calls=[tool_call])
 
 
-def record(decision, award):
+def record(decision, award=None):
     return call(
         "record_decision",
         decision=decision,
-        award=award,
         section="Section 3, Trip Delay",
         reason="The delay was covered.",
     )

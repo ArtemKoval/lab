@@ -1,14 +1,13 @@
-"""A complete decision record, as cases manual section 14 asks: the calculation
-of an approval's award, who or what made the decision, when, and the manual's
-version."""
+"""A complete decision record, as cases manual section 14 asks: the outcome the
+pack resolved for the attempt, who or what made the decision, when, and the
+manual's version."""
 
 from pathlib import Path
 
 import pytest
 import yaml
-from sqlalchemy import select
 
-from backend.database import calculations, decisions, engine
+from backend.database import decisions
 from backend.models import Decision
 from backend.tests.case_requests import (
     MAKER,
@@ -16,44 +15,31 @@ from backend.tests.case_requests import (
     fail,
     line,
     record_decision,
+    resolve_outcome,
     sign_off,
     start,
-    work_out_award,
 )
 from backend.tests.rows import count
 from backend.tests.settings_requests import change_settings
 
 
 def work_out(client, case_id, amount=293.0):
-    """Work out an emergency medical award on a case from one bill."""
-    bill = line("Hospital bill", amount, "expense")
-    return work_out_award(client, case_id, "emergency_medical", [bill])
+    """Resolve an emergency medical outcome on a case from one bill."""
+    body = {
+        "benefit": "emergency_medical",
+        "lines": [line("Hospital bill", amount, "expense")],
+        "paid_by_others": 0,
+    }
+    return resolve_outcome(client, case_id, "award", body)
 
 
 def record(client, case_id, **changes):
-    """Ask to record an approval of $243.00 on a case, unless told otherwise."""
-    approval = {"decision": "approve", "award": 243.0} | changes
+    """Ask to record an approval of the outcome on file, unless told otherwise."""
+    approval = {"decision": "approve"} | changes
     return record_decision(client, case_id, **approval)
 
 
-def kept(case_id):
-    """The calculations kept for a case: none, or its latest."""
-    with engine().connect() as db:
-        query = select(calculations).where(calculations.c.case_id == case_id)
-        return db.execute(query).mappings().all()
-
-
-def test_the_latest_calculation_is_kept_for_the_cases_attempt(client):
-    start(client, "CLM-1005")
-    first = work_out(client, "CLM-1005", 293.0).json()
-    assert [c["award"] for c in kept("CLM-1005")] == [first["award"]] == [243.0]
-    work_out(client, "CLM-1005", 393.0)
-    [calculation] = kept("CLM-1005")
-    assert (calculation["thread_id"], calculation["award"]) == ("t-1", 343.0)
-    assert count(calculations) == 1
-
-
-def test_a_new_attempt_starts_with_no_calculation(client):
+def test_a_new_attempt_starts_with_no_outcome(client):
     start(client, "CLM-1005")
     work_out(client, "CLM-1005")
     fail(client, "CLM-1005")
@@ -62,8 +48,8 @@ def test_a_new_attempt_starts_with_no_calculation(client):
     assert response.status_code == 422
     assert count(decisions) == 0
     assert response.json()["detail"] == (
-        "Cases manual section 14: an approval needs the calculation of its award "
-        "for this attempt. Work it out with calculate_award"
+        "Cases manual section 14: an approval needs the outcome the pack "
+        "resolved for this attempt. Work it out with resolve_outcome"
     )
 
 
@@ -85,11 +71,10 @@ def test_a_repeated_approval_is_returned_before_its_calculation_is_checked(clien
     assert again.json() == first
 
 
-def test_a_case_never_started_has_no_calculation(client):
+def test_a_case_never_started_has_no_outcome(client):
     response = work_out(client, "CLM-1005")
     assert response.status_code == 409
     assert response.json()["detail"] == "Case CLM-1005 has not been started"
-    assert kept("CLM-1005") == []
 
 
 @pytest.mark.parametrize(
@@ -101,11 +86,6 @@ def test_a_case_never_started_has_no_calculation(client):
             {"decided_by": ""},
             "a decision record needs who or what made the decision",
         ),
-        ({"award": 0}, "an approval needs a award above zero"),
-        ({"award": -5}, "an approval needs a award above zero"),
-        ({"award": 0.004}, "an approval needs a award above zero"),
-        ({"decision": "decline"}, "a decline or a referral has a award of zero"),
-        ({"decision": "refer"}, "a decline or a referral has a award of zero"),
     ],
 )
 @pytest.mark.parametrize("case_id", ["CLM-1005", "CLM-9999"])
@@ -127,31 +107,25 @@ def test_a_decision_outside_the_three_is_pydantics_refusal(client):
     assert isinstance(response.json()["detail"], list)
 
 
-def test_an_approval_needs_the_calculations_award(client):
+def test_an_approval_needs_the_outcome_on_file(client):
     start(client, "CLM-1005")
-    assert (
-        record(client, "CLM-1005")
-        .json()["detail"]
-        .startswith("Cases manual section 14: an approval needs the calculation")
+    refused = record(client, "CLM-1005")
+    assert refused.status_code == 422
+    assert refused.json()["detail"] == (
+        "Cases manual section 14: an approval needs the outcome the pack "
+        "resolved for this attempt. Work it out with resolve_outcome"
     )
     work_out(client, "CLM-1005")
-    other = record(client, "CLM-1005", award=250.0)
-    assert other.status_code == 422
-    assert other.json()["detail"] == (
-        "Cases manual section 14: the award must be the calculation's $243.00"
-    )
-    assert count(decisions) == 0
+    assert record(client, "CLM-1005").status_code == 200
+    assert count(decisions) == 1
 
 
 def test_a_complete_approval(client):
     start(client, "CLM-1005")
-    calculation = work_out(client, "CLM-1005").json()
+    resolved = work_out(client, "CLM-1005").json()
     decision = record(client, "CLM-1005").json()["decision"]
-    assert decision["calculation"] == {
-        "lines": calculation["calculation"],
-        "award": 243.0,
-    }
-    assert [line["step"] for line in decision["calculation"]["lines"]][-1] == (
+    assert decision["payload"] == resolved
+    assert [line["step"] for line in decision["payload"]["calculation"]][-1] == (
         "Less the deductible"
     )
     assert decision["decided_by"] == MAKER
@@ -160,10 +134,10 @@ def test_a_complete_approval(client):
 
 
 @pytest.mark.parametrize("kind", ["decline", "refer"])
-def test_a_decline_or_a_referral_holds_no_calculation(client, kind):
+def test_a_decline_or_a_referral_holds_no_outcome(client, kind):
     start(client, "CLM-1003")
     decision = decide(client, "CLM-1003", kind, 0).json()["decision"]
-    assert decision["calculation"] is None
+    assert (decision["outcome"], decision["payload"]) == (None, None)
     assert (decision["decided_by"], decision["manual_version"]) == (MAKER, "2026.2")
 
 
@@ -175,7 +149,7 @@ def test_a_sign_off_adds_who_signed_off_and_when(client):
     decision = sign_off(client, "CLM-1005").json()["decision"]
     assert decision["signed_off_by"] == "Dana Whitfield"
     assert decision["signed_off_at"]
-    assert decision["calculation"]["award"] == 243.0
+    assert decision["payload"]["award"] == 243.0
 
 
 def test_the_record_holds_every_field_the_data_dictionary_names():
@@ -193,4 +167,4 @@ def test_the_record_holds_every_field_the_data_dictionary_names():
         if field["field"].startswith("decision.")
     }
     assert named <= set(Decision.model_fields)
-    assert {"calculation", "decided_by", "manual_version"} <= named
+    assert {"payload", "decided_by", "manual_version"} <= named

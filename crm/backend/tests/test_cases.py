@@ -21,7 +21,7 @@ def test_list_cases(client):
         "submitted_on": "2026-06-24",
         "status": "waiting",
         "decision": None,
-        "award": None,
+        "outcome": None,
         "resuming": False,
     }
 

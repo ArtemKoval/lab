@@ -102,14 +102,13 @@ def call(name, text="", **args):
     return AIMessage(content=text, tool_calls=[tool_call])
 
 
-def record(decision, award):
-    return call(
-        "record_decision",
-        decision=decision,
-        award=award,
-        section="Section 3, Trip Delay",
-        reason="The delay was covered.",
-    )
+def record(decision, award=None):
+    args = {
+        "decision": decision,
+        "section": "Section 3, Trip Delay",
+        "reason": "The delay was covered.",
+    }
+    return call("record_decision", **args)
 
 
 def decide(decision, award):
@@ -137,7 +136,10 @@ def calculate(case_id, award):
         "hours": 0,
     }
     return call(
-        "calculate_award", benefit="emergency_medical", lines=[bill], paid_by_others=0
+        "resolve_outcome",
+        benefit="emergency_medical",
+        lines=[bill],
+        paid_by_others=0,
     )
 
 

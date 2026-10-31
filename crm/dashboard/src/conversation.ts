@@ -17,7 +17,7 @@ export type ConfirmationAnswer = "sign_off" | "cancel";
 export interface Confirmation {
   case_id: string;
   customer_name: string;
-  award: number;
+  outcome: string;
   reason: string;
 }
 

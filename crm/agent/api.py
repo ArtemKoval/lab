@@ -89,11 +89,15 @@ def get_screening() -> dict[str, Any]:
     return call("GET", "/screening")
 
 
-def calculate_award(
-    case_id: str, benefit: Benefit, lines: list[dict[str, Any]], paid_by_others: float
+def resolve_outcome(
+    case_id: str,
+    outcome: str,
+    benefit: Benefit,
+    lines: list[dict[str, Any]],
+    paid_by_others: float,
 ) -> dict[str, Any]:
     body = {"benefit": benefit, "lines": lines, "paid_by_others": paid_by_others}
-    return call("POST", f"/cases/{case_id}/award", json=body)
+    return call("POST", f"/cases/{case_id}/outcomes/{outcome}", json=body)
 
 
 def start_case(case_id: str, thread_id: str) -> dict[str, Any]:

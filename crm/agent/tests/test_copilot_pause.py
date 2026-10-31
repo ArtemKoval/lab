@@ -54,7 +54,7 @@ def test_the_pause(client, copilot: Copilot):
     assert turn["confirmation"] == {
         "case_id": "CLM-1003",
         "customer_name": case["customer_name"],
-        "award": 3750.0,
+        "outcome": "3,750.00 awarded",
         "reason": case["decision"]["reason"],
     }
     assert turn["steps"] == []

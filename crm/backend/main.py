@@ -19,17 +19,11 @@ from sqlalchemy import (
     update,
 )
 
-from backend import agent_api, agent_service, dashboard
-from backend.calculation import (
-    attempts_calculation,
-    clear_calculation,
-    keep_calculation,
-)
+from backend import agent_api, agent_service, context_files, dashboard
 from backend.configuration import router as configuration
 from backend.copilot import router as copilot
 from backend.customers import router as customers_router
 from backend.database import (
-    award_rules,
     case_view,
     cases,
     contracts,
@@ -93,7 +87,7 @@ from backend.models import (
     WorkTimeRequest,
 )
 from backend.money import dollars
-from backend.records import check_calculation, check_request
+from backend.records import NOTHING_RESOLVED, check_request, falls_short
 from backend.round_state import round_row, why_no_case_starts
 from backend.runs import router as runs
 from backend.sent_back import keep, sent_back_of
@@ -154,9 +148,10 @@ def approval_limit(db: Connection) -> float:
     return current_settings(db).approval_limit
 
 
-def plans(db: Connection) -> Plans:
-    """Return the plans and add-ons, and the benefits the deductible applies to."""
-    return Plans(**db.execute(select(award_rules.c.plans)).scalar_one())
+def plans() -> Plans:
+    """Return the plans and add-ons, and the benefits the deductible applies
+    to, from the pack's context layer."""
+    return Plans(**context_files.plans())
 
 
 def case_in_full(db: Connection, case_id: str) -> Case:
@@ -185,58 +180,64 @@ def over_the_limit(limit: float) -> str:
     return f"An award over {dollars(limit)} needs a worker's sign-off"
 
 
-def keep_outcome(db: Connection, case_id: str, outcome: str, payload: dict) -> None:
-    """Store one resolved outcome's payload, over any earlier one."""
+def keep_outcome(
+    db: Connection, case: RowMapping, outcome: str, payload: dict
+) -> None:
+    """Store one resolved outcome's payload for the attempt in flight, over
+    any earlier one."""
     db.execute(
         delete(outcomes).where(
-            outcomes.c.case_id == case_id, outcomes.c.outcome == outcome
+            outcomes.c.case_id == case["case_id"], outcomes.c.outcome == outcome
         )
     )
     db.execute(
         insert(outcomes).values(
-            case_id=case_id, outcome=outcome, payload=payload, resolved_at=now()
+            case_id=case["case_id"],
+            outcome=outcome,
+            thread_id=case["thread_id"],
+            payload=payload,
+            resolved_at=now(),
         )
     )
 
 
-def stored_payload(db: Connection, case_id: str, outcome: str) -> dict | None:
-    """Return one stored outcome payload, or nothing. The engine moves it
-    opaque, and never reads inside it."""
+def stored_payload(
+    db: Connection, case: RowMapping, outcome: str
+) -> dict | None:
+    """Return the outcome payload resolved on the case's current attempt, or
+    nothing. The engine moves it opaque, and never reads inside it."""
     return db.execute(
         select(outcomes.c.payload).where(
-            outcomes.c.case_id == case_id, outcomes.c.outcome == outcome
+            outcomes.c.case_id == case["case_id"],
+            outcomes.c.outcome == outcome,
+            outcomes.c.thread_id == case["thread_id"],
         )
     ).scalar_one_or_none()
 
 
-def gated(db: Connection, payload: dict | None, award: float, limit: float) -> bool:
+def gated(db: Connection, payload: dict, limit: float) -> bool:
     """Ask the pack's gate whether an outcome is held for a worker's
-    sign-off. A decision with no payload falls back to the award float,
-    which the removal stage drops."""
-    if payload is not None:
-        try:
-            return protocol().gate(payload, {"approval_limit": limit})
-        except (KeyError, TypeError, ValueError) as error:
-            raise HTTPException(
-                422, f"The outcome payload does not fit the pack's gate: {error}"
-            ) from error
-    return rules().needs_sign_off(award, limit)
+    sign-off, under the limit in force."""
+    try:
+        return protocol().gate(payload, {"approval_limit": limit})
+    except (KeyError, TypeError, ValueError) as error:
+        raise HTTPException(
+            422, f"The outcome payload does not fit the pack's gate: {error}"
+        ) from error
 
 
 def run_the_effect(db: Connection, case: RowMapping, effect: str) -> dict:
     """Execute one of a case's declared effects once, and record the run with
-    the pack's summary of the outcome. The record comes from the pack's
-    execute verb, and a case whose outcome carries no payload yet gets the
-    record alone."""
-    payload = stored_payload(db, case["case_id"], effect)
+    the pack's summary of its outcome. The record comes from the pack's
+    execute verb on the outcome the case decided on."""
+    payload = stored_payload(db, case, effect)
     record = protocol().execute(dict(case), payload)
-    summary = protocol().summarize(payload) if payload is not None else None
     db.execute(
         insert(effect_runs).values(
             case_id=case["case_id"],
             effect=effect,
             result=record,
-            summary=summary,
+            summary=protocol().summarize(payload),
             ran_at=now(),
         )
     )
@@ -279,10 +280,10 @@ def answer_held(
 
 def record_send_back(db: Connection, case: RowMapping, note: str, by: str) -> None:
     """Keep a held decision sent back with its note, clear it from the case with
-    its calculation, so nothing can pay it, and record the note as a step."""
+    its resolved outcome, so nothing runs for it, and record the note as a step."""
     keep(db, case, note, by)
     db.execute(delete(decisions).where(decisions.c.case_id == case["case_id"]))
-    clear_calculation(db, case["case_id"])
+    db.execute(delete(outcomes).where(outcomes.c.case_id == case["case_id"]))
     step = NewStep(kind="sent_back", content=f"Sent back by {by}: {note}", sources=[])
     add_step(db, case["case_id"], case["thread_id"], step)
 
@@ -526,39 +527,33 @@ def list_steps(case_id: str, db: Database) -> list[Step]:
     dependencies=[AgentKey],
 )
 def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Case:
-    """Record a case's decision once, as section 14 asks; approvals await payment."""
+    """Record a case's decision once, as section 14 asks of it."""
     check_request(request)
     case = find_case(db, case_id)
-    award = request.award
+    kind = outcome_kind() if request.decision == DecisionKind.APPROVE else None
     if case["decision"] is not None:
-        if (case["decision"], case["award"]) == (request.decision, award):
+        if (case["decision"], case["outcome"]) == (request.decision, kind):
             return case_in_full(db, case_id)
         raise HTTPException(409, ALREADY_DECIDED.format(case_id=case_id))
     if case["status"] != Status.IN_PROGRESS:
         raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
-    calculation = None
-    if request.decision == DecisionKind.APPROVE:
-        calculation = check_calculation(award, attempts_calculation(db, case))
-    limit = approval_limit(db)
-    # The outcome the pack resolved for the case, moved opaque. An approval
-    # always names the kind it approves, and carries the payload when the
-    # case has one on file; the payload gap closes with the award's removal.
+    # An approval carries the outcome the pack resolved for the case, moved
+    # opaque. A decline or a referral carries none.
     payload = None
-    kind = None
-    if request.decision == DecisionKind.APPROVE:
-        kind = outcome_kind()
-        payload = stored_payload(db, case_id, kind)
+    if kind is not None:
+        payload = stored_payload(db, case, kind)
+        if payload is None:
+            raise falls_short(NOTHING_RESOLVED)
+    limit = approval_limit(db)
     db.execute(
         insert(decisions).values(
             case_id=case_id,
             decision=request.decision,
-            award=award,
             section=request.section,
             reason=request.reason,
             decided_by=request.decided_by,
             decided_at=now(),
             manual_version=manual_version(db),
-            calculation=calculation and calculation.model_dump(),
             approval_limit=limit,
             outcome=kind,
             payload=payload,
@@ -566,32 +561,37 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
     )
     if request.decision != DecisionKind.APPROVE:
         set_status(db, case_id, Status.DECIDED)
-    elif gated(db, payload, award, limit):
+    elif gated(db, payload, limit):
         set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
     return case_in_full(db, case_id)
 
 
 @app.post(
-    "/api/cases/{case_id}/award",
-    operation_id="calculate_award",
+    "/api/cases/{case_id}/outcomes/{outcome}",
+    operation_id="resolve_outcome",
     dependencies=[AgentKey],
 )
-def calculate_award(case_id: str, request: AwardRequest, db: Database) -> Award:
-    """Work out and keep an approval's award with the pack's resolve verb."""
+def resolve_outcome(
+    case_id: str, outcome: str, request: AwardRequest, db: Database
+) -> Award:
+    """Resolve one of a case's declared outcomes with the pack's resolve verb."""
     case = case_in_full(db, case_id)
     if case.thread_id is None:
         raise HTTPException(409, NOT_STARTED.format(case_id=case_id))
     if case.status != Status.IN_PROGRESS:
         raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
+    if outcome not in loader.pack().outcomes:
+        raise HTTPException(
+            404, f"The pack resolves no outcome called {outcome!r}"
+        )
     contract = find_contract(db, case.contract_id)
-    config = {"plans": plans(db), "approval_limit": approval_limit(db)}
+    config = {"plans": plans(), "approval_limit": approval_limit(db)}
     try:
-        award = protocol().resolve({"contract": contract}, config, request)
+        resolved = protocol().resolve({"contract": contract}, config, request)
     except ValueError as error:
         raise HTTPException(422, str(error)) from error
-    keep_calculation(db, case_id, case.thread_id, award)
-    keep_outcome(db, case_id, outcome_kind(), award.model_dump())
-    return award
+    keep_outcome(db, find_case(db, case_id), outcome, resolved.model_dump())
+    return resolved
 
 
 @app.post(
@@ -615,7 +615,7 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(403, over_the_limit(case["approval_limit"]))
     limit = approval_limit(db)
-    if gated(db, stored_payload(db, case_id, effect), case["award"], limit):
+    if gated(db, stored_payload(db, case, effect), limit):
         raise HTTPException(403, over_the_limit(limit))
     run_the_effect(db, case, effect)
     return case_in_full(db, case_id).effect

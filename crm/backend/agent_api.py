@@ -15,7 +15,7 @@ BASE_OPERATIONS = {
     "get_case",
     "get_contract",
     "get_case_history",
-    "calculate_award",
+    "resolve_outcome",
     "record_decision",
 }
 

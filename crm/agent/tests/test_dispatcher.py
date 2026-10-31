@@ -67,7 +67,7 @@ def test_never_more_than_n_case_agents_at_once(client):
     reports = dispatch(model, agents=3)
 
     assert model.most_at_once == 3
-    assert sorted(reports) == [f"{case_id}  refer  $0.00" for case_id in ids]
+    assert sorted(reports) == [f"{case_id}  refer" for case_id in ids]
     cases = [case_of(client, case_id) for case_id in ids]
     assert {c["status"] for c in cases} == {"decided"}
     assert len({c["thread_id"] for c in cases}) == len(ids)
@@ -97,7 +97,7 @@ def test_a_rate_limit_waits_and_carries_the_case_on(client):
     leave_waiting("CLM-1001")
     limited = ModelRateLimitError("429 Too Many Requests")
     model = swarm({"CLM-1001": [call("get_case"), limited, record("refer", 0)]})
-    assert dispatch(model) == ["CLM-1001  refer  $0.00"]
+    assert dispatch(model) == ["CLM-1001  refer"]
 
     case = case_of(client, "CLM-1001")
     assert (case["status"], case["attempts"]) == ("decided", 1)
@@ -120,7 +120,7 @@ def test_a_case_still_failing_after_its_tries_is_left_in_progress(client, error)
     assert time.monotonic() - began < 5
 
     left = f"CLM-1001  left for the next dispatch: {type(error).__name__}: {error}"
-    assert sorted(reports) == [left, "CLM-1003  decline  $0.00"]
+    assert sorted(reports) == [left, "CLM-1003  decline"]
     assert tries_on(model, "CLM-1001") == 3
     case = case_of(client, "CLM-1001")
     assert (case["status"], case["attempts"]) == ("in_progress", 1)
@@ -138,7 +138,7 @@ def test_a_case_that_fails_is_tried_once_more_in_the_same_dispatch(client):
     reports = dispatch(model)
 
     assert sorted(reports) == [
-        "CLM-1001  refer  $0.00",
+        "CLM-1001  refer",
         "CLM-1004  failed: RuntimeError: 503: The model is unavailable,"
         " left for a worker",
     ]
@@ -166,7 +166,7 @@ def test_a_case_started_elsewhere_is_reported_and_the_rest_worked(client, monkey
     reports = dispatch(swarm({"CLM-1001": decide("refer", 0)}))
 
     assert sorted(reports) == [
-        "CLM-1001  refer  $0.00",
+        "CLM-1001  refer",
         "CLM-1003  left for the next dispatch: Refused: 409: Case CLM-1003 is not"
         " waiting",
     ]
@@ -242,7 +242,7 @@ def test_a_dispatch_stopped_partway_is_finished_by_the_next(client):
     assert client.get(f"/api/runs/{first}").json()["stopped_because"] == (
         "The agent stopped answering"
     )
-    assert sorted(reports) == ["CLM-1001  refer  $0.00", "CLM-1003  decline  $0.00"]
+    assert sorted(reports) == ["CLM-1001  refer", "CLM-1003  decline"]
     for case_id, before in stopped.items():
         case = case_of(client, case_id)
         assert (case["status"], case["attempts"]) == ("decided", 1)
@@ -265,7 +265,7 @@ def test_an_approval_whose_payment_failed_is_paid_by_the_next_dispatch(
     )
     assert case_of(client, "CLM-1001")["status"] == "in_progress"
 
-    assert dispatch(stub(), saver) == ["CLM-1001  approve  $420.00"]
+    assert dispatch(stub(), saver) == ["CLM-1001  approve  420.00 awarded"]
     assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
 
 

@@ -121,7 +121,7 @@ def test_the_effort_gate_asks_the_rules(protocol):
 
 
 def test_the_escalation_record_moves_no_money(protocol):
-    assert protocol.execute({"award": 10.5}, None) == {
+    assert protocol.execute({"award": 10.5}, {"award": 10.5}) == {
         "queue": "platform",
         "hours": 10.5,
     }

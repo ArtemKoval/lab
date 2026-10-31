@@ -75,10 +75,10 @@ def test_the_wait_for_a_dispatch(client, copilot: Copilot, agent_calls, monkeypa
     went = json.loads(copilot.model.prompts[2][-1].text)
     assert went["status"] == "finished"
     assert went["summary"]["waiting_for_sign_off"] == [
-        {"case_id": "CLM-1003", "award": 3750.0}
+        {"case_id": "CLM-1003", "outcome": "3,750.00 awarded"}
     ]
     assert went["needs_a_worker"] == {
-        "held_for_sign_off": [{"case_id": "CLM-1003", "award": 3750.0}],
+        "held_for_sign_off": [{"case_id": "CLM-1003", "outcome": "3,750.00 awarded"}],
         "referred": ["CLM-1018"],
         "left_for_a_worker": [],
         "sent_back_not_taken_up": [],

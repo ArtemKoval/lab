@@ -17,7 +17,7 @@ from backend.tests.case_requests import sign_off
 from backend.tests.dashboard_reads import steps_of
 from backend.tests.settings_requests import change_settings
 
-HELD = "CLM-1003  approve  $3,750.00, waiting for sign-off"
+HELD = "CLM-1003  approve  3,750.00 awarded, waiting for sign-off"
 
 
 def test_an_approval_held_for_sign_off_pauses_the_case_graph(client):
@@ -37,7 +37,7 @@ def test_a_payment_the_gateway_refuses_pauses_the_case_graph(client, gateway):
     change_settings(client, approval_limit=2000.0)
     agent = agent_on(stub(*approve("CLM-1002", 1500.0)), route=Gateway(gateway.url))
     report = harness.work_case("CLM-1002", None, agent)
-    assert report == "CLM-1002  approve  $1,500.00, waiting for sign-off"
+    assert report == "CLM-1002  approve  1,500.00 awarded, waiting for sign-off"
     case = case_of(client, "CLM-1002")
     assert case["decision"]["gateway_refusal"] == DENIED
     assert harness.paused(case, agent)
@@ -47,7 +47,7 @@ def test_an_evaluations_copy_held_for_sign_off_doesnt_pause(client):
     run = new_evaluation("evaluation")
     agent = agent_on(stub(*approve("CLM-1020", 1240.0)), pauses=False)
     report = harness.work_in_run("CLM-1020-E1", run["run_id"], lambda: agent)
-    assert report == "CLM-1020-E1  approve  $1,240.00, waiting for sign-off"
+    assert report == "CLM-1020-E1  approve  1,240.00 awarded, waiting for sign-off"
     state = state_of(agent, client, "CLM-1020-E1")
     assert (state.interrupts, state.next) == ((), ())
     assert not harness.paused(case_of(client, "CLM-1020-E1"), agent)
@@ -80,7 +80,7 @@ def test_a_sign_off_resumes_the_case_and_ends_its_work(client, remembers):
     assert "memory_save" not in [s["kind"] for s in steps_of(client, "CLM-1003")]
     assert store is None or store.events == []
 
-    assert harness.resume("CLM-1003", agent) == "CLM-1003  approve  $3,750.00"
+    assert harness.resume("CLM-1003", agent) == "CLM-1003  approve  3,750.00 awarded"
     assert model.prompts == []
     assert [r["result"]["amount"] for r in effects_of("CLM-1003")] == [3750.0]
     kinds = [s["kind"] for s in steps_of(client, "CLM-1003")]

@@ -79,7 +79,12 @@ const PAGES: [string, Routes][] = [
 // A number with its unit, such as $1,150.00, 64%, 2.20 or 40 s, and the words
 // a numeric column shows in place of a number. A bare whole number is an id,
 // such as a version's, and reads from the left.
-const NUMBERS = [/^[+−-]?\$[\d,.]+/, /^[\d.]+%/, /^\d+\.\d+/, /^\d+ (?:s|min)/];
+const NUMBERS = [
+  /^[+−-]?\$[\d,.]+$/,
+  /^[\d.]+%$/,
+  /^\d+\.\d+$/,
+  /^\d+ (?:s|min)$/,
+];
 const IN_PLACE_OF_A_NUMBER = new Set([
   "",
   "None",

@@ -11,6 +11,15 @@ from backend.models import (
     SentBackDecision,
     Status,
 )
+from domains import loader
+
+
+def outcome_line(payload: dict | None) -> str | None:
+    """The pack's own line on a resolved outcome, through its summarize, or
+    nothing when there is none."""
+    if payload is None:
+        return None
+    return loader.pack().protocol_module().summarize(payload)
 
 
 def to_summary(row: RowMapping) -> CaseSummary:
@@ -25,7 +34,7 @@ def to_summary(row: RowMapping) -> CaseSummary:
             "status": row["status"],
             "customer_name": row["customer_name"],
             "decision": row["decision"],
-            "award": row["award"],
+            "outcome": outcome_line(row["payload"]),
             "resuming": resuming,
         }
     )

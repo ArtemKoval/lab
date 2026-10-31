@@ -71,7 +71,7 @@ def test_the_models_tools_are_the_same_on_both_routes(gateway):
         on_each.append([(tool.name, tool.args) for tool in tools])
     assert on_each[0] == on_each[1]
     inputs = {name: set(args) for name, args in on_each[0]}
-    for name in ("get_case", "get_contract", "get_case_history", "calculate_award"):
+    for name in ("get_case", "get_contract", "get_case_history", "resolve_outcome"):
         assert {"case_id", "contract_id", "customer_id"} & inputs[name] == set()
 
 
@@ -80,16 +80,16 @@ def test_the_gateway_route_reads_decides_and_pays_through_the_gateway(client, ga
         call("get_case"),
         call("get_contract"),
         call("get_case_history"),
-        call("calculate_award", benefit="trip_delay", lines=DELAY, paid_by_others=0),
+        call("resolve_outcome", benefit="trip_delay", lines=DELAY, paid_by_others=0),
         record("approve", 420.0),
     )
     report = harness.work_case("CLM-1001", None, on_the_gateway(gateway, model))
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     assert gateway.names == [
         f"{APP}get_case",
         f"{APP}get_contract",
         f"{APP}get_case_history",
-        f"{APP}calculate_award",
+        f"{APP}resolve_outcome",
         f"{APP}record_decision",
         f"{APP}run_effect",
     ]
@@ -111,7 +111,7 @@ def test_the_bookkeeping_and_the_checks_referral_skip_the_gateway(client, gatewa
     report = harness.work_case(
         "CLM-1901", None, on_the_gateway(gateway, stub(), screener=flags())
     )
-    assert report == "CLM-1901  refer  $0.00"
+    assert report == "CLM-1901  refer"
     assert gateway.calls == []
     model = stub(*decide("refer", 0))
     harness.work_case("CLM-1003", None, on_the_gateway(gateway, model))
@@ -147,14 +147,14 @@ def test_a_decision_the_app_refuses_is_a_refusal_on_each_route(
         record("approve", 0), calculate("CLM-1001", 420.0), record("approve", 420.0)
     )
     report = harness.work_case("CLM-1001", None, agent_on(model, route=route))
-    assert report == "CLM-1001  approve  $420.00"
+    assert report == "CLM-1001  approve  420.00 awarded"
     refusal = model.prompts[1][-1]
     assert isinstance(refusal, ToolMessage)
     # The app's answer: through the agent's API, its status and reason, and
     # through the Gateway, the body the app answered with.
     answer = {"direct": "Refused with status 422: ", "gateway": 'Refused: {"detail":'}
     assert refusal.text.startswith(answer[route_name])
-    assert "section 14: an approval needs a award above zero" in refusal.text
+    assert "an approval needs the outcome the pack resolved" in refusal.text
     refusals = [s for s in steps_of(client, "CLM-1001") if s["kind"] == "refusal"]
     name = route.name(Target.APP, "record_decision")
     assert [s["content"] for s in refusals] == [f"{name}: {refusal.text}"]
@@ -165,7 +165,7 @@ def test_a_tool_the_gateway_refuses_is_a_refusal_and_the_work_goes_on(client, ga
     gateway.refused.add(f"{APP}get_contract")
     model = stub(call("get_contract"), *decide("refer", 0))
     report = harness.work_case("CLM-1003", None, on_the_gateway(gateway, model))
-    assert report == "CLM-1003  refer  $0.00"
+    assert report == "CLM-1003  refer"
     refusal = model.prompts[1][-1]
     assert refusal.text == f"Refused by the Gateway: {DENIED}"
     [step] = [s for s in steps_of(client, "CLM-1003") if s["kind"] == "refusal"]
@@ -177,7 +177,7 @@ def test_a_payment_the_gateway_refuses_waits_for_a_workers_sign_off(client, gate
     model = stub(*approve("CLM-1002", 1500.0))
     agent = on_the_gateway(gateway, model)
     report = harness.work_case("CLM-1002", None, agent)
-    assert report == "CLM-1002  approve  $1,500.00, waiting for sign-off"
+    assert report == "CLM-1002  approve  1,500.00 awarded, waiting for sign-off"
     assert gateway.names[-1] == f"{APP}run_effect"
     case = case_of(client, "CLM-1002")
     assert (case["status"], case["effect"]) == ("waiting_for_sign_off", None)
@@ -192,7 +192,7 @@ def test_a_payment_the_gateway_refuses_waits_for_a_workers_sign_off(client, gate
 
     assert sign_off(client, "CLM-1002").status_code == 200
     steps = steps_of(client, "CLM-1002")
-    assert harness.resume("CLM-1002", agent) == "CLM-1002  approve  $1,500.00"
+    assert harness.resume("CLM-1002", agent) == "CLM-1002  approve  1,500.00 awarded"
     assert len(model.prompts) == 3
     assert steps_of(client, "CLM-1002") == steps
     assert [r["result"]["amount"] for r in effects_of("CLM-1002")] == [1500.0]
@@ -237,7 +237,6 @@ def test_the_stand_ins_app_tools_are_the_agents_api_documents_operations(
     assert set(record_decision["required"]) == {
         "case_id",
         "decision",
-        "award",
         "section",
         "reason",
         "decided_by",
@@ -261,7 +260,7 @@ def test_the_context_layers_tools_answer_on_each_route(
 ):
     model = stub(*CONTEXT_CALLS, *decide("refer", 0))
     report = harness.work_case("CLM-1003", None, agent_on(model, route=route))
-    assert report == "CLM-1003  refer  $0.00"
+    assert report == "CLM-1003  refer"
     *answers, refused = [
         m for m in model.prompts[len(CONTEXT_CALLS)] if isinstance(m, ToolMessage)
     ]

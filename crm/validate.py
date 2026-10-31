@@ -63,7 +63,7 @@ SERVED_TOOLS = (
     "get_case_history",
     "search_documents",
     "read_section",
-    "calculate_award",
+    "resolve_outcome",
     "record_decision",
     "run_effect",
     "list_cases",

@@ -4,7 +4,6 @@ from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import (
-    AfterValidator,
     BaseModel,
     ConfigDict,
     Field,
@@ -167,8 +166,6 @@ class DecisionRecord(BaseModel):
     """A decision as cases manual section 14 records it."""
 
     decision: DecisionKind
-    award: float
-    calculation: Calculation | None
     section: str
     reason: str
     decided_by: str
@@ -193,7 +190,7 @@ class EffectRun(BaseModel):
     case_id: str
     effect: str
     result: dict
-    summary: str | None
+    summary: str
     ran_at: str
 
 
@@ -225,7 +222,10 @@ class CaseSummary(BaseModel):
     submitted_on: str
     status: Status
     decision: DecisionKind | None
-    award: float | None
+    outcome: str | None = Field(
+        default=None,
+        description="The pack's own line on the outcome it resolved, if it did",
+    )
     resuming: bool = Field(description="A resume is working on the case")
 
 
@@ -392,9 +392,6 @@ class DecisionRequest(BaseModel):
     """A decision to record, which cases manual section 14 checks."""
 
     decision: DecisionKind
-    award: Annotated[float, AfterValidator(to_the_cent)] = Field(
-        description="In US dollars, 0 for a decline or referral"
-    )
     section: str = Field(
         description="The sections of the wording and the manual relied on"
     )
@@ -503,7 +500,7 @@ class Award(BaseModel):
 
 class HeldAward(BaseModel):
     case_id: str
-    award: float
+    outcome: str
 
 
 class DispatchSummary(BaseModel):
@@ -577,6 +574,9 @@ class CaseGrade(BaseModel):
 class ScoredCase(RunCase):
     copy_of: str
     reason: str | None
+    # The number the pack's metric reads from the outcome payload, which
+    # scoring compares with the worker's label.
+    award: float
     section: str | None
     grade: CaseGrade | None
     worker_decision: DecisionKind
@@ -969,7 +969,7 @@ class Confirmation(BaseModel):
 
     case_id: str
     customer_name: str
-    award: float
+    outcome: str
     reason: str
 
 

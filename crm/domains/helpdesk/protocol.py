@@ -22,9 +22,9 @@ def gate(outcome: dict, config: dict) -> bool:
     return rules.needs_sign_off(outcome["award"], config["approval_limit"])
 
 
-def execute(case: dict, outcome: dict | None) -> dict:
-    """Give the credit-issue record for an approved case. The engine writes it."""
-    return {"amount": case["award"]}
+def execute(case: dict, outcome: dict) -> dict:
+    """Give the credit-issue record from the outcome. The engine writes it."""
+    return {"amount": outcome["award"]}
 
 
 def summarize(outcome: dict) -> str:

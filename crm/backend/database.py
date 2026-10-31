@@ -89,11 +89,6 @@ settings = Table(
     Column("changed_by", Text),
     Column("changed_at", Text, nullable=False),
 )
-award_rules = Table(
-    "award_rules",
-    metadata,
-    Column("plans", JSON, nullable=False),
-)
 models_allowed = Table(
     "models_allowed",
     metadata,
@@ -161,6 +156,7 @@ worker_decisions = Table(
     Column("evaluation_set", Text, primary_key=True),
     Column("case_id", Text, primary_key=True),
     Column("decision", Text, nullable=False),
+    # The workers' own award for the case, which scoring reads as the label.
     Column("award", Float, nullable=False),
     Column("tiny", Boolean, nullable=False),
     Column("reason", Text, nullable=False),
@@ -171,15 +167,12 @@ decisions = Table(
     metadata,
     Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
     Column("decision", Text, nullable=False),
-    Column("award", Float, nullable=False),
     Column("section", Text, nullable=False),
     Column("reason", Text, nullable=False),
     Column("decided_at", Text, nullable=False),
     # Who or what made the decision, and the cases manual's version in force.
     Column("decided_by", Text, nullable=False),
     Column("manual_version", Text, nullable=False),
-    # An approval's calculation, its lines and its award, and none otherwise.
-    Column("calculation", JSON),
     # The approval limit in force when the decision was recorded.
     Column("approval_limit", Float, nullable=False),
     Column("signed_off_by", Text),
@@ -199,8 +192,6 @@ sent_back_decisions = Table(
     Column("sent_back_id", Integer, primary_key=True),
     Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
     Column("decision", Text, nullable=False),
-    Column("award", Float, nullable=False),
-    Column("calculation", JSON),
     Column("section", Text, nullable=False),
     Column("reason", Text, nullable=False),
     Column("decided_by", Text, nullable=False),
@@ -213,17 +204,6 @@ sent_back_decisions = Table(
     Column("sent_back_by", Text, nullable=False),
     Column("sent_back_at", Text, nullable=False),
 )
-# Each case's latest calculation of its award, on the thread of the attempt it was
-# made in, which an approval in that attempt must match.
-calculations = Table(
-    "calculations",
-    metadata,
-    Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
-    Column("thread_id", Text, nullable=False),
-    Column("lines", JSON, nullable=False),
-    Column("award", Float, nullable=False),
-    Column("calculated_at", Text, nullable=False),
-)
 # Each case's resolved outcomes, one opaque payload per outcome kind. The
 # engine stores a payload and reads it only through the pack's verbs.
 outcomes = Table(
@@ -231,6 +211,9 @@ outcomes = Table(
     metadata,
     Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
     Column("outcome", Text, primary_key=True),
+    # The attempt's thread the resolve ran in; an approval on a later attempt
+    # needs a resolve of its own.
+    Column("thread_id", Text, nullable=False),
     Column("payload", JSON, nullable=False),
     Column("resolved_at", Text, nullable=False),
 )
@@ -242,7 +225,7 @@ effect_runs = Table(
     Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
     Column("effect", Text, nullable=False),
     Column("result", JSON, nullable=False),
-    Column("summary", Text),
+    Column("summary", Text, nullable=False),
     Column("ran_at", Text, nullable=False),
     UniqueConstraint("case_id", "effect", name="uq_effect_runs_case_effect"),
 )
@@ -507,13 +490,11 @@ case_view = (
         cases.c.resume_heard_at,
         customers.c.name.label("customer_name"),
         decisions.c.decision,
-        decisions.c.award,
         decisions.c.section,
         decisions.c.reason,
         decisions.c.decided_at,
         decisions.c.decided_by,
         decisions.c.manual_version,
-        decisions.c.calculation,
         decisions.c.approval_limit,
         decisions.c.signed_off_by,
         decisions.c.signed_off_at,
@@ -647,7 +628,6 @@ def seed(db: Engine) -> dict[str, int]:
         metadata.drop_all(connection)
         metadata.create_all(connection)
         seed_settings(connection, company["award_approval_limit"])
-        connection.execute(insert(award_rules).values(plans=context_files.plans()))
         seed_models_allowed(connection)
         seed_documents(connection)
         connection.execute(

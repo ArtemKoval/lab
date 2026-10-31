@@ -171,7 +171,7 @@ class GatewayStandIn:
             f"{Target.APP}{SEPARATOR}get_case", {"case_id": case_id}
         )
         decision = json.loads(answer).get("decision") or {}
-        return decision.get("award", 0.0) > LIMIT
+        return (decision.get("payload") or {}).get("award", 0.0) > LIMIT
 
     async def look_up(self, tool: str, inputs: dict[str, Any]) -> types.CallToolResult:
         """Answer one of the context layer's tools with the context layer's own

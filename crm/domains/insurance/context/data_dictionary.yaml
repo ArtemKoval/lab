@@ -103,14 +103,14 @@ records:
         meaning: The decision.
         values: [approve, decline, refer]
         personal: false
-      - field: decision.award
-        meaning: The amount to pay, after limits and the deductible. Zero for a decline or a referral.
-        units: US dollars
+      - field: decision.outcome
+        meaning: The kind of outcome the pack resolved for an approval, and nothing for a decline or a referral.
         personal: false
-      - field: decision.calculation
+      - field: decision.payload
         meaning: >-
-          How an approval's award was worked out, line by line, as the award rules
-          gave it. Empty for a decline or a referral.
+          The outcome the pack resolved, as it gave it: an approval's calculation
+          with its award. The engine stores it and never reads inside it. Empty
+          for a decline or a referral.
         personal: false
       - field: decision.section
         meaning: The sections of the contract wording and the cases manual the decision relies on.

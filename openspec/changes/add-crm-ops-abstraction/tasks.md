@@ -25,11 +25,11 @@
 
 ## Stage 5 — removal
 
-- [ ] 5.1 Drop `award`, `payments`, `award_rules`, the `/awards/over-limit` route, and the aliases.
-- [ ] 5.2 The dashboard renders `summarize(payload)`. The suite moves to the payload shape.
+- [x] 5.1 Drop `award`, `payments`, `award_rules`, the `/awards/over-limit` route, and the aliases.
+- [x] 5.2 The dashboard renders `summarize(payload)`. The suite moves to the payload shape.
 
 ## 6. Delivery
 
-- [ ] 6.1 Each stage lands green: the crm suite, ruff, and the gates.
+- [x] 6.1 Each stage lands green: the crm suite, ruff, and the gates.
 - [ ] 6.2 Commit, push, and open the pull request. Run the adversarial review on the whole diff, fix, and merge.
 - [ ] 6.3 Archive through the archive pull request.

@@ -3,7 +3,6 @@
 import pytest
 
 from backend.database import (
-    award_rules,
     effect_runs,
     engine,
     load,
@@ -25,7 +24,7 @@ def test_seeding_makes_the_first_settings_and_the_models_allowed(client):
     assert (current["number"], current["changed_by"]) == (1, None)
     assert [c["number"] for c in page["changes"]] == [1]
     assert page["models_allowed"] == load("models.json")
-    assert (count(award_rules), count(models_allowed)) == (1, 3)
+    assert count(models_allowed) == 3
 
 
 def test_a_student_on_a_free_model_has_only_that_model(client, monkeypatch):

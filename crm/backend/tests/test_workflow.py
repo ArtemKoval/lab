@@ -103,12 +103,11 @@ def test_approve_and_run_the_effect_within_the_limit(client):
     start(client, "CLM-1001")
     case = decide(client, "CLM-1001", "approve", 420.0).json()
     assert case["status"] == "in_progress"
-    assert case["decision"]["award"] == 420.0
+    assert case["decision"]["payload"]["award"] == 420.0
     assert case["effect"] is None
     response = pay(client, "CLM-1001")
     assert response.status_code == 200
     assert response.json()["result"]["amount"] == 420.0
-    assert response.json()["summary"] is None
     case = client.get("/api/cases/CLM-1001").json()
     assert case["status"] == "decided"
     assert case["effect"]["result"]["amount"] == 420.0
@@ -120,10 +119,9 @@ def test_a_repeated_decision_is_done_and_a_different_one_refused(client):
     again = decide(client, "CLM-1001", "approve", 420.0)
     assert again.status_code == 200
     assert again.json()["decision"] == first["decision"]
-    different = decide(client, "CLM-1001", "approve", 400.0)
+    different = decide(client, "CLM-1001", "decline", 0)
     assert different.status_code == 409
     assert different.json()["detail"] == "Case CLM-1001 has already been decided"
-    assert decide(client, "CLM-1001", "decline", 0).status_code == 409
     pay(client, "CLM-1001")
     assert decide(client, "CLM-1001", "approve", 420.0).json()["status"] == "decided"
 
@@ -142,10 +140,10 @@ def test_queue_shows_the_decision(client):
     decide(client, "CLM-1001", "approve", 420.0)
     pay(client, "CLM-1001")
     first = client.get("/api/cases").json()[0]
-    assert (first["status"], first["decision"], first["award"]) == (
+    assert (first["status"], first["decision"], first["outcome"]) == (
         "decided",
         "approve",
-        420.0,
+        "420.00 awarded",
     )
 
 

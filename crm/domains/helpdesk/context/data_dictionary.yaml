@@ -102,14 +102,12 @@ records:
         meaning: The decision. Resolve carries a credit, close carries none, and escalate hands the ticket to a lead.
         values: [approve, decline, refer]
         personal: false
-      - field: decision.award
-        meaning: The credit to pay, after any credit already issued, the multiplier and the cap. Zero for a close or an escalation.
-        units: US dollars
+      - field: decision.outcome
+        meaning: The kind of outcome the pack resolved for an approval, and nothing for the others.
         personal: false
-      - field: decision.calculation
-        meaning: >-
-          How a resolution's credit was worked out, line by line, as the award
-          rules gave it. Empty for a close or an escalation.
+        personal: false
+      - field: decision.payload
+        meaning: The outcome the pack resolved, as it gave it. The engine stores it and never reads inside it.
         personal: false
       - field: decision.section
         meaning: The sections of the support wording and the support manual the decision relies on.

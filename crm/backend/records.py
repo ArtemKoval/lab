@@ -1,23 +1,19 @@
 """What cases manual section 14 asks of a decision record: the request's checks,
-which need nothing from the case, and the calculation's, each refusing with a 422
-whose message names section 14."""
+which need nothing from the case, each refusing with a 422 whose message names
+section 14."""
 
 from fastapi import HTTPException
 
-from backend.models import Calculation, DecisionKind, DecisionRequest
-from backend.money import dollars
+from backend.models import DecisionRequest
 
 SECTION_14 = "Cases manual section 14: {missing}"
 NO_REASON = "a decision record needs a reason in plain language"
 NO_SECTION = "a decision record needs the section relied on"
 NO_MAKER = "a decision record needs who or what made the decision"
-NOTHING_APPROVED = "an approval needs a award above zero"
-SOMETHING_PAID = "a decline or a referral has a award of zero"
-NO_CALCULATION = (
-    "an approval needs the calculation of its award for this attempt. Work it out "
-    "with calculate_award"
+NOTHING_RESOLVED = (
+    "an approval needs the outcome the pack resolved for this attempt. "
+    "Work it out with resolve_outcome"
 )
-NOT_THE_CALCULATION = "the award must be the calculation's {award}"
 
 
 def falls_short(missing: str) -> HTTPException:
@@ -34,19 +30,3 @@ def check_request(request: DecisionRequest) -> None:
     ):
         if not text.strip():
             raise falls_short(missing)
-    approval = request.decision == DecisionKind.APPROVE
-    if approval and request.award <= 0:
-        raise falls_short(NOTHING_APPROVED)
-    if not approval and request.award != 0:
-        raise falls_short(SOMETHING_PAID)
-
-
-def check_calculation(award: float, calculation: Calculation | None) -> Calculation:
-    """Return the calculation on file for an approval's attempt, or refuse the
-    approval when there is none or its award isn't the calculation's."""
-    if calculation is None:
-        raise falls_short(NO_CALCULATION)
-    if award != calculation.award:
-        calculated = dollars(calculation.award)
-        raise falls_short(NOT_THE_CALCULATION.format(award=calculated))
-    return calculation

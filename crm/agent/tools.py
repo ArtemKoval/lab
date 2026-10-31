@@ -17,6 +17,7 @@ from agent.agentcore_memory import UNREACHABLE
 from agent.context_tools import CONTEXT_TOOLS, Query
 from agent.json_text import as_json
 from agent.routes import Route, Target
+from domains import loader
 
 
 @dataclass
@@ -117,8 +118,8 @@ def what_was_found(query: str, found: list[str]) -> str:
 
 
 @tool
-def calculate_award(
-    benefit: Annotated[api.Benefit, "The benefit the case is paid under"],
+def resolve_outcome(
+    benefit: Annotated[api.Benefit, "The benefit the case is resolved under"],
     lines: Annotated[
         list[api.Line],
         "The covered items and expenses, one for each line of the case, with any "
@@ -129,33 +130,33 @@ def calculate_award(
     ],
     runtime: ToolRuntime[CaseContext],
 ) -> str:
-    """Work out the award on your case with CRM's award rules."""
-    award = on_app(
+    """Resolve your case's outcome with the pack's rules."""
+    resolved = on_app(
         runtime,
-        "calculate_award",
+        "resolve_outcome",
         case_id=runtime.context.case_id,
+        outcome=next(iter(loader.pack().outcomes)),
         benefit=benefit,
         lines=[line.model_dump() for line in lines],
         paid_by_others=paid_by_others,
     )
-    return as_json(award)
+    return as_json(resolved)
 
 
 @tool
 def record_decision(
     decision: app_terms.DecisionKind,
-    award: Annotated[float, "In US dollars, and 0 for a decline or a referral"],
     section: Annotated[str, "The sections of the wording and the manual relied on"],
     reason: Annotated[str, "Two or three plain sentences for a colleague"],
     runtime: ToolRuntime[CaseContext],
 ) -> Command:
-    """Record the decision on your case, once, which ends your work on it."""
+    """Record the decision on your case, once, which ends your work on it. An
+    approval carries the outcome resolve_outcome worked out for the case."""
     case = on_app(
         runtime,
         "record_decision",
         case_id=runtime.context.case_id,
         decision=decision,
-        award=award,
         section=section,
         reason=reason,
         decided_by=runtime.context.decided_by,
@@ -173,7 +174,7 @@ APP_TOOLS = [
     get_case,
     get_contract,
     get_case_history,
-    calculate_award,
+    resolve_outcome,
     record_decision,
 ]
 CASE_TOOLS = APP_TOOLS + CONTEXT_TOOLS

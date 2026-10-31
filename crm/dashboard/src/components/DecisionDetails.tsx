@@ -1,23 +1,27 @@
-import type { Calculation, DecisionRecord } from "../api";
+import type { DecisionRecord } from "../api";
 import { money, time } from "../format";
 import { DecisionChip } from "./Chips";
 
 // A decision's whole record, as cases manual section 14 asks for it: the
-// decision and its award, how the award was worked out, the section, the
-// reason, who made it and when, and the manual's version.
+// decision, the outcome payload the pack resolved, the section, the reason,
+// who made it and when, and the manual's version.
 export function DecisionDetails({
   decision,
 }: Readonly<{ decision: DecisionRecord }>) {
+  const calculation = decision.payload?.calculation;
   return (
     <>
       <div className="decision-line">
         <DecisionChip decision={decision.decision} />
-        {decision.decision === "approve" && (
-          <span className="award mono">{money(decision.award)}</span>
+        {decision.payload?.award !== undefined && (
+          <span className="award mono">{money(decision.payload.award)}</span>
         )}
       </div>
-      {decision.calculation && (
-        <CalculationTable calculation={decision.calculation} />
+      {calculation && (
+        <CalculationTable
+          calculation={calculation}
+          award={decision.payload?.award ?? 0}
+        />
       )}
       <p className="section-ref">{decision.section}</p>
       <p className="reason">{decision.reason}</p>
@@ -31,16 +35,22 @@ export function DecisionDetails({
   );
 }
 
-// How an approval's award was worked out, line by line.
+// How the pack worked the outcome out, line by line.
 function CalculationTable({
   calculation,
-}: Readonly<{ calculation: Calculation }>) {
+  award,
+}: Readonly<{
+  calculation: NonNullable<
+    NonNullable<DecisionRecord["payload"]>["calculation"]
+  >;
+  award: number;
+}>) {
   return (
     <div className="table-scroll calculation">
       <table className="table">
         <caption className="small muted">How the award was worked out</caption>
         <tbody>
-          {calculation.lines.map((line, index) => (
+          {calculation.map((line, index) => (
             // Two lines can read alike, so each is known by its place too.
             <tr key={`${String(index)} ${line.step}`}>
               <td>{line.step}</td>
@@ -51,7 +61,7 @@ function CalculationTable({
         <tfoot>
           <tr>
             <th scope="row">Award</th>
-            <td className="num mono">{money(calculation.award)}</td>
+            <td className="num mono">{money(award)}</td>
           </tr>
         </tfoot>
       </table>

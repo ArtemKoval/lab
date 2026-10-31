@@ -15,7 +15,7 @@ AGENT_OPERATIONS = {
     "record_model_call",
     "record_work_time",
     "record_decision",
-    "calculate_award",
+    "resolve_outcome",
     "run_effect",
     "hold_payment",
     "fail_case",

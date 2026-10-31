@@ -1,4 +1,4 @@
-import type { Case, Decision, Payment } from "../api";
+import type { Case, Decision } from "../api";
 import { money, time } from "../format";
 import { useWorker } from "../worker";
 import { DecisionDetails } from "./DecisionDetails";
@@ -6,7 +6,7 @@ import { NotAllowed } from "./NotAllowed";
 import { SendBackForm } from "./SendBackForm";
 import { SignOffForm } from "./SignOffForm";
 
-type SignOff = Pick<Payment, "signed_off_by" | "signed_off_at">;
+type SignOff = Pick<Decision, "signed_off_by" | "signed_off_at">;
 
 function whoAndWhen({ signed_off_by, signed_off_at }: SignOff): string | null {
   return signed_off_by && signed_off_at
@@ -58,7 +58,7 @@ export function DecisionPanel({
 // Why a payment waits for a worker's sign-off: it's over the approval limit,
 // or the Gateway refused it.
 function WhyHeld({ decision }: Readonly<{ decision: Decision }>) {
-  const amount = <span className="mono">{money(decision.award)}</span>;
+  const amount = <span className="mono">{money(decision.payload?.award ?? 0)}</span>;
   if (decision.gateway_refusal)
     return (
       <>

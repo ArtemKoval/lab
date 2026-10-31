@@ -152,12 +152,11 @@ def grade_of(row: RowMapping) -> CaseGrade | None:
 
 
 def scored_award(row: RowMapping) -> float:
-    """Return the money in a copy's outcome, through the pack's metric. A
-    copy with no payload falls back to the award float, which the removal
-    stage drops."""
-    if row["payload"] is not None:
-        return loader.pack().protocol_module().metric(row["payload"])
-    return row["award"]
+    """Return the number the pack's metric reads from a copy's outcome
+    payload. A copy with no outcome scores as nothing."""
+    if row["payload"] is None:
+        return 0.0
+    return loader.pack().protocol_module().metric(row["payload"])
 
 
 def scored_case(row: RowMapping, expected: scoring.Answer) -> ScoredCase:
@@ -167,6 +166,7 @@ def scored_case(row: RowMapping, expected: scoring.Answer) -> ScoredCase:
         **to_run_case(row).model_dump(),
         copy_of=row["copy_of"],
         reason=row["reason"],
+        award=answer.award,
         section=row["section"],
         grade=grade_of(row),
         worker_decision=expected.decision,

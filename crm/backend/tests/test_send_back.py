@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
-from backend.database import calculations, effect_runs
+from backend.database import effect_runs, outcomes
 from backend.tests.agent_answers import slow, unreachable
 from backend.tests.case_requests import (
     NOTE,
@@ -63,10 +63,8 @@ def test_a_send_back_keeps_the_decision_with_the_note_and_clears_it(
     decision = before["decision"]
     assert kept == {
         "decision": "approve",
-        "award": 2240.0,
         "outcome": "award",
-        "payload": None,
-        "calculation": decision["calculation"],
+        "payload": decision["payload"],
         "section": decision["section"],
         "reason": decision["reason"],
         "decided_by": decision["decided_by"],
@@ -77,9 +75,9 @@ def test_a_send_back_keeps_the_decision_with_the_note_and_clears_it(
         "sent_back_by": "Dana Whitfield",
         "sent_back_at": kept["sent_back_at"],
     }
-    assert decision["calculation"]["award"] == 2240.0
+    assert decision["payload"]["award"] == 2240.0
     assert datetime.fromisoformat(kept["sent_back_at"]) <= datetime.now(UTC)
-    assert count(calculations) == 0
+    assert count(outcomes) == 0
     step = steps_of(client, "CLM-1008")[-1]
     assert (step["kind"], step["content"], step["thread_id"]) == (
         "sent_back",
