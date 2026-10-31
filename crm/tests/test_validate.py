@@ -62,6 +62,10 @@ def execute(case: dict, outcome: dict | None) -> dict:
 
 def summarize(outcome: dict) -> str:
     raise NotImplementedError
+
+
+def metric(payload: dict) -> float:
+    raise NotImplementedError
 '''
 
 GOOD_DOC = """---
@@ -257,7 +261,7 @@ def test_a_pack_without_a_protocol_is_named(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "verb", ["resolve", "gate", "execute", "summarize"]
+    "verb", ["resolve", "gate", "execute", "summarize", "metric"]
 )
 def test_a_protocol_verb_that_lacks_the_contract_is_named(tmp_path, verb):
     make_pack(

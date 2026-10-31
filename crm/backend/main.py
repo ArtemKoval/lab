@@ -179,6 +179,30 @@ def keep_outcome(db: Connection, case_id: str, outcome: str, payload: dict) -> N
     )
 
 
+def stored_payload(db: Connection, case_id: str, outcome: str) -> dict | None:
+    """Return one stored outcome payload, or nothing. The engine moves it
+    opaque, and never reads inside it."""
+    return db.execute(
+        select(outcomes.c.payload).where(
+            outcomes.c.case_id == case_id, outcomes.c.outcome == outcome
+        )
+    ).scalar_one_or_none()
+
+
+def gated(db: Connection, payload: dict | None, award: float, limit: float) -> bool:
+    """Ask the pack's gate whether an outcome is held for a worker's
+    sign-off. A decision with no payload falls back to the award float,
+    which the removal stage drops."""
+    if payload is not None:
+        try:
+            return protocol().gate(payload, {"approval_limit": limit})
+        except (KeyError, TypeError, ValueError) as error:
+            raise HTTPException(
+                422, f"The outcome payload does not fit the pack's gate: {error}"
+            ) from error
+    return rules().needs_sign_off(award, limit)
+
+
 def record_payment(
     db: Connection, case: RowMapping, outcome: dict | None = None
 ) -> dict:
@@ -479,6 +503,14 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
     if request.decision == DecisionKind.APPROVE:
         calculation = check_calculation(award, attempts_calculation(db, case))
     limit = approval_limit(db)
+    # The outcome the pack resolved for the case, moved opaque. An approval
+    # with no stored outcome carries none, which the removal stage drops.
+    payload = None
+    outcome_kind = None
+    if request.decision == DecisionKind.APPROVE:
+        payload = stored_payload(db, case_id, "award")
+        if payload is not None:
+            outcome_kind = "award"
     db.execute(
         insert(decisions).values(
             case_id=case_id,
@@ -491,11 +523,13 @@ def record_decision(case_id: str, request: DecisionRequest, db: Database) -> Cas
             manual_version=manual_version(db),
             calculation=calculation and calculation.model_dump(),
             approval_limit=limit,
+            outcome=outcome_kind,
+            payload=payload,
         )
     )
     if request.decision != DecisionKind.APPROVE:
         set_status(db, case_id, Status.DECIDED)
-    elif rules().needs_sign_off(award, limit):
+    elif gated(db, payload, award, limit):
         set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
     return case_in_full(db, case_id)
 
@@ -535,11 +569,7 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
         raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(403, over_the_limit(case["approval_limit"]))
-    payload = db.execute(
-        select(outcomes.c.payload).where(
-            outcomes.c.case_id == case_id, outcomes.c.outcome == effect
-        )
-    ).scalar_one_or_none()
+    payload = stored_payload(db, case_id, effect)
     if payload is None:
         raise HTTPException(404, NOT_RESOLVED.format(case_id=case_id, outcome=effect))
     prior = db.execute(
@@ -567,7 +597,7 @@ def pay_case(case_id: str, request: PaymentRequest, db: Database) -> Case:
     """Pay an approved case its award once, unless it is over the limit."""
     amount = round(request.amount, 2)
     limit = approval_limit(db)
-    if rules().needs_sign_off(amount, limit):
+    if gated(db, stored_payload(db, case_id, "award"), amount, limit):
         raise HTTPException(403, over_the_limit(limit))
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:

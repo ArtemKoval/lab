@@ -175,6 +175,10 @@ class DecisionRecord(BaseModel):
     decided_at: str
     manual_version: str
     gateway_refusal: str | None
+    # The outcome kind the pack resolved, and its opaque payload, on an
+    # approval, and nothing on a decline or a referral.
+    outcome: str | None = None
+    payload: dict | None = None
 
 
 class Decision(DecisionRecord):

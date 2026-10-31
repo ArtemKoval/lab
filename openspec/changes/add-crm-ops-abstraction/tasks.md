@@ -13,9 +13,9 @@
 
 ## Stage 3 — the payload
 
-- [ ] 3.1 Add `resolution` and `payload` to the decisions. the routes accept opaque outcomes.
-- [ ] 3.2 The sign-off gate moves behind the pack (`gate` verb). The core holds and answers generically.
-- [ ] 3.3 Scoring and the judge read the pack metric accessor.
+- [x] 3.1 Add `resolution` and `payload` to the decisions. the routes accept opaque outcomes.
+- [x] 3.2 The sign-off gate moves behind the pack (`gate` verb). The core holds and answers generically.
+- [ ] 3.3 Scoring and the judge read the pack metric accessor. The accessor exists on both packs and the contracts validate it; the scoring rewiring is next.
 
 ## Stage 4 — the declarations
 

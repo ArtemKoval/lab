@@ -6,11 +6,12 @@ import sys
 import types
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import insert, select
 
 from backend.database import engine, outcomes
 from backend.tests.case_requests import decide, line, start, work_out_award
 from backend.tests.settings_requests import change_settings
+from domains.insurance import protocol as insurance_protocol
 from domains.loader import Pack, PackError
 
 TRIP_DELAY = [
@@ -36,6 +37,10 @@ def execute(case, outcome):
 
 def summarize(outcome):
     raise NotImplementedError
+
+
+def metric(payload):
+    raise NotImplementedError
 '''
 
 
@@ -55,14 +60,14 @@ def a_pack(monkeypatch, source: str, tmp_path) -> Pack:
     return Pack(name="protocolcheck", root=root, manifest={})
 
 
-def test_the_loader_takes_a_protocol_with_all_four_verbs(monkeypatch, tmp_path):
+def test_the_loader_takes_a_protocol_with_all_five_verbs(monkeypatch, tmp_path):
     module = a_pack(monkeypatch, GOOD, tmp_path).protocol_module()
-    verbs = ("resolve", "gate", "execute", "summarize")
+    verbs = ("resolve", "gate", "execute", "summarize", "metric")
     seen = [callable(getattr(module, verb, None)) for verb in verbs]
-    assert seen == [True, True, True, True]
+    assert seen == [True] * 5
 
 
-@pytest.mark.parametrize("verb", ["resolve", "gate", "execute", "summarize"])
+@pytest.mark.parametrize("verb", ["resolve", "gate", "execute", "summarize", "metric"])
 def test_the_loader_refuses_a_protocol_that_lacks_a_verb(monkeypatch, verb, tmp_path):
     body = GOOD.replace(f"def {verb}", f"def moved_{verb}")
     with pytest.raises(PackError) as error:
@@ -142,3 +147,43 @@ def test_a_calculated_award_is_stored_as_one_outcome_payload(client):
     assert len(rows) == 1
     assert (rows[0]["case_id"], rows[0]["outcome"]) == ("CLM-1001", "award")
     assert rows[0]["payload"]["award"] == 420.0
+
+
+def test_an_approval_carries_the_outcome_payload(client):
+    an_approved_case(client)
+    case = client.get("/api/cases/CLM-1001").json()
+    assert case["decision"]["outcome"] == "award"
+    assert case["decision"]["payload"]["award"] == 420.0
+
+
+def test_a_decline_carries_no_outcome(client):
+    start(client, "CLM-1001")
+    decide(client, "CLM-1001", "decline", 0)
+    decision = client.get("/api/cases/CLM-1001").json()["decision"]
+    assert (decision["outcome"], decision["payload"]) == (None, None)
+
+
+def test_an_outcome_over_the_limit_waits_through_the_gate(client):
+    an_approved_case(client, approval_limit=400.0)
+    case = client.get("/api/cases/CLM-1001").json()
+    assert case["status"] == "waiting_for_sign_off"
+
+
+def test_a_payload_that_does_not_fit_the_gate_is_refused(client):
+    start(client, "CLM-1001")
+    with engine().begin() as db:
+        db.execute(
+            insert(outcomes).values(
+                case_id="CLM-1001",
+                outcome="award",
+                payload={"money": 420.0},
+                resolved_at="2026-01-01T00:00:00+00:00",
+            )
+        )
+    response = decide(client, "CLM-1001", "approve", 420.0)
+    assert response.status_code == 422
+    assert "does not fit the pack's gate" in response.json()["detail"]
+
+
+def test_the_metric_gives_the_number_the_scoring_reads(client):
+    assert insurance_protocol.metric({"award": 420.0}) == 420.0

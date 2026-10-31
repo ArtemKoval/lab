@@ -18,7 +18,7 @@ DOMAINS = Path(__file__).resolve().parent
 DEFAULT_DOMAIN = "insurance"
 
 # The verbs every pack's protocol module carries, and the loader validates.
-PROTOCOL_VERBS = ("resolve", "gate", "execute", "summarize")
+PROTOCOL_VERBS = ("resolve", "gate", "execute", "summarize", "metric")
 
 
 class PackError(Exception):

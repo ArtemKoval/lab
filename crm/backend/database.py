@@ -186,6 +186,10 @@ decisions = Table(
     Column("signed_off_at", Text),
     # Why the Gateway refused to pay an approval, which then waits for sign-off.
     Column("gateway_refusal", Text),
+    # The outcome kind the pack resolved, and its opaque payload, on an
+    # approval. The engine stores a payload and never reads inside it.
+    Column("outcome", Text),
+    Column("payload", JSON),
 )
 # The decisions workers sent back to the agent, each with its note, who sent it
 # back and when.
@@ -203,6 +207,8 @@ sent_back_decisions = Table(
     Column("decided_at", Text, nullable=False),
     Column("manual_version", Text, nullable=False),
     Column("gateway_refusal", Text),
+    Column("outcome", Text),
+    Column("payload", JSON),
     Column("note", Text, nullable=False),
     Column("sent_back_by", Text, nullable=False),
     Column("sent_back_at", Text, nullable=False),
@@ -518,6 +524,8 @@ case_view = (
         decisions.c.signed_off_by,
         decisions.c.signed_off_at,
         decisions.c.gateway_refusal,
+        decisions.c.outcome,
+        decisions.c.payload,
         payments.c.amount,
         payments.c.paid_at,
     )

@@ -41,12 +41,14 @@ RULES_CONTRACT = {
     "needs_sign_off": ["award", "approval_limit"],
 }
 
-# The protocol contract: the four verbs, with the exact parameter names, in order.
+# The protocol contract: the four verbs and the metric accessor, with the
+# exact parameter names, in order.
 PROTOCOL_CONTRACT = {
     "resolve": ["case", "config", "request"],
     "gate": ["outcome", "config"],
     "execute": ["case", "outcome"],
     "summarize": ["outcome"],
+    "metric": ["payload"],
 }
 
 # The tools the engine serves to the case agent; instructions may only name these.

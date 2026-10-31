@@ -30,3 +30,8 @@ def execute(case: dict, outcome: dict | None) -> dict:
 def summarize(outcome: dict) -> str:
     """Give the worker-facing line for an outcome."""
     return f"{outcome['award']:,.2f} of service credit issued"
+
+
+def metric(payload: dict) -> float:
+    """Give the number the scoring reads."""
+    return float(payload["award"])

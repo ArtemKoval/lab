@@ -64,6 +64,8 @@ def test_a_send_back_keeps_the_decision_with_the_note_and_clears_it(
     assert kept == {
         "decision": "approve",
         "award": 2240.0,
+        "outcome": None,
+        "payload": None,
         "calculation": decision["calculation"],
         "section": decision["section"],
         "reason": decision["reason"],
