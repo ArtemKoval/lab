@@ -91,7 +91,7 @@ def test_each_case_shows_where_it_stands_with_its_cost_and_time(client):
     record_time(client, "CLM-1001", run_id, seconds=20)
     record_time(client, "CLM-1001", run_id, seconds=21.5)
     decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
 
     dispatch = latest_dispatch(client)
     first, second = dispatch["cases"]
@@ -100,7 +100,7 @@ def test_each_case_shows_where_it_stands_with_its_cost_and_time(client):
         "Maya Patel",
         "decided",
     )
-    assert (first["decision"], first["award"]) == ("approve", 420.0)
+    assert (first["decision"], first["outcome"]) == ("approve", "420.00 awarded")
     assert (first["seconds"], first["model_cost"]) == (41.5, pytest.approx(0.01))
     assert first["started_at"]
     assert (second["status"], second["decision"], second["started_at"]) == (
@@ -119,7 +119,7 @@ def test_finishing_a_dispatch_sums_up_its_cases(client):
     for case_id in started:
         start(client, case_id)
     decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
     decide(client, "CLM-1003", "decline", 0)
     decide(client, "CLM-1004", "refer", 0)
     decide(client, "CLM-1008", "approve", 2240.0)
@@ -139,7 +139,9 @@ def test_finishing_a_dispatch_sums_up_its_cases(client):
         "approved": 3,
         "declined": 1,
         "referred": 1,
-        "waiting_for_sign_off": [{"case_id": "CLM-1008", "award": 2240.0}],
+        "waiting_for_sign_off": [
+            {"case_id": "CLM-1008", "outcome": "2,240.00 awarded"}
+        ],
         "left_for_worker": ["CLM-1016"],
         "unfinished": ["CLM-1012", "CLM-1006", "CLM-1005"],
     }

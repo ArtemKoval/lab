@@ -43,18 +43,21 @@ test("the Scoreboard shows an evaluation played out through the API", async ({
     decision: DecisionKind,
     award: number,
   ) =>
-    decide(request, copyOf(original), {
-      decision,
+    decide(
+      request,
+      copyOf(original),
+      {
+        decision,
+        section: "Section 5",
+        reason: `The agent's reason on ${original}.`,
+      },
       award,
-      section: "Section 5",
-      reason: `The agent's reason on ${original}.`,
-    });
-  const pay = (original: string, amount: number) =>
-    payCase(request, copyOf(original), amount);
+    );
+  const pay = (original: string) => payCase(request, copyOf(original));
   await decideCopy("CLM-1104", "approve", 250);
-  await pay("CLM-1104", 250);
+  await pay("CLM-1104");
   await decideCopy("CLM-1106", "approve", 300);
-  await pay("CLM-1106", 300);
+  await pay("CLM-1106");
   await decideCopy("CLM-1110", "refer", 0);
   await decideCopy("CLM-1112", "approve", 1200);
   await finishRun(request, run_id);

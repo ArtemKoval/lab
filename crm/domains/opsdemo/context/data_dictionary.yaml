@@ -1,0 +1,47 @@
+# What each field means in the records the case agent reads: an escalation,
+# its SLA tier and the site's earlier escalations.
+
+source:
+  system: The data catalog
+  owner: Data governance
+  reviewed: "2026-10-01"
+
+records:
+  - record: case
+    description: An escalation as the operations platform holds it, from the site's report and the desk's work.
+    source_system: Operations platform
+    fields:
+      - field: case_id
+        meaning: The escalation's reference, such as ESC-5001. A copy worked in an evaluation adds a suffix, such as ESC-5001-E2.
+        personal: false
+      - field: contract_id
+        meaning: The SLA the escalation is made under, such as CON-5001.
+        personal: false
+      - field: customer_id
+        meaning: The site that raised the escalation, such as CUS-5002.
+        personal: false
+      - field: customer_name
+        meaning: The site's name.
+        personal: false
+      - field: case_type
+        meaning: The kind of fault, such as access, network or printer.
+        personal: false
+      - field: items
+        meaning: The work items the desk judges, each with its hours in the amount field. The amount carries hours, and no money.
+        personal: false
+      - field: amount_claimed
+        meaning: The hours the site's report adds up to, before the desk judges any item.
+        personal: false
+      - field: status
+        meaning: Where the escalation stands, such as waiting or decided.
+        personal: false
+  - record: contract
+    description: The SLA a site holds with the operations desk.
+    source_system: SLA register
+    fields:
+      - field: plan
+        meaning: The SLA tier, standard or priority.
+        personal: false
+      - field: status
+        meaning: Whether the SLA is active or expired.
+        personal: false

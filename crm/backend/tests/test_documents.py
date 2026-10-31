@@ -1,11 +1,9 @@
-from pathlib import Path
 
 import pytest
-import yaml
 from sqlalchemy import select
 
 from backend import context_files
-from backend.database import award_rules, documents, engine
+from backend.database import documents, engine
 from backend.documents import headings, manual_version
 from domains import loader
 
@@ -46,20 +44,6 @@ def test_both_documents_are_seeded_from_the_context_layer_with_their_versions():
         assert context.startswith("---\nsource:\n")
         assert context.endswith(f"---\n\n{labs}")
 
-
-def test_the_award_rules_are_the_context_layers_plans():
-    plans = yaml.safe_load(
-        (
-            Path(__file__).parents[2]
-            / "domains"
-            / "insurance"
-            / "context"
-            / "plans.yaml"
-        ).read_text(encoding="utf-8")
-    )
-    del plans["source"]
-    with engine().connect() as db:
-        assert db.execute(select(award_rules.c.plans)).scalar_one() == plans
 
 
 def test_the_case_agent_reads_the_contents_of_both_documents(client):

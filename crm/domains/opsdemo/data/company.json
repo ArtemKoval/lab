@@ -1,0 +1,17 @@
+{
+  "name": "Nimbus OpsDesk",
+  "currency": "USD",
+  "award_approval_limit": 16.0,
+  "case_filing_window_days": 14,
+  "repeat_case_review": {
+    "cases": 3,
+    "within_months": 6
+  },
+  "on_call_margin": {
+    "amount": 1.5,
+    "per": "the escalation multiplier of a priority SLA tier, over two hours of work"
+  },
+  "filing_grace_days": 2,
+  "wording_version": "2026.1",
+  "manual_version": "2026.1"
+}

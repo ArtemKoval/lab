@@ -89,11 +89,6 @@ settings = Table(
     Column("changed_by", Text),
     Column("changed_at", Text, nullable=False),
 )
-award_rules = Table(
-    "award_rules",
-    metadata,
-    Column("plans", JSON, nullable=False),
-)
 models_allowed = Table(
     "models_allowed",
     metadata,
@@ -161,6 +156,7 @@ worker_decisions = Table(
     Column("evaluation_set", Text, primary_key=True),
     Column("case_id", Text, primary_key=True),
     Column("decision", Text, nullable=False),
+    # The workers' own award for the case, which scoring reads as the label.
     Column("award", Float, nullable=False),
     Column("tiny", Boolean, nullable=False),
     Column("reason", Text, nullable=False),
@@ -171,21 +167,22 @@ decisions = Table(
     metadata,
     Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
     Column("decision", Text, nullable=False),
-    Column("award", Float, nullable=False),
     Column("section", Text, nullable=False),
     Column("reason", Text, nullable=False),
     Column("decided_at", Text, nullable=False),
     # Who or what made the decision, and the cases manual's version in force.
     Column("decided_by", Text, nullable=False),
     Column("manual_version", Text, nullable=False),
-    # An approval's calculation, its lines and its award, and none otherwise.
-    Column("calculation", JSON),
     # The approval limit in force when the decision was recorded.
     Column("approval_limit", Float, nullable=False),
     Column("signed_off_by", Text),
     Column("signed_off_at", Text),
     # Why the Gateway refused to pay an approval, which then waits for sign-off.
     Column("gateway_refusal", Text),
+    # The outcome kind the pack resolved, and its opaque payload, on an
+    # approval. The engine stores a payload and never reads inside it.
+    Column("outcome", Text),
+    Column("payload", JSON),
 )
 # The decisions workers sent back to the agent, each with its note, who sent it
 # back and when.
@@ -195,35 +192,42 @@ sent_back_decisions = Table(
     Column("sent_back_id", Integer, primary_key=True),
     Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
     Column("decision", Text, nullable=False),
-    Column("award", Float, nullable=False),
-    Column("calculation", JSON),
     Column("section", Text, nullable=False),
     Column("reason", Text, nullable=False),
     Column("decided_by", Text, nullable=False),
     Column("decided_at", Text, nullable=False),
     Column("manual_version", Text, nullable=False),
     Column("gateway_refusal", Text),
+    Column("outcome", Text),
+    Column("payload", JSON),
     Column("note", Text, nullable=False),
     Column("sent_back_by", Text, nullable=False),
     Column("sent_back_at", Text, nullable=False),
 )
-# Each case's latest calculation of its award, on the thread of the attempt it was
-# made in, which an approval in that attempt must match.
-calculations = Table(
-    "calculations",
+# Each case's resolved outcomes, one opaque payload per outcome kind. The
+# engine stores a payload and reads it only through the pack's verbs.
+outcomes = Table(
+    "outcomes",
     metadata,
     Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
+    Column("outcome", Text, primary_key=True),
+    # The attempt's thread the resolve ran in; an approval on a later attempt
+    # needs a resolve of its own.
     Column("thread_id", Text, nullable=False),
-    Column("lines", JSON, nullable=False),
-    Column("award", Float, nullable=False),
-    Column("calculated_at", Text, nullable=False),
+    Column("payload", JSON, nullable=False),
+    Column("resolved_at", Text, nullable=False),
 )
-payments = Table(
-    "payments",
+# One executed effect per case and effect; the engine refuses a repeat.
+effect_runs = Table(
+    "effect_runs",
     metadata,
-    Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
-    Column("amount", Float, nullable=False),
-    Column("paid_at", Text, nullable=False),
+    Column("effect_run_id", Integer, primary_key=True),
+    Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
+    Column("effect", Text, nullable=False),
+    Column("result", JSON, nullable=False),
+    Column("summary", Text, nullable=False),
+    Column("ran_at", Text, nullable=False),
+    UniqueConstraint("case_id", "effect", name="uq_effect_runs_case_effect"),
 )
 steps = Table(
     "steps",
@@ -486,23 +490,20 @@ case_view = (
         cases.c.resume_heard_at,
         customers.c.name.label("customer_name"),
         decisions.c.decision,
-        decisions.c.award,
         decisions.c.section,
         decisions.c.reason,
         decisions.c.decided_at,
         decisions.c.decided_by,
         decisions.c.manual_version,
-        decisions.c.calculation,
         decisions.c.approval_limit,
         decisions.c.signed_off_by,
         decisions.c.signed_off_at,
         decisions.c.gateway_refusal,
-        payments.c.amount,
-        payments.c.paid_at,
+        decisions.c.outcome,
+        decisions.c.payload,
     )
     .join(customers, customers.c.customer_id == cases.c.customer_id)
     .outerjoin(decisions, decisions.c.case_id == cases.c.case_id)
-    .outerjoin(payments, payments.c.case_id == cases.c.case_id)
 )
 
 
@@ -613,8 +614,6 @@ def waiting_case(record: dict[str, Any], **columns: Any) -> dict[str, Any]:
 
 def seed(db: Engine) -> dict[str, int]:
     """Build the tables afresh from the pack and count what they hold."""
-    active = loader.pack()
-    company = active.load_json("company.json")
     worker_rows = load("workers.json")
     customer_rows = queue_records("customers.json")
     contract_rows = queue_records("contracts.json")
@@ -626,8 +625,7 @@ def seed(db: Engine) -> dict[str, int]:
             Table(name, MetaData()).drop(connection, checkfirst=True)
         metadata.drop_all(connection)
         metadata.create_all(connection)
-        seed_settings(connection, company["award_approval_limit"])
-        connection.execute(insert(award_rules).values(plans=context_files.plans()))
+        seed_settings(connection, loader.pack().settings["award_approval_limit"])
         seed_models_allowed(connection)
         seed_documents(connection)
         connection.execute(

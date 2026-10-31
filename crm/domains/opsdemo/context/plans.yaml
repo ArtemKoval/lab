@@ -1,0 +1,29 @@
+# Nimbus OpsDesk's two SLA tiers: each tier's response target, weekly
+# capacity, and on-call margin multiplier. Seeding loads this file into the
+# app's award rules, so the effort check and the agent read the same tiers.
+
+source:
+  system: SLA administration
+  owner: Head of operations
+  reviewed: "2026-10-01"
+
+plans:
+  - plan: standard
+    name: Nimbus Standard SLA
+    per_item_limit: 0.00
+    response_target_hours: 8
+    weekly_capacity: 16.00
+    escalation_multiplier: 1.00
+
+  - plan: priority
+    name: Nimbus Priority SLA
+    per_item_limit: 0.00
+    response_target_hours: 2
+    weekly_capacity: 40.00
+    escalation_multiplier: 1.50
+
+# No tier carries a deductible in version 2026.1.
+deductible_applies_to: []
+
+# OpsDesk sells no add-ons in version 2026.1.
+add_ons: []

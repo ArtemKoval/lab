@@ -5,13 +5,13 @@ whole answer written in code."""
 import threading
 
 import pytest
-from sqlalchemy import insert, select, update
+from sqlalchemy import select, update
 
 from agent.copilot import criteria, waiting
 from agent.tests.copilot_driver import Copilot, started_run
 from agent.tests.memory_stand_in import MemoryStandIn
 from agent.tests.stubs import call, stub
-from backend.database import engine, now, payments, worker_decisions
+from backend.database import engine, worker_decisions
 from backend.tests.case_requests import decide, held, sign_off, start
 from backend.tests.run_requests import (
     another_running_dispatch,
@@ -141,7 +141,7 @@ def test_the_answer_is_written_in_code(client, copilot: Copilot, agent_calls):
     assert criteria == table(
         ("80%", "Yes"),
         ("88%", "Yes"),
-        ("None paid over the limit yet", "Yes"),
+        ("Nothing held over the limit yet", "Yes"),
         "All three are met.",
     )
     assert len(copilot.model.prompts) == 1
@@ -156,27 +156,17 @@ def test_the_answer_is_written_in_code(client, copilot: Copilot, agent_calls):
     assert later["answer"] == "We're doing well."
 
 
-def paid_without_a_sign_off(case_id, amount):
-    """Write a payment straight into the table, as nothing in the app would for a
-    award held for sign-off."""
-    with engine().begin() as db:
-        db.execute(
-            insert(payments).values(case_id=case_id, amount=amount, paid_at=now())
-        )
-
-
-def test_the_third_with_none_paid_and_with_one_unsigned(
+def test_the_third_with_none_held_and_with_one_unsigned(
     client, copilot: Copilot, agent_calls
 ):
     cases = workers_decided()
     turn = check(
         copilot, client, agent_calls, lambda run: work_the_copies(client, run, cases)
     )
-    assert "| None paid over the limit yet | Yes |" in turn["answer"]
+    assert "| Nothing held over the limit yet | Yes |" in turn["answer"]
     held(client, "CLM-1002", 1350.0)
     sign_off(client, "CLM-1002")
     held(client, "CLM-1008", 1200.0)
-    paid_without_a_sign_off("CLM-1008", 1200.0)
     agent_calls.clear()
     turn = check(
         copilot, client, agent_calls, lambda run: work_the_copies(client, run, cases)
@@ -202,7 +192,7 @@ def test_an_evaluation_that_stops_gives_no_figures_for_the_first_two(
     assert turn["answer"] == table(
         (why, "Not known"),
         (why, "Not known"),
-        ("None paid over the limit yet", "Yes"),
+        ("Nothing held over the limit yet", "Yes"),
         "Only the third can be judged without the evaluation's figures, and it is met.",
     )
 
@@ -214,13 +204,12 @@ def test_an_evaluation_still_going_gives_no_figures_for_the_first_two(
     turn = check(copilot, client, agent_calls, lambda run: None)
     why = "Still going after 0 minutes. Follow it on the Scoreboard."
     assert f"| {why} | Not known |" in turn["answer"]
-    assert "| None paid over the limit yet | Yes |" in turn["answer"]
+    assert "| Nothing held over the limit yet | Yes |" in turn["answer"]
 
 
 def test_a_start_the_app_refuses_gives_its_reason(client, copilot: Copilot):
     another_running_dispatch()
     held(client, "CLM-1008", 1200.0)
-    paid_without_a_sign_off("CLM-1008", 1200.0)
     copilot.model = stub(call("check_success_criteria"))
     [turn] = copilot.ask(CHECK)["turns"]
     why = "The evaluation couldn't start: A dispatch is running"
@@ -245,15 +234,15 @@ def test_the_accuracy_objective_comes_from_the_settings(
     assert turn["answer"] == table(
         ("80%", "Yes"),
         ("88%", "No"),
-        ("None paid over the limit yet", "Yes"),
+        ("Nothing held over the limit yet", "Yes"),
         "Two of the three are met.",
         objective="90%",
     )
 
 
 def test_the_objective_shows_as_settings_shows_it():
-    none_paid = {"paid_over_the_limit": 0, "signed_off": 0}
-    [_, accuracy, _] = criteria.rows(criteria.Figures(0.8, 0.70), 0.705, none_paid)
+    none_held = {"held": 0, "signed_off": 0}
+    [_, accuracy, _] = criteria.rows(criteria.Figures(0.8, 0.70), 0.705, none_held)
     assert (accuracy.target, accuracy.figure, accuracy.met) == (
         "At least 70.5%, our accuracy objective in Settings",
         "70%",

@@ -13,9 +13,14 @@ from validate import Examiner  # noqa: E402
 GOOD_MANIFEST = {
     "name": "tiny",
     "display_name": "Tiny",
-    "engine_api": 1,
+    "engine_api": 2,
     "rules": "rules",
+    "protocol": "protocol",
     "settings": {"award_approval_limit": 100.0},
+    "resolutions": ["approve", "decline", "refer"],
+    "outcomes": {"award": "resolve"},
+    "config": {"award_approval_limit": "The largest award paid without a sign-off"},
+    "effects": {"award": {"outcome": "award", "gated": True}},
     "documents": ["wording"],
     "seed": {
         "cases": "cases.json",
@@ -41,6 +46,31 @@ def work_out_award(
     total = sum(line.amount for line in request.lines)
     award = round(max(total, 0.0), 2)
     return Award(calculation=[], award=award, needs_sign_off=needs_sign_off(award, approval_limit))
+'''
+
+GOOD_PROTOCOL = '''"""Tiny protocol."""
+
+from backend.models import Award, AwardRequest
+
+
+def resolve(case: dict, config: dict, request: AwardRequest) -> Award:
+    raise NotImplementedError
+
+
+def gate(outcome: dict, config: dict) -> bool:
+    raise NotImplementedError
+
+
+def execute(case: dict, outcome: dict | None) -> dict:
+    raise NotImplementedError
+
+
+def summarize(outcome: dict) -> str:
+    raise NotImplementedError
+
+
+def metric(payload: dict) -> float:
+    raise NotImplementedError
 '''
 
 GOOD_DOC = """---
@@ -81,6 +111,7 @@ def make_pack(root: Path, **overrides) -> Path:
     manifest["name"] = root.name
     (root / "manifest.json").write_text(json.dumps(manifest))
     (root / "rules.py").write_text(overrides.get("rules", GOOD_RULES))
+    (root / "protocol.py").write_text(overrides.get("protocol", GOOD_PROTOCOL))
     policy = root / "policy"
     policy.mkdir(parents=True, exist_ok=True)
     (policy / "wording.md").write_text(overrides.get("wording", GOOD_DOC))
@@ -175,6 +206,14 @@ def test_a_missing_manifest_key_is_named(tmp_path):
     )
 
 
+def test_a_config_that_names_a_missing_setting_is_named(tmp_path):
+    manifest = GOOD_MANIFEST.copy()
+    manifest["config"] = {"award_approval_limit": "s", "missing_key": "s"}
+    make_pack(tmp_path / "tiny", manifest=manifest)
+    findings = findings_for(tmp_path / "tiny")["manifest.json"]
+    assert any("missing_key" in message for message in findings)
+
+
 def test_a_rules_signature_drift_is_named(tmp_path):
     make_pack(
         tmp_path / "tiny",
@@ -223,3 +262,33 @@ def test_a_domain_noun_in_a_file_name_is_named(tmp_path):
     assert any(
         "claims.json" in message for message in findings_for(root)["data/claims.json"]
     )
+
+
+def test_a_pack_without_a_protocol_is_named(tmp_path):
+    make_pack(tmp_path / "tiny")
+    (tmp_path / "tiny" / "protocol.py").unlink()
+    assert (
+        findings_for(tmp_path / "tiny")["protocol.py"]
+        == ["the pack has no protocol module"]
+    )
+
+
+@pytest.mark.parametrize(
+    "verb", ["resolve", "gate", "execute", "summarize", "metric"]
+)
+def test_a_protocol_verb_that_lacks_the_contract_is_named(tmp_path, verb):
+    make_pack(
+        tmp_path / "tiny",
+        protocol=GOOD_PROTOCOL.replace(f"def {verb}", f"def moved_{verb}"),
+    )
+    findings = findings_for(tmp_path / "tiny")["protocol.py"]
+    assert any(f"lacks the function '{verb}'" in message for message in findings)
+
+
+def test_a_protocol_signature_drift_is_named(tmp_path):
+    make_pack(
+        tmp_path / "tiny",
+        protocol=GOOD_PROTOCOL.replace("outcome: dict, config: dict", "outcome: dict"),
+    )
+    findings = findings_for(tmp_path / "tiny")["protocol.py"]
+    assert any("gate takes" in message for message in findings)

@@ -142,7 +142,7 @@ def test_scoring_an_evaluation(client):
         record_call(client, copy, run_id, cost=0.0125)
         record_time(client, copy, run_id, seconds=40)
     decide(client, "CLM-1104-E1", "approve", 250.0)
-    client.post("/api/cases/CLM-1104-E1/payment", json={"amount": 250.0})
+    client.post("/api/cases/CLM-1104-E1/effects/award")
     decide(client, "CLM-1106-E1", "approve", 300.0)
     decide(client, "CLM-1110-E1", "refer", 0)
     decide(client, "CLM-1112-E1", "approve", 1200.0)

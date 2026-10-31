@@ -4,11 +4,21 @@ from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import (
-    AfterValidator,
     BaseModel,
-    ConfigDict,
     Field,
     StringConstraints,
+)
+
+from backend.pack_types import (  # noqa: F401 — the pack-shaped types re-exported
+    AddOn,
+    Award,
+    AwardRequest,
+    Benefit,
+    CalculationStep,
+    Line,
+    LineKind,
+    Plan,
+    Plans,
 )
 
 
@@ -135,10 +145,7 @@ NOTE_LENGTH = 1000
 Agents = Annotated[
     int, Field(ge=1, le=MOST_AGENTS, description="How many case agents work at once")
 ]
-Benefit = str
-LineKind = Literal[
-    "item", "electronics", "cash", "expense", "hotel", "meals_without_receipts"
-]
+
 
 
 class Item(BaseModel):
@@ -153,11 +160,6 @@ class Document(BaseModel):
     content: str
 
 
-class CalculationStep(BaseModel):
-    step: str
-    amount: float
-
-
 class Calculation(BaseModel):
     lines: list[CalculationStep]
     award: float
@@ -167,14 +169,16 @@ class DecisionRecord(BaseModel):
     """A decision as cases manual section 14 records it."""
 
     decision: DecisionKind
-    award: float
-    calculation: Calculation | None
     section: str
     reason: str
     decided_by: str
     decided_at: str
     manual_version: str
     gateway_refusal: str | None
+    # The outcome kind the pack resolved, and its opaque payload, on an
+    # approval, and nothing on a decline or a referral.
+    outcome: str | None = None
+    payload: dict | None = None
 
 
 class Decision(DecisionRecord):
@@ -182,11 +186,26 @@ class Decision(DecisionRecord):
     signed_off_at: str | None
 
 
-class Payment(BaseModel):
-    amount: float
-    paid_at: str
-    signed_off_by: str | None
-    signed_off_at: str | None
+class EffectRun(BaseModel):
+    """One executed effect on a case, with the record the pack's execute gave,
+    and its summary of the outcome."""
+
+    case_id: str
+    effect: str
+    result: dict
+    summary: str
+    ran_at: str
+
+
+class PackView(BaseModel):
+    """The active pack's declarations, which the tools and the dashboard render."""
+
+    name: str
+    display_name: str
+    resolutions: list[str]
+    outcomes: dict[str, str]
+    config: dict[str, str]
+    effects: dict[str, dict]
 
 
 class SentBackDecision(DecisionRecord):
@@ -206,7 +225,10 @@ class CaseSummary(BaseModel):
     submitted_on: str
     status: Status
     decision: DecisionKind | None
-    award: float | None
+    outcome: str | None = Field(
+        default=None,
+        description="The pack's own line on the outcome it resolved, if it did",
+    )
     resuming: bool = Field(description="A resume is working on the case")
 
 
@@ -230,7 +252,7 @@ class Case(BaseModel):
     evaluation_id: str | None
     copy_of: str | None
     decision: Decision | None
-    payment: Payment | None
+    effect: EffectRun | None = None
     sent_back_decisions: list[SentBackDecision] = Field(
         description="The decisions workers sent back, oldest first"
     )
@@ -373,9 +395,6 @@ class DecisionRequest(BaseModel):
     """A decision to record, which cases manual section 14 checks."""
 
     decision: DecisionKind
-    award: Annotated[float, AfterValidator(to_the_cent)] = Field(
-        description="In US dollars, 0 for a decline or referral"
-    )
     section: str = Field(
         description="The sections of the wording and the manual relied on"
     )
@@ -386,62 +405,8 @@ class DecisionRequest(BaseModel):
     )
 
 
-class PaymentRequest(BaseModel):
-    amount: float = Field(gt=0, description="The approved award in US dollars")
-
-
 class HoldRequest(BaseModel):
     reason: str = Field(min_length=1, description="Why the Gateway refused to pay")
-
-
-class Plan(BaseModel):
-    """A plan of the active pack. The benefit maxima are the insurance pack's;
-    another pack declares its own fields, which its rules module reads."""
-
-    model_config = ConfigDict(extra="allow")
-
-    plan: str
-    name: str
-    per_item_limit: float = 0.0
-    deductible: float = 0.0
-
-
-class AddOn(BaseModel):
-    add_on: str
-    name: str
-    effect: str
-    electronics_per_item_limit: float | None = None
-
-
-class Plans(BaseModel):
-    plans: list[Plan]
-    deductible_applies_to: list[Benefit]
-    add_ons: list[AddOn]
-
-
-class Line(BaseModel):
-    description: str = Field(min_length=1)
-    amount: float = Field(ge=0, description="The total claimed, before limits")
-    quantity: int = Field(ge=1, description="How many separate items")
-    kind: LineKind
-    nights: int = Field(ge=0, description="For a hotel, and 0 otherwise")
-    hours: float = Field(
-        ge=0, description="For meals without receipts, and 0 otherwise"
-    )
-
-
-class AwardRequest(BaseModel):
-    benefit: Benefit
-    lines: list[Line] = Field(
-        description="The covered lines, with any excluded left out"
-    )
-    paid_by_others: float = Field(ge=0, description="Paid or refunded by others")
-
-
-class Award(BaseModel):
-    calculation: list[CalculationStep]
-    award: float
-    needs_sign_off: bool
 
 
 class FailureRequest(BaseModel):
@@ -486,9 +451,15 @@ class RunCasesRequest(BaseModel):
     case_ids: list[str] = Field(description="The cases a dispatch works, in order")
 
 
+
+
+
+
+
+
 class HeldAward(BaseModel):
     case_id: str
-    award: float
+    outcome: str
 
 
 class DispatchSummary(BaseModel):
@@ -562,6 +533,9 @@ class CaseGrade(BaseModel):
 class ScoredCase(RunCase):
     copy_of: str
     reason: str | None
+    # The number the pack's metric reads from the outcome payload, which
+    # scoring compares with the worker's label.
+    award: float
     section: str | None
     grade: CaseGrade | None
     worker_decision: DecisionKind
@@ -954,7 +928,7 @@ class Confirmation(BaseModel):
 
     case_id: str
     customer_name: str
-    award: float
+    outcome: str
     reason: str
 
 
@@ -1062,11 +1036,10 @@ class Customer(CustomerMatch):
     cases_in_the_queue: list[CaseSummary]
 
 
-class AwardsOverTheLimit(BaseModel):
-    """The queue's cases paid more than the approval limit on their decision, and
-    how many of those a worker signed off."""
+class SignOffs(BaseModel):
+    """The queue's approvals a Gateway held, and how many a worker signed off."""
 
-    paid_over_the_limit: int
+    held: int
     signed_off: int
 
 

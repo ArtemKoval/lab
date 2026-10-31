@@ -86,7 +86,7 @@ function RunCases({ cases }: Readonly<{ cases: RunCase[] }>) {
             <th>Customer</th>
             <th>State</th>
             <th>Decision</th>
-            <th className="num">Award</th>
+            <th>Award</th>
             <th>Started</th>
             <th className="num">Time</th>
             <th className="num">Model cost</th>
@@ -105,9 +105,7 @@ function RunCases({ cases }: Readonly<{ cases: RunCase[] }>) {
               <td>
                 {entry.decision && <DecisionChip decision={entry.decision} />}
               </td>
-              <td className="num mono">
-                {entry.award !== null && money(entry.award)}
-              </td>
+              <td>{entry.outcome}</td>
               <td className="nowrap">
                 {entry.started_at && time(entry.started_at)}
               </td>
@@ -122,9 +120,9 @@ function RunCases({ cases }: Readonly<{ cases: RunCase[] }>) {
 }
 
 function Summary({ summary }: Readonly<{ summary: DispatchSummary }>) {
-  const held = summary.waiting_for_sign_off.map(({ case_id, award }) => ({
+  const held = summary.waiting_for_sign_off.map(({ case_id, outcome }) => ({
     case_id,
-    note: money(award),
+    note: outcome,
   }));
   const only = (ids: string[]) => ids.map((case_id) => ({ case_id }));
   return (

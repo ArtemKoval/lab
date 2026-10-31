@@ -15,8 +15,8 @@ AGENT_OPERATIONS = {
     "record_model_call",
     "record_work_time",
     "record_decision",
-    "calculate_award",
-    "pay_case",
+    "resolve_outcome",
+    "run_effect",
     "hold_payment",
     "fail_case",
     "take_case",
@@ -52,6 +52,7 @@ SHARED_READS = {
     "get_case_history": "/api/customers/CUS-3001/cases",
     "get_agent_api": "/api/agent/openapi.json",
     "get_run": "/api/runs/{run_id}",
+    "get_pack": "/api/pack",
 }
 
 CONVERSATION = "/api/copilot/conversations/conversation-1"
@@ -88,7 +89,7 @@ WORKER_OPERATIONS = {
     "reject_proposal": ("POST", f"{PROPOSAL}/rejection", {"reason": "Too broad"}),
     "find_customers": ("GET", "/api/customers?name=maya", None),
     "get_customer": ("GET", "/api/customers/CUS-3001", None),
-    "count_awards_over_limit": ("GET", "/api/awards/over-limit", None),
+    "count_sign_offs": ("GET", "/api/sign-offs", None),
     "list_conversations": ("GET", "/api/copilot/conversations", None),
     "start_conversation": (
         "POST",

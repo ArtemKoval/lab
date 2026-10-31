@@ -17,6 +17,12 @@ from typing import Any
 DOMAINS = Path(__file__).resolve().parent
 DEFAULT_DOMAIN = "insurance"
 
+# The verbs every pack's protocol module carries, and the loader validates.
+PROTOCOL_VERBS = ("resolve", "gate", "execute", "summarize", "metric")
+
+# The manifest keys an engine_api 2 pack declares its domain with.
+DECLARED_KEYS = ("resolutions", "outcomes", "config", "effects")
+
 
 class PackError(Exception):
     """A pack is absent, incomplete, or misnamed."""
@@ -50,6 +56,22 @@ class Pack:
     def settings(self) -> dict[str, Any]:
         return self.manifest.get("settings", {})
 
+    @property
+    def resolutions(self) -> list[str]:
+        return self.manifest.get("resolutions", [])
+
+    @property
+    def outcomes(self) -> dict[str, str]:
+        return self.manifest.get("outcomes", {})
+
+    @property
+    def config(self) -> dict[str, str]:
+        return self.manifest.get("config", {})
+
+    @property
+    def effects(self) -> dict[str, dict[str, Any]]:
+        return self.manifest.get("effects", {})
+
     def load_json(self, name: str) -> Any:
         """Read one JSON file from the pack data folder."""
         return self._json(self.data, name, "pack file")
@@ -80,6 +102,22 @@ class Pack:
         name = self.manifest.get("rules", "rules")
         return importlib.import_module(f"domains.{self.name}.{name}")
 
+    def protocol_module(self):
+        """Import the pack's protocol module, and refuse a pack whose
+        protocol lacks one of the verbs."""
+        import importlib
+
+        name = self.manifest.get("protocol", "protocol")
+        module = importlib.import_module(f"domains.{self.name}.{name}")
+        missing = [
+            verb for verb in PROTOCOL_VERBS if not callable(getattr(module, verb, None))
+        ]
+        if missing:
+            raise PackError(
+                f"pack {self.name!r} protocol lacks {', '.join(missing)}"
+            )
+        return module
+
     def _read(self, folder: Path, name: str, kind: str) -> str:
         """Read one markdown file of the pack, or name it in an error."""
         path = folder / f"{name}.md"
@@ -100,4 +138,32 @@ def pack() -> Pack:
         raise PackError(
             f"manifest name {manifest.get('name')!r} does not match folder {name!r}"
         )
+    check_declarations(name, manifest)
     return Pack(name=name, root=root, manifest=manifest)
+
+
+def check_declarations(name: str, manifest: dict[str, Any]) -> None:
+    """Refuse a pack the engine cannot run: one the declarations do not
+    describe, or one that resolves no outcome at all."""
+    if manifest.get("engine_api", 1) < 2:
+        raise PackError(
+            f"pack {name!r} declares engine_api {manifest.get('engine_api')!r}; "
+            "the engine runs engine_api 2 packs only"
+        )
+    missing = [key for key in DECLARED_KEYS if key not in manifest]
+    if missing:
+        raise PackError(f"pack {name!r} manifest lacks {', '.join(missing)}")
+    outcomes = manifest["outcomes"]
+    if not outcomes:
+        raise PackError(f"pack {name!r} declares no outcomes")
+    for outcome, verb in outcomes.items():
+        if verb not in PROTOCOL_VERBS:
+            raise PackError(
+                f"pack {name!r} outcome {outcome!r} binds the unknown verb {verb!r}"
+            )
+    for effect, declared in manifest["effects"].items():
+        if declared.get("outcome") not in outcomes:
+            raise PackError(
+                f"pack {name!r} effect {effect!r} names the undeclared outcome "
+                f"{declared.get('outcome')!r}"
+            )

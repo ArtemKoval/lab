@@ -39,7 +39,8 @@ export interface CaseSummary {
   submitted_on: string;
   status: Status;
   decision: DecisionKind | null;
-  award: number | null;
+  // The pack's own line on the outcome it resolved, if it did.
+  outcome: string | null;
   // A resume is working on the case, so a dispatch leaves it alone.
   resuming: boolean;
 }
@@ -67,12 +68,15 @@ export interface Calculation {
   award: number;
 }
 
-// A decision as cases manual section 14 records it.
+// A decision as cases manual section 14 records it. An approval carries the
+// outcome payload the pack resolved, which the pages render.
 export interface DecisionRecord {
   decision: DecisionKind;
-  award: number;
-  // None for a decline or a referral.
-  calculation: Calculation | null;
+  payload: {
+    calculation?: CalculationStep[];
+    award?: number;
+    needs_sign_off?: boolean;
+  } | null;
   section: string;
   reason: string;
   decided_by: string;
@@ -88,11 +92,14 @@ export interface Decision extends DecisionRecord {
   signed_off_at: string | null;
 }
 
-export interface Payment {
-  amount: number;
-  paid_at: string;
-  signed_off_by: string | null;
-  signed_off_at: string | null;
+// One executed effect on a case, with the record the pack's execute gave,
+// and its summary of the outcome.
+export interface EffectRun {
+  case_id: string;
+  effect: string;
+  result: Record<string, unknown>;
+  summary: string | null;
+  ran_at: string;
 }
 
 // The longest note a worker can send a decision back with.
@@ -126,7 +133,7 @@ export interface Case {
   evaluation_id: string | null;
   copy_of: string | null;
   decision: Decision | null;
-  payment: Payment | null;
+  effect: EffectRun | null;
   // Oldest first.
   sent_back_decisions: SentBackDecision[];
 }
@@ -183,7 +190,7 @@ export type EvaluationSet = (typeof evaluationSets)[number];
 
 export interface HeldAward {
   case_id: string;
-  award: number;
+  outcome: string;
 }
 
 export interface DispatchSummary {
@@ -258,6 +265,8 @@ export interface CaseGrade {
 export interface ScoredCase extends RunCase {
   copy_of: string;
   reason: string | null;
+  // The number the pack's metric reads from the outcome payload.
+  award: number;
   grade: CaseGrade | null;
   worker_decision: DecisionKind;
   worker_award: number;
@@ -494,9 +503,21 @@ const proposalPath = (roundId: string, proposalId: string) =>
 const CONVERSATIONS = "/api/copilot/conversations";
 const conversationPath = (conversationId: string) =>
   `${CONVERSATIONS}/${encodeURIComponent(conversationId)}`;
+const PACK = "/api/pack";
+
+// The active pack's declarations, which the pages render.
+export interface PackView {
+  name: string;
+  display_name: string;
+  resolutions: string[];
+  outcomes: Record<string, string>;
+  config: Record<string, string>;
+  effects: Record<string, Record<string, unknown>>;
+}
 
 export const api = {
   listCases: () => request<CaseSummary[]>(CASES),
+  getPack: () => request<PackView>(PACK),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
   listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
   getContract: (contractId: string) =>

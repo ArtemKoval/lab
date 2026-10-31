@@ -50,6 +50,7 @@ from agent.tools import (
     case_as_read,
     case_tools,
 )
+from domains import loader
 
 log = logging.getLogger(__name__)
 
@@ -75,9 +76,9 @@ TOOLS = "tools"
 PAY = "pay"
 REMEMBER = "remember"
 WAIT_FOR_WORKER = "wait_for_worker"
-# Where a decision goes when its award is held for a worker's sign-off.
+# Where a decision goes when its outcome is held for a worker's sign-off.
 HELD = "held"
-PAY_CASE = "pay_case"
+RUN_EFFECT = "run_effect"
 REFUSAL = "refusal"
 
 
@@ -191,7 +192,6 @@ def refer(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
     case = api.record_decision(
         runtime.context.case_id,
         decision=app_terms.REFER,
-        award=0,
         section=SECURITY_CHECK,
         reason=reason,
         decided_by=CHECK_DECIDES,
@@ -217,22 +217,48 @@ def call_model(
     return {"messages": [reply], "model_calls": 1}
 
 
+def effect_for(outcome: str) -> str | None:
+    """The effect the pack declares on an outcome, by its declared binding."""
+    for name, declared in loader.pack().effects.items():
+        if declared.get("outcome") == outcome:
+            return name
+    return None
+
+
 def pay(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
-    """Pay the approved award on the case agent's route, which the app refuses
-    unless it may be paid, and hold a payment the Gateway refuses."""
+    """Run the approved case's effect — the one the pack declares on the
+    outcome its decision carries — which the app refuses unless it may run,
+    and hold an effect the pack holds. A run that answers ends the case
+    decided, and so does one the app already recorded, which a resume after a
+    stop meets. An outcome with no declared effect leaves nothing to run."""
     context = runtime.context
-    payment = {"case_id": context.case_id, "amount": state["decision"]["award"]}
+    effect = effect_for(state["decision"]["outcome"])
+    if effect is None:
+        return {"status": app_terms.Status.DECIDED}
     try:
-        case = context.route.call(Target.APP, PAY_CASE, payment)
+        context.route.call(
+            Target.APP, RUN_EFFECT, {"case_id": context.case_id, "effect": effect}
+        )
+    except Refused as refused:
+        if refused.already_ran:
+            return {"status": app_terms.Status.DECIDED}
+        raise
     except GatewayRefused as refused:
         case = hold(context, refused)
-    return {"status": case["status"]}
+        return {"status": case["status"]}
+    except ToolException as refused:
+        # The Gateway answers the app's refusal as a tool error, so the
+        # already-ran refusal of a resume arrives here too.
+        if "already ran the effect" in str(refused):
+            return {"status": app_terms.Status.DECIDED}
+        raise
+    return {"status": app_terms.Status.DECIDED}
 
 
 def hold(context: CaseContext, refused: GatewayRefused) -> dict[str, Any]:
-    """Record the Gateway's refusal of a payment on the case, and hold the payment
-    for a worker's sign-off with the Gateway's reason."""
-    name = context.route.name(Target.APP, PAY_CASE)
+    """Record the Gateway's refusal of an effect on the case, and hold the
+    effect for a worker's sign-off with the Gateway's reason."""
+    name = context.route.name(Target.APP, RUN_EFFECT)
     api.record_step(context.case_id, REFUSAL, f"{name}: {refused.answer}", [])
     return api.hold_payment(context.case_id, str(refused))
 
@@ -461,18 +487,27 @@ def begin(case_id: str) -> Messages:
     return {"messages": [HumanMessage(f"Case {case_id}")]}
 
 
+def outcome_line(payload: dict[str, Any]) -> str:
+    """The pack's own line on a resolved outcome, through its summarize verb."""
+    return loader.pack().protocol_module().summarize(payload)
+
+
 def report(case: dict[str, Any], reason: str) -> str:
-    """Say in one line how a case ended: its decision and award, or why it failed."""
+    """Say in one line how a case ended: its decision with the pack's line on
+    its outcome, or why it failed."""
     case_id, status, decision = case["case_id"], case["status"], case["decision"]
     if status == app_terms.Status.WAITING:
         return f"{case_id}  failed: {reason}, back in the queue"
     if status == app_terms.Status.LEFT_FOR_WORKER:
         return f"{case_id}  failed: {reason}, left for a worker"
-    line = f"{case_id}  {decision['decision']}  ${decision['award']:,.2f}"
+    line = f"{case_id}  {decision['decision']}"
+    payload = decision.get("payload")
+    if payload is not None:
+        line = f"{line}  {outcome_line(payload)}"
     if status == app_terms.Status.WAITING_FOR_SIGN_OFF:
         return f"{line}, waiting for sign-off"
-    if decision["decision"] == app_terms.APPROVE and case["payment"] is None:
-        return f"{line}, not paid yet"
+    if decision["decision"] == app_terms.APPROVE and case["effect"] is None:
+        return f"{line}, not run yet"
     return line
 
 

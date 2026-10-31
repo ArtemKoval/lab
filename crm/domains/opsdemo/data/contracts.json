@@ -1,0 +1,50 @@
+[
+  {
+    "contract_id": "CON-5001",
+    "customer_id": "CUS-5001",
+    "plan": "priority",
+    "add_ons": [],
+    "purchased_on": "2025-06-01",
+    "sold_through": "Nimbus internal SLA register",
+    "trip": {
+      "destination": "Northgate Clinic, Seattle",
+      "departs_on": "2025-06-02",
+      "returns_on": "2027-06-01",
+      "trip_cost": 0.0
+    },
+    "travelers": ["Site operations team"],
+    "status": "active"
+  },
+  {
+    "contract_id": "CON-5002",
+    "customer_id": "CUS-5002",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2025-08-15",
+    "sold_through": "Nimbus internal SLA register",
+    "trip": {
+      "destination": "Cedar Ridge Clinic, Bellevue",
+      "departs_on": "2025-08-16",
+      "returns_on": "2027-08-15",
+      "trip_cost": 0.0
+    },
+    "travelers": ["Site operations team"],
+    "status": "active"
+  },
+  {
+    "contract_id": "CON-5003",
+    "customer_id": "CUS-5003",
+    "plan": "priority",
+    "add_ons": [],
+    "purchased_on": "2026-01-10",
+    "sold_through": "Nimbus internal SLA register",
+    "trip": {
+      "destination": "Harbor Point Clinic, Tacoma",
+      "departs_on": "2026-01-11",
+      "returns_on": "2028-01-10",
+      "trip_cost": 0.0
+    },
+    "travelers": ["Site operations team"],
+    "status": "active"
+  }
+]

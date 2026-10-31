@@ -74,17 +74,17 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
         call("get_contract", contract_id="POL-2001"),
         call("get_case_history", customer_id="CUS-3001"),
         calculate("CLM-1001", 420.0),
-        record("approve", 420.0),
+        record("approve"),
     )
-    assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
-    assert caplog.messages == ["CLM-1001  approve  $420.00"]
+    assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
+    assert caplog.messages == ["CLM-1001  approve  420.00 awarded"]
     assert len(model.prompts) == 5
 
     case = case_of(client, "CLM-1001")
     assert case["status"] == "decided"
     assert case["attempts"] == 1
-    assert case["decision"]["award"] == 420.0
-    assert case["payment"]["amount"] == 420.0
+    assert case["decision"]["payload"]["award"] == 420.0
+    assert case["effect"]["result"]["amount"] == 420.0
     assert len(case["thread_id"]) == 36
 
     check, *steps = steps_of(client, "CLM-1001")
@@ -95,7 +95,7 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
     assert [s["kind"] for s in steps] == ["tool_call", "tool_result"] * 5
     assert steps[0]["content"] == "get_case()"
     assert steps[1]["content"].startswith('get_case: {"case_id": "CLM-1001"')
-    assert steps[6]["content"].startswith("calculate_award(")
+    assert steps[6]["content"].startswith("resolve_outcome(")
     assert steps[8]["content"].startswith("record_decision(")
     assert steps[9]["content"].startswith('record_decision: {"case_id": "CLM-1001"')
     assert "pay_case" not in "".join(s["content"] for s in steps)
@@ -114,27 +114,27 @@ def test_the_case_agent_reads_its_instructions_then_its_case(client):
 def test_the_graph_follows_the_backend_on_the_limit(client):
     change_settings(client, approval_limit=2000.0)
     report = work("CLM-1002", stub(*approve("CLM-1002", 1350.0)))
-    assert report == "CLM-1002  approve  $1,350.00"
-    assert case_of(client, "CLM-1002")["payment"]["amount"] == 1350.0
+    assert report == "CLM-1002  approve  1,350.00 awarded"
+    assert case_of(client, "CLM-1002")["effect"]["result"]["amount"] == 1350.0
 
 
 @pytest.mark.parametrize("decision", ["decline", "refer"])
 def test_declines_and_refers(client, decision):
     agent = agent_on(stub(*decide(decision, 0)))
     report = harness.work_case("CLM-1003", None, agent)
-    assert report == f"CLM-1003  {decision}  $0.00"
+    assert report == f"CLM-1003  {decision}"
     case = case_of(client, "CLM-1003")
-    assert (case["status"], case["payment"]) == ("decided", None)
+    assert (case["status"], case["effect"]) == ("decided", None)
     history = agent.graph.get_state_history(harness.thread_of(case))
     assert harness.PAY not in {node for snapshot in history for node in snapshot.next}
 
 
 def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
-    twice = [record("approve", 420.0).tool_calls[0] for _ in range(2)]
+    twice = [record("approve").tool_calls[0] for _ in range(2)]
     model = stub(calculate("CLM-1001", 420.0), AIMessage(content="", tool_calls=twice))
-    assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
+    assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     case = case_of(client, "CLM-1001")
-    assert (case["status"], case["payment"]["amount"]) == ("decided", 420.0)
+    assert (case["status"], case["effect"]["result"]["amount"]) == ("decided", 420.0)
     results = [
         s
         for s in steps_of(client, "CLM-1001")
@@ -145,13 +145,13 @@ def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
 
 def test_a_refused_decision_goes_back_to_the_model(client):
     model = stub(
-        record("approve", 0), calculate("CLM-1001", 420.0), record("approve", 420.0)
+        record("approve"), calculate("CLM-1001", 420.0), record("approve")
     )
-    assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
+    assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     refusal = model.prompts[1][-1]
     assert isinstance(refusal, ToolMessage)
     assert refusal.text.startswith("Refused with status 422: ")
-    assert case_of(client, "CLM-1001")["payment"]["amount"] == 420.0
+    assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
 
 
 def test_a_section_read_is_recorded_as_a_lookup(client):
@@ -189,7 +189,7 @@ def test_a_section_with_bad_arguments_goes_back_to_the_model(client):
     model = stub(
         call("read_section", document="handbook", number=1), *decide("refer", 0)
     )
-    assert work("CLM-1004", model) == "CLM-1004  refer  $0.00"
+    assert work("CLM-1004", model) == "CLM-1004  refer"
     assert "lookup" not in {s["kind"] for s in steps_of(client, "CLM-1004")}
 
 
@@ -221,14 +221,19 @@ def test_working_out_the_award(client):
         },
     ]
     model = stub(
-        call("calculate_award", benefit="trip_delay", lines=lines, paid_by_others=0),
-        record("approve", 420.0),
+        call(
+                "resolve_outcome",
+                benefit="trip_delay",
+                lines=lines,
+                paid_by_others=0,
+            ),
+        record("approve"),
     )
-    assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
+    assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     # After the check's step and the call.
     result = steps_of(client, "CLM-1001")[2]
     assert result["kind"] == "tool_result"
-    content = result["content"].removeprefix("calculate_award: ")
+    content = result["content"].removeprefix("resolve_outcome: ")
     assert json.loads(content)["award"] == 420.0
 
 
@@ -317,16 +322,16 @@ def test_a_case_agent_going_round_in_circles_stops(client):
 
 
 def test_a_failure_after_the_decision_keeps_it(client, monkeypatch, caplog):
-    def lost(case_id, amount):
+    def lost(case_id, effect):
         raise RuntimeError("The connection was lost")
 
-    monkeypatch.setattr(api, "pay_case", lost)
+    monkeypatch.setattr(api, "run_effect", lost)
     report = work("CLM-1001", stub(*approve("CLM-1001", 420.0)))
-    assert report == "CLM-1001  approve  $420.00, not paid yet"
+    assert report == "CLM-1001  approve  420.00 awarded, not run yet"
     assert "CLM-1001  RuntimeError: The connection was lost" in caplog.messages
     case = case_of(client, "CLM-1001")
     assert (case["status"], case["attempts"]) == ("in_progress", 1)
-    assert case["decision"]["award"] == 420.0
+    assert case["decision"]["payload"]["award"] == 420.0
     assert "error" not in {s["kind"] for s in steps_of(client, "CLM-1001")}
 
 

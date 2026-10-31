@@ -31,7 +31,8 @@ def tools_of(agent):
 def test_an_approval_paid_saves_the_case_and_the_decision(client):
     store = MemoryStandIn()
     agent = agent_on(stub(*approve("CLM-1001", 420.0)), store=store)
-    assert harness.work_case("CLM-1001", None, agent) == "CLM-1001  approve  $420.00"
+    ended = "CLM-1001  approve  420.00 awarded"
+    assert harness.work_case("CLM-1001", None, agent) == ended
     claimed, decided = store.events
     assert (claimed.actor, claimed.session) == ("CUS-3001", "CLM-1001")
     assert (decided.actor, decided.session) == ("CUS-3001", "CLM-1001")
@@ -47,7 +48,7 @@ def test_an_approval_paid_saves_the_case_and_the_decision(client):
     ):
         assert shown in claimed.message.text
     assert decided.message.text == (
-        "Decision on CLM-1001: approve, paying $420.00, under Section 3, Trip Delay. "
+        "Decision on CLM-1001: approve, 420.00 awarded, under Section 3, Trip Delay. "
         "The delay was covered."
     )
     for kept_on_the_case in (case["story"], case["documents"][0]["content"]):
@@ -58,8 +59,8 @@ def test_an_approval_paid_saves_the_case_and_the_decision(client):
 @pytest.mark.parametrize(
     ("case_id", "replies", "report"),
     [
-        ("CLM-1003", partial(decide, "decline", 0), "CLM-1003  decline  $0.00"),
-        ("CLM-1004", partial(decide, "refer", 0), "CLM-1004  refer  $0.00"),
+        ("CLM-1003", partial(decide, "decline", 0), "CLM-1003  decline"),
+        ("CLM-1004", partial(decide, "refer", 0), "CLM-1004  refer"),
     ],
 )
 def test_each_decision_the_case_agent_makes_is_saved(client, case_id, replies, report):
@@ -73,7 +74,7 @@ def test_each_decision_the_case_agent_makes_is_saved(client, case_id, replies, r
 def test_a_case_the_check_referred_is_never_saved(client):
     store = MemoryStandIn()
     agent = agent_on(stub(), screener=flags(), store=store)
-    assert harness.work_case("CLM-1901", None, agent) == "CLM-1901  refer  $0.00"
+    assert harness.work_case("CLM-1901", None, agent) == "CLM-1901  refer"
     assert store.events == []
 
 
@@ -89,7 +90,7 @@ def test_an_approval_stopped_before_its_payment_is_saved_once_it_is_paid(
     client, monkeypatch
 ):
     store, saver = MemoryStandIn(), InMemorySaver()
-    fail_once(monkeypatch, api, "pay_case", KeyboardInterrupt())
+    fail_once(monkeypatch, api, "run_effect", KeyboardInterrupt())
     agent = agent_on(stub(*approve("CLM-1001", 420.0)), saver, store=store)
     with pytest.raises(KeyboardInterrupt):
         harness.work_case("CLM-1001", None, agent)
@@ -99,11 +100,10 @@ def test_an_approval_stopped_before_its_payment_is_saved_once_it_is_paid(
     # remembered, its work has ended and there's nothing left to run.
     again = agent_on(stub(), saver, store=store)
     run_id = new_dispatch()["run_id"]
-    assert harness.work_in_run("CLM-1001", run_id, lambda: again) == (
-        "CLM-1001  approve  $420.00"
-    )
+    ended = "CLM-1001  approve  420.00 awarded"
+    assert harness.work_in_run("CLM-1001", run_id, lambda: again) == ended
     assert len(store.events) == 2
-    assert harness.carry_on("CLM-1001", None, again) == "CLM-1001  approve  $420.00"
+    assert harness.carry_on("CLM-1001", None, again) == ended
     assert len(store.events) == 2
 
 
@@ -162,7 +162,7 @@ def test_a_memory_that_cant_be_reached_leaves_the_decision_and_refuses_a_search(
 ):
     store = MemoryStandIn(reachable=False)
     agent = agent_on(stub(*decide("decline", 0)), store=store)
-    assert harness.work_case("CLM-1003", None, agent) == "CLM-1003  decline  $0.00"
+    assert harness.work_case("CLM-1003", None, agent) == "CLM-1003  decline"
     assert case_of(client, "CLM-1003")["decision"]["decision"] == "decline"
     [warning] = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert warning.getMessage().startswith(

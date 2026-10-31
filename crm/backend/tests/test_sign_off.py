@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from backend import main
-from backend.database import payments
+from backend.database import effect_runs
 from backend.tests.agent_answers import broken, refusing, slow, unreachable
 from backend.tests.case_requests import held, sign_off
 from backend.tests.rows import committed_case, count
@@ -24,7 +24,7 @@ def test_a_sign_off_pays_the_case_then_asks_the_agent_to_resume_it(
     def accept(request):
         calls.append(json.loads(request.content))
         case = committed_case("CLM-1002")
-        seen.append((case["status"], case["amount"], case["signed_off_by"]))
+        seen.append((case["status"], case["signed_off_by"]))
         return httpx.Response(200, json={"accepted": True})
 
     agent_answers(accept)
@@ -32,11 +32,11 @@ def test_a_sign_off_pays_the_case_then_asks_the_agent_to_resume_it(
     assert response.status_code == 200
     case = response.json()
     assert case["status"] == "decided"
-    assert case["payment"]["amount"] == 1350.0
+    assert case["effect"]["result"]["amount"] == 1350.0
     assert case["decision"]["signed_off_by"] == "Dana Whitfield"
     assert case["decision"]["signed_off_at"] is not None
     assert calls == [{"operation": "resume_case", "case_id": "CLM-1002"}]
-    assert seen == [("decided", 1350.0, "Dana Whitfield")]
+    assert seen == [("decided", "Dana Whitfield")]
 
 
 def undecodable(request):
@@ -53,7 +53,7 @@ def test_a_sign_off_stands_whatever_happens_to_the_call(
     agent_answers(answer)
     response = sign_off(client, "CLM-1002")
     assert response.status_code == 200
-    assert response.json()["payment"]["amount"] == 1350.0
+    assert response.json()["effect"]["result"]["amount"] == 1350.0
     assert committed_case("CLM-1002")["status"] == "decided"
     [warning] = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert warning.getMessage().startswith("CLM-1002 wasn't resumed: ")
@@ -70,7 +70,7 @@ def test_a_sign_off_pays_the_decision_its_move_found(client, monkeypatch):
         return as_read if len(reads) == 1 else find_case(db, case_id)
 
     monkeypatch.setattr(main, "find_case", first_read_is_old)
-    assert sign_off(client, "CLM-1002").json()["payment"]["amount"] == 1350.0
+    assert sign_off(client, "CLM-1002").json()["effect"]["result"]["amount"] == 1350.0
 
 
 def test_two_sign_offs_at_the_same_moment_pay_the_case_once(client, agent_calls):
@@ -90,5 +90,5 @@ def test_two_sign_offs_at_the_same_moment_pay_the_case_once(client, agent_calls)
     assert sorted(a.status_code for a in answers) == [200, 409]
     [refused] = [a for a in answers if a.status_code == 409]
     assert refused.json()["detail"] == "Case CLM-1002 is not waiting for sign-off"
-    assert count(payments) == 1
+    assert count(effect_runs) == 1
     assert agent_calls == [{"operation": "resume_case", "case_id": "CLM-1002"}]

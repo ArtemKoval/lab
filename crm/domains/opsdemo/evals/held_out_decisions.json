@@ -1,0 +1,40 @@
+[
+  {
+    "case_id": "ESC-5601",
+    "decision": "decline",
+    "award": 0.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-02",
+    "decided_on": "2026-10-29",
+    "reason": "The incident was September 30 and the report came on October 28, outside the 14-day window and the 2 days of grace, so section 5 says the desk declines and names the window.",
+    "reference": "Operations wording, section 5; operations manual, section 4",
+    "calculation": [],
+    "tests": "A report outside the filing window",
+    "difficulty": "hard",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": false
+  },
+  {
+    "case_id": "ESC-5602",
+    "decision": "approve",
+    "award": 6.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-02",
+    "decided_on": "2026-10-23",
+    "reason": "The reader rejects every card, a reboot does not clear it, and the platform team fixed the same provisioning fault on October 6, so this is a repeat fault and section 3 is met. The items take 4 hours, and the priority tier's on-call margin makes 6, inside the limit.",
+    "reference": "Operations wording, sections 3 and 4; operations manual, section 3",
+    "calculation": [
+      {"step": "Confirm the reader fault with the pharmacy lead", "amount": 1.0},
+      {"step": "Escalate the reader fault with the October fix history", "amount": 3.0},
+      {"step": "On-call margin, times 1.5", "amount": 2.0}
+    ],
+    "tests": "A repeat fault inside the window, on the priority tier",
+    "difficulty": "routine",
+    "failure_class": "",
+    "needs": [],
+    "tone": "plain",
+    "tiny": true
+  }
+]

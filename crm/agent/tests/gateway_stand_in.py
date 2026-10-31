@@ -8,6 +8,7 @@ Contract refuses a payment over $1,000, and any tool a test names, with an MCP
 error, as the Gateway's Contract does. It keeps each call's name, its inputs and
 whether it was signed with SigV4 for bedrock-agentcore."""
 
+import json
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -33,7 +34,7 @@ from backend.dependencies import API_KEY_HEADER
 from backend.main import app
 from context.server import build_server
 
-PAY_CASE = f"{Target.APP}{SEPARATOR}pay_case"
+RUN_EFFECT = f"{Target.APP}{SEPARATOR}run_effect"
 CONTEXT = f"{Target.CONTEXT}{SEPARATOR}"
 LIMIT = 1000.0
 DENIED = "Tool Execution Denied: Tool call not allowed due to contract enforcement"
@@ -157,8 +158,20 @@ class GatewayStandIn:
         return types.ServerResult(types.CallToolResult(content=[text], isError=refused))
 
     def contract_refuses(self, name: str, inputs: dict[str, Any]) -> bool:
-        over_the_limit = name == PAY_CASE and inputs["amount"] > LIMIT
-        return over_the_limit or name in self.refused
+        if name == RUN_EFFECT and self.over_the_limit(inputs.get("case_id")):
+            return True
+        return name in self.refused
+
+    def over_the_limit(self, case_id: str | None) -> bool:
+        """Say whether the case's approved award is over the stand-in's own
+        limit, which its contract holds whatever the app's settings say."""
+        if case_id is None:
+            return False
+        answer, _ = self.send(
+            f"{Target.APP}{SEPARATOR}get_case", {"case_id": case_id}
+        )
+        decision = json.loads(answer).get("decision") or {}
+        return (decision.get("payload") or {}).get("award", 0.0) > LIMIT
 
     async def look_up(self, tool: str, inputs: dict[str, Any]) -> types.CallToolResult:
         """Answer one of the context layer's tools with the context layer's own

@@ -7,10 +7,19 @@ from backend.models import (
     Case,
     CaseSummary,
     Decision,
-    Payment,
+    EffectRun,
     SentBackDecision,
     Status,
 )
+from domains import loader
+
+
+def outcome_line(payload: dict | None) -> str | None:
+    """The pack's own line on a resolved outcome, through its summarize, or
+    nothing when there is none."""
+    if payload is None:
+        return None
+    return loader.pack().protocol_module().summarize(payload)
 
 
 def to_summary(row: RowMapping) -> CaseSummary:
@@ -25,21 +34,22 @@ def to_summary(row: RowMapping) -> CaseSummary:
             "status": row["status"],
             "customer_name": row["customer_name"],
             "decision": row["decision"],
-            "award": row["award"],
+            "outcome": outcome_line(row["payload"]),
             "resuming": resuming,
         }
     )
 
 
-def to_case(row: RowMapping, sent_back: list[SentBackDecision]) -> Case:
-    """Build a case in full, with its decision and payment, from its row, and the
-    decisions workers sent back on it."""
+def to_case(
+    row: RowMapping,
+    sent_back: list[SentBackDecision],
+    effect: EffectRun | None = None,
+) -> Case:
+    """Build a case in full, with its decision and its effect's run, from its
+    row, the decisions workers sent back on it, and the run."""
     decision = None
     if row["decision"] is not None:
         decision = Decision(**{field: row[field] for field in Decision.model_fields})
-    payment = None
-    if row["paid_at"] is not None:
-        payment = Payment(**{field: row[field] for field in Payment.model_fields})
     return Case(
         **row["record"]
         | {
@@ -50,7 +60,7 @@ def to_case(row: RowMapping, sent_back: list[SentBackDecision]) -> Case:
             "evaluation_id": row["evaluation_id"],
             "copy_of": row["copy_of"],
             "decision": decision,
-            "payment": payment,
+            "effect": effect,
             "sent_back_decisions": sent_back,
         }
     )

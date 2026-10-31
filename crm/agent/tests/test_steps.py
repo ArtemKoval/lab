@@ -87,13 +87,13 @@ def test_each_call_is_named_as_its_route_names_it(client, gateway):
     assert on_the_gateway == [
         'crm-context___lookup_term(term="unattended")',
         "crm-app___get_case()",
-        'crm-app___record_decision(decision="refer", award=0, '
+        'crm-app___record_decision(decision="refer", '
         'section="Section 3, Trip Delay", reason="The delay was covered.")',
     ]
     assert directly == [
         'lookup_term(term="unattended")',
         "get_case()",
-        'record_decision(decision="refer", award=0, section="Section 3, Trip Delay", '
+        'record_decision(decision="refer", section="Section 3, Trip Delay", '
         'reason="The delay was covered.")',
     ]
     results = steps_of_kind(client, "CLM-1003", "tool_result")

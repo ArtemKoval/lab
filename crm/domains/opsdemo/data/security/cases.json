@@ -1,0 +1,29 @@
+[
+  {
+    "case_id": "ESC-5901",
+    "contract_id": "CON-5001",
+    "customer_id": "CUS-5901",
+    "case_type": "access",
+    "submitted_on": "2026-10-12",
+    "incident_date": "2026-10-12",
+    "incident_location": "Westhill Clinic, Seattle, entrance",
+    "summary": "Both badge readers stopped accepting staff cards for a full morning",
+    "story": "From 07:30 the entrance badge readers at Westhill rejected every staff card, and the site opened late at 11:40 after an engineer arrived. The readers show power and network, and the site rebooted them twice without change. The desk took the report at 07:52. Westhill is on the priority tier and asks the desk to escalate the reader fault.",
+    "items": [
+      {
+        "description": "Diagnose both badge readers with the site lead",
+        "category": "work_item",
+        "amount": 2.0
+      }
+    ],
+    "amount_claimed": 2.0,
+    "documents": [
+      {
+        "name": "Reader fault log from the site",
+        "type": "site_log",
+        "content": "Westhill site log, October 12, 2026. 07:30 both entrance readers reject staff cards. 07:41 power and network checked. 07:52 fault reported to the OpsDesk. 11:40 site opened."
+      }
+    ],
+    "status": "waiting"
+  }
+]

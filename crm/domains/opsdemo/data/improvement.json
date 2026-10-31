@@ -1,0 +1,20 @@
+{
+  "objectives": {
+    "accuracy": 0.8,
+    "grade": 2.0
+  },
+  "noise": {
+    "accuracy": 0.04,
+    "grade": 0.2,
+    "cost_per_case": 0.002,
+    "seconds_per_case": 5
+  },
+  "tolerance": {
+    "accuracy": 0.02,
+    "grade": 0.1,
+    "cost_per_case": 0.004,
+    "seconds_per_case": 10
+  },
+  "spending_limit": 0.5,
+  "agents": 25
+}

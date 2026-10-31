@@ -38,11 +38,10 @@ def call(name, text="", **args):
     return AIMessage(content=text, tool_calls=[tool_call])
 
 
-def record(decision, award):
+def record(decision):
     return call(
         "record_decision",
         decision=decision,
-        award=award,
         section="Section 3, Trip Delay",
         reason="The delay was covered.",
     )
@@ -56,7 +55,7 @@ def decide(decision, award, *extra):
     """The replies of a case agent that reads its case and decides it."""
     return [
         call("get_case"),
-        record(decision, award),
+        record(decision),
         *extra,
         AIMessage(content=f"Decision: {decision}."),
     ]

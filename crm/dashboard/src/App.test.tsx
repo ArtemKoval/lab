@@ -26,7 +26,7 @@ it("shows the queue with counts by state", async () => {
         case_id: "CLM-1003",
         status: "decided",
         decision: "approve",
-        award: 420,
+        outcome: "420.00 awarded",
       },
       { ...summary, case_id: "CLM-1004", status: "left_for_worker" },
       { ...summary, case_id: "CLM-1005", status: "sent_back" },
@@ -48,7 +48,7 @@ it("shows the queue with counts by state", async () => {
   expect(chip.className).toBe("chip status-left_for_worker");
   const row = screen.getByRole("row", { name: /CLM-1003/ });
   expect(within(row).getByText("Approved")).toBeDefined();
-  expect(within(row).getByText("$420.00")).toBeDefined();
+  expect(within(row).getByText("420.00 awarded")).toBeDefined();
   expect(screen.getAllByText("$1,150.00")).toHaveLength(4);
   expect(screen.getAllByText("Jul 20, 2026")).toHaveLength(4);
 });

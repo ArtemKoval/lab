@@ -16,7 +16,7 @@ def test_the_app_tools_are_named_after_backend_operations(client):
         "get_case",
         "get_contract",
         "get_case_history",
-        "calculate_award",
+        "resolve_outcome",
         "record_decision",
     ]
     assert set(names) <= operations(client)

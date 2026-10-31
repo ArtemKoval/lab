@@ -1,7 +1,7 @@
 """The case agent's own API document, which the Gateway turns into tools."""
 
 from api_rules import rule_breaks
-from backend.agent_api import OPERATIONS
+from backend.agent_api import operations
 from backend.tests.dashboard_reads import read
 
 PATH = "/api/agent/openapi.json"
@@ -17,21 +17,21 @@ def operations_in(document):
 
 def test_the_document_holds_the_case_agents_six_operations(client):
     document = client.get(PATH).json()
-    operations = operations_in(document)
+    served = operations_in(document)
     assert (
-        set(operations)
-        == OPERATIONS
+        set(served)
+        == operations()
         == {
             "get_case",
             "get_contract",
             "get_case_history",
-            "calculate_award",
+            "resolve_outcome",
             "record_decision",
-            "pay_case",
+            "run_effect",
         }
     )
     app_operations = operations_in(client.get("/openapi.json").json())
-    for name, operation in operations.items():
+    for name, operation in served.items():
         assert operation["description"] == app_operations[name]["description"]
     assert rule_breaks(document) == []
 
@@ -45,12 +45,10 @@ def test_the_document_has_no_servers_and_nothing_about_the_key(client):
         assert not [p for p in operation.get("parameters", []) if p["in"] == "header"]
 
 
-def test_the_payment_keeps_its_amount_for_the_gateways_contract(client):
+def test_the_effect_route_takes_no_body(client):
     document = client.get(PATH).json()
-    pay_case = operations_in(document)["pay_case"]
-    body = pay_case["requestBody"]["content"]["application/json"]["schema"]
-    model = document["components"]["schemas"][body["$ref"].split("/")[-1]]
-    assert model["required"] == ["amount"]
+    run_effect = operations_in(document)["run_effect"]
+    assert "requestBody" not in run_effect
 
 
 def test_the_document_needs_the_key_or_a_sign_in(dashboard):

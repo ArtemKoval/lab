@@ -89,11 +89,15 @@ def get_screening() -> dict[str, Any]:
     return call("GET", "/screening")
 
 
-def calculate_award(
-    case_id: str, benefit: Benefit, lines: list[dict[str, Any]], paid_by_others: float
+def resolve_outcome(
+    case_id: str,
+    outcome: str,
+    benefit: Benefit,
+    lines: list[dict[str, Any]],
+    paid_by_others: float,
 ) -> dict[str, Any]:
     body = {"benefit": benefit, "lines": lines, "paid_by_others": paid_by_others}
-    return call("POST", f"/cases/{case_id}/award", json=body)
+    return call("POST", f"/cases/{case_id}/outcomes/{outcome}", json=body)
 
 
 def start_case(case_id: str, thread_id: str) -> dict[str, Any]:
@@ -122,8 +126,8 @@ def record_decision(case_id: str, **request: Unpack[DecisionRequest]) -> dict[st
     return call("POST", f"/cases/{case_id}/decision", json=request)
 
 
-def pay_case(case_id: str, amount: float) -> dict[str, Any]:
-    return call("POST", f"/cases/{case_id}/payment", json={"amount": amount})
+def run_effect(case_id: str, effect: str) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/effects/{effect}")
 
 
 def hold_payment(case_id: str, reason: str) -> dict[str, Any]:

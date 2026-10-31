@@ -14,7 +14,7 @@ lands as `adr/0009-ops-automation-core.md`.
 ## In-Force ADRs Reviewed
 
 - `adr/0007-crm-engine-with-domain-packs.md` - accepted, in force. The pack
-  seam stays; this change deepens it: the outcome and its meaning move fully
+  seam stays. this change deepens it: the outcome and its meaning move fully
   into the pack.
 - `adr/0008-local-emulator-first-aws-targets.md` - accepted, in force. The
   refactor changes no deployment target.

@@ -1,4 +1,4 @@
-import type { Case, Decision, Payment } from "../api";
+import type { Case, Decision } from "../api";
 import { money, time } from "../format";
 import { useWorker } from "../worker";
 import { DecisionDetails } from "./DecisionDetails";
@@ -6,7 +6,7 @@ import { NotAllowed } from "./NotAllowed";
 import { SendBackForm } from "./SendBackForm";
 import { SignOffForm } from "./SignOffForm";
 
-type SignOff = Pick<Payment, "signed_off_by" | "signed_off_at">;
+type SignOff = Pick<Decision, "signed_off_by" | "signed_off_at">;
 
 function whoAndWhen({ signed_off_by, signed_off_at }: SignOff): string | null {
   return signed_off_by && signed_off_at
@@ -29,24 +29,20 @@ export function DecisionPanel({
   entry,
   onAnswered,
 }: Readonly<{ entry: Case; onAnswered: () => void }>) {
-  const { decision, payment } = entry;
-  const paidSignedOff = payment && whoAndWhen(payment);
+  const { decision, effect } = entry;
 
   return (
     <section className="panel" aria-labelledby="decision-title">
       <h2 id="decision-title">Decision</h2>
       {!decision && <p className="muted">{progress(entry)}</p>}
       {decision && <DecisionDetails decision={decision} />}
-      {payment && (
-        <p className="payment">
-          Paid <span className="mono">{money(payment.amount)}</span>
-          {paidSignedOff && `, signed off by ${paidSignedOff}`}
-        </p>
+      {effect && (
+        <p className="payment">{effect.summary ?? "The effect has run."}</p>
       )}
       {decision?.decision === "approve" &&
-        !payment &&
+        !effect &&
         entry.status === "in_progress" && (
-          <p className="payment">Waiting for the agent to pay it.</p>
+          <p className="payment">Waiting for the agent to run its effect.</p>
         )}
       {decision && entry.status === "waiting_for_sign_off" && (
         <HeldPayment
@@ -62,7 +58,7 @@ export function DecisionPanel({
 // Why a payment waits for a worker's sign-off: it's over the approval limit,
 // or the Gateway refused it.
 function WhyHeld({ decision }: Readonly<{ decision: Decision }>) {
-  const amount = <span className="mono">{money(decision.award)}</span>;
+  const amount = <span className="mono">{money(decision.payload?.award ?? 0)}</span>;
   if (decision.gateway_refusal)
     return (
       <>

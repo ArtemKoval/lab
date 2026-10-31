@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import { saveConversation } from "./copilot";
+import type { Confirmation } from "./conversation";
 import type { Conversation, CopilotStep, CopilotTurn } from "./conversation";
 import { renderAt, stubApi } from "./testing";
 
@@ -64,7 +65,7 @@ export function conversation(...turns: CopilotTurn[]): Conversation {
 export const confirmation = {
   case_id: "CLM-1003",
   customer_name: "Lena Fischer",
-  award: 3750,
+  outcome: "3,750.00 awarded",
   reason: "The hospital bill is covered under section 7.",
 };
 

@@ -12,12 +12,16 @@ test("a held case sent back with a note is decided again", async ({
   request,
 }) => {
   await startCase(request, "CLM-1022", "e2e-8");
-  await decide(request, "CLM-1022", {
-    decision: "approve",
-    award: 1350,
-    section: "Section 5, Baggage and Personal Effects",
-    reason: "The loss is covered.",
-  });
+  await decide(
+    request,
+    "CLM-1022",
+    {
+      decision: "approve",
+      section: "Section 5, Baggage and Personal Effects",
+      reason: "The loss is covered.",
+    },
+    1350,
+  );
   const resumed = await resumes(request);
 
   await page.goto("/cases/CLM-1022");
@@ -40,13 +44,17 @@ test("a held case sent back with a note is decided again", async ({
   expect(await resumes(request)).toEqual([...resumed, "CLM-1022"]);
 
   await takeCase(request, "CLM-1022", null);
-  await decide(request, "CLM-1022", {
-    decision: "approve",
-    award: 900,
-    section: "Section 5, Baggage and Personal Effects",
-    reason: "The loss is covered, less what the airline paid.",
-  });
-  await payCase(request, "CLM-1022", 900);
+  await decide(
+    request,
+    "CLM-1022",
+    {
+      decision: "approve",
+      section: "Section 5, Baggage and Personal Effects",
+      reason: "The loss is covered, less what the airline paid.",
+    },
+    1350,
+  );
+  await payCase(request, "CLM-1022");
   const decision = page.getByRole("region", { name: "Decision", exact: true });
   await expect(decision.getByText("Paid $900.00")).toBeVisible();
   await expect(heading.getByText("Decided")).toBeVisible();

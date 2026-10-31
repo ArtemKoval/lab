@@ -1,11 +1,10 @@
 import pytest
 
 from backend import main
-from backend.database import payments
+from backend.database import effect_runs
 from backend.tests.case_requests import decide, pay, record_step, sign_off, start
 from backend.tests.dashboard_reads import read, steps_of
 from backend.tests.rows import committed_case, count
-from backend.tests.settings_requests import change_settings
 from backend.tests.sign_in import MARCUS
 
 
@@ -100,18 +99,18 @@ def test_decision_needs_a_case_in_progress(client):
     assert decide(client, "CLM-9999", "decline", 0).status_code == 404
 
 
-def test_approve_and_pay_within_the_limit(client):
+def test_approve_and_run_the_effect_within_the_limit(client):
     start(client, "CLM-1001")
     case = decide(client, "CLM-1001", "approve", 420.0).json()
     assert case["status"] == "in_progress"
-    assert case["decision"]["award"] == 420.0
-    assert case["payment"] is None
-    response = pay(client, "CLM-1001", 420.0)
+    assert case["decision"]["payload"]["award"] == 420.0
+    assert case["effect"] is None
+    response = pay(client, "CLM-1001")
     assert response.status_code == 200
-    assert response.json()["status"] == "decided"
-    assert response.json()["payment"]["amount"] == 420.0
-    assert response.json()["payment"]["signed_off_by"] is None
-    assert client.get("/api/cases/CLM-1001").json()["payment"]["amount"] == 420.0
+    assert response.json()["result"]["amount"] == 420.0
+    case = client.get("/api/cases/CLM-1001").json()
+    assert case["status"] == "decided"
+    assert case["effect"]["result"]["amount"] == 420.0
 
 
 def test_a_repeated_decision_is_done_and_a_different_one_refused(client):
@@ -120,86 +119,70 @@ def test_a_repeated_decision_is_done_and_a_different_one_refused(client):
     again = decide(client, "CLM-1001", "approve", 420.0)
     assert again.status_code == 200
     assert again.json()["decision"] == first["decision"]
-    different = decide(client, "CLM-1001", "approve", 400.0)
+    different = decide(client, "CLM-1001", "decline", 0)
     assert different.status_code == 409
     assert different.json()["detail"] == "Case CLM-1001 has already been decided"
-    assert decide(client, "CLM-1001", "decline", 0).status_code == 409
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
     assert decide(client, "CLM-1001", "approve", 420.0).json()["status"] == "decided"
 
 
-def test_a_repeated_payment_is_done_and_a_different_one_refused(client):
+def test_a_repeated_effect_is_refused_with_the_recorded_run(client):
     start(client, "CLM-1001")
     decide(client, "CLM-1001", "approve", 420.0)
-    paid = pay(client, "CLM-1001", 420.0).json()["payment"]
-    again = pay(client, "CLM-1001", 420.0)
-    assert again.status_code == 200
-    assert again.json()["payment"] == paid
-    different = pay(client, "CLM-1001", 400.0)
-    assert different.status_code == 409
-    assert different.json()["detail"] == "Case CLM-1001 has already been paid"
+    pay(client, "CLM-1001")
+    again = pay(client, "CLM-1001")
+    assert again.status_code == 409
+    assert again.json()["detail"] == "Case CLM-1001 already ran the effect 'award'"
 
 
 def test_queue_shows_the_decision(client):
     start(client, "CLM-1001")
     decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
     first = client.get("/api/cases").json()[0]
-    assert (first["status"], first["decision"], first["award"]) == (
+    assert (first["status"], first["decision"], first["outcome"]) == (
         "decided",
         "approve",
-        420.0,
+        "420.00 awarded",
     )
-
-
-def test_payment_must_match_the_award(client):
-    start(client, "CLM-1001")
-    decide(client, "CLM-1001", "approve", 420.0)
-    response = pay(client, "CLM-1001", 500.0)
-    assert response.status_code == 422
-    assert (
-        response.json()["detail"] == "The amount must be the approved award of $420.00"
-    )
-    assert client.get("/api/cases/CLM-1001").json()["payment"] is None
 
 
 def test_exactly_the_limit_needs_no_sign_off(client):
     start(client, "CLM-1002")
-    case = decide(client, "CLM-1002", "approve", 1000.0).json()
-    assert case["status"] == "in_progress"
-    assert pay(client, "CLM-1002", 1000.0).json()["status"] == "decided"
+    decide(client, "CLM-1002", "approve", 1000.0)
+    pay(client, "CLM-1002")
+    assert client.get("/api/cases/CLM-1002").json()["status"] == "decided"
 
 
 def test_over_the_limit_waits_for_sign_off(client):
     start(client, "CLM-1002")
     case = decide(client, "CLM-1002", "approve", 1350.0).json()
     assert case["status"] == "waiting_for_sign_off"
-    response = pay(client, "CLM-1002", 1350.0)
+    response = pay(client, "CLM-1002")
     assert response.status_code == 403
     assert response.json()["detail"] == (
         "An award over $1,000.00 needs a worker's sign-off"
     )
-    assert client.get("/api/cases/CLM-1002").json()["payment"] is None
+    assert client.get("/api/cases/CLM-1002").json()["effect"] is None
 
 
-def test_a_sign_off_pays_the_held_award_once(client, agent_calls):
+def test_a_sign_off_runs_the_held_effect_once(client, agent_calls):
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 1350.0)
     case = sign_off(client, "CLM-1002").json()
     assert case["status"] == "decided"
-    assert case["payment"]["amount"] == 1350.0
-    assert case["payment"]["signed_off_by"] == "Dana Whitfield"
-    assert case["payment"]["signed_off_at"] == case["decision"]["signed_off_at"]
-    assert count(payments) == 1
+    assert case["effect"]["result"]["amount"] == 1350.0
+    assert case["decision"]["signed_off_by"] == "Dana Whitfield"
+    assert count(effect_runs) == 1
     assert agent_calls == [{"operation": "resume_case", "case_id": "CLM-1002"}]
 
-    refused = pay(client, "CLM-1002", 1350.0)
+    refused = pay(client, "CLM-1002")
     assert (refused.status_code, refused.json()["detail"]) == (
-        403,
-        "An award over $1,000.00 needs a worker's sign-off",
+        409,
+        "Case CLM-1002 already ran the effect 'award'",
     )
     assert sign_off(client, "CLM-1002").status_code == 409
-    assert count(payments) == 1
+    assert count(effect_runs) == 1
     assert client.get("/api/cases/CLM-1002").json() == case
 
 
@@ -224,41 +207,14 @@ def test_sign_off_needs_a_worker_who_can_approve(client, agent_calls):
 
 
 @pytest.mark.parametrize("decision", ["decline", "refer"])
-def test_declines_and_referrals_are_decided_and_unpaid(client, decision):
+def test_declines_and_referrals_are_decided_and_never_run(client, decision):
     start(client, "CLM-1003")
     case = decide(client, "CLM-1003", decision, 0).json()
     assert case["status"] == "decided"
     assert case["decision"]["decision"] == decision
-    assert pay(client, "CLM-1003", 10.0).status_code == 409
+    assert pay(client, "CLM-1003").status_code == 409
 
 
-def test_pay_needs_an_approval(client):
+def test_an_effect_needs_an_approval(client):
     start(client, "CLM-1001")
-    assert pay(client, "CLM-1001", 420.0).status_code == 409
-
-
-@pytest.mark.parametrize("case_id", ["CLM-1901", "CLM-9999"])
-def test_a_payment_over_the_limit_is_refused_before_the_case_is_read(client, case_id):
-    refused = pay(client, case_id, 4800.0)
-    assert (refused.status_code, refused.json()["detail"]) == (
-        403,
-        "An award over $1,000.00 needs a worker's sign-off",
-    )
-    assert count(payments) == 0
-
-
-def test_a_payment_within_the_limit_on_a_case_never_approved_is_refused(client):
-    refused = pay(client, "CLM-1901", 400.0)
-    assert (refused.status_code, refused.json()["detail"]) == (
-        409,
-        "Case CLM-1901 has not been approved",
-    )
-
-
-def test_the_payments_limit_is_the_one_in_force(client):
-    change_settings(client, approval_limit=2000.0)
-    assert pay(client, "CLM-1901", 1500.0).status_code == 409
-    refused = pay(client, "CLM-1901", 2500.0)
-    assert refused.json()["detail"] == (
-        "An award over $2,000.00 needs a worker's sign-off"
-    )
+    assert pay(client, "CLM-1001").status_code == 409

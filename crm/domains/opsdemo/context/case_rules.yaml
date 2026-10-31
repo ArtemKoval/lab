@@ -1,0 +1,29 @@
+# The rules operations applies to every escalation, with the numbers they use
+# and the sections of the wording and the manual they come from.
+
+source:
+  system: Operations
+  owner: Head of operations
+  reviewed: "2026-10-01"
+
+rules:
+  - rule: filing_window
+    name: Filing window
+    days: 14
+    applies: A site must file an escalation within 14 days of the incident.
+    sections: [Operations wording 5, Operations manual 4]
+  - rule: response_target
+    name: Response target
+    hours: 8
+    applies: The desk answers a standard-tier escalation within 8 working hours, and a priority-tier escalation within 2 hours.
+    sections: [Operations wording 1]
+  - rule: effort_only
+    name: Effort, not money
+    applies: The desk escalates effort in engineer-hours. It never pays money, and a refund request goes to finance, not the desk.
+    sections: [Operations wording 2, Operations manual 2]
+  - rule: repeat_fault
+    name: Repeat fault
+    cases: 1
+    within_months: 3
+    applies: An escalation that names a fault the platform team already fixed inside 3 months escalates with that history attached.
+    sections: [Operations manual 3]

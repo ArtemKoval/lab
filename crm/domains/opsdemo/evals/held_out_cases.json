@@ -1,0 +1,61 @@
+[
+  {
+    "case_id": "ESC-5601",
+    "contract_id": "CON-5002",
+    "customer_id": "CUS-5002",
+    "case_type": "hvac",
+    "submitted_on": "2026-10-28",
+    "incident_date": "2026-09-30",
+    "incident_location": "Cedar Ridge Clinic, Bellevue, staff room",
+    "summary": "Staff-room heat pump failed almost a month before the site reported it",
+    "story": "The staff-room heat pump stopped heating on September 30, and the site filed the escalation on October 28. The site used a space heater in the meantime, so no clinic work stopped. The filing window is 14 days with 2 days of grace, and the report is outside both.",
+    "items": [
+      {
+        "description": "Check the heat pump breaker and filter with the site",
+        "category": "work_item",
+        "amount": 1.0
+      }
+    ],
+    "amount_claimed": 1.0,
+    "documents": [
+      {
+        "name": "Facilities note from the site",
+        "type": "site_log",
+        "content": "Cedar Ridge site note, October 28, 2026. The staff-room heat pump stopped heating around September 30. A space heater covers the room. The breaker is on and the filter is clean."
+      }
+    ],
+    "status": "waiting"
+  },
+  {
+    "case_id": "ESC-5602",
+    "contract_id": "CON-5003",
+    "customer_id": "CUS-5003",
+    "case_type": "access",
+    "submitted_on": "2026-10-22",
+    "incident_date": "2026-10-21",
+    "incident_location": "Harbor Point Clinic, Tacoma, pharmacy door",
+    "summary": "Pharmacy door reader rejects cards again after the October fix",
+    "story": "The pharmacy door reader at Harbor Point rejects every card since October 21. The platform team fixed the same reader's provisioning on October 6, and the door worked from October 6 to October 20. The site rebooted the reader twice without change. Harbor Point is on the priority tier and asks for an escalation with the October history attached.",
+    "items": [
+      {
+        "description": "Confirm the reader fault with the pharmacy lead",
+        "category": "work_item",
+        "amount": 1.0
+      },
+      {
+        "description": "Escalate the reader fault with the October fix history",
+        "category": "work_item",
+        "amount": 3.0
+      }
+    ],
+    "amount_claimed": 4.0,
+    "documents": [
+      {
+        "name": "Platform team fix note of October 6",
+        "type": "platform_note",
+        "content": "Platform note, October 6, 2026. The pharmacy door reader at Harbor Point rejected cards after a provisioning sync. The team cleared the stale record and the reader worked the same afternoon."
+      }
+    ],
+    "status": "waiting"
+  }
+]

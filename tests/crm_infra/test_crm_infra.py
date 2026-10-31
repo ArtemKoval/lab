@@ -39,6 +39,7 @@ ALLOWLIST: tuple[tuple[str, str], ...] = (
     ("crm/dashboard/src/auth.test.ts", "undercover.example"),
     ("crm/e2e/workers.ts", "undercover.example"),
     ("crm/backend/tests/round_requests.py", "undercover.example"),
+    ("crm/dashboard/src/testing.tsx", "UnderCover Travel Insurance"),
 )
 
 

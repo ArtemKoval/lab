@@ -13,6 +13,8 @@ from agent.refusals import REFUSED
 BACKEND_URL = os.getenv("CRM_API", "http://127.0.0.1:8000")
 API_KEY_HEADER = "X-API-Key"
 MISSING_KEY = "CRM_AGENT_KEY is missing. Add it to .env"
+# The backend's status for an effect that already ran on the case.
+ALREADY_RAN = 409
 
 # Retries a refused connection for about 7 seconds, while the backend starts.
 backend = httpx.Client(
@@ -28,6 +30,12 @@ class Refused(Exception):
     def __init__(self, status_code: int, detail: str) -> None:
         super().__init__(f"{status_code}: {detail}")
         self.status_code, self.detail = status_code, detail
+
+    @property
+    def already_ran(self) -> bool:
+        """Say whether the refusal is the backend saying the effect already
+        ran, which a resume after a stop meets and may treat as done."""
+        return self.status_code == ALREADY_RAN
 
     @property
     def answer(self) -> str:

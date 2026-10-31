@@ -65,8 +65,8 @@ export function ConfirmationCard({
           <dd>{confirmation.customer_name}</dd>
         </div>
         <div className="confirmation-amount">
-          <dt>Amount</dt>
-          <dd className="mono">{money(confirmation.award)}</dd>
+          <dt>Outcome</dt>
+          <dd className="mono">{confirmation.outcome}</dd>
         </div>
       </dl>
       <blockquote className="confirmation-reason">

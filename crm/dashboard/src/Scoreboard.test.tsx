@@ -188,9 +188,8 @@ it("shows a copy's evaluation, and no sign-off for a held copy", async () => {
     copy_of: "CLM-1112",
     decision: {
       decision: "approve",
-      award: 1200,
-      calculation: {
-        lines: [{ step: "Laptop", amount: 1200 }],
+      payload: {
+        calculation: [{ step: "Laptop", amount: 1200 }],
         award: 1200,
       },
       section: "Section 5",

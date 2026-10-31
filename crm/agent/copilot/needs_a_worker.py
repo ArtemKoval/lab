@@ -11,7 +11,7 @@ def needs_a_worker(queue: list[dict[str, Any]]) -> dict[str, Any]:
     """What in the queue needs a worker."""
     return {
         "held_for_sign_off": [
-            {"case_id": c["case_id"], "award": c["award"]}
+            {"case_id": c["case_id"], "outcome": c["outcome"]}
             for c in queue
             if c["status"] == Status.WAITING_FOR_SIGN_OFF
         ],

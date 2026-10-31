@@ -13,7 +13,7 @@ from agent.tests.dispatching import dispatch, new_dispatch
 from agent.tests.held import StopAtThePause, hold, resume_case, state_of
 from agent.tests.invoking import ACCEPTED
 from agent.tests.queue_setup import leave_waiting
-from agent.tests.records import case_of, model_calls_of, payments_of
+from agent.tests.records import case_of, effects_of, model_calls_of
 from agent.tests.stubs import agent_on, approve, calculate, call, record, stub
 from agent.tools import case_as_read
 from backend.tests.agent_answers import accepting, unreachable
@@ -21,12 +21,12 @@ from backend.tests.case_requests import NOTE, send_back
 from backend.tests.dashboard_reads import steps_of
 from backend.tests.rows import resume_heard
 
-NEW_DECISION = "CLM-1003  approve  $890.00"
+NEW_DECISION = "CLM-1003  approve  890.00 awarded"
 
 
 def decides_again(award=890.0):
     """A stub model that works out a new award on CLM-1003 and approves it."""
-    return stub(calculate("CLM-1003", award), record("approve", award))
+    return stub(calculate("CLM-1003", award), record("approve"))
 
 
 def sent_back(client, saver, note=NOTE):
@@ -54,10 +54,10 @@ def test_a_case_sent_back_is_taken_by_a_resume_and_decided_again(client, serve):
     case = case_of(client, "CLM-1003")
     assert case["status"] == "decided"
     decision = case["decision"]
-    assert (decision["award"], decision["calculation"]["award"]) == (890.0, 890.0)
-    assert [p["amount"] for p in payments_of("CLM-1003")] == [890.0]
+    assert decision["payload"]["award"] == 890.0
+    assert [r["result"]["amount"] for r in effects_of("CLM-1003")] == [890.0]
     [kept] = case["sent_back_decisions"]
-    assert (kept["award"], kept["note"]) == (3750.0, NOTE)
+    assert (kept["payload"]["award"], kept["note"]) == (3750.0, NOTE)
     resumed = model_calls_of("CLM-1003")[-2:]
     assert [call["run_id"] for call in resumed] == [None, None]
 
@@ -83,7 +83,7 @@ def test_a_new_decision_over_the_limit_pauses_again_and_can_be_sent_back(client,
     over = decides_again(2500.0)
     assert resume_case(serve(over, saver), "CLM-1003").json() == ACCEPTED
     case = case_of(client, "CLM-1003")
-    assert (case["status"], case["decision"]["award"]) == (
+    assert (case["status"], case["decision"]["payload"]["award"]) == (
         "waiting_for_sign_off",
         2500.0,
     )
@@ -98,11 +98,9 @@ def test_a_new_decision_over_the_limit_pauses_again_and_can_be_sent_back(client,
     assert results
     assert not [m for m in results if NOTE in m.text]
     case = case_of(client, "CLM-1003")
-    assert (case["status"], case["decision"]["award"]) == ("decided", 890.0)
-    assert [(d["award"], d["note"]) for d in case["sent_back_decisions"]] == [
-        (3750.0, NOTE),
-        (2500.0, second),
-    ]
+    assert (case["status"], case["decision"]["payload"]["award"]) == ("decided", 890.0)
+    sent = [(d["payload"]["award"], d["note"]) for d in case["sent_back_decisions"]]
+    assert sent == [(3750.0, NOTE), (2500.0, second)]
 
 
 def test_a_send_back_gives_back_the_full_allowance_of_model_calls(client):
@@ -150,7 +148,7 @@ def test_the_case_as_the_agent_reads_it_holds_no_note(client):
 
     api.take_case("CLM-1003", None)
     model = stub(
-        call("get_case"), calculate("CLM-1003", 890.0), record("approve", 890.0)
+        call("get_case"), calculate("CLM-1003", 890.0), record("approve")
     )
     harness.resume("CLM-1003", agent_on(model, saver))
     read = model.prompts[1][-1]
@@ -189,7 +187,7 @@ def test_a_resume_and_a_dispatch_asking_at_once_take_the_case_once(
         assert answer.json() == {"refused": "Case CLM-1003 isn't sent back"}
         assert reports == [NEW_DECISION]
     case = case_of(client, "CLM-1003")
-    assert (case["status"], case["decision"]["award"]) == ("decided", 890.0)
+    assert (case["status"], case["decision"]["payload"]["award"]) == ("decided", 890.0)
     decisions = [
         s
         for s in steps_of(client, "CLM-1003")
@@ -268,4 +266,4 @@ def test_a_case_stopped_before_its_pause_then_sent_back_is_resumed_with_the_note
     assert dispatch(model, saver) == [NEW_DECISION]
     assert NOTE in note_in(model)
     case = case_of(client, "CLM-1003")
-    assert [d["award"] for d in case["sent_back_decisions"]] == [3750.0]
+    assert [d["payload"]["award"] for d in case["sent_back_decisions"]] == [3750.0]

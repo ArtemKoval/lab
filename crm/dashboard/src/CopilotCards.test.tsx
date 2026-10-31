@@ -177,7 +177,7 @@ it("shows the confirmation card from the app's records and answers its own turn"
   );
   expect(card.getByRole("link", { name: "CLM-1003" })).toBeDefined();
   expect(card.getByText(confirmation.customer_name)).toBeDefined();
-  expect(card.getByText("$3,750.00")).toBeDefined();
+  expect(card.getByText("3,750.00 awarded")).toBeDefined();
   expect(card.getByText(confirmation.reason)).toBeDefined();
   fireEvent.click(card.getByRole("button", { name: "Sign off and pay" }));
   await waitFor(() => {

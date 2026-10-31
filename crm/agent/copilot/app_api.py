@@ -139,5 +139,5 @@ def sign_off_case(sign_in: str, case_id: str) -> dict[str, Any]:
     return call_as(sign_in, "POST", f"/cases/{case_id}/sign-off")
 
 
-def count_awards_over_limit(sign_in: str) -> dict[str, Any]:
-    return call_as(sign_in, "GET", "/awards/over-limit")
+def count_sign_offs(sign_in: str) -> dict[str, Any]:
+    return call_as(sign_in, "GET", "/sign-offs")
