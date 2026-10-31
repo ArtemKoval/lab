@@ -10,17 +10,20 @@ award rules live in the pack behind one contract.
 ## Requirements
 
 ### Requirement: The deterministic award engine
-The pack SHALL carry the deterministic award rules as a pure Python module. The backend SHALL keep one latest calculation per case per attempt, and an approval SHALL match its stored calculation.
+The pack SHALL resolve an outcome through its protocol module as a pure
+Python call. The backend SHALL keep one outcome payload per case and outcome
+kind for the attempt in flight, and an approval SHALL carry that payload.
 
 #### Scenario: The rules work an award without a model
-- **GIVEN** a case with claim lines and the pack plans
-- **WHEN** the engine calls the pack rules
-- **THEN** the rules return the award steps with no model call
+- **GIVEN** a case with its lines and the pack plans
+- **WHEN** the engine calls the pack's resolve verb
+- **THEN** the resolve returns the outcome payload with no model call
 
 #### Scenario: An approval must match its calculation
-- **GIVEN** a stored calculation for a case attempt
-- **WHEN** the agent records an approval whose award differs from it
-- **THEN** the API refuses the record with a validation error
+- **GIVEN** an outcome the pack resolved on the case's current attempt
+- **WHEN** the agent records the approval
+- **THEN** the decision carries that payload, and the engine never reads
+  inside it
 
 ### Requirement: Checkpoints survive a restart
 The harness SHALL save the case graph state after every step through a saver factory. The factory SHALL use SQLite when no database URL is set and Postgres when one is set. A stopped case SHALL carry on from its saved state without a new attempt.
