@@ -50,12 +50,16 @@ test("the case page shows the agent at work", async ({ page, request }) => {
     page.getByText('get_case: {"case_id":"CLM-1003"}').first(),
   ).toBeVisible();
 
-  await decide(request, "CLM-1003", {
-    decision: "approve",
-    award: 500,
-    section: "Section 7, Emergency Medical",
-    reason: "The treatment was necessary and covered.",
-  });
+  await decide(
+    request,
+    "CLM-1003",
+    {
+      decision: "approve",
+      section: "Section 7, Emergency Medical",
+      reason: "The treatment was necessary and covered.",
+    },
+    500,
+  );
   const decision = page.locator("section", {
     has: page.getByRole("heading", { name: "Decision" }),
   });
@@ -127,12 +131,16 @@ test("the case page shows every kind of step, the context used and the whole rec
     ),
   ).toBeVisible();
 
-  await decide(request, "CLM-1006", {
-    decision: "approve",
-    award: 243,
-    section: "Section 6, Emergency Medical",
-    reason: "The hospital bill is covered.",
-  });
+  await decide(
+    request,
+    "CLM-1006",
+    {
+      decision: "approve",
+      section: "Section 6, Emergency Medical",
+      reason: "The hospital bill is covered.",
+    },
+    243,
+  );
   await recordStep(
     request,
     "CLM-1006",
@@ -157,12 +165,16 @@ test("a sign-off on the dashboard pays the held award and asks the agent to resu
   request,
 }) => {
   await startCase(request, "CLM-1020", "e2e-2");
-  await decide(request, "CLM-1020", {
-    decision: "approve",
-    award: 1350,
-    section: "Section 5, Baggage and Personal Effects",
-    reason: "The loss is covered.",
-  });
+  await decide(
+    request,
+    "CLM-1020",
+    {
+      decision: "approve",
+      section: "Section 5, Baggage and Personal Effects",
+      reason: "The loss is covered.",
+    },
+    1350,
+  );
   const refused = await askToPay(request, "CLM-1020");
   expect(refused.status()).toBe(403);
   const before = await started(request);
@@ -191,12 +203,16 @@ test.describe("signed in as Marcus Oyelaran", () => {
     request,
   }) => {
     await startCase(request, "CLM-1024", "e2e-7");
-    await decide(request, "CLM-1024", {
-      decision: "approve",
-      award: 1350,
-      section: "Section 5, Baggage and Personal Effects",
-      reason: "The loss is covered.",
-    });
+    await decide(
+      request,
+      "CLM-1024",
+      {
+        decision: "approve",
+        section: "Section 5, Baggage and Personal Effects",
+        reason: "The loss is covered.",
+      },
+      1350,
+    );
 
     await page.goto("/cases/CLM-1024");
     await expect(

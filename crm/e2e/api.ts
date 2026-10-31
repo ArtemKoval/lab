@@ -59,9 +59,10 @@ export const recordStep = (
 // Who makes the decisions the tests record, as the case agent says it.
 const MAKER = "CRM Agent, version 1";
 
+// What the decision route takes: the record names the decision, and the
+// outcome rides on the case.
 interface DecisionRequest {
   decision: DecisionKind;
-  award: number;
   section: string;
   reason: string;
   decided_by: string;
@@ -73,16 +74,16 @@ const recordDecision = (
   decision: DecisionRequest,
 ) => send(request, "POST", `${casePath(caseId)}/decision`, decision);
 
-const calculateAward = (
+const resolveOutcome = (
   request: Request,
   caseId: string,
-  award: { benefit: string; lines: object[]; paid_by_others: number },
-) => send(request, "POST", `${casePath(caseId)}/award`, award);
+  body: { benefit: string; lines: object[]; paid_by_others: number },
+) => send(request, "POST", `${casePath(caseId)}/outcomes/award`, body);
 
-// Works out the award on one emergency medical bill, which the backend keeps
-// for the case's attempt, and returns what it pays.
+// Resolves the outcome on one emergency medical bill, which the backend keeps
+// for the case's attempt, and returns the award it carries.
 async function awardOnABill(request: Request, caseId: string, bill: number) {
-  const response = await calculateAward(request, caseId, {
+  const response = await resolveOutcome(request, caseId, {
     benefit: "emergency_medical",
     lines: [
       {
@@ -108,11 +109,11 @@ export async function decide(
   request: Request,
   caseId: string,
   decision: Omit<DecisionRequest, "decided_by">,
+  award = 0,
 ) {
   if (decision.decision === "approve") {
-    const deductible =
-      decision.award - (await awardOnABill(request, caseId, decision.award));
-    await awardOnABill(request, caseId, decision.award + deductible);
+    const deductible = award - (await awardOnABill(request, caseId, award));
+    await awardOnABill(request, caseId, award + deductible);
   }
   return recordDecision(request, caseId, { ...decision, decided_by: MAKER });
 }

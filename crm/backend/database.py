@@ -614,8 +614,6 @@ def waiting_case(record: dict[str, Any], **columns: Any) -> dict[str, Any]:
 
 def seed(db: Engine) -> dict[str, int]:
     """Build the tables afresh from the pack and count what they hold."""
-    active = loader.pack()
-    company = active.load_json("company.json")
     worker_rows = load("workers.json")
     customer_rows = queue_records("customers.json")
     contract_rows = queue_records("contracts.json")
@@ -627,7 +625,7 @@ def seed(db: Engine) -> dict[str, int]:
             Table(name, MetaData()).drop(connection, checkfirst=True)
         metadata.drop_all(connection)
         metadata.create_all(connection)
-        seed_settings(connection, company["award_approval_limit"])
+        seed_settings(connection, loader.pack().settings["award_approval_limit"])
         seed_models_allowed(connection)
         seed_documents(connection)
         connection.execute(

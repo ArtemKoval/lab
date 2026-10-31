@@ -75,7 +75,7 @@ def test_a_case_stopped_partway_carries_on_from_its_last_step(client):
     assert (stopped["status"], stopped["attempts"]) == ("in_progress", 1)
     before = steps_of(client, "CLM-1001")
 
-    model = stub(calculate("CLM-1001", 420.0), record("approve", 420.0))
+    model = stub(calculate("CLM-1001", 420.0), record("approve"))
     report = harness.carry_on("CLM-1001", None, agent_on(model, saver))
     assert report == "CLM-1001  approve  420.00 awarded"
     case = case_of(client, "CLM-1001")

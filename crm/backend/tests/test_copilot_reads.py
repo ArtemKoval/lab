@@ -4,28 +4,10 @@ the Copilot's model."""
 
 import json
 
-from sqlalchemy import insert
-
-from backend.database import effect_runs, engine, now
 from backend.tests.case_requests import held, sign_off
 from backend.tests.dashboard_reads import read
 from backend.tests.run_requests import create_evaluation, start_dispatch
 from backend.tests.sign_in import DANA
-
-
-def paid_without_a_sign_off(case_id, amount):
-    """Write an effect run straight into the table, as the sign-off path of the
-    app would for an award held for sign-off."""
-    with engine().begin() as db:
-        db.execute(
-            insert(effect_runs).values(
-                case_id=case_id,
-                effect="award",
-                result={"amount": amount},
-                summary=None,
-                ran_at=now(),
-            )
-        )
 
 
 def test_find_customers_by_the_words_in_their_name(dashboard):

@@ -96,7 +96,7 @@ def test_a_dispatch_works_the_cases_in_progress_and_waiting_oldest_first(client)
 def test_a_rate_limit_waits_and_carries_the_case_on(client):
     leave_waiting("CLM-1001")
     limited = ModelRateLimitError("429 Too Many Requests")
-    model = swarm({"CLM-1001": [call("get_case"), limited, record("refer", 0)]})
+    model = swarm({"CLM-1001": [call("get_case"), limited, record("refer")]})
     assert dispatch(model) == ["CLM-1001  refer"]
 
     case = case_of(client, "CLM-1001")
@@ -223,8 +223,8 @@ def test_a_dispatch_stopped_partway_is_finished_by_the_next(client):
     )
     model = swarm(
         {
-            "CLM-1001": [call("get_case"), KeyboardInterrupt(), record("refer", 0)],
-            "CLM-1003": [call("get_case"), KeyboardInterrupt(), record("decline", 0)],
+            "CLM-1001": [call("get_case"), KeyboardInterrupt(), record("refer")],
+            "CLM-1003": [call("get_case"), KeyboardInterrupt(), record("decline")],
         },
         pause=0.05,
     )

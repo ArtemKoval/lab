@@ -62,9 +62,9 @@ def test_the_model_never_gives_the_maker():
 def test_an_approval_with_no_calculation_goes_back_to_the_model(client):
     model = stub(
         call("get_case"),
-        record("approve", 420.0),
+        record("approve"),
         calculate("CLM-1001", 420.0),
-        record("approve", 420.0),
+        record("approve"),
     )
     assert harness.work_case("CLM-1001", None, agent_on(model)) == (
         "CLM-1001  approve  420.00 awarded"

@@ -102,8 +102,17 @@ def test_the_declarations_of_a_full_pack_pass():
     check_declarations("tiny", {"name": "tiny", **DECLARED})
 
 
-def test_an_engine_api_1_pack_needs_no_declarations():
-    check_declarations("tiny", {"engine_api": 1})
+def test_an_engine_api_1_pack_is_refused():
+    with pytest.raises(PackError) as error:
+        check_declarations("tiny", {"engine_api": 1})
+    assert "engine_api 2 packs only" in str(error.value)
+
+
+def test_a_pack_that_resolves_no_outcome_is_refused():
+    manifest = DECLARED | {"outcomes": {}}
+    with pytest.raises(PackError) as error:
+        check_declarations("tiny", manifest)
+    assert "declares no outcomes" in str(error.value)
 
 
 def test_missing_declarations_are_refused():

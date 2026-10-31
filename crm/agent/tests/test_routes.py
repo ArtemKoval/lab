@@ -81,7 +81,7 @@ def test_the_gateway_route_reads_decides_and_pays_through_the_gateway(client, ga
         call("get_contract"),
         call("get_case_history"),
         call("resolve_outcome", benefit="trip_delay", lines=DELAY, paid_by_others=0),
-        record("approve", 420.0),
+        record("approve"),
     )
     report = harness.work_case("CLM-1001", None, on_the_gateway(gateway, model))
     assert report == "CLM-1001  approve  420.00 awarded"
@@ -144,7 +144,7 @@ def test_a_decision_the_app_refuses_is_a_refusal_on_each_route(
     client, route_name, route
 ):
     model = stub(
-        record("approve", 0), calculate("CLM-1001", 420.0), record("approve", 420.0)
+        record("approve"), calculate("CLM-1001", 420.0), record("approve")
     )
     report = harness.work_case("CLM-1001", None, agent_on(model, route=route))
     assert report == "CLM-1001  approve  420.00 awarded"

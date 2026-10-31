@@ -57,13 +57,17 @@ test("a case held for the worker's sign-off", async ({ page, request }) => {
   await startCase(request, caseId, "tour-1");
   await recordStep(request, caseId, "tool_call", "get_case for the tour");
   await recordStep(request, caseId, "tool_result", "the case, read");
-  await decide(request, caseId, {
-    decision: "approve",
-    award: 3750.0,
-    section: "10. How we work out your payment",
-    reason:
-      "The cancellation is covered; the hotel was prepaid, non-refundable.",
-  });
+  await decide(
+    request,
+    caseId,
+    {
+      decision: "approve",
+      section: "10. How we work out your payment",
+      reason:
+        "The cancellation is covered; the hotel was prepaid, non-refundable.",
+    },
+    1500,
+  );
   await page.goto(`/cases/${caseId}`);
   await expect(page.getByText(/sign[- ]off/i).first()).toBeVisible();
   await shot(page, "02-case-held-for-sign-off");
@@ -75,8 +79,7 @@ test("a case declined by the agent", async ({ page, request }) => {
   await startCase(request, caseId, "tour-2");
   await decide(request, caseId, {
     decision: "decline",
-    award: 0,
-    section: "9. General exclusions",
+        section: "9. General exclusions",
     reason: "The illness was pre-existing, inside the look-back window.",
   });
   await page.goto(`/cases/${caseId}`);

@@ -237,7 +237,7 @@ def test_the_checks_result_is_kept_in_the_cases_state(client):
 def test_the_check_runs_once_for_each_thread(client):
     screener, saver = passes(), InMemorySaver()
     timeout = ModelTimeoutError("Timed out")
-    model = stub(call("get_case"), timeout, record("refer", 0))
+    model = stub(call("get_case"), timeout, record("refer"))
     with pytest.raises(ModelTimeoutError):
         harness.work_case("CLM-1003", None, agent_on(model, saver, screener=screener))
 

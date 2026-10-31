@@ -217,13 +217,24 @@ def call_model(
     return {"messages": [reply], "model_calls": 1}
 
 
+def effect_for(outcome: str) -> str | None:
+    """The effect the pack declares on an outcome, by its declared binding."""
+    for name, declared in loader.pack().effects.items():
+        if declared.get("outcome") == outcome:
+            return name
+    return None
+
+
 def pay(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
-    """Run the approved case's effect on the route its decision declares, which
-    the app refuses unless it may run, and hold an effect the pack holds. A run
-    that answers ends the case decided, and so does one the app already
-    recorded, which a resume after a stop meets."""
+    """Run the approved case's effect — the one the pack declares on the
+    outcome its decision carries — which the app refuses unless it may run,
+    and hold an effect the pack holds. A run that answers ends the case
+    decided, and so does one the app already recorded, which a resume after a
+    stop meets. An outcome with no declared effect leaves nothing to run."""
     context = runtime.context
-    effect = state["decision"]["outcome"]
+    effect = effect_for(state["decision"]["outcome"])
+    if effect is None:
+        return {"status": app_terms.Status.DECIDED}
     try:
         context.route.call(
             Target.APP, RUN_EFFECT, {"case_id": context.case_id, "effect": effect}
@@ -235,6 +246,12 @@ def pay(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
     except GatewayRefused as refused:
         case = hold(context, refused)
         return {"status": case["status"]}
+    except ToolException as refused:
+        # The Gateway answers the app's refusal as a tool error, so the
+        # already-ran refusal of a resume arrives here too.
+        if "already ran the effect" in str(refused):
+            return {"status": app_terms.Status.DECIDED}
+        raise
     return {"status": app_terms.Status.DECIDED}
 
 

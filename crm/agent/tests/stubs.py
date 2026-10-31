@@ -102,19 +102,19 @@ def call(name, text="", **args):
     return AIMessage(content=text, tool_calls=[tool_call])
 
 
-def record(decision, award=None):
-    args = {
-        "decision": decision,
-        "section": "Section 3, Trip Delay",
-        "reason": "The delay was covered.",
-    }
-    return call("record_decision", **args)
+def record(decision):
+    return call(
+        "record_decision",
+        decision=decision,
+        section="Section 3, Trip Delay",
+        reason="The delay was covered.",
+    )
 
 
 def decide(decision, award):
     """The replies of a case agent that reads its case and declines or refers it,
     which ends its work on the case."""
-    return [call("get_case"), record(decision, award)]
+    return [call("get_case"), record(decision)]
 
 
 def deductible_of(case_id):
@@ -146,7 +146,7 @@ def calculate(case_id, award):
 def approve(case_id, award):
     """The replies of a case agent that reads its case, works out its award and
     approves it, which ends its work on the case."""
-    return [call("get_case"), calculate(case_id, award), record("approve", award)]
+    return [call("get_case"), calculate(case_id, award), record("approve")]
 
 
 # The instructions of a case graph the tests build for themselves, as version 1.

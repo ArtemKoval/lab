@@ -143,14 +143,19 @@ def pack() -> Pack:
 
 
 def check_declarations(name: str, manifest: dict[str, Any]) -> None:
-    """Refuse an engine_api 2 pack whose declarations are missing or name
-    things the pack does not declare."""
+    """Refuse a pack the engine cannot run: one the declarations do not
+    describe, or one that resolves no outcome at all."""
     if manifest.get("engine_api", 1) < 2:
-        return
+        raise PackError(
+            f"pack {name!r} declares engine_api {manifest.get('engine_api')!r}; "
+            "the engine runs engine_api 2 packs only"
+        )
     missing = [key for key in DECLARED_KEYS if key not in manifest]
     if missing:
         raise PackError(f"pack {name!r} manifest lacks {', '.join(missing)}")
     outcomes = manifest["outcomes"]
+    if not outcomes:
+        raise PackError(f"pack {name!r} declares no outcomes")
     for outcome, verb in outcomes.items():
         if verb not in PROTOCOL_VERBS:
             raise PackError(

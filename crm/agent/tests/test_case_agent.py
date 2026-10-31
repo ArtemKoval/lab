@@ -74,7 +74,7 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
         call("get_contract", contract_id="POL-2001"),
         call("get_case_history", customer_id="CUS-3001"),
         calculate("CLM-1001", 420.0),
-        record("approve", 420.0),
+        record("approve"),
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     assert caplog.messages == ["CLM-1001  approve  420.00 awarded"]
@@ -130,7 +130,7 @@ def test_declines_and_refers(client, decision):
 
 
 def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
-    twice = [record("approve", 420.0).tool_calls[0] for _ in range(2)]
+    twice = [record("approve").tool_calls[0] for _ in range(2)]
     model = stub(calculate("CLM-1001", 420.0), AIMessage(content="", tool_calls=twice))
     assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     case = case_of(client, "CLM-1001")
@@ -145,7 +145,7 @@ def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
 
 def test_a_refused_decision_goes_back_to_the_model(client):
     model = stub(
-        record("approve", 0), calculate("CLM-1001", 420.0), record("approve", 420.0)
+        record("approve"), calculate("CLM-1001", 420.0), record("approve")
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     refusal = model.prompts[1][-1]
@@ -227,7 +227,7 @@ def test_working_out_the_award(client):
                 lines=lines,
                 paid_by_others=0,
             ),
-        record("approve", 420.0),
+        record("approve"),
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     # After the check's step and the call.

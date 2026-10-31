@@ -24,7 +24,8 @@ def test_the_credit_gate_asks_the_rules(protocol):
 
 
 def test_the_credit_issue_record_carries_the_amount(protocol):
-    assert protocol.execute({"award": 135.0}, {"award": 135.0}) == {"amount": 135.0}
+    case = {"case_id": "TCK-2001", "customer_id": "CUS-4001", "award": 135.0}
+    assert protocol.execute(case, {"award": 135.0}) == {"amount": 135.0}
 
 
 def test_the_summary_says_the_credit(protocol):

@@ -3,8 +3,9 @@
 ### Requirement: The pack protocol
 Each pack SHALL ship a `protocol.py` with four verbs the core calls:
 `resolve` (compute an outcome), `gate` (the hold predicate), `execute` (the
-side effect), and `summarize` (the worker-facing line). The loader SHALL
-validate the verbs at startup and refuse a pack that lacks them.
+side effect), and `summarize` (the worker-facing line). The pack SHALL also
+give a `metric` accessor, which scoring reads. The loader SHALL validate the
+five functions at startup and refuse a pack that lacks one.
 
 #### Scenario: The loader validates the protocol
 - **GIVEN** a pack whose protocol lacks a verb

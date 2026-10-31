@@ -26,7 +26,7 @@ NEW_DECISION = "CLM-1003  approve  890.00 awarded"
 
 def decides_again(award=890.0):
     """A stub model that works out a new award on CLM-1003 and approves it."""
-    return stub(calculate("CLM-1003", award), record("approve", award))
+    return stub(calculate("CLM-1003", award), record("approve"))
 
 
 def sent_back(client, saver, note=NOTE):
@@ -148,7 +148,7 @@ def test_the_case_as_the_agent_reads_it_holds_no_note(client):
 
     api.take_case("CLM-1003", None)
     model = stub(
-        call("get_case"), calculate("CLM-1003", 890.0), record("approve", 890.0)
+        call("get_case"), calculate("CLM-1003", 890.0), record("approve")
     )
     harness.resume("CLM-1003", agent_on(model, saver))
     read = model.prompts[1][-1]

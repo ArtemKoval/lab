@@ -117,12 +117,16 @@ async function holdForSignOff(
   caseId: string,
 ) {
   await startCase(request, caseId, `e2e-copilot-${caseId}`);
-  await decide(request, caseId, {
-    decision: "approve",
-    award: 1350,
-    section: "Section 7, Emergency Medical",
-    reason: "The hospital bill is covered under section 7.",
-  });
+  await decide(
+    request,
+    caseId,
+    {
+      decision: "approve",
+      section: "Section 7, Emergency Medical",
+      reason: "The hospital bill is covered under section 7.",
+    },
+    1350,
+  );
 }
 
 test("a sign-off waits for Dana's confirmation, even after a reload, and pays once she confirms", async ({

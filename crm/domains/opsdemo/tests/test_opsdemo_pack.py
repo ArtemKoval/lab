@@ -121,7 +121,8 @@ def test_the_effort_gate_asks_the_rules(protocol):
 
 
 def test_the_escalation_record_moves_no_money(protocol):
-    assert protocol.execute({"award": 10.5}, {"award": 10.5}) == {
+    case = {"case_id": "ESC-5001", "customer_id": "CUS-5001", "award": 10.5}
+    assert protocol.execute(case, {"award": 10.5}) == {
         "queue": "platform",
         "hours": 10.5,
     }
@@ -160,3 +161,51 @@ def test_resolve_estimates_through_the_rules(protocol):
     )
     estimate = protocol.resolve({"contract": contract}, config, request)
     assert (estimate.award, estimate.needs_sign_off) == (6.0, False)
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    """The backend on a database seeded from this pack, called with the
+    agent's key."""
+    from fastapi.testclient import TestClient
+
+    from backend.database import engine, seed
+    from backend.dependencies import API_KEY_HEADER
+    from backend.main import app
+
+    monkeypatch.setenv("CRM_DB", str(tmp_path / "opsdemo.db"))
+    seed(engine())
+    with TestClient(app, headers={API_KEY_HEADER: "test-agent-key-0123456789abcdefghijklmnop"}) as caller:
+        yield caller
+
+
+def test_an_escalation_runs_its_effect_through_the_engine(client):
+    """The whole engine path on the pack: start, resolve, approve, and run the
+    effect, which lands in the platform queue and moves no money."""
+    from backend.tests.case_requests import line, record_decision, resolve_outcome, start
+
+    start(client, "ESC-5001")
+    resolved = resolve_outcome(
+        client,
+        "ESC-5001",
+        "effort",
+        {
+            "benefit": "effort",
+            "lines": [
+                line("Diagnose with the site lead", 2.0),
+                line("Escalate to the platform team", 4.0),
+            ],
+            "paid_by_others": 0,
+        },
+    )
+    assert resolved.status_code == 200
+    case = client.get("/api/cases/ESC-5001").json()
+    assert case["decision"] is None
+    recorded = record_decision(client, "ESC-5001", decision="approve")
+    assert recorded.status_code == 200
+    run = client.post("/api/cases/ESC-5001/effects/effort")
+    assert run.status_code == 200
+    case = client.get("/api/cases/ESC-5001").json()
+    assert (case["status"], case["effect"]["effect"]) == ("decided", "effort")
+    assert set(case["effect"]["result"]) == {"queue", "hours"}
+    assert case["effect"]["summary"] == "9 engineer-hours to escalate"

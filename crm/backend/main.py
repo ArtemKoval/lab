@@ -139,7 +139,19 @@ def protocol():
 def outcome_kind() -> str:
     """Return the outcome kind the pack declares, which the engine's routes
     carry under its own name."""
-    return next(iter(loader.pack().outcomes), "award")
+    return next(iter(loader.pack().outcomes))
+
+
+def effect_for(outcome: str) -> str | None:
+    """Return the effect the pack declares on an outcome, if any."""
+    return next(
+        (
+            name
+            for name, declared in loader.pack().effects.items()
+            if declared.get("outcome") == outcome
+        ),
+        None,
+    )
 
 
 def approval_limit(db: Connection) -> float:
@@ -229,8 +241,9 @@ def gated(db: Connection, payload: dict, limit: float) -> bool:
 def run_the_effect(db: Connection, case: RowMapping, effect: str) -> dict:
     """Execute one of a case's declared effects once, and record the run with
     the pack's summary of its outcome. The record comes from the pack's
-    execute verb on the outcome the case decided on."""
-    payload = stored_payload(db, case, effect)
+    execute verb on the payload the case decided on, so a later resolve can
+    never change what an approval runs."""
+    payload = case["payload"]
     record = protocol().execute(dict(case), payload)
     db.execute(
         insert(effect_runs).values(
@@ -600,12 +613,19 @@ def resolve_outcome(
     dependencies=[AgentKey],
 )
 def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
-    """Run one of a case's effects once, through the pack's execute verb."""
+    """Run one of a case's effects once, on the outcome it decided on."""
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:
         raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
     if effect not in loader.pack().effects:
         raise HTTPException(404, f"The pack serves no effect called {effect!r}")
+    declared = loader.pack().effects[effect].get("outcome")
+    if case["outcome"] != declared:
+        raise HTTPException(
+            409,
+            f"Case {case_id} decided on the outcome {case['outcome']!r}, which "
+            f"the effect {effect!r} does not run",
+        )
     prior = db.execute(
         select(effect_runs)
         .where(effect_runs.c.case_id == case_id, effect_runs.c.effect == effect)
@@ -615,7 +635,7 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(403, over_the_limit(case["approval_limit"]))
     limit = approval_limit(db)
-    if gated(db, stored_payload(db, case, effect), limit):
+    if gated(db, case["payload"], limit):
         raise HTTPException(403, over_the_limit(limit))
     run_the_effect(db, case, effect)
     return case_in_full(db, case_id).effect
@@ -654,7 +674,9 @@ def sign_off_case(case_id: str, worker: SignsOffOverTheLimit, db: Database) -> C
         .where(decisions.c.case_id == case_id)
         .values(signed_off_by=worker.name, signed_off_at=now())
     )
-    run_the_effect(db, case, case["outcome"] or outcome_kind())
+    effect = effect_for(case["outcome"])
+    if effect is not None:
+        run_the_effect(db, case, effect)
     db.commit()
     ask_to_resume(case_id)
     return case_in_full(db, case_id)
