@@ -20,6 +20,9 @@ DEFAULT_DOMAIN = "insurance"
 # The verbs every pack's protocol module carries, and the loader validates.
 PROTOCOL_VERBS = ("resolve", "gate", "execute", "summarize", "metric")
 
+# The manifest keys an engine_api 2 pack declares its domain with.
+DECLARED_KEYS = ("resolutions", "outcomes", "config", "effects")
+
 
 class PackError(Exception):
     """A pack is absent, incomplete, or misnamed."""
@@ -52,6 +55,22 @@ class Pack:
     @property
     def settings(self) -> dict[str, Any]:
         return self.manifest.get("settings", {})
+
+    @property
+    def resolutions(self) -> list[str]:
+        return self.manifest.get("resolutions", [])
+
+    @property
+    def outcomes(self) -> dict[str, str]:
+        return self.manifest.get("outcomes", {})
+
+    @property
+    def config(self) -> dict[str, str]:
+        return self.manifest.get("config", {})
+
+    @property
+    def effects(self) -> dict[str, dict[str, Any]]:
+        return self.manifest.get("effects", {})
 
     def load_json(self, name: str) -> Any:
         """Read one JSON file from the pack data folder."""
@@ -119,4 +138,27 @@ def pack() -> Pack:
         raise PackError(
             f"manifest name {manifest.get('name')!r} does not match folder {name!r}"
         )
+    check_declarations(name, manifest)
     return Pack(name=name, root=root, manifest=manifest)
+
+
+def check_declarations(name: str, manifest: dict[str, Any]) -> None:
+    """Refuse an engine_api 2 pack whose declarations are missing or name
+    things the pack does not declare."""
+    if manifest.get("engine_api", 1) < 2:
+        return
+    missing = [key for key in DECLARED_KEYS if key not in manifest]
+    if missing:
+        raise PackError(f"pack {name!r} manifest lacks {', '.join(missing)}")
+    outcomes = manifest["outcomes"]
+    for outcome, verb in outcomes.items():
+        if verb not in PROTOCOL_VERBS:
+            raise PackError(
+                f"pack {name!r} outcome {outcome!r} binds the unknown verb {verb!r}"
+            )
+    for effect, declared in manifest["effects"].items():
+        if declared.get("outcome") not in outcomes:
+            raise PackError(
+                f"pack {name!r} effect {effect!r} names the undeclared outcome "
+                f"{declared.get('outcome')!r}"
+            )

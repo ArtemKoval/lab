@@ -12,7 +12,15 @@ from backend.database import engine, outcomes
 from backend.tests.case_requests import decide, line, start, work_out_award
 from backend.tests.settings_requests import change_settings
 from domains.insurance import protocol as insurance_protocol
-from domains.loader import Pack, PackError
+from domains.loader import Pack, PackError, check_declarations
+
+DECLARED = {
+    "engine_api": 2,
+    "resolutions": ["approve", "decline", "refer"],
+    "outcomes": {"award": "resolve"},
+    "config": {},
+    "effects": {"award": {"outcome": "award", "gated": True}},
+}
 
 TRIP_DELAY = [
     line("Hotel", 245, "hotel", nights=1),
@@ -83,6 +91,37 @@ def test_the_loader_refuses_a_verb_that_is_not_callable(monkeypatch, tmp_path):
     assert "lacks resolve" in str(error.value)
 
 
+def test_the_declarations_of_a_full_pack_pass():
+    check_declarations("tiny", {"name": "tiny", **DECLARED})
+
+
+def test_an_engine_api_1_pack_needs_no_declarations():
+    check_declarations("tiny", {"engine_api": 1})
+
+
+def test_missing_declarations_are_refused():
+    with pytest.raises(PackError) as error:
+        check_declarations(
+            "tiny",
+            {"engine_api": 2, "resolutions": [], "outcomes": {}, "config": {}},
+        )
+    assert "lacks effects" in str(error.value)
+
+
+def test_an_outcome_on_an_unknown_verb_is_refused():
+    manifest = DECLARED | {"outcomes": {"award": "compute"}}
+    with pytest.raises(PackError) as error:
+        check_declarations("tiny", manifest)
+    assert "unknown verb" in str(error.value)
+
+
+def test_an_effect_on_an_undeclared_outcome_is_refused():
+    manifest = DECLARED | {"effects": {"award": {"outcome": "credit"}}}
+    with pytest.raises(PackError) as error:
+        check_declarations("tiny", manifest)
+    assert "undeclared outcome" in str(error.value)
+
+
 def an_approved_case(client, approval_limit=None):
     """CLM-1001 started, its award worked out, and approved at $420.00."""
     if approval_limit is not None:
@@ -112,11 +151,19 @@ def test_a_repeated_effect_is_refused_with_the_recorded_run(client):
     assert repeat.json()["detail"] == "Case CLM-1001 already ran the effect 'award'"
 
 
-def test_an_effect_needs_a_resolved_outcome(client):
+def test_an_undeclared_effect_is_refused(client):
     an_approved_case(client)
     missing = client.post("/api/cases/CLM-1001/effects/refund")
     assert missing.status_code == 404
-    assert missing.json()["detail"] == "Case CLM-1001 has no resolved outcome 'refund'"
+    assert missing.json()["detail"] == "The pack serves no effect called 'refund'"
+
+
+def test_a_declared_effect_needs_a_resolved_outcome(client):
+    start(client, "CLM-1001")
+    decide(client, "CLM-1001", "approve", 420.0)
+    missing = client.post("/api/cases/CLM-1001/effects/award")
+    assert missing.status_code == 404
+    assert missing.json()["detail"] == "Case CLM-1001 has no resolved outcome 'award'"
 
 
 def test_only_an_approved_case_runs_an_effect(client):

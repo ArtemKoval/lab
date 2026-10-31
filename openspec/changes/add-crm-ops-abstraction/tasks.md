@@ -19,7 +19,7 @@
 
 ## Stage 4 — the declarations
 
-- [ ] 4.1 The manifests declare `resolutions`, `outcomes`, `config`, and `effects` with engine_api 2. The loader validates them.
+- [x] 4.1 The manifests declare `resolutions`, `outcomes`, `config`, and `effects` with engine_api 2. The loader validates them.
 - [ ] 4.2 The agent tools and the dashboard render from the declarations. Per-stage aliases keep the old names until the removal stage.
 - [ ] 4.3 The opsdemo pack (escalations, no money) proves a new domain needs no core edit.
 

@@ -13,9 +13,14 @@ from validate import Examiner  # noqa: E402
 GOOD_MANIFEST = {
     "name": "tiny",
     "display_name": "Tiny",
-    "engine_api": 1,
+    "engine_api": 2,
     "rules": "rules",
+    "protocol": "protocol",
     "settings": {"award_approval_limit": 100.0},
+    "resolutions": ["approve", "decline", "refer"],
+    "outcomes": {"award": "resolve"},
+    "config": {"award_approval_limit": "The largest award paid without a sign-off"},
+    "effects": {"award": {"outcome": "award", "gated": True}},
     "documents": ["wording"],
     "seed": {
         "cases": "cases.json",
@@ -199,6 +204,14 @@ def test_a_missing_manifest_key_is_named(tmp_path):
         "documents" in message
         for message in findings_for(tmp_path / "tiny")["manifest.json"]
     )
+
+
+def test_a_config_that_names_a_missing_setting_is_named(tmp_path):
+    manifest = GOOD_MANIFEST.copy()
+    manifest["config"] = {"award_approval_limit": "s", "missing_key": "s"}
+    make_pack(tmp_path / "tiny", manifest=manifest)
+    findings = findings_for(tmp_path / "tiny")["manifest.json"]
+    assert any("missing_key" in message for message in findings)
 
 
 def test_a_rules_signature_drift_is_named(tmp_path):

@@ -28,9 +28,14 @@ REQUIRED_MANIFEST_KEYS = (
     "display_name",
     "engine_api",
     "rules",
+    "protocol",
     "settings",
     "documents",
     "seed",
+    "resolutions",
+    "outcomes",
+    "config",
+    "effects",
 )
 REQUIRED_SETTINGS_KEYS = ("award_approval_limit",)
 REQUIRED_SEED_FILES = ("cases", "customers", "contracts", "workers", "company")
@@ -143,6 +148,14 @@ class Examiner:
             if key not in settings:
                 self.findings.append(
                     Finding("manifest.json", f"the settings lack the key '{key}'")
+                )
+        for key in self.manifest.get("config", {}):
+            if key not in settings:
+                self.findings.append(
+                    Finding(
+                        "manifest.json",
+                        f"the config declares the missing setting '{key}'",
+                    )
                 )
 
     def examine_rules(self) -> None:

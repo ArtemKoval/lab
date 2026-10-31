@@ -569,6 +569,8 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
         raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:
         raise HTTPException(403, over_the_limit(case["approval_limit"]))
+    if effect not in loader.pack().effects:
+        raise HTTPException(404, f"The pack serves no effect called {effect!r}")
     payload = stored_payload(db, case_id, effect)
     if payload is None:
         raise HTTPException(404, NOT_RESOLVED.format(case_id=case_id, outcome=effect))

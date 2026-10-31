@@ -45,3 +45,14 @@ SHALL refuse a repeat.
 - **GIVEN** an effect already executed on a case
 - **WHEN** the same effect is executed again
 - **THEN** the API refuses with the recorded execution
+
+### Requirement: The declared domain
+The manifest SHALL declare the resolutions, the outcomes, the config, and the
+effects of the domain, with engine_api 2. The loader SHALL refuse a pack whose
+declarations are missing, bind an outcome to an unknown verb, or name an
+effect on an outcome the pack does not declare.
+
+#### Scenario: An effect names no declared outcome
+- **GIVEN** an effect whose outcome is not in the declared outcomes
+- **WHEN** the engine loads the pack
+- **THEN** the loader refuses the pack and names the effect

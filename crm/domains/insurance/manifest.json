@@ -1,11 +1,18 @@
 {
   "name": "insurance",
   "display_name": "UnderCover Travel Insurance",
-  "engine_api": 1,
+  "engine_api": 2,
   "rules": "rules",
+  "protocol": "protocol",
   "settings": {
     "award_approval_limit": 1000.0
   },
+  "resolutions": ["approve", "decline", "refer"],
+  "outcomes": {"award": "resolve"},
+  "config": {
+    "award_approval_limit": "The largest award paid without a worker's sign-off"
+  },
+  "effects": {"award": {"outcome": "award", "gated": true}},
   "documents": ["wording", "manual"],
   "seed": {
     "cases": "cases.json",

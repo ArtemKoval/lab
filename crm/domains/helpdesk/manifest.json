@@ -1,11 +1,18 @@
 {
   "name": "helpdesk",
   "display_name": "FastFix IT Support",
-  "engine_api": 1,
+  "engine_api": 2,
   "rules": "rules",
+  "protocol": "protocol",
   "settings": {
     "award_approval_limit": 200.0
   },
+  "resolutions": ["approve", "decline", "refer"],
+  "outcomes": {"award": "resolve"},
+  "config": {
+    "award_approval_limit": "The largest credit issued without a lead's sign-off"
+  },
+  "effects": {"award": {"outcome": "award", "gated": true}},
   "documents": ["wording", "manual"],
   "seed": {
     "cases": "cases.json",
