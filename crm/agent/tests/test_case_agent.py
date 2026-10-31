@@ -84,7 +84,7 @@ def test_approves_and_the_graph_pays_within_the_limit(client, caplog):
     assert case["status"] == "decided"
     assert case["attempts"] == 1
     assert case["decision"]["award"] == 420.0
-    assert case["payment"]["amount"] == 420.0
+    assert case["effect"]["result"]["amount"] == 420.0
     assert len(case["thread_id"]) == 36
 
     check, *steps = steps_of(client, "CLM-1001")
@@ -115,7 +115,7 @@ def test_the_graph_follows_the_backend_on_the_limit(client):
     change_settings(client, approval_limit=2000.0)
     report = work("CLM-1002", stub(*approve("CLM-1002", 1350.0)))
     assert report == "CLM-1002  approve  $1,350.00"
-    assert case_of(client, "CLM-1002")["payment"]["amount"] == 1350.0
+    assert case_of(client, "CLM-1002")["effect"]["result"]["amount"] == 1350.0
 
 
 @pytest.mark.parametrize("decision", ["decline", "refer"])
@@ -124,7 +124,7 @@ def test_declines_and_refers(client, decision):
     report = harness.work_case("CLM-1003", None, agent)
     assert report == f"CLM-1003  {decision}  $0.00"
     case = case_of(client, "CLM-1003")
-    assert (case["status"], case["payment"]) == ("decided", None)
+    assert (case["status"], case["effect"]) == ("decided", None)
     history = agent.graph.get_state_history(harness.thread_of(case))
     assert harness.PAY not in {node for snapshot in history for node in snapshot.next}
 
@@ -134,7 +134,7 @@ def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
     model = stub(calculate("CLM-1001", 420.0), AIMessage(content="", tool_calls=twice))
     assert work("CLM-1001", model) == "CLM-1001  approve  $420.00"
     case = case_of(client, "CLM-1001")
-    assert (case["status"], case["payment"]["amount"]) == ("decided", 420.0)
+    assert (case["status"], case["effect"]["result"]["amount"]) == ("decided", 420.0)
     results = [
         s
         for s in steps_of(client, "CLM-1001")
@@ -151,7 +151,7 @@ def test_a_refused_decision_goes_back_to_the_model(client):
     refusal = model.prompts[1][-1]
     assert isinstance(refusal, ToolMessage)
     assert refusal.text.startswith("Refused with status 422: ")
-    assert case_of(client, "CLM-1001")["payment"]["amount"] == 420.0
+    assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
 
 
 def test_a_section_read_is_recorded_as_a_lookup(client):
@@ -317,10 +317,10 @@ def test_a_case_agent_going_round_in_circles_stops(client):
 
 
 def test_a_failure_after_the_decision_keeps_it(client, monkeypatch, caplog):
-    def lost(case_id, amount):
+    def lost(case_id, effect):
         raise RuntimeError("The connection was lost")
 
-    monkeypatch.setattr(api, "pay_case", lost)
+    monkeypatch.setattr(api, "run_effect", lost)
     report = work("CLM-1001", stub(*approve("CLM-1001", 420.0)))
     assert report == "CLM-1001  approve  $420.00, not paid yet"
     assert "CLM-1001  RuntimeError: The connection was lost" in caplog.messages

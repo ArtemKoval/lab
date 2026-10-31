@@ -91,7 +91,7 @@ def test_each_case_shows_where_it_stands_with_its_cost_and_time(client):
     record_time(client, "CLM-1001", run_id, seconds=20)
     record_time(client, "CLM-1001", run_id, seconds=21.5)
     decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
 
     dispatch = latest_dispatch(client)
     first, second = dispatch["cases"]
@@ -119,7 +119,7 @@ def test_finishing_a_dispatch_sums_up_its_cases(client):
     for case_id in started:
         start(client, case_id)
     decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
     decide(client, "CLM-1003", "decline", 0)
     decide(client, "CLM-1004", "refer", 0)
     decide(client, "CLM-1008", "approve", 2240.0)

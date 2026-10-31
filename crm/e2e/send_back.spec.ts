@@ -46,7 +46,7 @@ test("a held case sent back with a note is decided again", async ({
     section: "Section 5, Baggage and Personal Effects",
     reason: "The loss is covered, less what the airline paid.",
   });
-  await payCase(request, "CLM-1022", 900);
+  await payCase(request, "CLM-1022");
   const decision = page.getByRole("region", { name: "Decision", exact: true });
   await expect(decision.getByText("Paid $900.00")).toBeVisible();
   await expect(heading.getByText("Decided")).toBeVisible();

@@ -11,7 +11,7 @@ from agent.tests.dispatching import new_evaluation
 from agent.tests.gateway_stand_in import DENIED
 from agent.tests.held import StopAtThePause, hold, state_of
 from agent.tests.memory_stand_in import MemoryStandIn
-from agent.tests.records import case_of, payments_of, work_times_of
+from agent.tests.records import case_of, effects_of, work_times_of
 from agent.tests.stubs import agent_on, approve, stub
 from backend.tests.case_requests import sign_off
 from backend.tests.dashboard_reads import steps_of
@@ -25,7 +25,7 @@ def test_an_approval_held_for_sign_off_pauses_the_case_graph(client):
     agent = agent_on(stub(*approve("CLM-1003", 3750.0)), saver)
     assert harness.work_case("CLM-1003", None, agent) == HELD
     case = case_of(client, "CLM-1003")
-    assert (case["status"], case["payment"]) == ("waiting_for_sign_off", None)
+    assert (case["status"], case["effect"]) == ("waiting_for_sign_off", None)
     [waiting] = state_of(agent, client, "CLM-1003").interrupts
     assert waiting.value == {"case_id": "CLM-1003"}
     again = agent_on(stub(), saver)
@@ -82,7 +82,7 @@ def test_a_sign_off_resumes_the_case_and_ends_its_work(client, remembers):
 
     assert harness.resume("CLM-1003", agent) == "CLM-1003  approve  $3,750.00"
     assert model.prompts == []
-    assert [p["amount"] for p in payments_of("CLM-1003")] == [3750.0]
+    assert [r["result"]["amount"] for r in effects_of("CLM-1003")] == [3750.0]
     kinds = [s["kind"] for s in steps_of(client, "CLM-1003")]
     assert ("memory_save" in kinds) is remembers
     if store is not None:

@@ -13,7 +13,7 @@ from agent.tests.dispatching import dispatch, new_dispatch
 from agent.tests.held import StopAtThePause, hold, resume_case, state_of
 from agent.tests.invoking import ACCEPTED
 from agent.tests.queue_setup import leave_waiting
-from agent.tests.records import case_of, model_calls_of, payments_of
+from agent.tests.records import case_of, effects_of, model_calls_of
 from agent.tests.stubs import agent_on, approve, calculate, call, record, stub
 from agent.tools import case_as_read
 from backend.tests.agent_answers import accepting, unreachable
@@ -55,7 +55,7 @@ def test_a_case_sent_back_is_taken_by_a_resume_and_decided_again(client, serve):
     assert case["status"] == "decided"
     decision = case["decision"]
     assert (decision["award"], decision["calculation"]["award"]) == (890.0, 890.0)
-    assert [p["amount"] for p in payments_of("CLM-1003")] == [890.0]
+    assert [r["result"]["amount"] for r in effects_of("CLM-1003")] == [890.0]
     [kept] = case["sent_back_decisions"]
     assert (kept["award"], kept["note"]) == (3750.0, NOTE)
     resumed = model_calls_of("CLM-1003")[-2:]

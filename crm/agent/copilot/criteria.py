@@ -13,8 +13,8 @@ from agent.copilot import app_api, waiting
 STRAIGHT_THROUGH_TARGET = 0.70
 COULDNT_START = "The evaluation couldn't start: {reason}"
 STOPPED_PARTWAY = "The evaluation stopped: {reason}"
-NONE_PAID = "None paid over the limit yet"
-SIGNED_OFF = "{signed_off} of {paid} signed off"
+NONE_HELD = "Nothing held over the limit yet"
+SIGNED_OFF = "{signed_off} of {held} signed off"
 HEADER = "| Criterion | Target | Figure | Met |\n| --- | --- | --- | --- |"
 MET = {True: "Yes", False: "No", None: "Not known"}
 VERDICTS = {
@@ -94,9 +94,9 @@ def shares(
 def rows(figures: Figures | str, objective: float, over: dict[str, Any]) -> list[Row]:
     """The three criteria with their targets and figures."""
     straight_through, accuracy = shares(figures, objective)
-    paid, signed_off = over["paid_over_the_limit"], over["signed_off"]
+    held, signed_off = over["held"], over["signed_off"]
     over_the_limit = (
-        NONE_PAID if paid == 0 else SIGNED_OFF.format(signed_off=signed_off, paid=paid)
+        NONE_HELD if held == 0 else SIGNED_OFF.format(signed_off=signed_off, held=held)
     )
     return [
         Row("Straight through", f"At least {STRAIGHT_THROUGH}", *straight_through),
@@ -109,7 +109,7 @@ def rows(figures: Figures | str, objective: float, over: dict[str, Any]) -> list
             "Over the limit",
             "Every award over the approval limit signed off by a worker",
             over_the_limit,
-            signed_off == paid,
+            signed_off == held,
         ),
     ]
 
@@ -145,5 +145,5 @@ def check(sign_in: str) -> str:
     """Check the three criteria as the worker signed in and give the answer."""
     settings = app_api.get_settings(sign_in)["current"]
     figures = evaluated(sign_in, settings["agents"])
-    over = app_api.count_awards_over_limit(sign_in)
+    over = app_api.count_sign_offs(sign_in)
     return answer(rows(figures, settings["objectives"]["accuracy"], over))

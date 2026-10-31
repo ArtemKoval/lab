@@ -82,7 +82,7 @@ def test_an_approval_with_no_calculation_goes_back_to_the_model(client):
     assert len(decisions) == 1
     case = case_of(client, "CLM-1001")
     assert case["decision"]["calculation"]["award"] == 420.0
-    assert case["payment"]["amount"] == 420.0
+    assert case["effect"]["result"]["amount"] == 420.0
 
 
 def test_the_gateway_receives_the_maker(client, gateway):

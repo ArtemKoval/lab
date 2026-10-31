@@ -65,8 +65,9 @@ def held(client, case_id, award):
     return decide(client, case_id, "approve", award).json()
 
 
-def pay(client, case_id, amount):
-    return client.post(f"/api/cases/{case_id}/payment", json={"amount": amount})
+def pay(client, case_id):
+    """Run the case's award effect once, as the agent's route does."""
+    return client.post(f"/api/cases/{case_id}/effects/award")
 
 
 def sign_off(client, case_id, email=DANA):

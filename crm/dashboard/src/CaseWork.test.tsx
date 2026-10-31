@@ -163,7 +163,7 @@ it("says when the agent is working", async () => {
   expect(panel.getByText("The agent is working on this case.")).toBeDefined();
 });
 
-it("shows an approval's whole record and its payment", async () => {
+it("shows an approval's whole record and its effect", async () => {
   showCase(approved, steps);
   const panel = await decisionPanel();
   expect(panel.getByText("Approved")).toBeDefined();
@@ -178,30 +178,36 @@ it("shows an approval's whole record and its payment", async () => {
     panel.getByText(`Decided by CRM Agent, version 1 at ${time(decidedAt)}`),
   ).toBeDefined();
   expect(panel.getByText("Cases manual version 2026.2")).toBeDefined();
-  expect(panel.getAllByText("$420.00")).toHaveLength(3);
+  expect(panel.getAllByText("$420.00")).toHaveLength(2);
   expect(panel.getByText(approval.section)).toBeDefined();
   expect(panel.getByText(approval.reason)).toBeDefined();
-  expect(panel.getByText(/^Paid/).textContent).toBe("Paid $420.00");
+  expect(panel.getByText("420.00 awarded")).toBeDefined();
 });
 
-it("says the agent will pay an approval in progress", async () => {
-  showCase({ ...approved, status: "in_progress", payment: null });
+it("says the agent will run an approval's effect in progress", async () => {
+  showCase({ ...approved, status: "in_progress", effect: null });
   const panel = await decisionPanel();
-  expect(panel.getByText("Waiting for the agent to pay it.")).toBeDefined();
+  expect(
+    panel.getByText("Waiting for the agent to run its effect."),
+  ).toBeDefined();
 });
 
-it("shows a payment with its sign-off", async () => {
+it("shows an effect's summary of the outcome", async () => {
   const signOff = { signed_off_by: "Dana Whitfield", signed_off_at: decidedAt };
   showCase({
     ...held,
     status: "decided",
     decision: { ...approval, award: 1350, ...signOff },
-    payment: { amount: 1350, paid_at: decidedAt, ...signOff },
+    effect: {
+      case_id: "CLM-1002",
+      effect: "award",
+      result: { amount: 1350 },
+      summary: "1,350.00 awarded",
+      ran_at: decidedAt,
+    },
   });
   const panel = await decisionPanel();
-  expect(panel.getByText(/^Paid/).textContent).toBe(
-    `Paid $1,350.00, signed off by Dana Whitfield at ${time(decidedAt)}`,
-  );
+  expect(panel.getByText("1,350.00 awarded")).toBeDefined();
 });
 
 it("shows a decline without an award", async () => {
@@ -266,20 +272,23 @@ it("lets a worker sign off a held payment as themselves, which pays it", async (
   expect(panel.queryByRole("combobox")).toBeNull();
 
   const signOff = { signed_off_by: "Dana Whitfield", signed_off_at: decidedAt };
-  const paid: Case = {
+  const signed: Case = {
     ...held,
     status: "decided",
     decision: { ...approval, award: 1350, ...signOff },
-    payment: { amount: 1350, paid_at: decidedAt, ...signOff },
+    effect: {
+      case_id: "CLM-1002",
+      effect: "award",
+      result: { amount: 1350 },
+      summary: "1,350.00 awarded",
+      ran_at: decidedAt,
+    },
   };
-  routes["POST /api/cases/CLM-1002/sign-off"] = paid;
-  routes["GET /api/cases/CLM-1002"] = paid;
+  routes["POST /api/cases/CLM-1002/sign-off"] = signed;
+  routes["GET /api/cases/CLM-1002"] = signed;
   fireEvent.click(panel.getByRole("button", { name: "Sign off" }));
 
-  const payment = await panel.findByText(/^Paid/);
-  expect(payment.textContent).toBe(
-    `Paid $1,350.00, signed off by Dana Whitfield at ${time(decidedAt)}`,
-  );
+  await panel.findByText("1,350.00 awarded");
   expect(sent(fetchMock, "POST /api/cases/CLM-1002/sign-off")).toEqual([
     undefined,
   ]);

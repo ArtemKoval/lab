@@ -70,11 +70,12 @@ export const approved: Case = {
   status: "decided",
   thread_id: "t-1",
   decision: approval,
-  payment: {
-    amount: 420,
-    paid_at: decidedAt,
-    signed_off_by: null,
-    signed_off_at: null,
+  effect: {
+    case_id: "CLM-1001",
+    effect: "award",
+    result: { amount: 420 },
+    summary: "420.00 awarded",
+    ran_at: decidedAt,
   },
 };
 
@@ -82,5 +83,5 @@ export const held: Case = {
   ...approved,
   status: "waiting_for_sign_off",
   decision: { ...approval, award: 1350 },
-  payment: null,
+  effect: null,
 };

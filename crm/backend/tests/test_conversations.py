@@ -26,8 +26,8 @@ from backend.database import (
     conversations,
     copilot_steps,
     copilot_turns,
+    effect_runs,
     engine,
-    payments,
     seed,
 )
 from backend.dependencies import API_KEY_HEADER
@@ -433,7 +433,7 @@ def test_a_stale_tab_cant_answer_a_newer_card(client, dashboard, copilot_calls):
         NO_SUCH_CONFIRMATION,
     )
     assert len(copilot_calls) == calls
-    assert count(payments) == 0
+    assert count(effect_runs) == 0
     assert turn_of(dashboard, conversation_id)["status"] == "waiting_for_confirmation"
 
 
@@ -445,7 +445,7 @@ def test_an_answer_to_a_card_already_canceled_is_refused(
     calls = len(copilot_calls)
     assert answer(dashboard, conversation_id, turn_id, "sign_off").status_code == 409
     assert len(copilot_calls) == calls
-    assert count(payments) == 0
+    assert count(effect_runs) == 0
 
 
 def changed_by_a_send_back(client, case_id="CLM-1003"):
@@ -473,7 +473,7 @@ def test_a_sign_off_for_a_case_that_changed_is_taken_as_a_cancel(
 ):
     conversation_id, turn_id = waiting_on(client)
     change(client)
-    paid = count(payments)
+    paid = count(effect_runs)
     response = answer(dashboard, conversation_id, turn_id, "sign_off")
     assert response.status_code == 202
     turn = latest(response.json())
@@ -482,7 +482,7 @@ def test_a_sign_off_for_a_case_that_changed_is_taken_as_a_cancel(
         CASE_CHANGED,
     )
     assert copilot_calls[-1]["operation"] == "answer_confirmation"
-    assert count(payments) == paid
+    assert count(effect_runs) == paid
     finish_turn(dashboard, turn_id)
     assert send_message(dashboard, conversation_id).status_code == 202
 

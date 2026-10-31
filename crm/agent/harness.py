@@ -75,9 +75,9 @@ TOOLS = "tools"
 PAY = "pay"
 REMEMBER = "remember"
 WAIT_FOR_WORKER = "wait_for_worker"
-# Where a decision goes when its award is held for a worker's sign-off.
+# Where a decision goes when its outcome is held for a worker's sign-off.
 HELD = "held"
-PAY_CASE = "pay_case"
+RUN_EFFECT = "run_effect"
 REFUSAL = "refusal"
 
 
@@ -218,21 +218,30 @@ def call_model(
 
 
 def pay(state: CaseState, runtime: Runtime[CaseContext]) -> dict[str, Any]:
-    """Pay the approved award on the case agent's route, which the app refuses
-    unless it may be paid, and hold a payment the Gateway refuses."""
+    """Run the approved case's effect on the route its decision declares, which
+    the app refuses unless it may run, and hold an effect the pack holds. A run
+    that answers ends the case decided, and so does one the app already
+    recorded, which a resume after a stop meets."""
     context = runtime.context
-    payment = {"case_id": context.case_id, "amount": state["decision"]["award"]}
+    effect = state["decision"]["outcome"]
     try:
-        case = context.route.call(Target.APP, PAY_CASE, payment)
+        context.route.call(
+            Target.APP, RUN_EFFECT, {"case_id": context.case_id, "effect": effect}
+        )
+    except Refused as refused:
+        if refused.already_ran:
+            return {"status": app_terms.Status.DECIDED}
+        raise
     except GatewayRefused as refused:
         case = hold(context, refused)
-    return {"status": case["status"]}
+        return {"status": case["status"]}
+    return {"status": app_terms.Status.DECIDED}
 
 
 def hold(context: CaseContext, refused: GatewayRefused) -> dict[str, Any]:
-    """Record the Gateway's refusal of a payment on the case, and hold the payment
-    for a worker's sign-off with the Gateway's reason."""
-    name = context.route.name(Target.APP, PAY_CASE)
+    """Record the Gateway's refusal of an effect on the case, and hold the
+    effect for a worker's sign-off with the Gateway's reason."""
+    name = context.route.name(Target.APP, RUN_EFFECT)
     api.record_step(context.case_id, REFUSAL, f"{name}: {refused.answer}", [])
     return api.hold_payment(context.case_id, str(refused))
 
@@ -471,7 +480,7 @@ def report(case: dict[str, Any], reason: str) -> str:
     line = f"{case_id}  {decision['decision']}  ${decision['award']:,.2f}"
     if status == app_terms.Status.WAITING_FOR_SIGN_OFF:
         return f"{line}, waiting for sign-off"
-    if decision["decision"] == app_terms.APPROVE and case["payment"] is None:
+    if decision["decision"] == app_terms.APPROVE and case["effect"] is None:
         return f"{line}, not paid yet"
     return line
 

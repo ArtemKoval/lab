@@ -20,7 +20,7 @@ DECLARED = {
     "resolutions": ["approve", "decline", "refer"],
     "outcomes": {"award": "resolve"},
     "config": {},
-    "effects": {"award": {"outcome": "award", "gated": True, "records": "payments"}},
+    "effects": {"award": {"outcome": "award", "gated": True}},
 }
 
 TRIP_DELAY = [
@@ -123,15 +123,6 @@ def test_an_effect_on_an_undeclared_outcome_is_refused():
     assert "undeclared outcome" in str(error.value)
 
 
-def test_an_effect_into_an_unknown_write_is_refused():
-    manifest = DECLARED | {
-        "effects": {"award": {"outcome": "award", "records": "ledger"}}
-    }
-    with pytest.raises(PackError) as error:
-        check_declarations("tiny", manifest)
-    assert "unknown write" in str(error.value)
-
-
 def an_approved_case(client, approval_limit=None):
     """CLM-1001 started, its award worked out, and approved at $420.00."""
     if approval_limit is not None:
@@ -150,7 +141,7 @@ def test_an_effect_runs_once_through_the_pack(client):
     assert run["result"] == {"amount": 420.0}
     assert run["ran_at"]
     case = client.get("/api/cases/CLM-1001").json()
-    assert (case["status"], case["payment"]["amount"]) == ("decided", 420.0)
+    assert (case["status"], case["effect"]["result"]["amount"]) == ("decided", 420.0)
 
 
 def test_a_repeated_effect_is_refused_with_the_recorded_run(client):
@@ -168,12 +159,13 @@ def test_an_undeclared_effect_is_refused(client):
     assert missing.json()["detail"] == "The pack serves no effect called 'refund'"
 
 
-def test_a_declared_effect_needs_a_resolved_outcome(client):
+def test_an_effect_runs_on_a_decision_with_no_payload(client):
+    """A decision made before its outcome was resolved still runs its effect."""
     start(client, "CLM-1001")
     decide(client, "CLM-1001", "approve", 420.0)
-    missing = client.post("/api/cases/CLM-1001/effects/award")
-    assert missing.status_code == 404
-    assert missing.json()["detail"] == "Case CLM-1001 has no resolved outcome 'award'"
+    run = client.post("/api/cases/CLM-1001/effects/award")
+    assert run.status_code == 200
+    assert run.json()["summary"] is None
 
 
 def test_only_an_approved_case_runs_an_effect(client):
@@ -251,15 +243,15 @@ def test_the_pack_serves_its_declarations(client):
     assert declared["name"] == "insurance"
     assert declared["resolutions"] == ["approve", "decline", "refer"]
     assert declared["outcomes"] == {"award": "resolve"}
-    assert declared["effects"] == {
-        "award": {"outcome": "award", "gated": True, "records": "payments"}
-    }
+    assert declared["effects"] == {"award": {"outcome": "award", "gated": True}}
     assert "award_approval_limit" in declared["config"]
 
 
-def test_an_effect_under_another_outcome_name_records_no_payment(client, monkeypatch):
-    """A pack that names its outcome differently runs its effect through the
-    declarations, and no payment row moves."""
+def test_an_effect_under_another_outcome_name_runs_through_the_declarations(
+    client, monkeypatch
+):
+    """A pack that names its outcome differently has its effect run and its
+    run recorded under the name it declares."""
     declared = domain_loader.pack()
     manifest = declared.manifest | {
         "outcomes": {"effort": "resolve"},
@@ -274,5 +266,9 @@ def test_an_effect_under_another_outcome_name_records_no_payment(client, monkeyp
     run = client.post("/api/cases/CLM-1001/effects/effort").json()
     assert run["effect"] == "effort"
     case = client.get("/api/cases/CLM-1001").json()
-    assert (case["status"], case["payment"]) == ("decided", None)
+    assert case["status"] == "decided"
+    assert (case["effect"]["effect"], case["effect"]["result"]) == (
+        "effort",
+        {"amount": 420.0},
+    )
     assert run["result"] == {"amount": 420.0}

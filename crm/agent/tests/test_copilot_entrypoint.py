@@ -27,7 +27,7 @@ from agent.tests.invoking import (
     take_turn,
 )
 from agent.tests.local_server import serving
-from agent.tests.records import payments_of
+from agent.tests.records import effects_of
 from agent.tests.stubs import call, stub
 from backend import copilot_service
 from backend.tests.case_requests import held
@@ -288,7 +288,7 @@ def test_an_answer_resumes_the_paused_conversation(
     assert payload["operation"] == "answer_confirmation"
     assert copilot_app().invoke(payload).json() == ACCEPTED
     assert latest(copilot.read(conversation_id))["answer"] == "Signed off and paid."
-    assert len(payments_of("CLM-1003")) == 1
+    assert len(effects_of("CLM-1003")) == 1
 
 
 def test_an_answer_with_none_recorded_or_nothing_paused_is_refused(
@@ -331,8 +331,8 @@ def test_a_pause_in_one_process_is_answered_in_another(
     second = copilot_app()
     assert second.module is not first.module
     assert second.invoke(copilot.last_payload()).json() == ACCEPTED
-    [payment] = payments_of("CLM-1008")
-    assert payment["amount"] == 2240.0
+    [run] = effects_of("CLM-1008")
+    assert run["result"]["amount"] == 2240.0
     decision = client.get("/api/cases/CLM-1008").json()["decision"]
     assert decision["signed_off_by"] == "Dana Whitfield"
 
@@ -381,7 +381,7 @@ def test_the_app_and_the_copilot_on_the_laptop_end_to_end(
         assert paused["status"] == "waiting_for_confirmation"
         answer(dashboard, conversation_id, paused["turn_id"], "sign_off", headers)
         assert ended(dashboard, conversation_id)["answer"] == "Paid."
-    assert [p["amount"] for p in payments_of("CLM-1008")] == [2240.0]
+    assert [r["result"]["amount"] for r in effects_of("CLM-1008")] == [2240.0]
     decision = client.get("/api/cases/CLM-1008").json()["decision"]
     assert decision["signed_off_by"] == "Dana Whitfield"
     assert sent_headers

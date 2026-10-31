@@ -9,15 +9,14 @@ from fastapi.routing import APIRoute, iter_route_contexts
 
 from domains import loader
 
-# The reads and the resolution tools every pack serves. pay_case is the award
-# effect's alias, which the removal stage drops.
+# The reads and the resolution tools every pack serves, plus the executor of
+# every effect the pack declares.
 BASE_OPERATIONS = {
     "get_case",
     "get_contract",
     "get_case_history",
     "calculate_award",
     "record_decision",
-    "pay_case",
 }
 
 

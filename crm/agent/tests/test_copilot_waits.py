@@ -97,7 +97,7 @@ def test_what_needs_a_worker(client, copilot: Copilot):
         fail(client, "CLM-1001")
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 420.0)
-    pay(client, "CLM-1002", 420.0)
+    pay(client, "CLM-1002")
     copilot.model = stub(call("what_needs_a_worker"), "Two cases need you.")
     [turn] = copilot.ask("What needs me today?")["turns"]
     assert [(c["tool"], c["kind"]) for c in turn["steps"]] == [

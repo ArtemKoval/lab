@@ -164,7 +164,7 @@ def test_a_passed_case_goes_to_the_case_agent(client):
     report = harness.work_case("CLM-1001", None, agent_on(model, screener=screener))
 
     assert report == "CLM-1001  approve  $420.00"
-    assert case_of(client, "CLM-1001")["payment"]["amount"] == 420.0
+    assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
     check, _, as_the_tool_gives_it, *_ = steps_of(client, "CLM-1001")
     assert (check["kind"], check["content"]) == (
         "screening",

@@ -60,7 +60,7 @@ test("the dispatch panel follows a dispatch as it works", async ({
     section: "Section 3, Trip Delay",
     reason: "The delay was covered.",
   });
-  await payCase(request, "CLM-1013", 300);
+  await payCase(request, "CLM-1013");
   await decide(request, "CLM-1014", {
     decision: "refer",
     award: 0,

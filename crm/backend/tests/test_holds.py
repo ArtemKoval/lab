@@ -27,7 +27,7 @@ def test_a_hold_waits_for_sign_off_with_the_gateways_reason(client):
     response = hold(client, "CLM-1002")
     assert response.status_code == 200
     case = response.json()
-    assert (case["status"], case["payment"]) == ("waiting_for_sign_off", None)
+    assert (case["status"], case["effect"]) == ("waiting_for_sign_off", None)
     assert case["decision"]["gateway_refusal"] == GATEWAY_REFUSAL
     assert hold(client, "CLM-1002").json() == case
 
@@ -37,8 +37,8 @@ def test_a_held_payment_is_paid_by_the_sign_off(client):
     hold(client, "CLM-1002")
     case = sign_off(client, "CLM-1002").json()
     assert case["status"] == "decided"
-    assert case["payment"]["amount"] == 1500.0
-    assert case["payment"]["signed_off_by"] == "Dana Whitfield"
+    assert case["effect"]["result"]["amount"] == 1500.0
+    assert case["decision"]["signed_off_by"] == "Dana Whitfield"
 
 
 def test_only_an_approved_unpaid_case_is_held(client):
@@ -47,9 +47,9 @@ def test_only_an_approved_unpaid_case_is_held(client):
     start(client, "CLM-1001")
     assert hold(client, "CLM-1001").status_code == 409
     decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+    pay(client, "CLM-1001")
     paid = hold(client, "CLM-1001")
-    assert paid.json()["detail"] == "Case CLM-1001 has already been paid"
+    assert paid.json()["detail"] == "Case CLM-1001 already ran the effect 'award'"
     start(client, "CLM-1003")
     decide(client, "CLM-1003", "refer", 0)
     referred = hold(client, "CLM-1003")

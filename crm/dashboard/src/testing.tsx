@@ -173,7 +173,7 @@ export const entry: Case = {
   evaluation_id: null,
   copy_of: null,
   decision: null,
-  payment: null,
+  effect: null,
   sent_back_decisions: [],
 };
 

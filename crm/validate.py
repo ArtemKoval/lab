@@ -65,7 +65,6 @@ SERVED_TOOLS = (
     "read_section",
     "calculate_award",
     "record_decision",
-    "pay_case",
     "run_effect",
     "list_cases",
     "write_todos",

@@ -186,19 +186,14 @@ class Decision(DecisionRecord):
     signed_off_at: str | None
 
 
-class Payment(BaseModel):
-    amount: float
-    paid_at: str
-    signed_off_by: str | None
-    signed_off_at: str | None
-
-
 class EffectRun(BaseModel):
-    """One executed effect on a case, with the record the pack's execute gave."""
+    """One executed effect on a case, with the record the pack's execute gave,
+    and its summary of the outcome."""
 
     case_id: str
     effect: str
     result: dict
+    summary: str | None
     ran_at: str
 
 
@@ -254,7 +249,7 @@ class Case(BaseModel):
     evaluation_id: str | None
     copy_of: str | None
     decision: Decision | None
-    payment: Payment | None
+    effect: EffectRun | None = None
     sent_back_decisions: list[SentBackDecision] = Field(
         description="The decisions workers sent back, oldest first"
     )
@@ -408,10 +403,6 @@ class DecisionRequest(BaseModel):
         description="Who or what made the decision, such as the CRM Agent "
         "with the version of its configuration"
     )
-
-
-class PaymentRequest(BaseModel):
-    amount: float = Field(gt=0, description="The approved award in US dollars")
 
 
 class HoldRequest(BaseModel):
@@ -1086,11 +1077,10 @@ class Customer(CustomerMatch):
     cases_in_the_queue: list[CaseSummary]
 
 
-class AwardsOverTheLimit(BaseModel):
-    """The queue's cases paid more than the approval limit on their decision, and
-    how many of those a worker signed off."""
+class SignOffs(BaseModel):
+    """The queue's approvals a Gateway held, and how many a worker signed off."""
 
-    paid_over_the_limit: int
+    held: int
     signed_off: int
 
 

@@ -15,7 +15,7 @@ from agent.gateway import GATEWAY_URL, Gateway
 from agent.mcp_tools import McpTools
 from agent.routes import Target
 from agent.tests.gateway_stand_in import DENIED
-from agent.tests.records import case_of, payments_of
+from agent.tests.records import case_of, effects_of
 from agent.tests.stubs import (
     agent_on,
     approve,
@@ -91,7 +91,7 @@ def test_the_gateway_route_reads_decides_and_pays_through_the_gateway(client, ga
         f"{APP}get_case_history",
         f"{APP}calculate_award",
         f"{APP}record_decision",
-        f"{APP}pay_case",
+        f"{APP}run_effect",
     ]
     inputs = [call.inputs for call in gateway.calls]
     assert inputs[:3] == [
@@ -100,11 +100,11 @@ def test_the_gateway_route_reads_decides_and_pays_through_the_gateway(client, ga
         {"customer_id": "CUS-3001"},
     ]
     assert inputs[3]["case_id"] == inputs[4]["case_id"] == "CLM-1001"
-    assert inputs[5] == {"case_id": "CLM-1001", "amount": 420.0}
+    assert inputs[5] == {"case_id": "CLM-1001", "effect": "award"}
     assert all(call.signed for call in gateway.calls)
     case = case_of(client, "CLM-1001")
     assert case["status"] == "decided"
-    assert [p["amount"] for p in payments_of("CLM-1001")] == [420.0]
+    assert [r["result"]["amount"] for r in effects_of("CLM-1001")] == [420.0]
 
 
 def test_the_bookkeeping_and_the_checks_referral_skip_the_gateway(client, gateway):
@@ -158,7 +158,7 @@ def test_a_decision_the_app_refuses_is_a_refusal_on_each_route(
     refusals = [s for s in steps_of(client, "CLM-1001") if s["kind"] == "refusal"]
     name = route.name(Target.APP, "record_decision")
     assert [s["content"] for s in refusals] == [f"{name}: {refusal.text}"]
-    assert case_of(client, "CLM-1001")["payment"]["amount"] == 420.0
+    assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
 
 
 def test_a_tool_the_gateway_refuses_is_a_refusal_and_the_work_goes_on(client, gateway):
@@ -178,14 +178,14 @@ def test_a_payment_the_gateway_refuses_waits_for_a_workers_sign_off(client, gate
     agent = on_the_gateway(gateway, model)
     report = harness.work_case("CLM-1002", None, agent)
     assert report == "CLM-1002  approve  $1,500.00, waiting for sign-off"
-    assert gateway.names[-1] == f"{APP}pay_case"
+    assert gateway.names[-1] == f"{APP}run_effect"
     case = case_of(client, "CLM-1002")
-    assert (case["status"], case["payment"]) == ("waiting_for_sign_off", None)
+    assert (case["status"], case["effect"]) == ("waiting_for_sign_off", None)
     assert case["decision"]["gateway_refusal"] == DENIED
     refusal = steps_of(client, "CLM-1002")[-1]
     assert (refusal["kind"], refusal["content"]) == (
         "refusal",
-        f"{APP}pay_case: Refused by the Gateway: {DENIED}",
+        f"{APP}run_effect: Refused by the Gateway: {DENIED}",
     )
 
     assert harness.paused(case, agent)
@@ -195,7 +195,7 @@ def test_a_payment_the_gateway_refuses_waits_for_a_workers_sign_off(client, gate
     assert harness.resume("CLM-1002", agent) == "CLM-1002  approve  $1,500.00"
     assert len(model.prompts) == 3
     assert steps_of(client, "CLM-1002") == steps
-    assert [p["amount"] for p in payments_of("CLM-1002")] == [1500.0]
+    assert [r["result"]["amount"] for r in effects_of("CLM-1002")] == [1500.0]
 
 
 def test_the_route_is_read_when_the_case_agents_are_built(gateway, monkeypatch):
@@ -230,9 +230,10 @@ def test_the_stand_ins_app_tools_are_the_agents_api_documents_operations(
             tool = tools[f"{APP}{operation['operationId']}"]
             named = {p["name"] for p in operation.get("parameters", [])}
             assert named <= set(tool.inputSchema["properties"]), path
-    pay_case = tools[f"{APP}pay_case"].inputSchema
+    run_effect = tools[f"{APP}run_effect"].inputSchema
     record_decision = tools[f"{APP}record_decision"].inputSchema
-    assert set(pay_case["properties"]) == {"case_id", "amount"}
+    assert set(run_effect["properties"]) == {"case_id", "effect"}
+    assert set(run_effect["required"]) == {"case_id", "effect"}
     assert set(record_decision["required"]) == {
         "case_id",
         "decision",

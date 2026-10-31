@@ -4,10 +4,10 @@ import pytest
 
 from backend.database import (
     award_rules,
+    effect_runs,
     engine,
     load,
     models_allowed,
-    payments,
     seed,
     settings,
 )
@@ -91,7 +91,8 @@ def test_a_new_approval_limit_applies_to_the_decisions_after_it(client):
     assert decide(client, "CLM-1003", "approve", 1350.0).json()["status"] == (
         "in_progress"
     )
-    assert pay(client, "CLM-1003", 1350.0).json()["status"] == "decided"
+    pay(client, "CLM-1003")
+    assert client.get("/api/cases/CLM-1003").json()["status"] == "decided"
     assert client.get("/api/cases/CLM-1002").json()["status"] == (
         "waiting_for_sign_off"
     )
@@ -102,7 +103,7 @@ def test_a_lower_approval_limit_holds_smaller_awards(client):
     start(client, "CLM-1001")
     held = decide(client, "CLM-1001", "approve", 600.0).json()
     assert held["status"] == "waiting_for_sign_off"
-    refused = pay(client, "CLM-1001", 600.0)
+    refused = pay(client, "CLM-1001")
     assert refused.status_code == 403
     assert refused.json()["detail"] == (
         "An award over $500.00 needs a worker's sign-off"
@@ -113,13 +114,13 @@ def test_a_award_held_names_the_limit_it_was_held_under(client):
     start(client, "CLM-1002")
     decide(client, "CLM-1002", "approve", 1350.0)
     change_settings(client, approval_limit=1500.0)
-    refused = pay(client, "CLM-1002", 1350.0)
+    refused = pay(client, "CLM-1002")
     assert refused.json()["detail"] == (
         "An award over $1,000.00 needs a worker's sign-off"
     )
     paid = sign_off(client, "CLM-1002").json()
-    assert (paid["status"], paid["payment"]["amount"]) == ("decided", 1350.0)
-    assert count(payments) == 1
+    assert (paid["status"], paid["effect"]["result"]["amount"]) == ("decided", 1350.0)
+    assert count(effect_runs) == 1
 
 
 def test_a_lower_limit_holds_an_approval_not_yet_paid(client):
@@ -129,6 +130,6 @@ def test_a_lower_limit_holds_an_approval_not_yet_paid(client):
     start(client, "CLM-1001")
     decide(client, "CLM-1001", "approve", 420.0)
     change_settings(client, approval_limit=300.0)
-    assert pay(client, "CLM-1001", 420.0).status_code == 403
+    assert pay(client, "CLM-1001").status_code == 403
     assert sign_off(client, "CLM-1001").status_code == 409
     assert client.get("/api/cases/CLM-1001").json()["status"] == "in_progress"

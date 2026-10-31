@@ -117,16 +117,13 @@ export async function decide(
   return recordDecision(request, caseId, { ...decision, decided_by: MAKER });
 }
 
-// Asks to pay a case and returns the backend's answer, which may be a refusal.
-export const askToPay = (request: Request, caseId: string, amount: number) =>
-  asTheAgent(request, "POST", `${casePath(caseId)}/payment`, { amount });
+// Asks to run a case's award effect and returns the backend's answer, which
+// may be a refusal.
+export const askToPay = (request: Request, caseId: string) =>
+  asTheAgent(request, "POST", `${casePath(caseId)}/effects/award`);
 
-export async function payCase(
-  request: Request,
-  caseId: string,
-  amount: number,
-) {
-  await expect(await askToPay(request, caseId, amount)).toBeOK();
+export async function payCase(request: Request, caseId: string) {
+  await expect(await askToPay(request, caseId)).toBeOK();
 }
 
 export const failCase = (request: Request, caseId: string, reason: string) =>

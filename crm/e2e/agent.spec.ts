@@ -61,7 +61,7 @@ test("the case page shows the agent at work", async ({ page, request }) => {
   });
   await expect(decision.getByText("Approved")).toBeVisible();
   await expect(heading.getByText("In progress")).toBeVisible();
-  await payCase(request, "CLM-1003", 500);
+  await payCase(request, "CLM-1003");
   await recordStep(
     request,
     "CLM-1003",
@@ -163,7 +163,7 @@ test("a sign-off on the dashboard pays the held award and asks the agent to resu
     section: "Section 5, Baggage and Personal Effects",
     reason: "The loss is covered.",
   });
-  const refused = await askToPay(request, "CLM-1020", 1350);
+  const refused = await askToPay(request, "CLM-1020");
   expect(refused.status()).toBe(403);
   const before = await started(request);
 

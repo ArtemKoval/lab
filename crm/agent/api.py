@@ -122,8 +122,8 @@ def record_decision(case_id: str, **request: Unpack[DecisionRequest]) -> dict[st
     return call("POST", f"/cases/{case_id}/decision", json=request)
 
 
-def pay_case(case_id: str, amount: float) -> dict[str, Any]:
-    return call("POST", f"/cases/{case_id}/payment", json={"amount": amount})
+def run_effect(case_id: str, effect: str) -> dict[str, Any]:
+    return call("POST", f"/cases/{case_id}/effects/{effect}")
 
 
 def hold_payment(case_id: str, reason: str) -> dict[str, Any]:

@@ -89,7 +89,7 @@ def test_an_approval_stopped_before_its_payment_is_saved_once_it_is_paid(
     client, monkeypatch
 ):
     store, saver = MemoryStandIn(), InMemorySaver()
-    fail_once(monkeypatch, api, "pay_case", KeyboardInterrupt())
+    fail_once(monkeypatch, api, "run_effect", KeyboardInterrupt())
     agent = agent_on(stub(*approve("CLM-1001", 420.0)), saver, store=store)
     with pytest.raises(KeyboardInterrupt):
         harness.work_case("CLM-1001", None, agent)

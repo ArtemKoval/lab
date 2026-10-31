@@ -247,8 +247,11 @@ def test_a_dispatch_stopped_partway_is_finished_by_the_next(client):
         case = case_of(client, case_id)
         assert (case["status"], case["attempts"]) == ("decided", 1)
         assert case["thread_id"] == before["thread_id"]
-    paid = case_of(client, "CLM-1002")["payment"]
-    assert (paid["amount"], paid["signed_off_by"]) == (1350.0, "Dana Whitfield")
+    case = case_of(client, "CLM-1002")
+    assert (
+        case["effect"]["result"]["amount"],
+        case["decision"]["signed_off_by"],
+    ) == (1350.0, "Dana Whitfield")
 
 
 def test_an_approval_whose_payment_failed_is_paid_by_the_next_dispatch(
@@ -256,14 +259,14 @@ def test_an_approval_whose_payment_failed_is_paid_by_the_next_dispatch(
 ):
     leave_waiting("CLM-1001")
     saver = InMemorySaver()
-    fail_once(monkeypatch, api, "pay_case", RuntimeError("The connection was lost"))
+    fail_once(monkeypatch, api, "run_effect", RuntimeError("The connection was lost"))
     harness.work_case(
         "CLM-1001", None, agent_on(stub(*approve("CLM-1001", 420.0)), saver)
     )
     assert case_of(client, "CLM-1001")["status"] == "in_progress"
 
     assert dispatch(stub(), saver) == ["CLM-1001  approve  $420.00"]
-    assert case_of(client, "CLM-1001")["payment"]["amount"] == 420.0
+    assert case_of(client, "CLM-1001")["effect"]["result"]["amount"] == 420.0
 
 
 def test_a_dispatch_with_nothing_to_work_finishes(client):

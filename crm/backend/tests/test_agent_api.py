@@ -15,7 +15,7 @@ def operations_in(document):
     }
 
 
-def test_the_document_holds_the_case_agents_seven_operations(client):
+def test_the_document_holds_the_case_agents_six_operations(client):
     document = client.get(PATH).json()
     served = operations_in(document)
     assert (
@@ -27,7 +27,6 @@ def test_the_document_holds_the_case_agents_seven_operations(client):
             "get_case_history",
             "calculate_award",
             "record_decision",
-            "pay_case",
             "run_effect",
         }
     )
@@ -46,12 +45,10 @@ def test_the_document_has_no_servers_and_nothing_about_the_key(client):
         assert not [p for p in operation.get("parameters", []) if p["in"] == "header"]
 
 
-def test_the_payment_keeps_its_amount_for_the_gateways_contract(client):
+def test_the_effect_route_takes_no_body(client):
     document = client.get(PATH).json()
-    pay_case = operations_in(document)["pay_case"]
-    body = pay_case["requestBody"]["content"]["application/json"]["schema"]
-    model = document["components"]["schemas"][body["$ref"].split("/")[-1]]
-    assert model["required"] == ["amount"]
+    run_effect = operations_in(document)["run_effect"]
+    assert "requestBody" not in run_effect
 
 
 def test_the_document_needs_the_key_or_a_sign_in(dashboard):

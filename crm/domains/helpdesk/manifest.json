@@ -7,13 +7,27 @@
   "settings": {
     "award_approval_limit": 200.0
   },
-  "resolutions": ["approve", "decline", "refer"],
-  "outcomes": {"award": "resolve"},
+  "resolutions": [
+    "approve",
+    "decline",
+    "refer"
+  ],
+  "outcomes": {
+    "award": "resolve"
+  },
   "config": {
     "award_approval_limit": "The largest credit issued without a lead's sign-off"
   },
-  "effects": {"award": {"outcome": "award", "gated": true, "records": "payments"}},
-  "documents": ["wording", "manual"],
+  "effects": {
+    "award": {
+      "outcome": "award",
+      "gated": true
+    }
+  },
+  "documents": [
+    "wording",
+    "manual"
+  ],
   "seed": {
     "cases": "cases.json",
     "customers": "customers.json",

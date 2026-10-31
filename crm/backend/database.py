@@ -224,13 +224,6 @@ calculations = Table(
     Column("award", Float, nullable=False),
     Column("calculated_at", Text, nullable=False),
 )
-payments = Table(
-    "payments",
-    metadata,
-    Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
-    Column("amount", Float, nullable=False),
-    Column("paid_at", Text, nullable=False),
-)
 # Each case's resolved outcomes, one opaque payload per outcome kind. The
 # engine stores a payload and reads it only through the pack's verbs.
 outcomes = Table(
@@ -249,6 +242,7 @@ effect_runs = Table(
     Column("case_id", Text, ForeignKey("cases.case_id"), nullable=False),
     Column("effect", Text, nullable=False),
     Column("result", JSON, nullable=False),
+    Column("summary", Text),
     Column("ran_at", Text, nullable=False),
     UniqueConstraint("case_id", "effect", name="uq_effect_runs_case_effect"),
 )
@@ -526,12 +520,9 @@ case_view = (
         decisions.c.gateway_refusal,
         decisions.c.outcome,
         decisions.c.payload,
-        payments.c.amount,
-        payments.c.paid_at,
     )
     .join(customers, customers.c.customer_id == cases.c.customer_id)
     .outerjoin(decisions, decisions.c.case_id == cases.c.case_id)
-    .outerjoin(payments, payments.c.case_id == cases.c.case_id)
 )
 
 

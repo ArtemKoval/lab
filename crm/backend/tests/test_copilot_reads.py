@@ -6,19 +6,25 @@ import json
 
 from sqlalchemy import insert
 
-from backend.database import engine, now, payments
-from backend.tests.case_requests import decide, held, pay, sign_off, start
+from backend.database import effect_runs, engine, now
+from backend.tests.case_requests import held, sign_off
 from backend.tests.dashboard_reads import read
 from backend.tests.run_requests import create_evaluation, start_dispatch
 from backend.tests.sign_in import DANA
 
 
 def paid_without_a_sign_off(case_id, amount):
-    """Write a payment straight into the table, as nothing in the app would for a
-    award held for sign-off."""
+    """Write an effect run straight into the table, as the sign-off path of the
+    app would for an award held for sign-off."""
     with engine().begin() as db:
         db.execute(
-            insert(payments).values(case_id=case_id, amount=amount, paid_at=now())
+            insert(effect_runs).values(
+                case_id=case_id,
+                effect="award",
+                result={"amount": amount},
+                summary=None,
+                ran_at=now(),
+            )
         )
 
 
@@ -50,28 +56,23 @@ def test_a_customer_in_full_without_their_personal_details(dashboard):
     )
 
 
-def over_the_limit(client):
-    return read(client, "/api/awards/over-limit").json()
+def sign_offs(client):
+    return read(client, "/api/sign-offs").json()
 
 
-def test_the_awards_over_the_limit_and_those_signed_off(client, dashboard):
-    assert over_the_limit(dashboard) == {"paid_over_the_limit": 0, "signed_off": 0}
+def test_the_held_approvals_and_those_signed_off(client, dashboard):
+    assert sign_offs(dashboard) == {"held": 0, "signed_off": 0}
     held(client, "CLM-1002", 1350.0)
     sign_off(client, "CLM-1002", DANA)
-    assert over_the_limit(dashboard) == {"paid_over_the_limit": 1, "signed_off": 1}
+    assert sign_offs(dashboard) == {"held": 1, "signed_off": 1}
     held(client, "CLM-1008", 1200.0)
-    paid_without_a_sign_off("CLM-1008", 1200.0)
-    assert over_the_limit(dashboard) == {"paid_over_the_limit": 2, "signed_off": 1}
+    assert sign_offs(dashboard) == {"held": 2, "signed_off": 1}
 
 
-def test_a_award_within_the_limit_and_a_copy_arent_counted(client, dashboard):
-    start(client, "CLM-1001")
-    decide(client, "CLM-1001", "approve", 420.0)
-    pay(client, "CLM-1001", 420.0)
+def test_a_held_approval_on_a_copy_isnt_counted(client, dashboard):
     copy = create_evaluation(client).json()["cases"][0]["case_id"]
     held(client, copy, 1500.0)
-    paid_without_a_sign_off(copy, 1500.0)
-    assert over_the_limit(dashboard) == {"paid_over_the_limit": 0, "signed_off": 0}
+    assert sign_offs(dashboard) == {"held": 0, "signed_off": 0}
 
 
 def test_a_worker_reads_the_run_a_start_names(dashboard):

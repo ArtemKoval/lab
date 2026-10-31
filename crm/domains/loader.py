@@ -23,9 +23,6 @@ PROTOCOL_VERBS = ("resolve", "gate", "execute", "summarize", "metric")
 # The manifest keys an engine_api 2 pack declares its domain with.
 DECLARED_KEYS = ("resolutions", "outcomes", "config", "effects")
 
-# The core writes an effect's record can declare.
-CORE_WRITES = ("payments",)
-
 
 class PackError(Exception):
     """A pack is absent, incomplete, or misnamed."""
@@ -164,10 +161,4 @@ def check_declarations(name: str, manifest: dict[str, Any]) -> None:
             raise PackError(
                 f"pack {name!r} effect {effect!r} names the undeclared outcome "
                 f"{declared.get('outcome')!r}"
-            )
-        records = declared.get("records")
-        if records is not None and records not in CORE_WRITES:
-            raise PackError(
-                f"pack {name!r} effect {effect!r} records into the unknown write "
-                f"{records!r}"
             )

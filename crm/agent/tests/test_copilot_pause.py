@@ -13,7 +13,7 @@ from agent import connection
 from agent.copilot import app_api, turns
 from agent.copilot.graph import CASE_CHANGED, ONE_A_TURN, ONE_STEP
 from agent.tests.copilot_driver import Copilot
-from agent.tests.records import payments_of
+from agent.tests.records import effects_of
 from agent.tests.stubs import call, stub
 from backend.tests.case_requests import held, send_back, sign_off
 from backend.tests.copilot_requests import started
@@ -58,7 +58,7 @@ def test_the_pause(client, copilot: Copilot):
         "reason": case["decision"]["reason"],
     }
     assert turn["steps"] == []
-    assert payments_of("CLM-1003") == []
+    assert effects_of("CLM-1003") == []
     interrupts = copilot.graph_state(conversation_id).interrupts
     assert [i.value for i in interrupts] == [{"case_id": "CLM-1003"}]
 
@@ -78,8 +78,8 @@ def test_a_fresh_copilot_signs_off_once_on_the_workers_answer(
     )
     conversation_id = copilot.ask("Sign off CLM-1003")["conversation_id"]
     [turn] = copilot.answer(conversation_id, "sign_off")["turns"]
-    [payment] = payments_of("CLM-1003")
-    assert payment["amount"] == 3750.0
+    [run] = effects_of("CLM-1003")
+    assert run["result"]["amount"] == 3750.0
     decision = client.get("/api/cases/CLM-1003").json()["decision"]
     assert decision["signed_off_by"] == "Dana Whitfield"
     assert [(c["tool"], c["kind"], c["status"]) for c in turn["steps"]] == [
@@ -90,7 +90,7 @@ def test_a_fresh_copilot_signs_off_once_on_the_workers_answer(
     assert len(copilot.model.prompts) == 3
     paid = copilot.model.prompts[2][-1]
     assert isinstance(paid, ToolMessage)
-    assert json.loads(paid.text)["payment"]["amount"] == 3750.0
+    assert json.loads(paid.text)["effect"]["result"]["amount"] == 3750.0
     case_reads = [r for r in recorded.requests if r == ("GET", "/cases/CLM-1003")]
     assert len(case_reads) == 2
 
@@ -99,7 +99,7 @@ def test_a_cancel_ends_the_turn_in_code(client, copilot: Copilot):
     conversation_id = paused_on(client, copilot)
     copilot.model = stub()
     [turn] = copilot.answer(conversation_id, "cancel")["turns"]
-    assert payments_of("CLM-1003") == []
+    assert effects_of("CLM-1003") == []
     assert (turn["status"], turn["answer"]) == (
         "done",
         "I haven't signed off CLM-1003. What would you like to do instead?",
@@ -117,7 +117,7 @@ def test_a_sign_off_for_a_case_that_changed_is_canceled_in_code(
     [turn] = copilot.answer(conversation_id, "sign_off")["turns"]
     assert (turn["status"], turn["answer"]) == ("done", CASE_CHANGED)
     assert copilot.model.prompts == []
-    assert len(payments_of("CLM-1003")) == 1
+    assert len(effects_of("CLM-1003")) == 1
     copilot.model = stub("Hello again.")
     later = copilot.ask("What next?", conversation_id)["turns"][-1]
     assert later["status"] == "done"
@@ -136,8 +136,8 @@ def test_one_sign_off_a_turn(client, copilot: Copilot):
     ]
     assert (turn["status"], turn["answer"]) == ("done", "I'll sign CLM-1008 off next.")
     assert copilot.graph_state(conversation_id).interrupts == ()
-    assert payments_of("CLM-1008") == []
-    assert len(payments_of("CLM-1003")) == 1
+    assert effects_of("CLM-1008") == []
+    assert len(effects_of("CLM-1003")) == 1
 
 
 def test_a_worker_who_cant_sign_off_is_told_so_without_a_pause(
@@ -184,7 +184,7 @@ def test_a_sign_off_run_again_after_it_paid_counts_as_done(client, copilot: Copi
     assert [(c["tool"], c["status"]) for c in turn["steps"]] == [
         ("sign_off_case", "done")
     ]
-    assert len(payments_of("CLM-1003")) == 1
+    assert len(effects_of("CLM-1003")) == 1
     assert turn["answer"] == PAID
 
 
@@ -257,7 +257,7 @@ def test_a_sign_off_the_app_refuses_after_the_answer_goes_back_to_the_model(
         "refused",
         "Case CLM-1003 is not waiting for sign-off",
     )
-    assert payments_of("CLM-1003") == []
+    assert effects_of("CLM-1003") == []
     told = copilot.model.prompts[0][-1]
     assert told.text == "Refused: Case CLM-1003 is not waiting for sign-off"
 

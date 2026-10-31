@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
-from backend.database import calculations, payments
+from backend.database import calculations, effect_runs
 from backend.tests.agent_answers import slow, unreachable
 from backend.tests.case_requests import (
     NOTE,
@@ -54,7 +54,7 @@ def test_a_send_back_keeps_the_decision_with_the_note_and_clears_it(
     response = send_back(client, "CLM-1008")
     assert response.status_code == 200
     case = response.json()
-    assert (case["status"], case["decision"], case["payment"]) == (
+    assert (case["status"], case["decision"], case["effect"]) == (
         "sent_back",
         None,
         None,
@@ -64,7 +64,7 @@ def test_a_send_back_keeps_the_decision_with_the_note_and_clears_it(
     assert kept == {
         "decision": "approve",
         "award": 2240.0,
-        "outcome": None,
+        "outcome": "award",
         "payload": None,
         "calculation": decision["calculation"],
         "section": decision["section"],
@@ -175,10 +175,10 @@ def test_a_sign_off_and_a_send_back_at_the_same_moment(client):
     assert sorted(a.status_code for a in answers) == [200, 409]
     case = client.get("/api/cases/CLM-1008").json()
     if case["status"] == "decided":
-        assert (count(payments), case["sent_back_decisions"]) == (1, [])
+        assert (count(effect_runs), case["sent_back_decisions"]) == (1, [])
     else:
         assert case["status"] == "sent_back"
-        assert (count(payments), len(case["sent_back_decisions"])) == (0, 1)
+        assert (count(effect_runs), len(case["sent_back_decisions"])) == (0, 1)
 
 
 def test_a_sent_back_case_is_taken_once(client, dashboard):

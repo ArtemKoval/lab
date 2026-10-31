@@ -34,7 +34,7 @@ def test_get_case(client):
     assert len(case["documents"]) == 4
     assert case["status"] == "waiting"
     assert case["decision"] is None
-    assert case["payment"] is None
+    assert case["effect"] is None
 
 
 def test_get_contract(client):

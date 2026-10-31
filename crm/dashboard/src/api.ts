@@ -88,11 +88,14 @@ export interface Decision extends DecisionRecord {
   signed_off_at: string | null;
 }
 
-export interface Payment {
-  amount: number;
-  paid_at: string;
-  signed_off_by: string | null;
-  signed_off_at: string | null;
+// One executed effect on a case, with the record the pack's execute gave,
+// and its summary of the outcome.
+export interface EffectRun {
+  case_id: string;
+  effect: string;
+  result: Record<string, unknown>;
+  summary: string | null;
+  ran_at: string;
 }
 
 // The longest note a worker can send a decision back with.
@@ -126,7 +129,7 @@ export interface Case {
   evaluation_id: string | null;
   copy_of: string | null;
   decision: Decision | null;
-  payment: Payment | null;
+  effect: EffectRun | null;
   // Oldest first.
   sent_back_decisions: SentBackDecision[];
 }
