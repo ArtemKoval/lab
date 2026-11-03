@@ -1,6 +1,6 @@
 # Change-level gates for add-dspy-gate. Thresholds are reviewed artifacts.
-# Model pins: glm-5.3-flash on every text role per the user directive of 2026-11-02.
-# The guide pinned glm-5.3 for the hard roles. The vision judge keeps glm-4.5v.
+# Model pins: glm-5.3-flash on every role per the user directives of 2026-11-02
+# and 2026-11-03. The guide pinned glm-5.3 and glm-4.5v; this change does not.
 version: 1
 
 models:
@@ -12,7 +12,7 @@ models:
     runtime_hard: { model: glm-5.3-flash, temperature: 0.6, thinking: disabled, max_tokens: 8192 }
     reflection:   { model: glm-5.3-flash, temperature: 0.6, thinking: disabled, max_tokens: 16384 }
     judge:        { model: glm-5.3-flash, temperature: 0.0, thinking: disabled, max_tokens: 4096 }
-    vision_judge: { model: glm-4.5v,      temperature: 0.0, thinking: disabled, max_tokens: 4096 }
+    vision_judge: { model: glm-5.3-flash,      temperature: 0.0, thinking: disabled, max_tokens: 4096 }
 
 policy_bounds:
   tier_b_min: { min: 0.60, max: 1.00 }

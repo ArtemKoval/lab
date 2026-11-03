@@ -84,9 +84,10 @@ def test_settings_wire_the_hook():
 def test_settings_keep_the_existing_keys():
     settings = json.loads(SETTINGS.read_text(encoding="utf-8"))
     assert settings["outputStyle"] == "ASD-STE100"
-    assert settings["enabledMcpjsonServers"] == ["zai-routing-audit"]
+    assert settings["enabledMcpjsonServers"] == ["zai-routing-audit", "dspy-gate"]
     assert settings["permissions"]["allow"] == [
         "mcp__zai-routing-audit",
+        "mcp__dspy-gate",
         "Bash(tools/zai_routing_audit/.venv/bin/python:*)",
         "Bash(gh issue create:*)",
     ]

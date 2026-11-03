@@ -128,6 +128,43 @@ pipeline lacked:
   change — config, setup registration (Step 8), and a CI job if the project has
   CI.
 
+### Spec gates — governed capabilities (dspy-gate)
+
+The `dspy-gate` tool (`tools/dspy_gate/`, the `dspy-gate` skill gives the
+commands) governs the capabilities the harness registry
+(`tools/dspy_gate/dspy_gate/harness/registry.py`) declares. Capabilities outside
+the registry stay with the ordinary gates above. Six gates travel with a
+behavior change to a governed capability:
+
+- **Gate 0 — spec lint, proposal flow**: every scenario needs a surface tag,
+  and every THEN parses into an assertion or carries a `[judge]` tag with a
+  rubric file. Run `python -m dspy_gate lint <change-id>` before the proposal
+  PR; `openspec validate <change> --type change --strict` stays part of it.
+- **Regeneration rule**: after any edit under `openspec/changes/<id>/specs/`,
+  run `python -m dspy_gate regen <change-id>` before implementing code. The
+  bridge is the only writer of the GENERATED artifacts; never hand-edit them
+  (the protect hook denies it). The change carries `gates.yaml` and `rubrics/`
+  as reviewed artifacts.
+- **Gate 1 — manifest coverage**: `python -m dspy_gate check-manifest
+  <change-id>` proves every scenario has an eval case and every eval case
+  cites a scenario. Run it in Step 9; CI runs it on every pull request.
+- **Gate 2 — optimize and certify**: for a module with `impl: optimized` in
+  the registry, run the optimizer through the CLI and certify on the held-out
+  set before the pull request. Tier B certifies only through an opt-in live
+  run with `ZAI_API_KEY`; a merge burns no GLM spend.
+- **Gate 3 — conformance suites**: the generated Tier-A tests run in the root
+  suite; `python -m dspy_gate evals <change-id>` runs the delta suite and the
+  frozen suites before the pull request.
+- **Gate 4 — freeze at archive**: the archive flow runs the freeze step, which
+  copies the eval cases and thresholds beside the capability under
+  `openspec/specs/<capability>/`.
+- **Gate 5 — re-certification**: any model pin change in `gates.yaml` needs a
+  green frozen-suite run after the change. CI compares the pins against the
+  certification ledger and fails a pin drift without one.
+- **Failure routing**: every gate failure routes to re-optimize, fix the
+  harness, change the spec (a new proposal), or repair the environment. The
+  gate report names the route.
+
 ## Step 0 — Qualify and clarify
 
 - Purely informational (nothing in the repo changes)? Answer directly; skip the
@@ -188,12 +225,15 @@ skill saying "always do X" is a wish; a hook enforces it.
   which owns `settings.json`. A hook reads a JSON event on stdin; exit 2 blocks
   a blockable event (or JSON stdout sets `decision`, `permissionDecision`,
   `updatedInput`, `additionalContext`), exit 0 allows, other codes are
-  non-blocking errors. This repo runs three hooks: the SessionStart charter
+  non-blocking errors. This repo runs five hooks: the SessionStart charter
   (`.claude/hooks/harness-charter.sh`), the Write and Edit spec STE gate
-  (`.claude/hooks/spec-ste-gate.sh`), and the cc-logging hook
-  (`.claude/hooks/cc-logging.sh`), all wired under `hooks` in
-  `.claude/settings.json`. The `handover-telemetry-hook` setup doctor
-  confirms the wiring.
+  (`.claude/hooks/spec-ste-gate.sh`), the Write and Edit spec-gates protect
+  hook (`.claude/hooks/spec-gates-protect.sh`, denies GENERATED paths), the
+  Write and Edit spec-gates bridge hook
+  (`.claude/hooks/spec-gates-bridge.sh`, verifies generation after a spec
+  edit), and the cc-logging hook (`.claude/hooks/cc-logging.sh`), all wired
+  under `hooks` in `.claude/settings.json`. The `handover-telemetry-hook`
+  setup doctor confirms the wiring.
 
 For a hook deliverable:
 - Its script is standalone code — Steps 2–3 and the gates apply. Use a
@@ -334,6 +374,11 @@ Run e2e when the task has it and credentials exist
 `pytest --cov --cov-branch`), the complexity checker, the mutation run — plus
 `openspec validate <change>` when Step 1.5 opened one. Nothing proceeds on red.
 
+A governed change adds its spec gates here: `python -m dspy_gate lint
+<change-id>` (Gate 0), `python -m dspy_gate check-manifest <change-id>` (Gate 1),
+and `python -m dspy_gate evals <change-id>` (Gate 3). For a module with
+`impl: optimized`, the Gate 2 optimize and certify run lands before Step 10.
+
 ## Step 10 — Commit and publish
 
 Conventional Commit subject; body with what and why; the attribution trailer
@@ -347,8 +392,10 @@ what you intend, then publish the branch (push, shelve, or equivalent).
 Open a pull request, merge request, or equivalent (e.g. a Gerrit change) against
 the mainline: summary, mechanism, file list, a test plan of what actually ran
 (commands, observed results, coverage, peak complexity, mutation score), and the
-Claude Code attribution line. No review platform? Run Step 12 on the local diff
-and record its outcome in the integration commit.
+Claude Code attribution line. A governed change attaches the conformance matrix
+(`python -m dspy_gate matrix <change-id>`) to the pull request body. No review
+platform? Run Step 12 on the local diff and record its outcome in the
+integration commit.
 
 ## Step 12 — Adversarial review, then fix
 
@@ -372,7 +419,10 @@ and record its outcome in the integration commit.
 If Step 1.5 opened a change, archive it after the implementation merge. Run
 `/opsx:archive` on a small archive branch (`chore/archive-<change>`), then
 merge that branch as its own squash-merge PR, so the mainline gets code and
-specs together. The `openspec-git-discipline` skill owns the gate: archive
+specs together. A governed change runs the Gate 4 freeze step
+(`python -m dspy_gate freeze <change-id>`) inside the archive, so the frozen
+suites and thresholds land beside the capability before the archive PR merges.
+The `openspec-git-discipline` skill owns the gate: archive
 runs on `main` only after the implementation merge is in. Merge through the
 review platform (or integrate locally if there is none), squashing where the
 project allows, subject `<type>: <summary> (<review ref>)`. Delete the branch locally and

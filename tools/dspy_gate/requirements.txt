@@ -1,0 +1,7 @@
+# Run-time dependencies of the dspy_gate tool venv.
+# The stdlib CLI core needs none of these; the shared repository venv
+# carries pyyaml for the root suite. This file serves the live paths:
+# the MCP wrapper and the model-facing gate runner.
+pyyaml>=6.0
+# mcp 2.x renamed FastMCP; the wrapper targets the 1.x API.
+mcp>=1.2.0,<2

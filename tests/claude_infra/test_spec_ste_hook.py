@@ -67,7 +67,7 @@ def test_settings_keep_the_prior_hooks_and_keys():
     ]
     assert session_groups, "the charter hook must stay wired"
     assert settings["outputStyle"] == "ASD-STE100"
-    assert settings["enabledMcpjsonServers"] == ["zai-routing-audit"]
+    assert settings["enabledMcpjsonServers"] == ["zai-routing-audit", "dspy-gate"]
 
 
 def test_a_blockable_write_exits_2(capsys):

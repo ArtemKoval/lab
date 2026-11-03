@@ -178,6 +178,25 @@
       ],
       "install": "echo 'sec-scan is stdlib-only; no install needed'",
       "requires": "Python 3.10 or newer"
+    },
+    {
+      "id": "dspy-gate",
+      "kind": "dependency-file",
+      "purpose": "Runs the spec-governed gate system: the bridge, the six gates, and the learning loop. The feature-pipeline skill and the dspy-gate skill call it.",
+      "check": [
+        "python3",
+        "tools/dspy_gate_setup/dspy_gate_setup.py",
+        "--repo-root",
+        "."
+      ],
+      "install": [
+        "python3",
+        "tools/dspy_gate_setup/dspy_gate_setup.py",
+        "--repo-root",
+        ".",
+        "--install"
+      ],
+      "requires": "Python 3.11 or newer; the live paths need the tool venv the doctor builds"
     }
   ]
 }

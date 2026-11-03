@@ -12,11 +12,11 @@ The module `lm.py` SHALL build the model instance for every role from the `model
 - **THEN** the factory raises an error that names the missing variable
 
 ### Requirement: The role policy pins glm-5.3-flash everywhere
-The `gates.yaml` roles section SHALL pin these roles. The runtime role, the hard runtime role, the reflection role, and the judge role SHALL carry the model glm-5.3-flash. The vision judge role SHALL carry glm-4.5v. Every role SHALL carry thinking disabled. The judge and vision judge roles SHALL carry temperature 0. The policy SHALL differ from the guide values, and `gates.yaml` SHALL record that in a comment.
+The `gates.yaml` roles section SHALL pin these roles. Every role SHALL carry the model glm-5.3-flash. Every role SHALL carry thinking disabled. The judge and vision judge roles SHALL carry temperature 0. The policy SHALL differ from the guide values, and `gates.yaml` SHALL record that in a comment.
 
 #### Scenario: The pins match the flash policy
 - **WHEN** a reader opens the roles section of `gates.yaml`
-- **THEN** the four text roles carry glm-5.3-flash, the vision role carries glm-4.5v, and no role enables thinking
+- **THEN** every role carries glm-5.3-flash and no role enables thinking
 
 ### Requirement: The assertion tiers set the passing rules
 The gate runner SHALL apply one passing rule per tier. Tier A SHALL pass only at 100 percent. Tier B SHALL pass at or above the `tier_b_min` threshold with an ensemble of 3 judges at temperature 0. Tier C SHALL pass at 100 percent on the asserted orderings. Tier D SHALL pass within the `gates.yaml` ceilings for p95 tokens and latency.

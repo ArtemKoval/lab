@@ -67,7 +67,7 @@ and that flash runs with thinking disabled.
 #### Decision
 
 Pin glm-5.3-flash on the runtime, hard runtime, reflection, and judge roles with
-thinking disabled. Keep glm-4.5v on the vision judge. Record the deviation in
+thinking disabled. Keep glm-5.3-flash on the vision judge. Record the deviation in
 `gates.yaml` comments. Any pin change routes through Gate 5 re-certification.
 
 #### Consequences

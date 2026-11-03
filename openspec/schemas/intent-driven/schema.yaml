@@ -34,12 +34,66 @@ artifacts:
       distilled into ADR files at <repo>/adr/ by a later step after design.
 
 
+      Governed changes also carry gates.yaml (the thresholds and model
+      pins this change is held to) and rubrics/ (the judged-rubric
+      files the delta scenarios cite). Create both artifacts beside the
+      proposal; reviewers approve behavior and its thresholds in the
+      same sitting.
+
+
       Keep it concise (1-2 pages). Focus on the "why" not the "how" -
       implementation details belong in design.md.
 
 
       This is the foundation - specs, design, adr, and tasks all build on this.
     requires: []
+  - id: gates
+    generates: gates.yaml
+    description: Thresholds and model pins this change is held to
+    template: gates.yaml
+    instruction: >
+      Create the change-level gates.yaml that names the thresholds and
+      the model role pins this change will be held to.
+
+
+      - Copy the policy bounds from tools/dspy_gate/gates.yaml and keep
+      every threshold inside those bounds. Gate 0 rejects a threshold
+      outside the bounds.
+
+      - Pin every text role to the model the effective policy pins;
+      record any deviation from the guide in a comment.
+
+      - Add one capabilities block per governed capability in this
+      change, with gate_2 thresholds, the budget ceilings, and the
+      holdout ratio.
+
+      - This file is a reviewed artifact: reviewers approve behavior
+      and its acceptance thresholds in the same sitting. Archive
+      freezes it beside the capability.
+    requires:
+      - proposal
+  - id: rubrics
+    generates: rubrics/**
+    description: Judged-rubric files referenced by judge tags
+    template: rubric.md
+    instruction: >
+      Create one rubric file per judged scenario in the delta specs.
+      A THEN clause tagged [judge: rubric = rubrics/<name>.md] points
+      at one of these files.
+
+
+      - State the source scenario and the question the judge answers.
+
+      - List the pass criteria and the fail criteria as observable
+      facts about the prediction or the trace.
+
+      - Give the scoring guidance: full score for every pass criterion,
+      zero for any fail criterion, and the partial score when defined.
+
+      - Rubrics are reviewed artifacts. Gate 0 rejects a judge tag whose
+      rubric file does not exist.
+    requires:
+      - proposal
   - id: specs
     generates: specs/**/*.md
     description: Detailed specifications for the change
@@ -84,6 +138,12 @@ artifacts:
       hashtags or bullets will fail silently.
 
       - Every requirement MUST have at least one scenario.
+
+      - Route each scenario to a runner with a surface tag in the
+      heading: [surface: dspy-eval], e2e-ui, e2e-visual, or agent-e2e.
+      A fuzzy THEN carries [judge: rubric = rubrics/<name>.md] and
+      points at a rubric file under the change's rubrics/. Gate 0
+      rejects an unparseable THEN with no judge tag.
 
 
       MODIFIED requirements workflow:

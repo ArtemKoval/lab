@@ -20,5 +20,5 @@ The triage module SHALL assign a severity from P0 to P3 and a routing team to ev
 
 #### Scenario: Escalation happens before reply [surface: dspy-eval, judge]
 - **WHEN** a P0 ticket goes through the triage flow
-- **THEN** the escalate tool runs before the reply step starts [judge: rubric = rubrics/escalation.md]
+- **THEN** the escalate tool runs before the reply step [judge: rubric = rubrics/escalation.md]
 - **AND** no customer-facing text exists before the escalation record
