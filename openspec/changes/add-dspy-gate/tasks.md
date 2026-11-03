@@ -2,19 +2,19 @@
 
 ## 1. The bridge core (phase 0)
 
-- [ ] 1.1 Write `tools/dspy_gate/dspy_gate/scenarioparse.py`: heading and tag parse, WHEN/THEN extraction, stable slugs, source hashes. TDD through `tests/dspy_gate/`.
-- [ ] 1.2 Write `compile.py`: THEN clauses to Tier A, B, and C assertion objects, with the refusal contract for an unparseable THEN.
-- [ ] 1.3 Write `gatepolicy.py`: the `gates.yaml` reader with bounds and pins, and the PyYAML dependency.
-- [ ] 1.4 Write `lint.py`: the Gate 0 rules, the rubric existence rule, and the bounds rule, exit 0 and 2.
-- [ ] 1.5 Write `manifest.py` and `datasets.py`: the manifest writer and verifier (Gate 1, both directions), the per-scenario JSONL emitters, GENERATED headers.
-- [ ] 1.6 Write `codegen.py`: the generated Tier-A pytest module with the GENERATED header, stable test IDs.
-- [ ] 1.7 Write `cli.py` and `__main__.py`: the subcommands `lint`, `regen`, `verify`, and `check-manifest`, with `--json` and the exit contract.
+- [x] 1.1 Write `tools/dspy_gate/dspy_gate/scenarioparse.py`: heading and tag parse, WHEN/THEN extraction, stable slugs, source hashes. TDD through `tests/dspy_gate/`.
+- [x] 1.2 Write `compile.py`: THEN clauses to Tier A, B, and C assertion objects, with the refusal contract for an unparseable THEN.
+- [x] 1.3 Write `gatepolicy.py`: the `gates.yaml` reader with bounds and pins, and the PyYAML dependency.
+- [x] 1.4 Write `lint.py`: the Gate 0 rules, the rubric existence rule, and the bounds rule, exit 0 and 2.
+- [x] 1.5 Write `manifest.py` and `datasets.py`: the manifest writer and verifier (Gate 1, both directions), the per-scenario JSONL emitters, GENERATED headers.
+- [x] 1.6 Write `codegen.py`: the generated Tier-A pytest module with the GENERATED header, stable test IDs.
+- [x] 1.7 Write `cli.py` and `__main__.py`: the subcommands `lint`, `regen`, `verify`, and `check-manifest`, with `--json` and the exit contract.
 
 ## 2. The pilot capability and the generated suite
 
-- [ ] 2.1 Write `harness/triage.py`: the hand module with the four specimen behaviors, no model call.
-- [ ] 2.2 Run the bridge on this change: emit `openspec/eval_manifest.json`, the delta evals, and `tests/dspy_gate/generated/`, then commit the artifacts.
-- [ ] 2.3 Wire the generated Tier-A conformance module into the root suite and make it green with no network.
+- [x] 2.1 Write `harness/triage.py`: the hand module with the four specimen behaviors, no model call.
+- [x] 2.2 Run the bridge on this change: emit `openspec/eval_manifest.json`, the delta evals, and `tests/dspy_gate/generated/`, then commit the artifacts.
+- [x] 2.3 Wire the generated Tier-A conformance module into the root suite and make it green with no network.
 
 ## 3. The gate runner (phase 1)
 

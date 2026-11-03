@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: The bridge compiles change scenarios into eval artifacts
-The bridge CLI SHALL read one `openspec/changes/<id>/` directory. The bridge SHALL emit the eval manifest at `openspec/eval_manifest.json`. It SHALL emit one dataset file per scenario and one generated conformance module under `tests/dspy_gate/generated/`. Every emitted file SHALL start with a GENERATED header that names the producing command.
+The bridge CLI SHALL read one `openspec/changes/<id>/` directory. The bridge SHALL emit the eval manifest at `openspec/eval_manifest.json`. It SHALL emit one dataset file per scenario of a registry capability and one generated conformance module under `tests/dspy_gate/generated/`. Every emitted file SHALL start with a GENERATED header that names the producing command.
 
 #### Scenario: A change compiles end to end
 - **WHEN** the bridge regenerates a change whose scenarios all parse

@@ -1,14 +1,14 @@
 ## ADDED Requirements
 
 ### Requirement: Gate 0 rejects a scenario that cannot prove itself
-The lint CLI SHALL run on one change before its pull request. The command SHALL reject a requirement with no scenario. The command SHALL reject a THEN that parses to no assertion and carries no judge tag with a rubric. The command SHALL reject a scenario with no surface tag. The command SHALL exit 0 on a clean change and 2 on any violation.
+The lint CLI SHALL run on one change before its pull request. The command SHALL reject a requirement with no scenario. In a registry capability, the command SHALL reject a THEN that parses to no assertion and carries no judge tag with a rubric. The same rule rejects a scenario with no surface tag. Scenarios of capabilities outside the registry stay with the ordinary suite. The command SHALL exit 0 on a clean change and 2 on any violation.
 
 #### Scenario: A clean change passes the lint
 - **WHEN** the lint CLI runs on the pilot change
 - **THEN** the command exits 0
 
 #### Scenario: A missing surface tag fails the lint
-- **WHEN** the lint CLI runs on a change with a scenario without a surface tag
+- **WHEN** the lint CLI runs on a registry capability scenario without a surface tag
 - **THEN** the command exits 2 and names that scenario
 
 ### Requirement: Gate 0 rejects dangling governance

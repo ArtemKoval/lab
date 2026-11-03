@@ -127,6 +127,15 @@ dspy_gate/
 - The pilot capability rides the same change: its scenarios compile through the bridge, and its
   generated Tier-A tests prove the pipeline end to end on the implementation PR.
 
+## The registry opt-in rule
+
+One registry rule settles a recursion the review missed: the harness registry is
+the opt-in contract. Gate 0 eval rules, the manifest, and the datasets govern
+only the capabilities the registry declares. Capabilities outside the registry,
+such as the machinery specs of this very change, stay with the ordinary suite.
+Without the rule, the change that ships the gate system could not pass its own
+Gate 0.
+
 ## Builder check
 
 One fresh builder read the artifacts and asked twelve questions. Three got answers in the

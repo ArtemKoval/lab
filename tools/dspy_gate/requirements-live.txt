@@ -1,0 +1,3 @@
+# Live optimization and judging paths (Gate 2, Tier B, the visual judge).
+# Installed only into tools/dspy_gate/.venv; the root suite stubs dspy.
+dspy>=3,<4
