@@ -31,10 +31,10 @@
 
 ## 5. The surface (phase 3)
 
-- [ ] 5.1 Write `harness/preview.py` and the fixture page: deterministic content on a fixed port.
-- [ ] 5.2 Write the Playwright journey for the a11y-first rule, env-gated behind `DSPY_GATE_E2E=1`, with the browser install documented.
-- [ ] 5.3 Write `freeze.py`: the Gate 4 archive freeze for evals, baselines, and thresholds.
-- [ ] 5.4 Add the baseline governance rule to the verifier: no visual scenario without a baseline, no baseline without a scenario.
+- [x] 5.1 Write `harness/preview.py` and the fixture page: deterministic content on a fixed port.
+- [x] 5.2 Write the Playwright journey for the a11y-first rule, env-gated behind `DSPY_GATE_E2E=1`, with the browser install documented.
+- [x] 5.3 Write `freeze.py`: the Gate 4 archive freeze for evals, baselines, and thresholds.
+- [x] 5.4 Add the baseline governance rule to the verifier: no visual scenario without a baseline, no baseline without a scenario.
 
 ## 6. The learning loop (phase 4)
 
