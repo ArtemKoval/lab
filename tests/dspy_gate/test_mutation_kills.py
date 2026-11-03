@@ -511,6 +511,27 @@ def test_json_output_starts_with_the_exit_key(tmp_path, capsys, monkeypatch):
     assert capsys.readouterr().out.startswith('{"exit"')
 
 
+def test_status_json_sorts_the_change_key_first(tmp_path, capsys, monkeypatch):
+    from test_gate_cli import make_repo, run
+
+    root = make_repo(tmp_path)
+    run(["regen", "demo"], root, monkeypatch)
+    capsys.readouterr()
+    run(["--json", "status", "demo"], root, monkeypatch)
+    assert capsys.readouterr().out.startswith('{"change"')
+
+
+def test_datasets_write_twice_into_the_same_directory(tmp_path):
+    from dspy_gate import datasets, manifest
+
+    from test_manifest import CHANGE, MODULES
+
+    case = manifest.build(CHANGE, MODULES)["changes"]["demo"]["eval_cases"][0]
+    datasets.write_case(tmp_path / "evals" / "triage", case, MODULES)
+    datasets.write_case(tmp_path / "evals" / "triage", case, MODULES)
+    assert len(list((tmp_path / "evals" / "triage").iterdir())) == 1
+
+
 def test_datasets_write_through_a_fresh_nested_directory(tmp_path):
     from dspy_gate import datasets, manifest
 

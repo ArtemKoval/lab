@@ -64,6 +64,10 @@ def escalate(classified, drafts_root, occurrences):
     The draft lands under drafts_root, never under the specs tree.
     A first occurrence waits; a recurring one drafts. An existing
     draft stays as it is, so the step is idempotent.
+
+    Accepted equivalent mutant: the occurrences default (0) — an id
+    absent from the map skips the draft under the default and under
+    any positive flip of it, because both sit below the threshold.
     """
     for item in classified:
         if item["kind"] != "spec gap":

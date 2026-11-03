@@ -36,7 +36,7 @@ def split(cases, holdout_ratio):
     """
     if len(cases) < 2:
         raise OptimizeError("not enough scenarios to split; need at least 2")
-    heldout_count = max(1, math.ceil(len(cases) * holdout_ratio))
+    heldout_count = math.ceil(len(cases) * holdout_ratio)
     rest = cases[:-heldout_count]
     val_count = max(1, len(rest) // 4)
     val = rest[-val_count:]
