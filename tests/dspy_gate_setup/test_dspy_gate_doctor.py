@@ -90,11 +90,37 @@ def test_a_non_executable_shim_fails_the_check(tmp_path):
     assert doctor._shim_ok(tmp_path, doctor.SHIMS[0]) is False
 
 
-def test_the_doctor_main_installs_in_process(capsys):
-    code = doctor.main(["--repo-root", str(REPO_ROOT), "--install", "--json"])
+def test_the_doctor_main_installs_in_process(tmp_path, capsys, monkeypatch):
+    """Hermetic: the subprocess calls are recorded, never executed, so
+    no real venv appears in the working tree."""
+    calls = []
+
+    def fake_run(argv, check=False, **kwargs):
+        calls.append((check, argv[0]))
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(doctor.subprocess, "run", fake_run)
+    monkeypatch.setattr(doctor.Path, "exists", lambda self: False)
+    monkeypatch.setattr(
+        doctor, "probe_interpreter", lambda root: sys.executable
+    )
+    code = doctor.main(["--repo-root", str(tmp_path), "--install", "--json"])
     report = json.loads(capsys.readouterr().out)
-    assert code == 0
-    assert report["ok"] is True
+    assert code == 2  # a bare root cannot pass the read-only checks
+    assert calls and all(check is False for check, _ in calls)
+
+
+def test_probe_interpreter_prefers_the_tool_venv(tmp_path):
+    venv_python = tmp_path / "tools" / "dspy_gate" / ".venv" / "bin" / "python"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.write_text("", encoding="utf-8")
+    assert str(doctor.probe_interpreter(tmp_path)) == str(venv_python)
+
+
+def test_probe_interpreter_falls_back_to_this_interpreter(tmp_path):
+    import sys as _sys
+
+    assert doctor.probe_interpreter(tmp_path) == _sys.executable
 
 
 def test_the_real_repo_passes_read_only():
