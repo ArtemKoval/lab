@@ -44,11 +44,11 @@
 
 ## 7. Harness surfaces and wiring
 
-- [ ] 7.1 Write `.claude/hooks/spec-gates-protect.sh` and `.claude/hooks/spec-gates-bridge.sh`, and wire both in `.claude/settings.json` through the update-config skill. Time the hooks.
+- [x] 7.1 Write `.claude/hooks/spec-gates-protect.sh` and `.claude/hooks/spec-gates-bridge.sh`, and wire both in `.claude/settings.json` through the update-config skill. Time the hooks.
 - [ ] 7.2 Update the intent-driven schema: the `gates.yaml` and `rubrics/` artifacts with templates and instruction text.
 - [ ] 7.3 Update the `feature-pipeline` skill: the six gate steps, the regeneration rule, and the matrix rule, per the spec delta.
 - [ ] 7.4 Write `.claude/skills/dspy-gate/SKILL.md` with the commands and the exit codes.
-- [ ] 7.5 Write `mcp_server.py`, register the server in `.mcp.json`, and add the settings keys and permissions per the spec delta.
+- [x] 7.5 Write `mcp_server.py`, register the server in `.mcp.json`, and add the settings keys and permissions per the spec delta.
 - [ ] 7.6 Write `.github/workflows/spec-gates.yml` with the Gate 0 and Gate 1 jobs and the env-gated live suites. Extend `tests.yml`: the coverage sources, the gated roots, the lint line. Update the four pinned CI contract tests.
 - [ ] 7.7 Write `.github/workflows/dspy-nightly.yml` with cron and dispatch triggers, the `DSPY_NIGHTLY_ENABLED` condition, and the key refusal step.
 - [ ] 7.8 Write `tools/dspy_gate_setup/dspy_gate_setup.py` on the doctor contract, register the unit, and pass the completeness test.

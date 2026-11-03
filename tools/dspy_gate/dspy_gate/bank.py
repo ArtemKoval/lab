@@ -15,7 +15,11 @@ def read_all(path):
     store = Path(path)
     if not store.is_file():
         return []
-    return [json.loads(line) for line in store.read_text(encoding="utf-8").splitlines() if line]
+    return [
+        json.loads(line)
+        for line in store.read_text(encoding="utf-8").splitlines()
+        if line
+    ]
 
 
 def write(path, entry):
@@ -57,7 +61,8 @@ def retrieve(path, query, k=3):
             [str(entry.get("inputs", "")), str(entry.get("prediction", ""))]
         ).lower()
         entry_tokens = set(text.split())
-        overlap = len(query_tokens & entry_tokens) / max(1, len(query_tokens | entry_tokens))
+        union = max(1, len(query_tokens | entry_tokens))
+        overlap = len(query_tokens & entry_tokens) / union
         scored.append((overlap, entry))
     scored.sort(key=lambda pair: -pair[0])
     return [entry for _, entry in scored[:k]]

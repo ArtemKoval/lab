@@ -11,7 +11,7 @@ pointer move that keeps the previous pointer for rollback.
 import json
 from pathlib import Path
 
-from . import bank, optimize
+from . import optimize
 
 STEPS = ("collect", "triage", "expand", "optimize", "certify", "promote", "escalate")
 DRAFT_THRESHOLD = 2
@@ -115,7 +115,8 @@ def run(
     steps.append({"step": "expand", "outcome": f"{len(derived)} derived cases"})
     loops = _optimize(classified, optimizer_fn, run_fn, budgets, holdout_ratios)
     steps.append({"step": "optimize", "outcome": loops})
-    steps.append({"step": "certify", "outcome": "held-out green" if loops else "nothing to certify"})
+    certify_outcome = "held-out green" if loops else "nothing to certify"
+    steps.append({"step": "certify", "outcome": certify_outcome})
     promotion = "no candidate"
     if artifacts_root is not None and loops:
         promotion = str(promote(artifacts_root, "candidates/nightly"))
@@ -152,7 +153,8 @@ def _optimize(classified, optimizer_fn, run_fn, budgets, holdout_ratios):
 
 def _counts(classified):
     kinds = [item["kind"] for item in classified]
-    return ", ".join(f"{kind}: {kinds.count(kind)}" for kind in dict.fromkeys(kinds)) or "none"
+    counts = (f"{kind}: {kinds.count(kind)}" for kind in dict.fromkeys(kinds))
+    return ", ".join(counts) or "none"
 
 
 def _proposal(item):

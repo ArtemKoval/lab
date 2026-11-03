@@ -113,13 +113,77 @@ def cmd_check_manifest(root, change_id, modules):
     return (0 if not violations else 2), {"violations": violations}
 
 
+def cmd_status(root, change_id, modules):
+    """Gate state, computed live from the on-disk artifacts."""
+    from . import evals, harness
+
+    directory = change_dir(root, change_id)
+    if directory is None:
+        return 2, {"error": f"no change named {change_id}"}
+    violations = lint.lint_change(directory, load_policy(root), modules)
+    disk = _on_disk(root, change_id)
+    if disk is None:
+        gates = {"gate_0": "green", "gate_1": "red", "generated": "red"}
+        return 2, {"gates": gates, "rows": []}
+    disk_data, _ = disk
+    parsed = _regenerated(root, change_id, modules)[0]
+    fresh_data = _regenerated(root, change_id, modules)[1]
+    disk_data = dict(disk_data)
+    disk_data.pop("_generated", None)
+    fresh_data.pop("_generated", None)
+    rows = []
+    for case in disk_data.get("changes", {}).get(change_id, {}).get("eval_cases", []):
+        if case.get("surface") != "dspy-eval":
+            continue
+        try:
+            pred, trace = harness.run(case)
+            tier_a = all(
+                entry["tier"] != "A" for entry in case.get("checks", [])
+            ) or _tier_a_green(case, pred, trace)
+            rows.append(
+                {
+                    "scenario_id": case["scenario_id"],
+                    "green": tier_a,
+                    "deferred": any(entry["tier"] == "B" for entry in case["checks"]),
+                    "detail": "",
+                    "route": "",
+                    "tiers": {"A": tier_a},
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 - a row reports, not crashes
+            rows.append(
+                {
+                    "scenario_id": case["scenario_id"],
+                    "green": False,
+                    "deferred": False,
+                    "detail": f"environment error: {exc}",
+                    "route": evals.ROUTE_ENVIRONMENT,
+                    "tiers": {},
+                }
+            )
+    gates = {
+        "gate_0": "green" if not violations else "red",
+        "gate_1": "green" if not manifest.verify(disk_data, parsed, modules) else "red",
+        "generated": "green" if disk_data == fresh_data else "red",
+    }
+    code = 0 if all(state == "green" for state in gates.values()) else 2
+    return code, {"change": change_id, "gates": gates, "rows": rows}
+
+
+def _tier_a_green(case, pred, trace):
+    from . import checks
+
+    assertions = [entry for entry in case.get("checks", []) if entry["tier"] == "A"]
+    return checks.run_tier_a(assertions, pred, trace).passed
+
+
 def build_parser():
     """Build the argparse parser."""
     parser = argparse.ArgumentParser(prog="dspy_gate", description=__doc__)
     parser.add_argument("--repo-root", default=".", help="repository root")
     parser.add_argument("--json", action="store_true", help="machine output")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("lint", "regen", "verify", "check-manifest"):
+    for name in ("lint", "regen", "verify", "check-manifest", "status"):
         child = sub.add_parser(name)
         child.add_argument("change_id")
     return parser
@@ -142,6 +206,7 @@ def main(argv=None):
         "regen": cmd_regen,
         "verify": cmd_verify,
         "check-manifest": cmd_check_manifest,
+        "status": cmd_status,
     }
     handler = handlers.get(args.command)
     if handler is None:

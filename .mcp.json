@@ -6,6 +6,13 @@
             "env": {
                 "PYTHONPATH": "tools/zai_routing_audit"
             }
+        },
+        "dspy-gate": {
+            "command": "tools/dspy_gate/.venv/bin/python",
+            "args": ["-m", "dspy_gate.mcp_server"],
+            "env": {
+                "PYTHONPATH": "tools/dspy_gate"
+            }
         }
     }
 }

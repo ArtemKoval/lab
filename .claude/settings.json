@@ -1,9 +1,10 @@
 {
     "outputStyle": "ASD-STE100",
-    "enabledMcpjsonServers": ["zai-routing-audit"],
+    "enabledMcpjsonServers": ["zai-routing-audit", "dspy-gate"],
     "permissions": {
         "allow": [
             "mcp__zai-routing-audit",
+            "mcp__dspy-gate",
             "Bash(tools/zai_routing_audit/.venv/bin/python:*)",
             "Bash(gh issue create:*)"
         ]
@@ -16,6 +17,13 @@
                     {
                         "type": "command",
                         "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/spec-ste-gate.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    },
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/spec-gates-protect.sh\"",
                         "timeout": 10,
                         "async": false,
                         "shell": "bash"
@@ -35,6 +43,18 @@
             }
         ],
         "PostToolUse": [
+            {
+                "matcher": "Write|Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/spec-gates-bridge.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            },
             {
                 "hooks": [
                     {
