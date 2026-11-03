@@ -51,8 +51,8 @@ GENERATED path: the protect hook denies it, and regeneration is the fix.
 
 ## Model pins
 
-`tools/dspy_gate/gates.yaml` pins glm-5.3-flash on every text role and
-glm-4.5v on the vision judge, with thinking disabled. Any pin change routes
+`tools/dspy_gate/gates.yaml` pins glm-5.3-flash on every role, with thinking
+disabled. Any pin change routes
 through Gate 5 re-certification against the frozen suites.
 
 ## Exit codes

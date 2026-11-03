@@ -62,10 +62,9 @@ need `ZAI_API_KEY`.
 
 ## Model pins
 
-`gates.yaml` pins glm-5.3-flash on every text role (runtime, hard runtime,
-reflection, judge) and glm-4.5v on the vision judge, with thinking disabled.
-This deviates from the guide's glm-5.3 pins on purpose; ADR 0011 records the
-decision. Any pin change routes through Gate 5 re-certification.
+`gates.yaml` pins glm-5.3-flash on every role, vision judge included, with
+thinking disabled. This deviates from the guide's glm-5.3 and glm-4.5v pins on
+purpose; ADR 0011 records the decision. Any pin change routes through Gate 5 re-certification.
 
 ## Gates on this tool
 

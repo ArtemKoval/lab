@@ -46,14 +46,14 @@ def test_lm_for_without_a_key_names_the_variable(stub_dspy, monkeypatch):
     assert "ZAI_API_KEY" in str(exc.value)
 
 
-def test_every_role_pin_is_flash_except_the_vision_judge():
+def test_every_role_pin_is_flash():
     policy = lm.load_policy()
     roles = gatepolicy.roles(policy)
     assert roles["runtime"]["model"] == "glm-5.3-flash"
     assert roles["runtime_hard"]["model"] == "glm-5.3-flash"
     assert roles["reflection"]["model"] == "glm-5.3-flash"
     assert roles["judge"]["model"] == "glm-5.3-flash"
-    assert roles["vision_judge"]["model"] == "glm-4.5v"
+    assert roles["vision_judge"]["model"] == "glm-5.3-flash"
 
 
 def test_no_role_enables_thinking():

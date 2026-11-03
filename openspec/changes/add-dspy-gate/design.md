@@ -4,7 +4,7 @@
 
 Issue #77, "DSPy Gate", with the attached guide "Spec-Governed Agentic Systems".
 The scope decision at Step 0 builds the full guide, phases 0 through 4, in one change.
-The model decision pins glm-5.3-flash on every text role and keeps glm-4.5v on the vision judge.
+The model decision pins glm-5.3-flash on every text role and keeps glm-5.3-flash on the vision judge.
 
 ## Plan review
 
