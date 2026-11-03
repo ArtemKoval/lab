@@ -162,7 +162,7 @@ jobs:
             --max-workers 4 \
             --test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests" \
             $product 2>&1 | tee /tmp/mutation.log
-          code=${pipestatus[0]}
+          code=${PIPESTATUS[0]}
           # The mutator exits 3 on any survivor; the gate contract is a
           # score of at least 95 percent, so exit 3 resolves against the
           # printed Total row. Any other non-zero exit stays a failure.
