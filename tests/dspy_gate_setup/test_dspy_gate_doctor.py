@@ -56,23 +56,31 @@ def test_install_marks_the_shims_executable(tmp_path):
 
 def test_install_builds_the_tool_venv(tmp_path, monkeypatch):
     calls = []
-    exists = {"venv_python": False, "pip": False}
 
-    def fake_exists(self):
-        if self.name == "python" and ".venv" in str(self):
-            return exists["venv_python"]
-        if self.name == "pip":
-            return exists["pip"]
-        return Path(self).exists()
-
-    def fake_run(argv, check=False):
-        calls.append(argv[0:3])
+    def fake_run(argv, check=False, **kwargs):
+        calls.append((check, argv))
         return types.SimpleNamespace(returncode=0)
 
     monkeypatch.setattr(doctor.subprocess, "run", fake_run)
-    monkeypatch.setattr(doctor.Path, "exists", fake_exists)
     doctor.install(tmp_path)
-    assert any("venv" in " ".join(map(str, c)) for c in calls)
+    assert any("venv" in " ".join(map(str, argv)) for _, argv in calls)
+    assert all(check is False for check, _ in calls)
+
+
+def test_install_skips_the_venv_and_pip_when_both_exist(tmp_path, monkeypatch):
+    bin_dir = tmp_path / "tools" / "dspy_gate" / ".venv" / "bin"
+    bin_dir.mkdir(parents=True)
+    (bin_dir / "python").write_text("", encoding="utf-8")
+    (bin_dir / "pip").write_text("", encoding="utf-8")
+    calls = []
+
+    def fake_run(argv, check=False, **kwargs):
+        calls.append(argv[0:2])
+        return types.SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(doctor.subprocess, "run", fake_run)
+    doctor.install(tmp_path)
+    assert calls == []
 
 
 def test_main_runs_in_process_and_reports_json(capsys):
