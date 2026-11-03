@@ -68,7 +68,8 @@ def run(
         candidate = optimizer_fn(program, train, val)
         result = _certify(candidate, heldout, run_fn)
         if result.passed:
-            _save(artifacts_dir, heldout_ids, len(cases))
+            if artifacts_dir is not None:
+                _save(artifacts_dir, heldout_ids, len(cases))
             return Outcome(
                 0,
                 f"certified on loop {loop}",

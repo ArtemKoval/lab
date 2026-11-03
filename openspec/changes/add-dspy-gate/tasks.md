@@ -38,9 +38,9 @@
 
 ## 6. The learning loop (phase 4)
 
-- [ ] 6.1 Write `bank.py`: the JSONL store, the judge-gated write, the eviction on regression, and the similarity retrieval.
-- [ ] 6.2 Write `nightly.py`: the seven steps in order, idempotent, with the run report and the draft area for spec gaps.
-- [ ] 6.3 Prove the five safety rails with tests: holdout isolation, freeze discipline, the intent boundary, budget bounds, and reversibility.
+- [x] 6.1 Write `bank.py`: the JSONL store, the judge-gated write, the eviction on regression, and the similarity retrieval.
+- [x] 6.2 Write `nightly.py`: the seven steps in order, idempotent, with the run report and the draft area for spec gaps.
+- [x] 6.3 Prove the five safety rails with tests: holdout isolation, freeze discipline, the intent boundary, budget bounds, and reversibility.
 
 ## 7. Harness surfaces and wiring
 
