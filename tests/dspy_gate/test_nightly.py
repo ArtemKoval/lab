@@ -133,3 +133,76 @@ def test_a_second_promotion_keeps_the_previous_pointer(tmp_path):
     result = nightly.promote(artifacts, "candidates/b")
     assert result["previous"] == "candidates/a"
     assert json.loads((artifacts / "previous.json").read_text())["source"] == "candidates/a"
+
+
+def test_an_existing_draft_is_returned_as_is(tmp_path):
+    classified = [{"scenario_id": "ghost-scenario", "kind": "spec gap"}]
+    first = nightly.escalate(classified, tmp_path, {"ghost-scenario": 3})
+    before = (first / "proposal.md").read_text(encoding="utf-8")
+    second = nightly.escalate(classified, tmp_path, {"ghost-scenario": 3})
+    assert second == first
+    assert (first / "proposal.md").read_text(encoding="utf-8") == before
+
+
+def case_payload(scenario_id):
+    return {
+        "scenario_id": scenario_id,
+        "capability": "ticket-triage",
+        "surface": "dspy-eval",
+        "checks": [{"tier": "A", "kind": "eq", "field": "severity", "value": "P0"}],
+    }
+
+
+def test_the_loop_optimizes_and_promotes_a_green_candidate(tmp_path):
+    rows = [
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload(f"scenario-{i}"),
+        }
+        for i in range(3)
+    ]
+    report = nightly.run(
+        rows,
+        manifest_data=MANIFEST,
+        drafts_root=tmp_path / "drafts",
+        optimizer_fn=lambda program, train, val: program,
+        run_fn=lambda case: ({"severity": "P0"}, []),
+        budgets={},
+        holdout_ratios={},
+        artifacts_root=tmp_path / "artifacts",
+    )
+    outcomes = {s["step"]: s["outcome"] for s in report["steps"]}
+    assert "ticket-triage" in outcomes["optimize"]
+    assert "candidates/nightly" in outcomes["promote"]
+    current = json.loads(
+        ((tmp_path / "artifacts") / "current.json").read_text(encoding="utf-8")
+    )
+    assert current["source"] == "candidates/nightly"
+
+
+def test_the_loop_records_a_split_refusal(tmp_path):
+    rows = [
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("only-one"),
+        }
+    ]
+    report = nightly.run(
+        rows,
+        manifest_data=MANIFEST,
+        drafts_root=tmp_path / "drafts",
+        optimizer_fn=lambda program, train, val: program,
+        run_fn=lambda case: ({"severity": "P0"}, []),
+        budgets={},
+        holdout_ratios={},
+    )
+    outcomes = {s["step"]: s["outcome"] for s in report["steps"]}
+    assert "not enough scenarios" in outcomes["optimize"]

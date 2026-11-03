@@ -53,8 +53,7 @@ def build_vote_fn(role="judge"):
         score: float = dspy.OutputField(desc="0.0 to 1.0")
 
     predict = dspy.Predict(ConformanceJudge)
-    if hasattr(predict, "load_lm"):
-        predict.load_lm(lm.lm_for(role))
+    predict.load_lm(lm.lm_for(role))
 
     def vote(case):
         result = predict(
@@ -82,8 +81,7 @@ def build_visual_vote_fn(role="vision_judge"):
         verdict: str = dspy.OutputField(desc="pass or fail")
 
     predict = dspy.Predict(VisualCheck)
-    if hasattr(predict, "load_lm"):
-        predict.load_lm(lm.lm_for(role))
+    predict.load_lm(lm.lm_for(role))
 
     def vote(case):
         result = predict(

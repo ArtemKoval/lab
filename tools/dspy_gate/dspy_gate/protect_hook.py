@@ -8,9 +8,9 @@ pull request that alters the rendered surface.
 
 import fnmatch
 import json
-import os
 import sys
-from pathlib import Path
+
+from .hooksupport import repo_root
 
 DENY_PATTERNS = (
     "openspec/eval_manifest.json",
@@ -20,14 +20,6 @@ DENY_PATTERNS = (
     "tests/dspy_gate/generated/*",
     "tools/dspy_gate/artifacts/*",
 )
-
-
-def repo_root():
-    """The repository root: CLAUDE_PROJECT_DIR, else the package parent."""
-    env = os.environ.get("CLAUDE_PROJECT_DIR")
-    if env and (Path(env) / "tools" / "dspy_gate").is_dir():
-        return Path(env)
-    return Path(__file__).resolve().parents[2]
 
 
 def deny_json(reason):

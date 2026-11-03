@@ -1,0 +1,79 @@
+name: spec-gates
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'openspec/**'
+      - 'tools/dspy_gate/**'
+      - 'tests/dspy_gate/**'
+
+env:
+  UV_CACHE_DIR: ~/.cache/uv
+
+jobs:
+  gate-0-1:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the openspec CLI
+        run: npm install -g @fission-ai/openspec@latest
+      - name: Build the shared repository venv
+        run: |
+          python -m venv tools/zai_routing_audit/.venv
+          tools/zai_routing_audit/.venv/bin/python -m pip install --upgrade pip
+          tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt
+      - name: Gate 0 - strict validation of every change
+        run: openspec validate --changes --strict
+      - name: Gate 0 and Gate 1 per change
+        run: |
+          status=0
+          for dir in openspec/changes/*/; do
+            id=$(basename "$dir")
+            if [ "$id" = "archive" ]; then continue; fi
+            echo "Gating $id"
+            PYTHONPATH=tools/dspy_gate tools/zai_routing_audit/.venv/bin/python -m dspy_gate lint "$id" || status=2
+            if [ -f openspec/eval_manifest.json ] && grep -q "\"$id\"" openspec/eval_manifest.json; then
+              PYTHONPATH=tools/dspy_gate tools/zai_routing_audit/.venv/bin/python -m dspy_gate check-manifest "$id" || status=2
+            fi
+          done
+          exit $status
+
+  gate-live:
+    needs: gate-0-1
+    if: vars.DSPY_GATE_LIVE == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the tool venv with the live and e2e extras
+        run: |
+          python -m venv tools/dspy_gate/.venv
+          tools/dspy_gate/.venv/bin/python -m pip install --upgrade pip
+          tools/dspy_gate/.venv/bin/python -m pip install -r tools/dspy_gate/requirements-dev.txt
+          tools/dspy_gate/.venv/bin/python -m playwright install chromium --with-deps
+      - name: Run the browser journeys against the fixture preview
+        env:
+          DSPY_GATE_E2E: '1'
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: |
+          tools/dspy_gate/.venv/bin/python -m pytest -m e2e tests/dspy_gate/test_journeys.py
+      - name: Gate 3 full suites and the conformance matrix
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: |
+          PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate evals add-dspy-gate
+          PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate matrix add-dspy-gate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-results
+          path: test-results/
+          if-no-files-found: ignore

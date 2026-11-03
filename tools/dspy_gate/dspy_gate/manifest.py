@@ -105,9 +105,12 @@ def write(data, path):
     """Write the manifest JSON with a trailing newline."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    path.write_text(stable_json(data), encoding="utf-8")
+
+
+def stable_json(data):
+    """The deterministic JSON form every bridge artifact uses."""
+    return json.dumps(data, indent=2, sort_keys=True) + "\n"
 
 
 def load(path):

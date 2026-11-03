@@ -96,38 +96,48 @@ def compile_scenario(scenario):
         INLINE_JUDGE_RE.search(t) for t in scenario["thens"]
     )
     for then_text in scenario["thens"]:
-        text, inline_rubric = _strip_inline_judge(then_text)
-        parsed = _parse_one(text, scenario["scenario_id"], scenario["capability"])
-        if parsed:
-            checks.extend(parsed)
-        elif inline_rubric is None and not has_judge:
-            raise CompileError(
-                f"Uncompilable THEN in {scenario['capability']}"
-                f"/{scenario['scenario_id']}: {then_text!r}"
-            )
+        additions, inline_rubric = _compile_then(then_text, scenario, has_judge)
+        checks.extend(additions)
         if inline_rubric:
             judged_thens += 1
-            checks.append(
-                {
-                    "tier": "B",
-                    "kind": "judge",
-                    "rubric": inline_rubric,
-                    "ensemble": ENSEMBLE,
-                }
-            )
+            checks.append(_judge_ref(inline_rubric))
     if scenario["judged"] and judged_thens == 0:
-        rubric = scenario.get("rubric") or ""
-        if not rubric:
-            raise CompileError(
-                f"Judged scenario without a rubric in {scenario['capability']}"
-                f"/{scenario['scenario_id']}"
-            )
-        checks.append(
-            {"tier": "B", "kind": "judge", "rubric": rubric, "ensemble": ENSEMBLE}
-        )
+        checks.append(_judge_ref(_heading_rubric(scenario)))
     if not checks:
         raise CompileError(
             f"Scenario compiled to no assertions in {scenario['capability']}"
             f"/{scenario['scenario_id']}"
         )
     return checks
+
+
+def _compile_then(then_text, scenario, has_judge):
+    """Compile one THEN into (check list, inline rubric or None)."""
+    text, inline_rubric = _strip_inline_judge(then_text)
+    parsed = _parse_one(text, scenario["scenario_id"], scenario["capability"])
+    if parsed:
+        return parsed, inline_rubric
+    if inline_rubric:
+        return [], inline_rubric
+    if not has_judge:
+        raise CompileError(
+            f"Uncompilable THEN in {scenario['capability']}"
+            f"/{scenario['scenario_id']}: {then_text!r}"
+        )
+    return [], None
+
+
+def _heading_rubric(scenario):
+    """The rubric of a heading-tagged judged scenario, or the refusal."""
+    rubric = scenario.get("rubric") or ""
+    if not rubric:
+        raise CompileError(
+            f"Judged scenario without a rubric in {scenario['capability']}"
+            f"/{scenario['scenario_id']}"
+        )
+    return rubric
+
+
+def _judge_ref(rubric):
+    """The Tier-B reference object for one rubric."""
+    return {"tier": "B", "kind": "judge", "rubric": rubric, "ensemble": ENSEMBLE}

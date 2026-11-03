@@ -9,15 +9,7 @@ import json
 import sys
 from pathlib import Path
 
-
-def repo_root():
-    """The repository root: CLAUDE_PROJECT_DIR, else the package parent."""
-    import os
-
-    env = os.environ.get("CLAUDE_PROJECT_DIR")
-    if env and (Path(env) / "openspec" / "changes").is_dir():
-        return Path(env)
-    return Path(__file__).resolve().parents[3]
+from .hooksupport import repo_root
 
 
 def _change_id(path):

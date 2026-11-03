@@ -6,10 +6,9 @@ as the generic input when no example exists. The first line of every
 file is the GENERATED marker as a reserved key.
 """
 
-import json
 from pathlib import Path
 
-from .manifest import GENERATED_MARKER, dataset_relpath
+from .manifest import GENERATED_MARKER, dataset_relpath, stable_json
 
 
 def example_inputs(case, modules):
@@ -35,13 +34,12 @@ def write_case(eval_root, case, modules):
         "inputs": example_inputs(case, modules),
         "expected": {"checks": case["checks"]},
     }
-    path.write_text(
-        json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    path.write_text(stable_json(record), encoding="utf-8")
     return path
 
 
 def read_case(path):
     """Read one case JSON back."""
-    with Path(path).open(encoding="utf-8") as handle:
-        return json.load(handle)
+    from .manifest import load
+
+    return load(path)

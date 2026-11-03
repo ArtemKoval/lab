@@ -15,11 +15,12 @@ def read_all(path):
     store = Path(path)
     if not store.is_file():
         return []
-    return [
-        json.loads(line)
-        for line in store.read_text(encoding="utf-8").splitlines()
-        if line
-    ]
+    entries = []
+    for line in store.read_text(encoding="utf-8").splitlines():
+        if not line:
+            continue
+        entries.append(json.loads(line))
+    return entries
 
 
 def write(path, entry):

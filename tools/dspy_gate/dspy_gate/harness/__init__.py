@@ -11,12 +11,16 @@ def run(case, registry_modules=None):
 
     Returns (prediction, trace). The prediction is a plain dict; the
     trace is the ordered list of tool calls and steps. The entry point
-    resolves as <dotted module>::<callable> from the registry.
+    resolves as <dotted module>::<callable> from the registry. Explicit
+    case inputs win: they are the examples the datasets froze at
+    regeneration time.
     """
     modules_map = modules() if registry_modules is None else registry_modules
     module_entry = modules_map[case["capability"]]
     call = resolve_entry(module_entry["entry"])
-    inputs = case_inputs(case, module_entry)
+    inputs = case.get("inputs")
+    if inputs is None:
+        inputs = case_inputs(case, module_entry)
     return call(**inputs)
 
 

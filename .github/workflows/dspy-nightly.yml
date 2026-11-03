@@ -1,0 +1,46 @@
+name: dspy-nightly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+env:
+  UV_CACHE_DIR: ~/.cache/uv
+
+jobs:
+  learning-run:
+    # Default off: the repository variable DSPY_NIGHTLY_ENABLED must be
+    # true. The key refusal step keeps a missing secret from burning
+    # anything: the job exits before the loop makes one model call.
+    if: vars.DSPY_NIGHTLY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Refuse to run without the provider key
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: |
+          if [ -z "$ZAI_API_KEY" ]; then
+            echo "ZAI_API_KEY is absent; the learning run exits without spend."
+            exit 1
+          fi
+      - name: Build the tool venv with the live extra
+        run: |
+          python -m venv tools/dspy_gate/.venv
+          tools/dspy_gate/.venv/bin/python -m pip install --upgrade pip
+          tools/dspy_gate/.venv/bin/python -m pip install -r tools/dspy_gate/requirements-dev.txt
+      - name: Run the learning loop
+        env:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: |
+          PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate nightly add-dspy-gate --from-report target/gate-report/last.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-report
+          path: target/
+          if-no-files-found: ignore

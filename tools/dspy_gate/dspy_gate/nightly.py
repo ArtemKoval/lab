@@ -82,6 +82,7 @@ def escalate(classified, drafts_root, occurrences):
 def promote(artifacts_root, candidate):
     """Move the promotion pointer; keep the previous pointer for rollback."""
     artifacts_root = Path(artifacts_root)
+    artifacts_root.mkdir(parents=True, exist_ok=True)
     current_path = artifacts_root / "current.json"
     previous = None
     if current_path.is_file():
@@ -139,16 +140,26 @@ def _optimize(classified, optimizer_fn, run_fn, budgets, holdout_ratios):
             by_capability.setdefault(item["capability"], []).append(item["case"])
     outcomes = []
     for capability, cases in sorted(by_capability.items()):
-        result = optimize.run(
-            cases,
-            holdout_ratios.get(capability, 0.3),
-            artifacts_dir=None,
-            run_fn=run_fn,
-            optimizer_fn=optimizer_fn,
-            max_loops=(budgets.get(capability, {}) or {}).get("max_optimize_loops", 3),
-        )
+        try:
+            result = optimize.run(
+                cases,
+                holdout_ratios.get(capability, 0.3),
+                artifacts_dir=None,
+                run_fn=run_fn,
+                optimizer_fn=optimizer_fn,
+                max_loops=_max_loops(budgets, capability),
+            )
+        except optimize.OptimizeError as exc:
+            outcomes.append(f"{capability}: {exc}")
+            continue
         outcomes.append(f"{capability}: {result.detail}")
     return "; ".join(outcomes) if outcomes else "no eval gaps"
+
+
+def _max_loops(budgets, capability):
+    """The loop bound of one capability from its budget block."""
+    block = budgets.get(capability, {}) or {}
+    return block.get("max_optimize_loops", 3)
 
 
 def _counts(classified):
