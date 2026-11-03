@@ -225,13 +225,16 @@ skill saying "always do X" is a wish; a hook enforces it.
   which owns `settings.json`. A hook reads a JSON event on stdin; exit 2 blocks
   a blockable event (or JSON stdout sets `decision`, `permissionDecision`,
   `updatedInput`, `additionalContext`), exit 0 allows, other codes are
-  non-blocking errors. This repo runs five hooks: the SessionStart charter
+  non-blocking errors. This repo runs six hooks: the SessionStart charter
   (`.claude/hooks/harness-charter.sh`), the Write and Edit spec STE gate
   (`.claude/hooks/spec-ste-gate.sh`), the Write and Edit spec-gates protect
   hook (`.claude/hooks/spec-gates-protect.sh`, denies GENERATED paths), the
   Write and Edit spec-gates bridge hook
   (`.claude/hooks/spec-gates-bridge.sh`, verifies generation after a spec
-  edit), and the cc-logging hook (`.claude/hooks/cc-logging.sh`), all wired
+  edit), the PreToolUse peak-hours gate
+  (`.claude/hooks/peak-hours-gate.sh`, denies model-backed starts in the
+  z.ai peak window), and the cc-logging hook
+  (`.claude/hooks/cc-logging.sh`), all wired
   under `hooks` in `.claude/settings.json`. The `handover-telemetry-hook`
   setup doctor confirms the wiring.
 
