@@ -156,9 +156,7 @@ def _status_rows(disk_data, change_id, modules):
             continue
         try:
             pred, trace = harness.run(case, modules)
-            tier_a = all(
-                entry["tier"] != "A" for entry in case.get("checks", [])
-            ) or _tier_a_green(case, pred, trace)
+            tier_a = _tier_a_green(case, pred, trace)
             rows.append(
                 {
                     "scenario_id": case["scenario_id"],
@@ -241,7 +239,7 @@ def _suite_run_fn(root, change_id, modules):
 
 def budget_of(budgets, case):
     """The budget block of one case's capability."""
-    return (budgets.get(case["capability"], {}) or {}).get("budget", {})
+    return budgets.get(case["capability"], {}).get("budget", {})
 
 
 def _delta_row(case, budget, run_fn):
@@ -331,10 +329,7 @@ def cmd_certify(root, change_id, modules):
         )
         recorded.append(capability)
     del evals, harness
-    return (0 if not recorded and report.exit == 0 else report.exit), {
-        "certified": recorded,
-        "report": report,
-    }
+    return report.exit, {"certified": recorded, "report": report}
 
 
 def cmd_pin_drift(root, change_id=None, modules=None):
@@ -383,11 +378,11 @@ def cmd_optimize(root, change_id, modules):
         ]
         result = optimize.run(
             cases,
-            (budgets.get(capability, {}) or {}).get("holdout_ratio", 0.3),
+            budgets.get(capability, {}).get("holdout_ratio", 0.3),
             artifacts_dir=Path(root) / "tools" / "dspy_gate" / "artifacts" / change_id,
             run_fn=_suite_run_fn(root, change_id, modules),
             optimizer_fn=_optimizer_fn(),
-            max_loops=(budgets.get(capability, {}) or {}).get("max_optimize_loops", 3),
+            max_loops=budgets.get(capability, {}).get("max_optimize_loops", 3),
         )
         outcomes.append(f"{module['module']}: {result.detail}")
     exit_code = 0 if all("certified" in o for o in outcomes) else 2

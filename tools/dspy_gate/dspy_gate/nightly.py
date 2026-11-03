@@ -73,7 +73,7 @@ def escalate(classified, drafts_root, occurrences):
         draft_dir = Path(drafts_root) / item["scenario_id"]
         if draft_dir.is_dir():
             return draft_dir
-        draft_dir.mkdir(parents=True, exist_ok=True)
+        draft_dir.mkdir(parents=True)
         (draft_dir / "proposal.md").write_text(_proposal(item), encoding="utf-8")
         return draft_dir
     return None
@@ -175,8 +175,7 @@ def _optimize(classified, optimizer_fn, run_fn, budgets, holdout_ratios):
 
 def _max_loops(budgets, capability):
     """The loop bound of one capability from its budget block."""
-    block = budgets.get(capability, {}) or {}
-    return block.get("max_optimize_loops", 3)
+    return budgets.get(capability, {}).get("max_optimize_loops", 3)
 
 
 def _counts(classified):

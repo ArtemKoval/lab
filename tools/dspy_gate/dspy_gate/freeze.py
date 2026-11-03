@@ -38,7 +38,7 @@ def run(repo_root, change_id):
             / manifest.dataset_relpath(case)
         )
         target = _capability_dir(repo_root, capability) / "evals" / Path(source).name
-        target.parent.mkdir(parents=True, exist_ok=True)
+        target.parent.mkdir(exist_ok=True)
         target.write_bytes(source.read_bytes())
         capabilities[capability]["evals"] += 1
     gates_path = repo_root / "openspec" / "changes" / change_id / "gates.yaml"

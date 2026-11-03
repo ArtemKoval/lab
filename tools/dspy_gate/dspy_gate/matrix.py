@@ -23,5 +23,5 @@ def render(report):
 def to_json(report):
     """Render one report as a stable JSON string."""
     return json.dumps(
-        {"exit": report.exit, "rows": report.rows}, indent=2, sort_keys=True
+        {"rows": report.rows, "exit": report.exit}, indent=2, sort_keys=True
     )

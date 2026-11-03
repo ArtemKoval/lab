@@ -49,10 +49,11 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 class PreviewServer:
-    """The started server handle: port and shutdown."""
+    """The started server handle: thread, port, and shutdown."""
 
-    def __init__(self, httpd):
+    def __init__(self, httpd, thread):
         self._httpd = httpd
+        self.thread = thread
         self.port = httpd.server_address[1]
 
     def shutdown(self):
@@ -72,4 +73,4 @@ def start_server(port=None):
     httpd = HTTPServer(("127.0.0.1", bind_port), _Handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
-    return PreviewServer(httpd)
+    return PreviewServer(httpd, thread)

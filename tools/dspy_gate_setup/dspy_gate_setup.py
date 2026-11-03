@@ -35,7 +35,7 @@ def main(argv=None):
     root = args.repo_root.resolve()
     if args.install:
         install(root)
-    report = {"ok": False, "repo_root": str(root), "checks": _checks(root)}
+    report = {"repo_root": str(root), "checks": _checks(root)}
     report["ok"] = all(report["checks"].values())
     if args.as_json:
         print(json.dumps(report, indent=2))
