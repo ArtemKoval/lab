@@ -103,7 +103,7 @@ def test_workflow_runs_the_mutator_gate_on_product_paths():
     assert "tools/mutator/mutator \\" in text
     assert "--use-existing-coverage" in text
     assert "--max-workers 4" in text
-    assert "timeout-minutes: 20" in text
+    assert "timeout-minutes: 45" in text
     assert (
         '--test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests"'
         in text

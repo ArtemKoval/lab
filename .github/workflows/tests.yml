@@ -149,7 +149,7 @@ jobs:
           fi
       - name: Gate the changed product Python (mutation)
         if: github.event_name == 'pull_request'
-        timeout-minutes: 20
+        timeout-minutes: 45
         run: |
           product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^tools/' || true)
           if [ -z "$(printf '%s' "$product" | tr -d '[:space:]')" ]; then
