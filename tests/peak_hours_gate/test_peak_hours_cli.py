@@ -1,11 +1,16 @@
 """Tests for the CLI surface: check, status, --json, --now, env seam.
 
 The tests drive main() the way the shim drives it: one event on stdin,
-flags on the command line, and the exit code as the verdict.
+flags on the command line, and the exit code as the verdict. The clock
+stays parameterized per design decision 1. The tests swap the standard
+streams in place, which is the one patch the design accepts for a
+process-boundary CLI, and strip a host-exported override so the pinned
+verdicts hold on any host.
 """
 
 import io
 import json
+import os
 
 from peak_hours_gate import cli
 
@@ -19,12 +24,15 @@ def _run(argv, stdin_text="", env_value=None):
     out = io.StringIO()
     import sys
 
+    saved_override = os.environ.pop("ZAI_PEAK_HOURS_OVERRIDE", None)
     old = (sys.stdin, sys.stderr, sys.stdout)
     sys.stdin, sys.stderr, sys.stdout = stream, err, out
     try:
         code = cli.main(argv)
     finally:
         sys.stdin, sys.stderr, sys.stdout = old
+        if saved_override is not None:
+            os.environ["ZAI_PEAK_HOURS_OVERRIDE"] = saved_override
     return code, out.getvalue(), err.getvalue()
 
 

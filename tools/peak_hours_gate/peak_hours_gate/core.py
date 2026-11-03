@@ -73,7 +73,8 @@ def _deny_or_allow(name, event):
     if name in BLOCKED_TOOLS or name.startswith(MCP_PREFIX):
         return 2, _deny_message(name)
     if name == "Bash":
-        command = (event.get("tool_input") or {}).get("command")
+        tool_input = event.get("tool_input")
+        command = tool_input.get("command") if isinstance(tool_input, dict) else None
         if isinstance(command, str) and _bash_denies(command):
             return 2, _deny_message(name)
     return 0, ""

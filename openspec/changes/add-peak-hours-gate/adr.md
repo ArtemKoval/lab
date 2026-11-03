@@ -52,5 +52,8 @@ the scheduled settings switch (brittle and global), and a whole-session prompt b
 
 Every new model-backed call in the window stops with the deny message. Work that
 crosses the window boundary stops at its next dispatch. The override is one
-variable at session launch. A wrong host clock shifts the window. The window
-policy changes only through a superseding ADR.
+variable at session launch. A wrong host clock shifts the window. The Bash
+scan matches the documented invocation forms and under-matches variable
+indirection and quoting, so a command that hides the subcommand word behind a
+variable slips past in the window. The window policy changes only through a
+superseding ADR.

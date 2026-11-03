@@ -36,5 +36,5 @@ if [ -z "$PY" ]; then
   exit 0
 fi
 
-PYTHONPATH="$ROOT/tools/peak_hours_gate" "$PY" -m peak_hours_gate check </dev/stdin
+PYTHONPATH="$ROOT/tools/peak_hours_gate" "$PY" -m peak_hours_gate check
 exit $?

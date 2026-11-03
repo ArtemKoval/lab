@@ -23,7 +23,11 @@ TASK_EVENT = '{"tool_name": "Task"}\n'
 
 def _run_shim(shim, event, env_extra=None):
     env = dict(os.environ)
+    # A host export of the override or the clock seam must not flip the
+    # pinned verdicts.
     env.pop("CLAUDE_PROJECT_DIR", None)
+    env.pop("ZAI_PEAK_HOURS_OVERRIDE", None)
+    env.pop("PEAK_HOURS_GATE_NOW", None)
     env.update(env_extra or {})
     result = subprocess.run(
         ["bash", str(shim)],

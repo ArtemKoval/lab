@@ -167,14 +167,28 @@ def test_task_allows_outside_window():
     assert message == ""
 
 
+def test_task_allows_at_the_close_hour():
+    # 18:00 SGT sharp: the end is exclusive, so the call passes.
+    code, message = core.decide(_event("Task"), _utc("2026-11-03T10:00:00"), None)
+    assert code == 0
+    assert message == ""
+
+
+def test_bash_with_non_dict_tool_input_allows():
+    event = {"tool_name": "Bash", "tool_input": ["not", "a", "dict"]}
+    code, _ = core.decide(event, IN_WINDOW, None)
+    assert code == 0
+
+
 def test_override_one_allows_in_window():
     code, _ = core.decide(_event("Task"), IN_WINDOW, "1")
     assert code == 0
 
 
-def test_override_zero_denies_in_window():
-    code, _ = core.decide(_event("Task"), IN_WINDOW, "0")
-    assert code == 2
+def test_other_override_values_do_not_bypass():
+    for value in ("0", "true", "yes", ""):
+        code, _ = core.decide(_event("Task"), IN_WINDOW, value)
+        assert code == 2, repr(value)
 
 
 def test_deny_message_names_window_and_override():

@@ -29,4 +29,4 @@
 - [x] 5.1 Run the full hermetic root suite with the shared venv interpreter and make it green.
 - [x] 5.2 Run `openspec validate add-peak-hours-gate --type change --strict`, `dspy_gate lint`, and `dspy_gate verify` before the pull request.
 - [x] 5.3 Verify the deny and allow paths live through the shim with the `PEAK_HOURS_GATE_NOW` seam, and time the hook.
-- [ ] 5.4 Run the adversarial whole-diff review, fix the confirmed findings, and publish the fixes before the merge.
+- [x] 5.4 Run the adversarial whole-diff review, fix the confirmed findings, and publish the fixes before the merge.

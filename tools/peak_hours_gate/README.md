@@ -45,8 +45,9 @@ echo '{"tool_name": "Task"}' | PYTHONPATH=tools/peak_hours_gate tools/zai_routin
   the reason, and the tool name on stdout.
 - `--now` names one ISO 8601 instant to decide against. A value without
   a zone reads as UTC. The `PEAK_HOURS_GATE_NOW` environment variable
-  carries the same value for shim-level tests. Production runs use the
-  real clock.
+  carries the same value, and the hook honors it, so keep it unset in
+  session environments. It exists for tests, and a stale value freezes
+  the clock and shifts the gate.
 
 ## Tests and gates
 

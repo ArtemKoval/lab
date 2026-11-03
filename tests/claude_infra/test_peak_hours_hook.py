@@ -20,6 +20,10 @@ OUT_WINDOW_NOW = "2026-11-03T11:00:00Z"  # 19:00 SGT Tuesday
 
 def _run_hook(event, env_extra=None):
     env = dict(os.environ)
+    # A host export of the override or the clock seam must not flip the
+    # pinned verdicts.
+    env.pop("ZAI_PEAK_HOURS_OVERRIDE", None)
+    env.pop("PEAK_HOURS_GATE_NOW", None)
     env["CLAUDE_PROJECT_DIR"] = str(REPO_ROOT)
     env.update(env_extra or {})
     return subprocess.run(
