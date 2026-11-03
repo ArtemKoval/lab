@@ -18,16 +18,16 @@
 
 ## 3. The gate runner (phase 1)
 
-- [ ] 3.1 Write `checks.py`: the Tier A, C, and D runners with the budget ceilings and self-describing failures.
-- [ ] 3.2 Write `evals.py`: the Gate 3 delta and frozen suite runner with the failure routes printed per scenario.
-- [ ] 3.3 Write `matrix.py`: the conformance matrix report for the pull request.
-- [ ] 3.4 Write `judge.py`: the Tier-B ensemble and the visual judge behind lazy dspy imports, stub-tested at the root.
+- [x] 3.1 Write `checks.py`: the Tier A, C, and D runners with the budget ceilings and self-describing failures.
+- [x] 3.2 Write `evals.py`: the Gate 3 delta and frozen suite runner with the failure routes printed per scenario.
+- [x] 3.3 Write `matrix.py`: the conformance matrix report for the pull request.
+- [x] 3.4 Write `judge.py`: the Tier-B ensemble and the visual judge behind lazy dspy imports, stub-tested at the root.
 
 ## 4. The model factory and the optimizer (phase 2)
 
-- [ ] 4.1 Write the effective `tools/dspy_gate/gates.yaml` with the flash-everywhere role policy and the bounds.
-- [ ] 4.2 Write `lm.py`: the one model factory with lazy dspy imports and the `ZAI_API_KEY` gate.
-- [ ] 4.3 Write `optimize.py`: the Gate 2 runner with the holdout split, certification, and the artifact write contract, stub-tested at the root.
+- [x] 4.1 Write the effective `tools/dspy_gate/gates.yaml` with the flash-everywhere role policy and the bounds.
+- [x] 4.2 Write `lm.py`: the one model factory with lazy dspy imports and the `ZAI_API_KEY` gate.
+- [x] 4.3 Write `optimize.py`: the Gate 2 runner with the holdout split, certification, and the artifact write contract, stub-tested at the root.
 
 ## 5. The surface (phase 3)
 

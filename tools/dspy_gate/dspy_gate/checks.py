@@ -88,3 +88,25 @@ def _first_position(trace, key, value):
         if entry.get(key) == value:
             return index
     return None
+
+
+def run_tier_d(budget, usage):
+    """Run the Tier-D budget assertions against one live usage record.
+
+    Without a usage record the tier reports n-a and stays green: a
+    hermetic run carries no token or latency spend to bound.
+    """
+    if usage is None:
+        return Result(True, "n/a: no live usage record")
+    failures = []
+    tokens = usage.get("p95_tokens")
+    ceiling = budget.get("p95_tokens_per_scenario")
+    if tokens is not None and ceiling is not None and tokens > ceiling:
+        failures.append(f"p95_tokens_per_scenario: {tokens} over ceiling {ceiling}")
+    latency = usage.get("p95_latency_s")
+    ceiling = budget.get("p95_latency_s")
+    if latency is not None and ceiling is not None and latency > ceiling:
+        failures.append(f"p95_latency_s: {latency} over ceiling {ceiling}")
+    if failures:
+        return _fail("; ".join(failures))
+    return Result(True, "")

@@ -7,7 +7,6 @@ from its regeneration. A judged-only scenario emits no test, so the
 root suite stays green with no network and no model call.
 """
 
-import json
 from pprint import pformat
 from pathlib import Path
 

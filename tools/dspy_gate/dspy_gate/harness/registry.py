@@ -13,7 +13,9 @@ _MODULES = {
         "impl": "hand",
         "entry": "dspy_gate.harness.triage::triage",
         "examples": {
-            "outage-keywords-route-to-on-call": {"ticket": "production down, all hands"},
+            "outage-keywords-route-to-on-call": {
+                "ticket": "production down, all hands"
+            },
             "billing-disputes-route-to-billing": {
                 "ticket": "refund the June charge, invoice looks wrong"
             },
