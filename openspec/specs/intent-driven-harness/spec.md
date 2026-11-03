@@ -1,7 +1,7 @@
 # intent-driven-harness Specification
 
 ## Purpose
-TBD - created by archiving change 2026-10-23-add-intent-driven-harness. Update Purpose after archive.
+The intent-driven harness carries the OpenSpec schema, the ported skills and agents, and the charter and gate hooks. The delivery discipline takes one change from proposal to merged archive.
 
 ## Requirements
 
@@ -62,7 +62,8 @@ The harness SHALL carry a `hooks` object in `.claude/settings.json` with a `Sess
 - **WHEN** a reader opens `.claude/settings.json`
 - **THEN** a `hooks.SessionStart` group matches `startup|clear|compact`
 - **AND** the hook entry names the script path, keeps `async` false or absent, and sets `timeout`
-- **AND** the keys `outputStyle`, `enabledMcpjsonServers`, and `permissions` are unchanged
+- **AND** the key `outputStyle` is unchanged
+- **AND** the keys `enabledMcpjsonServers` and `permissions` hold the zai-routing-audit entries and the dspy-gate entries
 
 ### Requirement: The charter script emits the charter and never fails a session
 The script `.claude/hooks/harness-charter.sh` SHALL read `.claude/hooks/charter.md` and SHALL emit exactly one JSON object of the form `{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": <charter text>}}` on a session-start event. The script SHALL exit 0 on every outcome. A missing or unreadable charter file SHALL still exit 0 with a one-line fallback context.
@@ -84,12 +85,19 @@ The harness SHALL carry `systematic-debugging`, `verification-before-completion`
 - **WHEN** a reader lists `.claude/skills/`
 - **THEN** the three directories exist, each with a `SKILL.md` whose `name` matches its directory and whose provenance names the upstream source
 
-### Requirement: The pipeline governs review reception, model selection, and branch finish
-The `feature-pipeline` skill SHALL carry rules for receiving review findings (verify before fix, reasoned pushback, no performative agreement, clarify before fix). The skill SHALL carry a model-selection rule for agent dispatch and the final review. The skill SHALL carry a discard contract that destroys work only after an explicit user confirmation. The skill SHALL carry worktree provenance cleanup rules. The skill SHALL carry a builder check in the proposal flow. The skill SHALL NOT state that the repo has no hooks after this change lands.
+### Requirement: The pipeline governs review reception and model selection
+The `feature-pipeline` skill SHALL carry rules for receiving review findings: verify before fix, reasoned pushback, no performative agreement, and clarify before fix. The skill SHALL carry a model-selection rule for agent dispatch and the final review.
 
-#### Scenario: A reader finds the new pipeline rules
+#### Scenario: A reader finds the review and model rules
 - **WHEN** a reader scans the `feature-pipeline` skill
-- **THEN** the review-reception, model-selection, discard-contract, worktree-provenance, and builder-check rules are present
+- **THEN** the review-reception and model-selection rules are present
+
+### Requirement: The pipeline governs the branch finish and the proposal flow
+The `feature-pipeline` skill SHALL carry a discard contract that destroys work only after an explicit user confirmation. The skill SHALL carry worktree provenance cleanup rules. The skill SHALL carry a builder check in the proposal flow. The skill SHALL NOT state that the repo has no hooks after this change lands.
+
+#### Scenario: A reader finds the finish and proposal rules
+- **WHEN** a reader scans the `feature-pipeline` skill
+- **THEN** the discard-contract, worktree-provenance, and builder-check rules are present
 
 #### Scenario: The stale hooks claim is gone
 - **WHEN** a reader scans the `feature-pipeline` skill for a statement that the repo has no hooks
@@ -110,12 +118,13 @@ A CI workflow SHALL run the root test suite and the `plan_exec` and `spec_ste_ch
 - **THEN** the tests workflow runs the root suite and the coverage and lint gates for all three tools
 
 ### Requirement: The harness wires the spec STE hook
-The harness SHALL carry a `PreToolUse` group in the `hooks` object of `.claude/settings.json`. The group SHALL match the `Write` and `Edit` tools and SHALL run `.claude/hooks/spec-ste-gate.sh`. The hook entry SHALL set `timeout` to a positive value and SHALL NOT set `async` to true. The existing keys `outputStyle`, `enabledMcpjsonServers`, and `permissions` SHALL stay unchanged.
+The harness SHALL carry a `PreToolUse` group in the `hooks` object of `.claude/settings.json`. The group SHALL match the `Write` and `Edit` tools and SHALL run `.claude/hooks/spec-ste-gate.sh`. The hook entry SHALL set `timeout` to a positive value and SHALL NOT set `async` to true. The key `outputStyle` SHALL stay unchanged. The keys `enabledMcpjsonServers` and `permissions` SHALL hold the zai-routing-audit entries and the dspy-gate entries.
 
 #### Scenario: The settings wire the STE hook
 - **WHEN** a reader opens `.claude/settings.json`
 - **THEN** a `hooks.PreToolUse` group matches `Write|Edit`, names the script path, sets `timeout`, and keeps `async` false or absent
-- **AND** the keys `outputStyle`, `enabledMcpjsonServers`, and `permissions` stay unchanged
+- **AND** the key `outputStyle` stays unchanged
+- **AND** the keys `enabledMcpjsonServers` and `permissions` hold the zai-routing-audit entries and the dspy-gate entries
 
 ### Requirement: The harness wires the cc-logging hook
 The harness SHALL carry hook groups in the `hooks` object of `.claude/settings.json` for the PreToolUse, PostToolUse, PermissionRequest, SessionStart, SessionEnd, and Stop events. Each new group SHALL run `.claude/hooks/cc-logging.sh`. Each new hook entry SHALL set `timeout` to a positive value and SHALL NOT set `async` to true. The charter group and the spec STE group SHALL stay unchanged. The `.gitignore` file SHALL name the `.cc_logging/` log directory.
@@ -147,3 +156,43 @@ The `feature-pipeline` skill SHALL name the logging hook and the telemetry CLI a
 - **WHEN** a reader scans the Step 14 text of the `feature-pipeline` skill
 - **THEN** the Log sub-step names the hook and the CLI
 - **AND** no sentence says that the logging tooling does not exist
+
+### Requirement: The change template carries the gate artifacts
+The intent-driven schema SHALL list `gates.yaml` and `rubrics/` as change artifacts. The schema directory SHALL carry a `gates.yaml` template and a rubric template. The proposal and specs instructions SHALL name the two artifacts.
+
+#### Scenario: The schema lists the gate artifacts
+- **WHEN** a reader opens `openspec/schemas/intent-driven/schema.yaml`
+- **THEN** the artifact list carries `gates.yaml` and `rubrics/`
+- **AND** the templates directory carries the `gates.yaml` template
+
+### Requirement: The harness wires the protect hook
+The harness SHALL carry a `PreToolUse` group that runs `.claude/hooks/spec-gates-protect.sh` for the `Write` and `Edit` tools. The protect hook SHALL deny a write to a GENERATED path with a decision JSON. The hook entry SHALL set `timeout` to a positive value and SHALL NOT set `async` to true.
+
+#### Scenario: The settings wire the protect hook
+- **WHEN** a reader opens `.claude/settings.json`
+- **THEN** a `hooks.PreToolUse` group runs `.claude/hooks/spec-gates-protect.sh` with a positive `timeout` and no `async` true
+
+#### Scenario: The protect hook denies a generated path
+- **WHEN** the protect hook receives a Write event for a GENERATED path
+- **THEN** the hook prints a deny decision JSON and exits 0 with the deny decision recorded
+
+### Requirement: The harness wires the bridge hook
+The harness SHALL carry a `PostToolUse` group that runs `.claude/hooks/spec-gates-bridge.sh` for the `Write` and `Edit` tools. The bridge hook SHALL run the bridge verifier on an edit under `openspec/changes/**/specs/**`. The hook entry SHALL set `timeout` to a positive value and SHALL NOT set `async` to true.
+
+#### Scenario: The bridge hook verifies a spec edit
+- **WHEN** the bridge hook receives an Edit event for a file under `openspec/changes/<id>/specs/`
+- **THEN** the hook runs the bridge verifier for that change and reports the result as context
+
+### Requirement: The feature-pipeline skill carries the gate steps
+The `feature-pipeline` skill SHALL name the dspy-gate tool and carry the gate steps in the delivery flow. Gate 0 sits in the proposal flow, and the regeneration rule follows a spec edit. Gates 1 and 3 sit in the test and gates step. Gate 2 covers a module with impl optimized. Gate 4 lands in the archive step, Gate 5 on a model pin change, and the matrix on the review request.
+
+#### Scenario: A reader finds the gate steps
+- **WHEN** a reader scans the `feature-pipeline` skill
+- **THEN** the text names all six gates with their step placement and the regeneration rule
+
+### Requirement: The gate-status MCP server registers in the harness
+The file `.mcp.json` SHALL carry a `dspy-gate` server entry that runs the tool venv interpreter on the MCP wrapper module. The `enabledMcpjsonServers` key SHALL name `dspy-gate`. The `permissions.allow` list SHALL carry the `mcp__dspy-gate` rule.
+
+#### Scenario: The registration resolves
+- **WHEN** a reader opens `.mcp.json` and `.claude/settings.json`
+- **THEN** the server entry, the enabled server name, and the permission rule all name dspy-gate

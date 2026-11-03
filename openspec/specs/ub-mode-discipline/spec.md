@@ -1,8 +1,7 @@
 # ub-mode-discipline Specification
 
 ## Purpose
-
-TBD - created by archiving change adopt-ub-mode. Update Purpose after archive.
+The reduced discipline keeps quality gates on every change. The three phases steer the work: first make it work, then make it right, then follow the practice.
 
 ## Requirements
 

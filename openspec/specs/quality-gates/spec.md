@@ -1,8 +1,7 @@
 # quality-gates Specification
 
 ## Purpose
-
-TBD - created by archiving change adopt-ub-mode. Update Purpose after archive.
+The vendored gate tools hold changed Python to the quality bar. CRAP stays at or below 10, duplication stays under the 0.8 pair threshold, and the mutation score stays at or above 95 percent.
 
 ## Requirements
 

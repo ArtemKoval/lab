@@ -1,7 +1,7 @@
 # plan-exec Specification
 
 ## Purpose
-TBD - created by archiving change adopt-superpowers-harness-upgrades. Update Purpose after archive.
+The plan tool extracts task briefs, packages review diffs, and keeps append-only execution ledgers for long apply runs.
 
 ## Requirements
 
