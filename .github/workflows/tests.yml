@@ -157,12 +157,17 @@ jobs:
             exit 0
           fi
           set -o pipefail
-          tools/mutator/mutator \
+          # The pipeline sits in an if-condition so the step's errexit
+          # does not kill the script before the score resolution runs.
+          if tools/mutator/mutator \
             --use-existing-coverage \
             --max-workers 4 \
             --test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests" \
-            $product 2>&1 | tee /tmp/mutation.log
-          code=${PIPESTATUS[0]}
+            $product 2>&1 | tee /tmp/mutation.log; then
+            code=0
+          else
+            code=${PIPESTATUS[0]}
+          fi
           # The mutator exits 3 on any survivor; the gate contract is a
           # score of at least 95 percent, so exit 3 resolves against the
           # printed Total row. Any other non-zero exit stays a failure.
