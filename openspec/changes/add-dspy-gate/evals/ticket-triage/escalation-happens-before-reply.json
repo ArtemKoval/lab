@@ -3,6 +3,12 @@
   "expected": {
     "checks": [
       {
+        "after": "reply",
+        "before": "escalate",
+        "kind": "call_order",
+        "tier": "C"
+      },
+      {
         "ensemble": 3,
         "kind": "judge",
         "rubric": "rubrics/escalation.md",

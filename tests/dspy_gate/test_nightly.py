@@ -206,3 +206,99 @@ def test_the_loop_records_a_split_refusal(tmp_path):
     )
     outcomes = {s["step"]: s["outcome"] for s in report["steps"]}
     assert "not enough scenarios" in outcomes["optimize"]
+
+
+def test_the_certify_outcome_covers_all_four_paths(tmp_path):
+    green = lambda case: ({"severity": "P0"}, [])  # noqa: E731
+    red = lambda case: ({"severity": "P3"}, [])  # noqa: E731
+    outcome, loops = nightly._certify_outcome("", None, green)
+    assert outcome == "nothing to certify" and loops == ""
+    outcome, loops = nightly._certify_outcome("ran", None, green)
+    assert "no frozen suites yet" in outcome and loops == "ran"
+    frozen_green = [{"scenario_id": "frozen", "capability": "c", "checks": []}]
+    outcome, loops = nightly._certify_outcome("ran", frozen_green, green)
+    assert "frozen suites too" in outcome and loops == "ran"
+    frozen_red = [
+        {
+            "scenario_id": "frozen",
+            "capability": "c",
+            "checks": [{"tier": "A", "kind": "eq", "field": "severity", "value": "P0"}],
+        }
+    ]
+    outcome, loops = nightly._certify_outcome("ran", frozen_red, red)
+    assert "discarded" in outcome and loops == ""
+
+
+def test_a_candidate_that_regresses_a_frozen_suite_is_discarded(tmp_path):
+    rows = [
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("held-one"),
+        },
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("held-two"),
+        },
+    ]
+
+    def candidate_regresses_frozen(case):
+        return {"severity": "P3"}, []
+
+    report = nightly.run(
+        rows,
+        manifest_data=MANIFEST,
+        drafts_root=tmp_path / "drafts",
+        optimizer_fn=lambda program, train, val: program,
+        run_fn=candidate_regresses_frozen,
+        budgets={},
+        holdout_ratios={},
+        artifacts_root=tmp_path / "artifacts",
+        frozen_cases=[case_payload("frozen-one")],
+    )
+    outcomes = {s["step"]: s["outcome"] for s in report["steps"]}
+    assert "discarded" in outcomes["certify"]
+    assert outcomes["promote"] == "no candidate"
+    assert not (tmp_path / "artifacts" / "current.json").exists()
+
+
+def test_a_candidate_that_passes_the_frozen_suite_is_promoted(tmp_path):
+    rows = [
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("held-one"),
+        },
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("held-two"),
+        },
+    ]
+    report = nightly.run(
+        rows,
+        manifest_data=MANIFEST,
+        drafts_root=tmp_path / "drafts",
+        optimizer_fn=lambda program, train, val: program,
+        run_fn=lambda case: ({"severity": "P0"}, []),
+        budgets={},
+        holdout_ratios={},
+        artifacts_root=tmp_path / "artifacts",
+        frozen_cases=[case_payload("frozen-one")],
+    )
+    outcomes = {s["step"]: s["outcome"] for s in report["steps"]}
+    assert "discarded" not in outcomes["certify"]
+    assert "candidates/nightly" in outcomes["promote"]

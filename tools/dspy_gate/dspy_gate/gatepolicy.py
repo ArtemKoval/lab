@@ -8,13 +8,17 @@ reviewed change proposal.
 
 from pathlib import Path
 
-import yaml
-
 THRESHOLD_KEYS = ("tier_a", "tier_b_min", "holdout_ratio", "judge_ensemble")
 
 
 def load(path):
-    """Read one gates.yaml file into a dict."""
+    """Read one gates.yaml file into a dict.
+
+    The yaml import stays lazy: the stdlib core imports this module
+    without PyYAML installed, and only reading a policy needs it.
+    """
+    import yaml
+
     with Path(path).open(encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
 

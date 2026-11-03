@@ -32,7 +32,7 @@ def test_workflow_runs_the_suite_through_the_repo_venv():
     assert (
         "tools/zai_routing_audit/.venv/bin/python -m pytest "
         "--cov plan_exec --cov spec_ste_check --cov handover_telemetry "
-        "--cov dspy_gate --cov-branch --cov-fail-under=100" in text
+        "--cov dspy_gate --cov dspy_gate_setup --cov-branch --cov-fail-under=100" in text
     )
 
 

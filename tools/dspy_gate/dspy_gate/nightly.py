@@ -11,7 +11,7 @@ pointer move that keeps the previous pointer for rollback.
 import json
 from pathlib import Path
 
-from . import optimize
+from . import evals, optimize
 
 STEPS = ("collect", "triage", "expand", "optimize", "certify", "promote", "escalate")
 DRAFT_THRESHOLD = 2
@@ -107,6 +107,7 @@ def run(
     artifacts_root=None,
     known_flakes=(),
     occurrences=None,
+    frozen_cases=None,
 ):
     """Run the seven steps in order; return the report."""
     steps = [{"step": "collect", "outcome": f"{len(failures)} failures"}]
@@ -116,7 +117,7 @@ def run(
     steps.append({"step": "expand", "outcome": f"{len(derived)} derived cases"})
     loops = _optimize(classified, optimizer_fn, run_fn, budgets, holdout_ratios)
     steps.append({"step": "optimize", "outcome": loops})
-    certify_outcome = "held-out green" if loops else "nothing to certify"
+    certify_outcome, loops = _certify_outcome(loops, frozen_cases, run_fn)
     steps.append({"step": "certify", "outcome": certify_outcome})
     promotion = "no candidate"
     if artifacts_root is not None and loops:
@@ -130,6 +131,22 @@ def run(
         }
     )
     return {"steps": steps}
+
+
+def _certify_outcome(loops, frozen_cases, run_fn):
+    """The certify step outcome, and the loops value promotion relies on.
+
+    A candidate that regresses a frozen suite is discarded: promotion
+    depends on the frozen suites, never on the held-out set alone.
+    """
+    if not loops:
+        return "nothing to certify", ""
+    if not frozen_cases:
+        return "held-out green (no frozen suites yet)", loops
+    frozen = evals.run_frozen(frozen_cases, budget={}, run_fn=run_fn)
+    if frozen.exit != 0:
+        return "candidate discarded: a frozen suite regressed", ""
+    return "held-out green on the frozen suites too", loops
 
 
 def _optimize(classified, optimizer_fn, run_fn, budgets, holdout_ratios):

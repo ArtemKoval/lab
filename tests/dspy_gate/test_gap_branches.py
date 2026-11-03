@@ -8,7 +8,8 @@ import types
 
 import pytest
 
-from dspy_gate import bridge_hook, checks, compile as compile_mod, evals, judge, lint, matrix, protect_hook, surface
+from dspy_gate import bridge_hook, checks, compile as compile_mod, evals, harness, judge, lint, matrix, protect_hook, surface
+from dspy_gate import nightly
 
 
 def test_tier_c_passes_on_the_right_order():
@@ -508,3 +509,222 @@ def test_parse_tags_skip_a_token_that_matches_neither_name():
     assert surface == "dspy-eval"
     assert judged is False
     assert rubric is None
+
+
+def test_check_manifest_names_a_missing_baseline(tmp_path, monkeypatch):
+    from test_gate_cli import make_repo, run
+    import json
+
+    root = make_repo(tmp_path)
+    run(["regen", "demo"], root, monkeypatch)
+    manifest = root / "openspec" / "eval_manifest.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    data["changes"]["demo"]["eval_cases"].append(
+        {
+            "scenario_id": "banner-is-legible",
+            "capability": "triage",
+            "surface": "e2e-visual",
+            "checks": [],
+            "dataset_path": "evals/triage/banner-is-legible.json",
+        }
+    )
+    manifest.write_text(json.dumps(data), encoding="utf-8")
+    assert run(["check-manifest", "demo"], root, monkeypatch) == 2
+
+
+def test_the_bridge_hook_survives_a_policy_import_error(tmp_path, capsys, monkeypatch):
+    from test_gate_cli import make_repo, run
+    from dspy_gate import cli
+
+    root = make_repo(tmp_path)
+    run(["regen", "demo"], root, monkeypatch)
+    change = root / "openspec" / "changes" / "demo" / "specs" / "triage" / "spec.md"
+    monkeypatch.setattr(bridge_hook, "repo_root", lambda: root)
+    monkeypatch.setattr(
+        cli, "cmd_verify", lambda *a, **k: (_ for _ in ()).throw(ImportError("no yaml"))
+    )
+    capsys.readouterr()  # drain the regen report
+    code = bridge_hook.main(json.dumps(event(change)))
+    assert code == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_freeze_refuses_when_a_visual_baseline_is_missing(tmp_path):
+    from dspy_gate import freeze
+
+    change = tmp_path / "openspec" / "changes" / "demo" / "evals" / "triage"
+    change.mkdir(parents=True)
+    (change / "s.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "openspec").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "openspec" / "eval_manifest.json").write_text(json.dumps({
+        "changes": {"demo": {"eval_cases": [
+            {"scenario_id": "s", "capability": "triage", "surface": "e2e-visual"}
+        ]}}
+    }))
+    with pytest.raises(ValueError) as exc:
+        freeze.run(tmp_path, "demo")
+    assert "baseline" in str(exc.value)
+
+
+def test_optimize_certifies_an_optimized_module(tmp_path, capsys, monkeypatch):
+    import textwrap
+    from dspy_gate import cli
+
+    root = tmp_path
+    specs = root / "openspec" / "changes" / "demo" / "specs" / "triage"
+    specs.mkdir(parents=True)
+    (specs / "spec.md").write_text(textwrap.dedent("""
+        ## ADDED Requirements
+
+        ### Requirement: Triage assigns severity
+
+        #### Scenario: Outage routes to on-call [surface: dspy-eval]
+        - **WHEN** the ticket text contains the phrase production down
+        - **THEN** severity = P0
+
+        #### Scenario: Billing routes to billing [surface: dspy-eval]
+        - **WHEN** the ticket mentions a refund
+        - **THEN** team = billing
+        """), encoding="utf-8")
+    tool = root / "tools" / "dspy_gate"
+    tool.mkdir(parents=True)
+    (tool / "gates.yaml").write_text(
+        "version: 1\npolicy_bounds:\n  tier_b_min: {min: 0.6, max: 1.0}\n",
+        encoding="utf-8",
+    )
+    artifacts = tool / "artifacts" / "demo"
+    artifacts.mkdir(parents=True)
+    (artifacts / "pointer.json").write_text("{}", encoding="utf-8")
+    optimized_registry = {
+        "triage": {
+            "module": "Triage",
+            "impl": "optimized",
+            "entry": "dspy_gate.harness.triage::triage",
+            "artifacts": str(artifacts),
+            "examples": {
+                "outage-routes-to-on-call": {"ticket": "production down"},
+                "billing-routes-to-billing": {"ticket": "refund please"},
+            },
+        }
+    }
+    from test_gate_cli import run
+
+    run(["regen", "demo"], root, monkeypatch, modules=optimized_registry)
+    capsys.readouterr()
+    assert run(["optimize", "demo"], root, monkeypatch, modules=optimized_registry) == 0
+    assert "certified" in capsys.readouterr().out
+
+
+def test_optimize_reports_the_missing_manifest(tmp_path, capsys, monkeypatch):
+    from test_gate_cli import make_repo, run
+
+    root = make_repo(tmp_path)
+    assert run(["optimize", "demo"], root, monkeypatch) == 2
+    assert "no eval manifest" in capsys.readouterr().out
+
+
+def test_evals_out_writes_the_report_file(tmp_path, capsys, monkeypatch):
+    import json
+    from test_gate_cli import make_repo, run
+
+    root = make_repo(tmp_path)
+    run(["regen", "demo"], root, monkeypatch)
+    capsys.readouterr()
+    out = root / "target" / "gate-report" / "demo.json"
+    assert run(["evals", "demo", "--out", str(out)], root, monkeypatch) == 0
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert payload["exit"] == 0
+    assert payload["rows"][0]["case"]["scenario_id"] == "outage-routes-to-on-call"
+
+
+def test_pin_drift_passes_without_any_manifest(tmp_path, capsys, monkeypatch):
+    from test_gate_cli import make_repo, run
+
+    root = make_repo(tmp_path)
+    assert run(["pin-drift"], root, monkeypatch) == 0
+
+
+def test_run_refuses_an_optimized_module_with_no_artifacts_name():
+    modules = {
+        "ghost-cap": {
+            "module": "Ghost",
+            "impl": "optimized",
+            "entry": "dspy_gate.harness.triage::triage",
+        }
+    }
+    case = {"capability": "ghost-cap", "scenario_id": "s"}
+    with pytest.raises(FileNotFoundError) as exc:
+        harness.run(case, modules)
+    assert "names no artifacts directory" in str(exc.value)
+
+
+def test_the_loop_promotes_without_frozen_suites_and_notes_it(tmp_path):
+    def case_payload(scenario_id):
+        return {
+            "scenario_id": scenario_id,
+            "capability": "ticket-triage",
+            "surface": "dspy-eval",
+            "checks": [{"tier": "A", "kind": "eq", "field": "severity", "value": "P0"}],
+        }
+
+    manifest_data = {
+        "changes": {
+            "demo": {
+                "eval_cases": [
+                    {"scenario_id": "held-one", "capability": "ticket-triage",
+                     "surface": "dspy-eval", "checks": []},
+                ]
+            }
+        }
+    }
+
+    rows = [
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("held-one"),
+        },
+        {
+            "scenario_id": "known-scenario",
+            "capability": "ticket-triage",
+            "green": False,
+            "detail": "",
+            "route": "",
+            "case": case_payload("held-two"),
+        },
+    ]
+    report = nightly.run(
+        rows,
+        manifest_data=manifest_data,
+        drafts_root=tmp_path / "drafts",
+        optimizer_fn=lambda program, train, val: program,
+        run_fn=lambda case: ({"severity": "P0"}, []),
+        budgets={},
+        holdout_ratios={},
+        artifacts_root=tmp_path / "artifacts",
+    )
+    outcomes = {s["step"]: s["outcome"] for s in report["steps"]}
+    assert "no frozen suites yet" in outcomes["certify"]
+    assert "candidates/nightly" in outcomes["promote"]
+
+
+def test_lint_rejects_a_duplicated_scenario_id(tmp_path):
+    spec = (
+        "### Requirement: Triage\n\n"
+        "#### Scenario: Same name [surface: dspy-eval]\n"
+        "- **WHEN** a ticket arrives\n- **THEN** severity = P0\n\n"
+        "#### Scenario: Same name [surface: dspy-eval]\n"
+        "- **WHEN** a ticket arrives\n- **THEN** severity = P0\n"
+    )
+    change = tmp_path / "openspec" / "changes" / "demo"
+    (change / "specs" / "triage").mkdir(parents=True)
+    (change / "specs" / "triage" / "spec.md").write_text(spec, encoding="utf-8")
+    policy = tmp_path / "p.yaml"
+    policy.write_text("version: 1\n", encoding="utf-8")
+    from dspy_gate import gatepolicy
+
+    found = lint.lint_change(change, gatepolicy.load(policy), {}, validate=lambda d: (True, ""))
+    assert any("appears 2 times" in v for v in found)

@@ -33,7 +33,7 @@ The bridge SHALL compile every THEN clause into one assertion object. An equalit
 - **THEN** the bridge exits 2 and names the scenario and the capability
 
 ### Requirement: The bridge routes each module as hand or optimized
-The manifest SHALL carry an impl field with the value hand or optimized for every module. The bridge SHALL treat the field as data: a manifest edit plus a regeneration routes a module, and no other edit routes it.
+The manifest SHALL carry an impl field with the value hand or optimized for every module. The impl value comes from the harness registry: a registry edit plus a regeneration routes a module, and no other edit routes it.
 
 #### Scenario: A module routes to hand
 - **WHEN** a reader opens the manifest for the pilot change

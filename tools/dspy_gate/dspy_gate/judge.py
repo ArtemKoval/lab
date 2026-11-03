@@ -58,8 +58,8 @@ def build_vote_fn(role="judge"):
     def vote(case):
         result = predict(
             rubric=_rubric_text(case["rubric"]),
-            prediction="",  # filled by the runner before the call
-            trace="",
+            prediction=str(case.get("prediction", "")),
+            trace=str(case.get("trace", "")),
         )
         return max(0.0, min(1.0, float(result.score)))
 

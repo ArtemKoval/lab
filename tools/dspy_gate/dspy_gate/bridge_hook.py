@@ -50,7 +50,12 @@ def main(payload=None):
     from . import cli
 
     root = repo_root()
-    code, report = cli.cmd_verify(str(root), change_id, cli._load_modules(str(root)))
+    try:
+        code, report = cli.cmd_verify(
+            str(root), change_id, cli._load_modules(str(root))
+        )
+    except ImportError:
+        return 0  # a bare interpreter without PyYAML cannot read the policy
     if code != 0:
         print(
             json.dumps(

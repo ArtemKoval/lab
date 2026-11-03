@@ -46,11 +46,13 @@ def _run_case(case, budget, usage, run_fn):
     row = {
         "scenario_id": case["scenario_id"],
         "capability": case["capability"],
+        "impl": case.get("impl", "hand"),
         "green": True,
         "deferred": False,
         "detail": "",
         "route": "",
         "tiers": {},
+        "case": case,
     }
     try:
         pred, trace = _invoke(case, run_fn)

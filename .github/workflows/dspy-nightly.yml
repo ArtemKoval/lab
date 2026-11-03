@@ -32,12 +32,20 @@ jobs:
         run: |
           python -m venv tools/dspy_gate/.venv
           tools/dspy_gate/.venv/bin/python -m pip install --upgrade pip
-          tools/dspy_gate/.venv/bin/python -m pip install -r tools/dspy_gate/requirements-dev.txt
-      - name: Run the learning loop
+          tools/dspy_gate/.venv/bin/python -m pip install -r tools/dspy_gate/requirements.txt -r tools/dspy_gate/requirements-live.txt
+      - name: Run the learning loop per change
         env:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: |
-          PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate nightly add-dspy-gate --from-report target/gate-report/last.json
+          mkdir -p target/gate-report
+          for dir in openspec/changes/*/; do
+            id=$(basename "$dir")
+            if [ "$id" = "archive" ]; then continue; fi
+            if [ ! -f openspec/eval_manifest.json ] || ! grep -q "\"$id\"" openspec/eval_manifest.json; then
+              continue
+            fi
+            PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate nightly "$id" --from-report "target/gate-report/$id.json"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:

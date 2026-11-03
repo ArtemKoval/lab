@@ -96,7 +96,7 @@ jobs:
           python -m venv tools/mutator/.venv
           tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage
       - name: Run the root test suite
-        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov handover_telemetry --cov dspy_gate --cov-branch --cov-fail-under=100 --cov-config .coveragerc
+        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov handover_telemetry --cov dspy_gate --cov dspy_gate_setup --cov-branch --cov-fail-under=100 --cov-config .coveragerc
       - name: Run the vendored gate suites
         run: |
           tools/crapper/.venv/bin/python -m pytest -q tools/crapper/tests

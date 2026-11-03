@@ -18,9 +18,9 @@ def gate_status(repo_root: str, change_id: str) -> dict:
 
 
 def conformance_matrix(repo_root: str, change_id: str) -> dict:
-    """Report the conformance matrix rows for one change."""
-    code, payload = cli.cmd_status(repo_root, change_id, cli._load_modules(repo_root))
-    return {"exit": code, "rows": payload.get("rows", [])}
+    """Report the conformance matrix table for one change."""
+    code, payload = cli.cmd_matrix(repo_root, change_id, cli._load_modules(repo_root))
+    return {"exit": code, "matrix": payload.get("matrix", "")}
 
 
 def build_server():

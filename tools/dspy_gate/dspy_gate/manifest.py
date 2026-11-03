@@ -34,6 +34,7 @@ def build(parsed_change, modules):
             modules_out.setdefault(
                 scenario["capability"],
                 {
+                    "capability": scenario["capability"],
                     "module": module["module"],
                     "impl": module["impl"],
                     "entry": module.get("entry", ""),
@@ -48,6 +49,7 @@ def build(parsed_change, modules):
                 {
                     "scenario_id": scenario["scenario_id"],
                     "capability": scenario["capability"],
+                    "impl": module["impl"],
                     "surface": scenario["surface"],
                     "runner": scenario["surface"],
                     "gates": RUNNER_GATES.get(scenario["surface"], [3]),

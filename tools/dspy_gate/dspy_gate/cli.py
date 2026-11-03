@@ -109,7 +109,10 @@ def cmd_check_manifest(root, change_id, modules):
     if disk is None:
         return 2, {"error": "no eval manifest on disk"}
     parsed = scenarioparse.parse_change(change_dir(root, change_id))
+    from . import surface
+
     violations = manifest.verify(disk[0], parsed, modules)
+    violations.extend(surface.baseline_violations(disk[0], root))
     return (0 if not violations else 2), {"violations": violations}
 
 
@@ -123,9 +126,9 @@ def cmd_status(root, change_id, modules):
     if disk is None:
         gates = {"gate_0": "green", "gate_1": "red", "generated": "red"}
         return 2, {"gates": gates, "rows": []}
-    disk_data, _ = disk
+    disk_data, disk_content = disk
     regenerated = _regenerated(root, change_id, modules)
-    parsed, fresh_data = regenerated[0], regenerated[1]
+    parsed, fresh_data, fresh_content = regenerated
     disk_data = dict(disk_data)
     disk_data.pop("_generated", None)
     fresh_data.pop("_generated", None)
@@ -133,7 +136,11 @@ def cmd_status(root, change_id, modules):
     gates = {
         "gate_0": "green" if not violations else "red",
         "gate_1": "green" if not manifest.verify(disk_data, parsed, modules) else "red",
-        "generated": "green" if disk_data == fresh_data else "red",
+        "generated": (
+            "green"
+            if disk_data == fresh_data and disk_content == fresh_content
+            else "red"
+        ),
     }
     code = 0 if all(state == "green" for state in gates.values()) else 2
     return code, {"change": change_id, "gates": gates, "rows": rows}
@@ -188,9 +195,9 @@ def _budgets(root):
     return load_policy(root).get("capabilities", {})
 
 
-def cmd_evals(root, change_id, modules):
+def cmd_evals(root, change_id, modules, out=None):
     """Gate 3: run the delta suite and print the failure routes."""
-    from . import evals, harness
+    from . import evals
 
     disk = _on_disk(root, change_id)
     if disk is None:
@@ -201,26 +208,47 @@ def cmd_evals(root, change_id, modules):
         if case.get("surface") == "dspy-eval"
     ]
     budgets = _budgets(root)
+    run_fn = _suite_run_fn(root, change_id, modules)
+    rows = [_delta_row(case, budget_of(budgets, case), run_fn) for case in cases]
+    report = evals.Report(0 if all(r["green"] for r in rows) else 2, rows)
+    if out:
+        out_path = Path(out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(stable_report(report), encoding="utf-8")
+    return report.exit, {"report": report}
+
+
+def stable_report(report):
+    """The deterministic report JSON one --out file carries."""
+    from .manifest import stable_json
+
+    return stable_json({"exit": report.exit, "rows": report.rows})
+
+
+def _suite_run_fn(root, change_id, modules):
+    """The suite runner: the harness on the dataset's frozen inputs."""
+    from . import datasets, harness
 
     def run_fn(case):
-        return harness.run(_case_with_frozen_inputs(case), modules)
-
-    def _case_with_frozen_inputs(case):
-        from . import datasets
-        from pathlib import Path
-
         source = Path(root) / "openspec" / "changes" / change_id / case["dataset_path"]
         if source.is_file():
-            return {**case, "inputs": datasets.read_case(source)["inputs"]}
-        return case
+            frozen = {**case, "inputs": datasets.read_case(source)["inputs"]}
+            return harness.run(frozen, modules)
+        return harness.run(case, modules)
 
-    def run_one(case):
-        budget = (budgets.get(case["capability"], {}) or {}).get("budget", {})
-        return evals.run_delta([case], budget, run_fn=run_fn).rows[0]
+    return run_fn
 
-    rows = [run_one(case) for case in cases]
-    report = evals.Report(0 if all(r["green"] for r in rows) else 2, rows)
-    return report.exit, {"report": report}
+
+def budget_of(budgets, case):
+    """The budget block of one case's capability."""
+    return (budgets.get(case["capability"], {}) or {}).get("budget", {})
+
+
+def _delta_row(case, budget, run_fn):
+    """One suite row for one case."""
+    from . import evals
+
+    return evals.run_delta([case], budget, run_fn=run_fn).rows[0]
 
 
 def cmd_matrix(root, change_id, modules):
@@ -278,6 +306,94 @@ def _holdout_ratios(root):
     }
 
 
+def cmd_certify(root, change_id, modules):
+    """Gate 5: record a certification row per governed capability.
+
+    A green delta run records the current pins digest; a red run
+    records a red row, so a later drift check sees the failure.
+    """
+    from . import certs, evals, harness
+
+    code, payload = cmd_evals(root, change_id, modules)
+    report = payload["report"]
+    policy_text = (Path(root) / DEFAULT_POLICY).read_text(encoding="utf-8")
+    digest = certs.pins_digest(policy_text)
+    recorded = []
+    for capability in {row["capability"] for row in report.rows}:
+        green = all(
+            row["green"] for row in report.rows if row["capability"] == capability
+        )
+        certs.record(
+            certs.ledger_path(root, capability),
+            pins=digest,
+            source=f"delta suite of {change_id}",
+            green=green,
+        )
+        recorded.append(capability)
+    del evals, harness
+    return (0 if not recorded and report.exit == 0 else report.exit), {
+        "certified": recorded,
+        "report": report,
+    }
+
+
+def cmd_pin_drift(root, change_id=None, modules=None):
+    """Gate 5: fail when a governed ledger holds stale or red pins."""
+    from . import certs, manifest as manifest_mod
+
+    manifest_path = Path(root) / "openspec" / "eval_manifest.json"
+    capabilities = set()
+    if manifest_path.is_file():
+        data = manifest_mod.load(manifest_path)
+        for change in data.get("changes", {}).values():
+            for case in change.get("eval_cases", []):
+                capabilities.add(case["capability"])
+    policy_text = (Path(root) / DEFAULT_POLICY).read_text(encoding="utf-8")
+    digest = certs.pins_digest(policy_text)
+    found = []
+    for capability in sorted(capabilities):
+        found.extend(
+            certs.drift(certs.ledger_path(root, capability), digest)
+        )
+    return (0 if not found else 2), {"violations": found}
+
+
+def cmd_optimize(root, change_id, modules):
+    """Gate 2: optimize and certify the modules with impl optimized."""
+    from . import optimize
+
+    disk = _on_disk(root, change_id)
+    if disk is None:
+        return 2, {"error": "no eval manifest on disk"}
+    optimized = [
+        entry
+        for entry in disk[0]["changes"][change_id]["modules"]
+        if entry.get("impl") == "optimized"
+    ]
+    if not optimized:
+        return 0, {"outcome": "no optimized modules"}
+    budgets = _budgets(root)
+    outcomes = []
+    for module in optimized:
+        capability = module["capability"]
+        cases = [
+            case
+            for case in disk[0]["changes"][change_id]["eval_cases"]
+            if case["capability"] == capability
+        ]
+        result = optimize.run(
+            cases,
+            (budgets.get(capability, {}) or {}).get("holdout_ratio", 0.3),
+            artifacts_dir=Path(root) / "tools" / "dspy_gate" / "artifacts" / change_id,
+            run_fn=_suite_run_fn(root, change_id, modules),
+            optimizer_fn=_optimizer_fn(),
+            max_loops=(budgets.get(capability, {}) or {}).get("max_optimize_loops", 3),
+        )
+        outcomes.append(f"{module['module']}: {result.detail}")
+    exit_code = 0 if all("certified" in o for o in outcomes) else 2
+    return exit_code, {"outcomes": outcomes}
+
+
 def build_parser():
     """Build the argparse parser."""
     parser = argparse.ArgumentParser(prog="dspy_gate", description=__doc__)
@@ -288,6 +404,10 @@ def build_parser():
                  "matrix", "freeze"):
         child = sub.add_parser(name)
         child.add_argument("change_id")
+    sub.choices["evals"].add_argument("--out", default=None)
+    sub.add_parser("certify").add_argument("change_id")
+    sub.add_parser("pin-drift")
+    sub.add_parser("optimize").add_argument("change_id")
     nightly = sub.add_parser("nightly")
     nightly.add_argument("change_id")
     nightly.add_argument("--from-report", required=True)
@@ -306,23 +426,8 @@ def main(argv=None):
         print(exc)
         return 2
     modules = _load_modules(root)
-    handlers = {
-        "lint": cmd_lint,
-        "regen": cmd_regen,
-        "verify": cmd_verify,
-        "check-manifest": cmd_check_manifest,
-        "status": cmd_status,
-        "evals": cmd_evals,
-        "matrix": cmd_matrix,
-        "freeze": cmd_freeze,
-    }
     try:
-        if args.command == "nightly":
-            code, payload = cmd_nightly(
-                root, args.change_id, modules, from_report=args.from_report
-            )
-        else:
-            code, payload = handlers[args.command](root, args.change_id, modules)
+        code, payload = _dispatch(args, root, modules)
     except Exception as exc:  # noqa: BLE001 - the CLI reports, not crashes
         code, payload = 2, {"error": str(exc)}
     if args.json:
@@ -333,6 +438,34 @@ def main(argv=None):
             if printed is not None:
                 print(printed)
     return code
+
+
+def _dispatch(args, root, modules):
+    """Run one command and return its (exit, payload)."""
+    if args.command == "nightly":
+        return cmd_nightly(root, args.change_id, modules, from_report=args.from_report)
+    if args.command == "evals":
+        return cmd_evals(root, args.change_id, modules, out=args.out)
+    if args.command == "certify":
+        return cmd_certify(root, args.change_id, modules)
+    if args.command == "pin-drift":
+        return cmd_pin_drift(root)
+    if args.command == "optimize":
+        return cmd_optimize(root, args.change_id, modules)
+    return handlers_map()[args.command](root, args.change_id, modules)
+
+
+def handlers_map():
+    """The change-id commands and their handlers."""
+    return {
+        "lint": cmd_lint,
+        "regen": cmd_regen,
+        "verify": cmd_verify,
+        "check-manifest": cmd_check_manifest,
+        "status": cmd_status,
+        "freeze": cmd_freeze,
+        "matrix": cmd_matrix,
+    }
 
 
 def _jsonable(payload):

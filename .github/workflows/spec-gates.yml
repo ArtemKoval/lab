@@ -42,6 +42,7 @@ jobs:
               PYTHONPATH=tools/dspy_gate tools/zai_routing_audit/.venv/bin/python -m dspy_gate check-manifest "$id" || status=2
             fi
           done
+          PYTHONPATH=tools/dspy_gate tools/zai_routing_audit/.venv/bin/python -m dspy_gate pin-drift || status=2
           exit $status
 
   gate-live:
@@ -65,12 +66,23 @@ jobs:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: |
           tools/dspy_gate/.venv/bin/python -m pytest -m e2e tests/dspy_gate/test_journeys.py
-      - name: Gate 3 full suites and the conformance matrix
+      - name: Gate 3 full suites and the conformance matrix per change
         env:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: |
-          PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate evals add-dspy-gate
-          PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate matrix add-dspy-gate
+          status=0
+          mkdir -p target/gate-report
+          for dir in openspec/changes/*/; do
+            id=$(basename "$dir")
+            if [ "$id" = "archive" ]; then continue; fi
+            if [ ! -f openspec/eval_manifest.json ] || ! grep -q "\"$id\"" openspec/eval_manifest.json; then
+              continue
+            fi
+            PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate evals "$id" --out "target/gate-report/$id.json" || status=2
+            PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate matrix "$id" || status=2
+            PYTHONPATH=tools/dspy_gate tools/dspy_gate/.venv/bin/python -m dspy_gate certify "$id" || status=2
+          done
+          exit $status
       - uses: actions/upload-artifact@v4
         if: always()
         with:

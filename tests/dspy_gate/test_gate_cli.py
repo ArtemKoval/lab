@@ -5,7 +5,9 @@ command and the MCP wrapper parity."""
 import json
 import textwrap
 
-from dspy_gate import cli
+import pytest
+
+from dspy_gate import cli, harness
 
 SPEC = """
     ## ADDED Requirements
@@ -43,7 +45,7 @@ def make_repo(tmp_path, spec_text=SPEC, policy_text=POLICY):
     return tmp_path
 
 
-def run(argv, cwd, monkeypatch=None, validate_ok=True):
+def run(argv, cwd, monkeypatch=None, validate_ok=True, modules=None):
     """Run the CLI with the openspec subprocess stubbed out."""
     if monkeypatch is not None:
         monkeypatch.setattr(
@@ -51,7 +53,8 @@ def run(argv, cwd, monkeypatch=None, validate_ok=True):
             "openspec_validate",
             lambda change_dir: (validate_ok, "" if validate_ok else "bad"),
         )
-        monkeypatch.setattr(cli, "_load_modules", lambda root: dict(REGISTRY))
+        registry_map = dict(REGISTRY) if modules is None else dict(modules)
+        monkeypatch.setattr(cli, "_load_modules", lambda root: registry_map)
     return cli.main(["--repo-root", str(cwd)] + argv)
 
 
@@ -293,7 +296,7 @@ def test_the_mcp_tool_returns_the_cli_payload(tmp_path, monkeypatch):
     payload = mcp_server.gate_status(str(root), "demo")
     assert payload["exit"] == 0
     matrix = mcp_server.conformance_matrix(str(root), "demo")
-    assert "rows" in matrix
+    assert "| scenario |" in matrix["matrix"]
 
 
 def test_evals_runs_the_delta_suite_green(tmp_path, capsys, monkeypatch):
@@ -379,3 +382,47 @@ class _RecordingMcp:
 
     def run(self):  # pragma: no cover - never started in tests
         raise RuntimeError("the server never starts under test")
+
+
+def test_run_refuses_an_optimized_module_without_artifacts(tmp_path):
+    modules = {
+        "ghost-cap": {
+            "module": "Ghost",
+            "impl": "optimized",
+            "entry": "dspy_gate.harness.triage::triage",
+            "artifacts": str(tmp_path / "absent" / "ghost-cap"),
+        }
+    }
+    case = {"capability": "ghost-cap", "scenario_id": "s"}
+    with pytest.raises(FileNotFoundError) as exc:
+        harness.run(case, modules)
+    assert "ghost-cap" in str(exc.value)
+
+
+def test_run_resolves_an_optimized_module_with_a_pointer(tmp_path):
+    artifacts = tmp_path / "artifacts" / "ghost-cap"
+    artifacts.mkdir(parents=True)
+    (artifacts / "pointer.json").write_text("{}", encoding="utf-8")
+    modules = {
+        "ghost-cap": {
+            "module": "Ghost",
+            "impl": "optimized",
+            "entry": "dspy_gate.harness.triage::triage",
+            "artifacts": str(artifacts),
+        }
+    }
+    case = {
+        "capability": "ghost-cap",
+        "scenario_id": "s",
+        "inputs": {"ticket": "production down"},
+    }
+    pred, trace = harness.run(case, modules)
+    assert pred["severity"] == "P0"
+
+
+def test_optimize_reports_no_optimized_modules(tmp_path, capsys, monkeypatch):
+    root = make_repo(tmp_path)
+    run(["regen", "demo"], root, monkeypatch)
+    capsys.readouterr()
+    assert run(["optimize", "demo"], root, monkeypatch) == 0
+    assert "no optimized modules" in capsys.readouterr().out

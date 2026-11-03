@@ -58,6 +58,7 @@ def lint_change(change_dir, policy, modules=None, validate=None):
         parse_error = str(exc)
     if parse_error:
         found.append(parse_error)
+    found.extend(_slug_duplicates(data))
     for requirement in data["requirements"]:
         name = requirement["name"]
         if not requirement["scenarios"]:
@@ -67,6 +68,21 @@ def lint_change(change_dir, policy, modules=None, validate=None):
                 found.extend(_scenario_violations(change_dir, scenario))
     found.extend(_bounds_violations(change_dir, policy))
     return found
+
+
+def _slug_duplicates(data):
+    """Reject a scenario_id that two scenarios share: the slug is the
+    traceability key of the manifest, the pytest IDs, and the datasets."""
+    seen = {}
+    for requirement in data["requirements"]:
+        for scenario in requirement["scenarios"]:
+            sid = scenario["scenario_id"]
+            seen[sid] = seen.get(sid, 0) + 1
+    return [
+        f"scenario {sid} appears {count} times; IDs are forever"
+        for sid, count in sorted(seen.items())
+        if count > 1
+    ]
 
 
 def _scenario_violations(change_dir, scenario):

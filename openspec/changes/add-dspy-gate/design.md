@@ -141,10 +141,11 @@ Gate 0.
 One fresh builder read the artifacts and asked twelve questions. Three got answers in the
 artifacts, seven settled as defaults, and two governance calls settled on guide grounds:
 
-- Manifest shape: `{"version": 1, "changes": {"<change-id>": [cases]}}`. Each case holds
-  `scenario_id`, `capability`, `surface`, `gates`, `tier`, `assertion`, `dataset_path`,
-  `generated_test`, `impl`, `entry_point` or `artifact_dir`, and `source_hash`. A dataset record
-  holds `scenario_id`, `inputs`, and `expected`.
+- Manifest shape: `{"version": 1, "changes": {"<change-id>": {"modules": [...],
+  "eval_cases": [...]}}}`. Each case holds `scenario_id`, `capability`, `impl`, `surface`,
+  `runner`, `gates`, `dataset_path`, `checks`, `judged`, `rubric`, `source_hash`, `when`, and
+  `thens`. Each module entry holds `capability`, `module`, `impl`, `entry`, `artifacts`, and
+  `scenarios`. A dataset record holds `scenario_id`, `inputs`, and `expected`.
 - GENERATED header forms: JSON carries a `_generated` first key, JSONL a first `#` line, Python a
   module docstring. No header carries a timestamp, so regeneration stays byte-identical.
 - The Gate 5 certification ledger is `openspec/specs/<capability>/certs.jsonl` with the pins digest,
@@ -167,6 +168,13 @@ artifacts, seven settled as defaults, and two governance calls settled on guide 
 - The pilot certifies Tier A only on the implementation pull request. Tier B certifies later
   through an opt-in live run, so the pipeline burns no GLM spend on a merge.
 
+## Recorded bounds
+
+- The escalate step drafts at most one change per run: the first qualifying recurring spec gap
+  wins, and the rest wait for the next run.
+- The e2e-ui, e2e-visual, and agent-e2e surfaces run their journeys in the spec-gates live
+  job. The delta suite runner covers the dspy-eval surface only.
+
 ## Deviations from the guide
 
 - glm-5.3-flash replaces every glm-5.3 pin, and thinking stays disabled everywhere. The guide warns
@@ -186,7 +194,7 @@ artifacts, seven settled as defaults, and two governance calls settled on guide 
 - GLM truncation or loops: thinking stays disabled, and each role carries its token ceiling in
   `gates.yaml`.
 - A missing `ZAI_API_KEY`: every live path exits 2 and names the variable.
-- A hand edit to a GENERATED file: the protect hook denies it, and `bridge --check` fails on drift in
-  CI. The fix is a regeneration, never an edit.
+- A hand edit to a GENERATED file: the protect hook denies it, and `python -m dspy_gate verify`
+  fails on drift in CI. The fix is a regeneration, never an edit.
 - A scenario rename: Gate 1 flags the orphan or missing case. A rename is a spec migration that
   regenerates the change, per the guide warning that IDs are forever.

@@ -64,6 +64,15 @@ def install(root):
             )
 
 
+def probe_interpreter(root):
+    """The interpreter the probes run under: the tool venv when it
+    exists (it carries PyYAML after --install), else this process's."""
+    venv_python = root / TOOL_DIR / ".venv" / "bin" / "python"
+    if venv_python.is_file():
+        return str(venv_python)
+    return sys.executable
+
+
 def _checks(root):
     return {
         "stdlib core imports": _core_imports(root),
@@ -83,7 +92,7 @@ def _core_imports(root):
         + "import dspy_gate.cli, dspy_gate.lint, dspy_gate.manifest"
     )
     result = subprocess.run(
-        [sys.executable, "-c", probe], check=False, capture_output=True, text=True
+        [probe_interpreter(root), "-c", probe], check=False, capture_output=True, text=True
     )
     return result.returncode == 0
 
@@ -99,7 +108,7 @@ def _policy_ok(root):
         + "assert gatepolicy.roles(p); assert gatepolicy.bounds(p)"
     )
     return subprocess.run(
-        [sys.executable, "-c", probe], check=False, capture_output=True
+        [probe_interpreter(root), "-c", probe], check=False, capture_output=True
     ).returncode == 0
 
 
@@ -110,7 +119,7 @@ def _registry_ok(root):
         % (root / TOOL_DIR)
     )
     return subprocess.run(
-        [sys.executable, "-c", probe], check=False, capture_output=True
+        [probe_interpreter(root), "-c", probe], check=False, capture_output=True
     ).returncode == 0
 
 

@@ -12,10 +12,20 @@ from . import gatepolicy, manifest
 
 
 def run(repo_root, change_id):
-    """Freeze one change's governed artifacts; return the per-capability report."""
+    """Freeze one change's governed artifacts; return the per-capability report.
+
+    Baselines stay where the change PR authored them
+    (openspec/specs/<capability>/visual/); the freeze verifies their
+    presence instead of copying hand-authored pixels.
+    """
     repo_root = Path(repo_root)
     data = manifest.load(repo_root / "openspec" / "eval_manifest.json")
     change = data["changes"][change_id]
+    from . import surface
+
+    violations = surface.baseline_violations(data, repo_root)
+    if violations:
+        raise ValueError("; ".join(violations))
     capabilities = {}
     for case in change["eval_cases"]:
         capability = case["capability"]
