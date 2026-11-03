@@ -56,7 +56,7 @@
 
 ## 8. Delivery
 
-- [ ] 8.1 Run the root suite, ruff, and the three gates on the changed paths. Hold the coverage floor at 100 percent for the new tool.
-- [ ] 8.2 Run the adversarial review on the whole diff and fix the confirmed findings.
-- [ ] 8.3 Open the pull request with the matrix, and merge after the review passes.
+- [x] 8.1 Run the root suite, ruff, and the three gates on the changed paths. Hold the coverage floor at 100 percent for the new tool.
+- [x] 8.2 Run the adversarial review on the whole diff and fix the confirmed findings.
+- [x] 8.3 Open the pull request with the matrix, and merge after the review passes.
 - [ ] 8.4 Archive with the freeze step and the two ADR records, and open the handover issue with the telemetry block.

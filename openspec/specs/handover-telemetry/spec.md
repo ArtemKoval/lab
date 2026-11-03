@@ -1,7 +1,7 @@
 # handover-telemetry Specification
 
 ## Purpose
-TBD - created by archiving change add-handover-telemetry. Update Purpose after archive.
+One coding-agent run becomes a redacted telemetry block that a handover issue carries, so the next run starts from measured facts instead of guesses.
 
 ## Requirements
 

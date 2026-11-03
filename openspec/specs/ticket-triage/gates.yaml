@@ -1,0 +1,17 @@
+# Frozen by python -m dspy_gate freeze; governed thresholds.
+capabilities:
+  ticket-triage:
+    budget:
+      p95_latency_s: 20
+      p95_tokens_per_scenario: 2500
+    gate_2:
+      flake_budget: 2
+      max_optimize_loops: 3
+      tier_a: 1.0
+      tier_b_min: 0.8
+    gate_5:
+      alert_below: 0.8
+      drift_window_days: 7
+      judge_ensemble: 3
+    holdout_ratio: 0.3
+version: 1
