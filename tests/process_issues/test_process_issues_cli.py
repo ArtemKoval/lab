@@ -53,9 +53,18 @@ class FakeGh:
         return code, out, err
 
 
-def test_scan_json_reports_queue_oldest_first(capsys):
+def _repo_with_active_change(tmp_path):
+    """Build a repo root whose active changes carry the fixture change dir."""
+    changes = tmp_path / "openspec" / "changes"
+    (changes / "add-process-issues").mkdir(parents=True)
+    return str(tmp_path)
+
+
+def test_scan_json_reports_queue_oldest_first(capsys, tmp_path):
     fake = FakeGh([(0, ISSUES_JSON, ""), (0, PRS_JSON, "")])
-    code = cli.main(["scan", "--json"], runner=fake, repo_root=".")
+    code = cli.main(
+        ["scan", "--json"], runner=fake, repo_root=_repo_with_active_change(tmp_path)
+    )
     out = capsys.readouterr().out
     assert code == 0
     entries = json.loads(out)
@@ -69,9 +78,11 @@ def test_scan_json_reports_queue_oldest_first(capsys):
     assert entries[1]["changeDir"] == "add-process-issues"
 
 
-def test_scan_plain_lines_carry_state_and_links(capsys):
+def test_scan_plain_lines_carry_state_and_links(capsys, tmp_path):
     fake = FakeGh([(0, ISSUES_JSON, ""), (0, PRS_JSON, "")])
-    code = cli.main(["scan"], runner=fake, repo_root=".")
+    code = cli.main(
+        ["scan"], runner=fake, repo_root=_repo_with_active_change(tmp_path)
+    )
     out = capsys.readouterr().out
     assert code == 0
     assert "86\tapply" in out
