@@ -90,6 +90,17 @@ def test_settings_keep_the_existing_keys():
         "mcp__dspy-gate",
         "Bash(tools/zai_routing_audit/.venv/bin/python:*)",
         "Bash(gh issue create:*)",
+        "Bash(gh issue list:*)",
+        "Bash(gh issue view:*)",
+        "Bash(gh issue comment:*)",
+        "Bash(gh issue edit:*)",
+        "Bash(gh issue close:*)",
+        "Bash(gh label list:*)",
+        "Bash(gh label create:*)",
+        "Bash(gh pr list:*)",
+        "Bash(gh pr view:*)",
+        "Bash(gh pr create:*)",
+        "Bash(gh pr merge:*)",
     ]
 
 

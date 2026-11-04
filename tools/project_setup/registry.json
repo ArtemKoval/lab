@@ -13,6 +13,17 @@
       "requires": "Node.js 20.19.0 or newer"
     },
     {
+      "id": "gh-cli",
+      "kind": "system-tool",
+      "purpose": "Runs the GitHub CLI for issues, labels, and pull requests. The process-issues loop and the handover_telemetry --create path call it.",
+      "check": [
+        "gh",
+        "--version"
+      ],
+      "install": "Debian or Ubuntu: sudo apt install gh. macOS: brew install gh. Other platforms: https://github.com/cli/cli#installation. Then gh auth login.",
+      "requires": "A GitHub account with push access to this repo; the label writes need the label-write authority"
+    },
+    {
       "id": "apfel-cli",
       "kind": "system-tool",
       "purpose": "Runs the local Apple on-device model server. The apfel-eval skill and the llm_ops/eval project call it.",
