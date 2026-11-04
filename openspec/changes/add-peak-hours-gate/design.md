@@ -69,7 +69,7 @@ Format: ASCII in fenced blocks. Rigor: lightweight C4-inspired. Both choices fol
 ## Decisions
 
 1. Pure core with an injected clock. The core functions take `now` as a parameter. The CLI adds `--now` and reads the `PEAK_HOURS_GATE_NOW` env seam for shim-level tests. Rationale: deterministic tests, and no monkeypatching of module state.
-2. The block set lives in data, not in branches. `BLOCKED_TOOLS` holds the tool names, `MCP_PREFIX` holds the `mcp__` prefix, and `BASH_LIVE_PATTERNS` holds the dspy_gate live-path patterns. An extension edits one tuple.
+2. The block set lives in data, not in branches. `BLOCKED_TOOLS` holds the tool names, `MCP_PREFIX` holds the `mcp__` prefix, and `BASH_LIVE_WORDS` plus `BASH_PACKAGE_TOKENS` hold the dspy_gate live-path forms. An extension edits one tuple.
 3. The fail-open contract: any parse or lookup error returns exit code 0 with no message. A positive in-window match on the block set is the only deny path. This matches the cc-logging charter.
 4. The override lives in the hook process environment, so the session launch carries it. The README and the skill document this.
 5. No MCP wrapper: the gate is harness-facing, not model-facing, so the pipeline MCP step does not apply. The skill documents the CLI.

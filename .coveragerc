@@ -8,3 +8,4 @@ omit =
     tools/spec_ste_check/spec_ste_check/__main__.py
     tools/handover_telemetry/handover_telemetry/__main__.py
     tools/dspy_gate/dspy_gate/__main__.py
+    tools/peak_hours_gate/peak_hours_gate/__main__.py

@@ -31,6 +31,18 @@
                 ]
             },
             {
+                "matcher": "Task|Agent|Workflow|WebSearch|WebFetch|Bash|mcp__.*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/peak-hours-gate.sh\"",
+                        "timeout": 10,
+                        "async": false,
+                        "shell": "bash"
+                    }
+                ]
+            },
+            {
                 "hooks": [
                     {
                         "type": "command",
