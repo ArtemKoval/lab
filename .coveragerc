@@ -9,3 +9,4 @@ omit =
     tools/handover_telemetry/handover_telemetry/__main__.py
     tools/dspy_gate/dspy_gate/__main__.py
     tools/peak_hours_gate/peak_hours_gate/__main__.py
+    tools/process_issues/process_issues/__main__.py
