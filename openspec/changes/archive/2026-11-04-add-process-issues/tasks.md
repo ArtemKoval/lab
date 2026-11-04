@@ -42,4 +42,4 @@
 - [x] 7.3 Run `openspec validate add-process-issues --type change --strict` with no errors.
 - [x] 7.4 Run `python -m dspy_gate lint add-process-issues` and `python -m dspy_gate verify add-process-issues` with no violations.
 - [x] 7.5 Run the adversarial whole-diff review on the implementation diff, and fix every confirmed finding.
-- [ ] 7.6 Create `adr/0012-grant-the-loop-the-automation-authority.md` from the manifest during the archive step, and make sure the file lands in `adr/`.
+- [x] 7.6 Create `adr/0012-grant-the-loop-the-automation-authority.md` from the manifest during the archive step, and make sure the file lands in `adr/`.
