@@ -35,9 +35,11 @@ config, hook, docs) runs:
    the `adversarial-author` agent and challenge with `adversarial-reviewer`.
    Name the model on every agent dispatch when the harness allows it. Give
    the final whole-diff review to the strongest available model. Judge cost
-   by turn count, not token price. On the z.ai serving path, every requested
-   name gets the same model, so a dispatch override changes the label only.
-   Run the zai-routing-audit probes before you trust a model label.
+   by turn count, not token price. On the z.ai serving path,
+   the probes found one model behind every name they sent. A dispatch
+   override changes the label, not the served model. The label still
+   sets the credit cost. Run the zai-routing-audit probes before you
+   trust a model label.
    Surface directions that are the user's call (ExitPlanMode).
 3. **Implement** the corrected plan.
 4. **Review the result** — run it, read the diff, check the gates; fix. At most

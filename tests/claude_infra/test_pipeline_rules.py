@@ -27,6 +27,10 @@ def test_model_selection_rule_present():
     assert "Name the model on every agent dispatch when the harness allows it" in text
     assert "Give the final whole-diff review to the strongest available model" in text
     assert "Judge cost by turn count, not token price" in text
+    assert "the probes found one model behind every name they sent" in text
+    assert "A dispatch override changes the label, not the served model" in text
+    assert "The label still sets the credit cost" in text
+    assert "Run the zai-routing-audit probes before you trust a model label" in text
 
 
 def test_discard_contract_present():
