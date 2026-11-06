@@ -32,6 +32,8 @@ verification-before-completion before any success claim. Review rounds
 use the adversarial pair: adversarial-author drafts, adversarial-reviewer
 challenges. Name the model on each agent dispatch when the harness
 allows it. Give the final whole-diff review to the strongest model.
+On the z.ai serving path, every requested name gets the same model.
+The zai-routing-audit skill gives the probes.
 
 ## Review and merge discipline
 
