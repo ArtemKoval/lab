@@ -34,6 +34,13 @@ def test_shim_reads_payload_from_socket_stdin(tmp_path):
     # The harness delivers the hook payload on a socketpair stdin.
     # A pipe stdin reopens through /dev/stdin and hides this case.
     repo = tmp_path / "repo"
+    # The tools marker makes the shim resolve ROOT through
+    # CLAUDE_PROJECT_DIR, as the harness does. The marker symlinks the
+    # real package. The module then imports as in production.
+    (repo / "tools").mkdir(parents=True)
+    (repo / "tools" / "handover_telemetry").symlink_to(
+        REPO_ROOT / "tools" / "handover_telemetry", target_is_directory=True
+    )
     event = json.dumps({"hook_event_name": "Stop", "session_id": "shim-sock"})
     log_file = repo / ".cc_logging" / "shim-sock.jsonl"
     parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -45,13 +52,18 @@ def test_shim_reads_payload_from_socket_stdin(tmp_path):
         env={**os.environ, "CLAUDE_PROJECT_DIR": str(repo)},
     )
     child.close()
-    parent.sendall(event.encode("utf-8"))
-    parent.shutdown(socket.SHUT_WR)
-    out, _err = proc.communicate(timeout=30)
-    parent.close()
+    try:
+        parent.sendall(event.encode("utf-8"))
+        parent.shutdown(socket.SHUT_WR)
+        out, _err = proc.communicate(timeout=30)
+    finally:
+        proc.kill()
+        parent.close()
     assert proc.returncode == 0
     assert out == b""
-    assert len(log_file.read_text(encoding="utf-8").splitlines()) == 1
+    lines = log_file.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["event"] == "Stop"
 
 
 def test_shim_exits_zero_without_interpreter(tmp_path):

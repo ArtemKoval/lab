@@ -37,7 +37,7 @@ if [ -z "$PY" ]; then
 fi
 
 # The module reads the inherited stdin. Never reopen it through
-# /dev/stdin: the harness sends the payload on a socket, and a socket
+# /dev/stdin. The harness sends the payload on a socket. A socket
 # cannot reopen through /proc/self/fd (ENXIO).
 PYTHONPATH="$ROOT/tools/handover_telemetry" "$PY" -m handover_telemetry.hook >/dev/null 2>&1
 exit 0
