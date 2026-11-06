@@ -64,6 +64,14 @@ The origin comes from the model API base URL. The tool accepts both known envelo
 - Identical 48,021-token burns cost 13 credits as flash and 17 as `glm-5.3`.
 - Both names generated at the same speed.
 
+## Results from the 2026-11-07 run
+
+- The endpoint accepted the name `claude-fable-5-1` and echoed it back unchanged.
+- The console usage report carried one `GLM-5.3-Flash` row for the day, with no Claude row.
+- Identical 48,020-token burns cost 5 credits for `claude-fable-5-1` and 6 credits for `glm-5.3-flash`.
+- Both names generated at the same speed, 54.1 against 52.7 tokens per second.
+- A requested Claude model name is a label here, not proof of an Anthropic backend. The `handover_telemetry` price table aliases `claude-fable-5-1` to `glm-5.3-flash` on this evidence.
+
 ## Tests and quality gates
 
 ```bash

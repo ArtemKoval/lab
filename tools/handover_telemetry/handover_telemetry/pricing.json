@@ -46,10 +46,8 @@
       "source": "claude-api skill model table, 2026-10-06"
     },
     "claude-fable-5-1": {
-      "input": 10.0,
-      "output": 50.0,
-      "cache_read": 0.25,
-      "source": "claude-api skill model table, 2026-10-06"
+      "alias_of": "glm-5.3-flash",
+      "source": "z.ai serving-path audit, 2026-11-07: the endpoint echoes the requested name unchanged, and identical 48020-token burns cost 5 credits for this name against 6 for glm-5.3-flash"
     }
   }
 }
