@@ -36,5 +36,8 @@ if [ -z "$PY" ]; then
   exit 0
 fi
 
-PYTHONPATH="$ROOT/tools/handover_telemetry" "$PY" -m handover_telemetry.hook </dev/stdin >/dev/null 2>&1
+# The module reads the inherited stdin. Never reopen it through
+# /dev/stdin. The harness sends the payload on a socket. A socket
+# cannot reopen through /proc/self/fd (ENXIO).
+PYTHONPATH="$ROOT/tools/handover_telemetry" "$PY" -m handover_telemetry.hook >/dev/null 2>&1
 exit 0
