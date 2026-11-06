@@ -64,6 +64,16 @@ The origin comes from the model API base URL. The tool accepts both known envelo
 - Identical 48,021-token burns cost 13 credits as flash and 17 as `glm-5.3`.
 - Both names generated at the same speed.
 
+## Results from the 2026-11-07 run
+
+- The user settings file pinned all five model slots to `glm-5.3-flash[1m]`.
+- The endpoint accepted the name `claude-fable-5-1` and echoed it back unchanged.
+- The console usage report carried one `GLM-5.3-Flash` row with 28121124 tokens for the day, with no Claude row.
+- Identical 48,020-token burns cost 5 credits as fable and 6 as flash on both pools.
+- Both names generated at the same speed, 54.1 against 52.7 tokens per second.
+- This run probed only the fable name. The other Claude names in the price table stay unprobed through this endpoint.
+- The `handover_telemetry` price table aliases `claude-fable-5-1` to `glm-5.3-flash` on this evidence.
+
 ## Tests and quality gates
 
 ```bash

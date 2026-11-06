@@ -53,6 +53,16 @@ The tool accepts both known envelope shapes and exits 2 with a redacted body exc
 - The credit engine charged identical 48,021-token burns as 13 credits (flash) and 17 credits (`glm-5.3`).
 - Both names generated at the same speed, 57.7 against 54.8 tokens per second.
 
+## Known facts from 2026-11-07
+
+- The user settings file pinned all five model slots to `glm-5.3-flash[1m]`.
+- The endpoint accepted the name `claude-fable-5-1` and echoed it back unchanged.
+- The console usage report carried one `GLM-5.3-Flash` row with 28121124 tokens for the day, with no Claude row.
+- Identical 48,020-token burns cost 5 credits as fable and 6 as flash on both pools.
+- Both names generated at the same speed, 54.1 against 52.7 tokens per second.
+- This run probed only the fable name. The other Claude names in the price table stay unprobed through this endpoint.
+- The `handover_telemetry` price table aliases `claude-fable-5-1` to `glm-5.3-flash` on this evidence.
+
 ## Tests and gates
 
 The test suite runs from the repository root:
