@@ -19,6 +19,7 @@ DRIFT_PINS = (
     "openspec-git-discipline",
     "Nothing proceeds on red",
     "adversarial-reviewer",
+    "one model behind every",
 )
 
 
