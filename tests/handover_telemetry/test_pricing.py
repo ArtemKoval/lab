@@ -39,15 +39,23 @@ def test_alias_resolves_to_its_target(table):
     assert table.rate_for("glm-5.3-flash", "cache_read") == 0.26
 
 
-def test_fable_alias_prices_at_the_flash_tier(table):
-    assert table.rate_for("claude-fable-5-1", "input") == 1.40
-    assert table.rate_for("claude-fable-5-1", "cache_read") == 0.26
+def test_fable_entry_resolves_like_flash(table):
+    for kind in ("input", "output", "cache_read", "cache_write_5m", "cache_write_1h"):
+        assert table.rate_for("claude-fable-5-1", kind) == table.rate_for("glm-5.3-flash", kind)
 
 
-def test_fable_entry_carries_the_alias_and_the_probe_source(table):
-    entry = table.rates["claude-fable-5-1"]
-    assert entry["alias_of"] == "glm-5.3-flash"
-    assert "2026-11-07" in entry["source"]
+def test_fable_usage_costs_like_flash(table):
+    usage = {
+        "input_tokens": 1000,
+        "output_tokens": 500,
+        "cache_read_input_tokens": 10000,
+        "cache_creation_input_tokens": 2000,
+    }
+    assert table.cost_for_usage("claude-fable-5-1", usage) == table.cost_for_usage("glm-5.3-flash", usage)
+
+
+def test_fable_entry_carries_the_probe_source(table):
+    assert "2026-11-07" in table.rates["claude-fable-5-1"]["source"]
 
 
 def test_missing_cache_rates_fall_back_to_multipliers(table):

@@ -1,6 +1,6 @@
 {
   "source_date": "2026-10-29",
-  "note": "Rates are USD per million tokens. A missing cache rate falls back to the Anthropic multipliers on the input rate: cache_read 0.1x, cache_write_5m 1.25x, cache_write_1h 2.0x. An alias_of entry assumes the same tier as its target. A person updates this file when prices change, and each entry names its source.",
+  "note": "Rates are USD per million tokens. A missing cache rate falls back to the Anthropic multipliers on the input rate: cache_read 0.1x, cache_write_5m 1.25x, cache_write_1h 2.0x. An alias_of entry assumes the same tier as its target. The top-level source_date marks the first sourcing of the table, and entry sources carry their own dates. A person updates this file when prices change, and each entry names its source.",
   "rates_per_mtok": {
     "glm-5.3": {
       "input": 1.40,
@@ -47,7 +47,7 @@
     },
     "claude-fable-5-1": {
       "alias_of": "glm-5.3-flash",
-      "source": "z.ai serving-path audit, 2026-11-07: the endpoint echoes the requested name unchanged, and identical 48020-token burns cost 5 credits for this name against 6 for glm-5.3-flash"
+      "source": "z.ai serving-path audit, 2026-11-07: the endpoint echoes this requested name unchanged, and identical 48020-token burns cost 5 credits for this name against 6 for glm-5.3-flash. The alias assumes the same tier, so the estimate for this name may sit high by the burn delta"
     }
   }
 }
