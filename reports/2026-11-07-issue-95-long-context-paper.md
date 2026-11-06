@@ -3,15 +3,15 @@
 - Issue: ArtemKoval/lab#95
 - Paper: arXiv 2611.05306, "You don't need long context", Muralidharan et al., November 2026
 - Date: 2026-11-07
-- Status: analysis only. The proposals in section 5 need approval. Each proposal ships as its own change through the feature pipeline.
+- Status: analysis only. The proposals in section 5 need approval. Each proposal becomes a separate change with its own review through the feature pipeline.
 
 ## 1. Scope
 
-This run examines the paper and maps its results to the harness surfaces in this repository. This run does not change any skill, hook, or tool. Section 5 lists six proposals. The user picks the proposals to build. Each build is a separate change with its own review and gates.
+This run examines the paper and maps its results to the harness surfaces in this repository. This run does not change any skill, hook, or tool. Section 5 lists six proposals. The user selects the proposals to build. Each build is a separate change with its own review and gates.
 
 ## 2. What the paper shows
 
-The paper studies the two workload types that produce long contexts: long-horizon tasks and long-input tasks. It compares three context regimes on 13 benchmarks against two frontier models, Claude Opus 4.5 and GPT 5.6 Sol:
+The paper studies the two workload types that produce long contexts: long-horizon tasks and long-input tasks. It compares three context regimes on 13 benchmarks against two frontier models, Claude Opus 4.5 and GPT 5.6 Sol. The benchmark set has two groups. Long-horizon: SWE-bench Verified, SWE-bench Multilingual, Terminal-Bench 2.1, FRAMES, BFCLv3, tau2-bench. Long-input: LongBench v2, LOONG, AA-LCR, NIAH, RULER, Counting-Stars, BABILong.
 
 - **FHA** (Full-History Accumulation): the baseline. Every action and result stays in one conversation.
 - **EoCC** (End-of-Conversation Compaction): the conversation resets to the task plus a compacted state when the context crosses a threshold.
@@ -19,9 +19,9 @@ The paper studies the two workload types that produce long contexts: long-horizo
 
 Results, with the paper's numbers:
 
-1. **Long-horizon tasks.** EoCC accuracy stays close to the FHA baseline. No more than 5 of 22 threshold configurations lose more than 2 percentage points. Estimated cost savings: 2.2x to 8.8x.
-2. **Long-input tasks.** Selective reading (search first, then bounded reads) matches or beats the full-input baseline on almost every benchmark. RULER mean recall goes from 62.5 to 95.7 for Opus 4.5. BABILong accuracy gains 24.9 points. Cost savings reach 233.3x.
-3. **Single-action contexts.** SAC keeps or nearly keeps the baseline accuracy. Median peak context falls from 130K to 200K tokens down to 7K to 9K tokens.
+1. **Long-horizon tasks.** EoCC accuracy stays close to the FHA baseline. The spread is -3.7 to +5.6 percentage points for Opus 4.5 and -3.3 to +4.4 for GPT 5.6 Sol. No more than 5 of 22 threshold configurations lose more than 2 percentage points. Estimated cost savings: 2.2x to 8.8x for Opus 4.5 and 2.4x to 5.0x for GPT 5.6 Sol.
+2. **Long-input tasks.** Selective reading (search first, then bounded reads) matches or beats the full-input baseline on almost every benchmark. RULER mean recall goes from 62.5 to 95.7 for Opus 4.5. BABILong accuracy increases by 24.9 points for Opus 4.5. Cost savings reach 233.3x.
+3. **Single-action contexts.** SAC keeps or nearly keeps the baseline accuracy. Median peak live context under SAC is 7K to 9K tokens. The maximum falls from 130K to 200K tokens to 15K to 37K tokens.
 4. **Serving cost.** A 256K context window costs 3.6x to 7x more per output token than a 16K window on the same hardware. Local decode latency roughly doubles across the measured context lengths.
 5. **Compaction quality.** Appendix A: the best compactions are briefs for future work, not narratives of the past. A good compaction carries the verbatim task, the current occupation and next step, the decomposed plan, the completion rules, and pointers to artifacts.
 6. **Failure mode.** Appendix D: one open-weight model collapses at tight compaction limits because its verbose trajectories leave no room for progress. It falls from 53.0 to 3.6 on SWE-bench Verified.
@@ -31,7 +31,12 @@ Section 3.1 adds one rule: compaction is lossy. Information that a later step ne
 ## 3. Method
 
 1. Fetch the paper HTML from arxiv.org/html/2611.05306 and read it in full.
-2. Examine the repo surfaces: the charter hook and charter text, the handover issue template, the plan_exec README, the handover_telemetry README, the adversarial agent definitions, and the feature-pipeline skill.
+2. Examine the repo surfaces:
+   - the charter hook and its text
+   - the handover issue template
+   - the plan_exec and handover_telemetry READMEs
+   - the adversarial agent definitions
+   - the feature-pipeline skill
 3. Map each paper result to the surfaces, and derive the proposals.
 
 Note on the PDF: arxiv.org/pdf/2611.05306 needs poppler-utils for local rendering, and this host does not have it. The HTML rendering covers the full text, including the appendices.
@@ -55,11 +60,10 @@ Order: value against effort.
 
 ### P1. Make the ledger rule cover every multi-step run — high value, low effort
 
-Today only the OpenSpec apply flow keeps a ledger. A long run in another pipeline step keeps its state in the conversation, and a compaction erases that state. The paper shows that a carried semantic state holds accuracy at any compaction frequency, and plan_exec already gives the mechanism.
+Today only the OpenSpec apply flow keeps a ledger. A long run in another pipeline step keeps its state in the conversation, and a compaction erases that state. The paper shows that a carried semantic state keeps accuracy close to the baseline at a high compaction frequency, and plan_exec already gives the mechanism.
 
-- Change: the feature-pipeline skill gets one rule. A run that crosses several steps starts a ledger with plan_exec and appends one entry at each step boundary.
-- Change: the charter gets one line. After a compaction, run the ledger show command and read the change artifacts before the next action.
-- ASIT: Unification. plan_exec takes any markdown plan, so no new tool is necessary.
+- Change: the feature-pipeline skill gets one rule. A run that crosses several steps starts a ledger with plan_exec and appends one entry at each step boundary. P2 adds the matching charter line.
+- ASIT: Unification. The ledger takes any markdown plan. The brief subcommand parses only section plans and checkbox plans. No new tool is necessary.
 
 ### P2. Add two lines to the charter — high value, low effort
 
@@ -89,13 +93,19 @@ This run fetched the paper HTML as one document, and the paper fits one fetch. L
 
 Appendix A defines the brief that keeps a fresh context effective. Section 5 shows that a fresh context works at one action per context when the brief is good.
 
-- Change: the feature-pipeline inner loop gets a dispatch checklist. Every agent brief carries: the task text verbatim, the current state and the rejected options, exact file pointers, the expected output shape, and a narrow command that retrieves anything truncated.
+- Change: the feature-pipeline inner loop gets a dispatch checklist. Every agent brief carries the items in this list:
+  - the task text verbatim
+  - the current state and the rejected options
+  - exact file pointers
+  - the expected output shape
+  - a narrow command that retrieves anything truncated
 
 ### P6. Add a context-size block to handover telemetry — medium value, medium effort
 
 The repo does not control the provider context window. It can measure the context it sends. handover_telemetry already parses the transcripts and the hook log. A block with the input-token distribution per call, median and peak, makes the effect of P1 to P5 visible in every handover issue.
 
 - Change: new fields in the report and the JSON output.
+- The implementer must confirm that the transcripts carry per-call input-token counts before the field set is final.
 - The spec at `openspec/specs/handover-telemetry/` owns the behavior, so this proposal needs a spec delta and its gates.
 
 ## 6. Non-goals
