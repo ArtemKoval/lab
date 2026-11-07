@@ -165,3 +165,6 @@ target/
 
 # process_issues loop state (run lock)
 .process_issues/
+
+# durable harness cron state
+.claude/scheduled_tasks.json
