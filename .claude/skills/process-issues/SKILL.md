@@ -8,8 +8,7 @@ description: Loop over the open GitHub issues and run the feature delivery pipel
 The loop scans the open issues of this repo and runs the `feature-pipeline`
 steps for one issue at a time, oldest first. The scan CLI lives at
 `tools/process_issues/`, and the capability spec lives at
-`openspec/changes/add-process-issues/specs/process-issues/spec.md` until the
-archive moves it to `openspec/specs/process-issues/`. The GitHub labels carry
+`openspec/specs/process-issues/`. The GitHub labels carry
 the loop state, and the issue comments carry the decisions.
 
 ## Discipline
@@ -37,12 +36,21 @@ the window blocks model-backed work.
 ## States
 
 The scan maps each issue to one state and one action. The precedence is
-`handover`, then `answered`, then `human-approved`, then
-`waiting-human-approval`, then no label. `handover` skips the issue. `answered`
+`handover`, then `blocked`, then `answered`, then `human-approved`, then
+`waiting-human-approval`, then no label. `handover` skips the issue.
+`blocked` stops the issue: the loop never retries it. `answered`
 takes no action. `waiting-human-approval` waits. `human-approved` applies
 when the change artifacts exist, and proposes and then applies when they do
 not. No label proposes, with `start` on an empty record, `resume` on an open
 linked PR or artifacts, and `repair` on a merged linked PR.
+
+## The blocked state
+
+When a run cannot proceed on an issue, it writes one structured reason
+comment on the issue, starting with the fixed line `process-issues loop`,
+and sets the `blocked` label. The loop never retries a blocked issue, and
+no other label moves it back into the rotation. Only the operator clears
+the label, after reading the reason.
 
 ## Phases
 

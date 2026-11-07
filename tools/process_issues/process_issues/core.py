@@ -3,17 +3,20 @@
 import re
 
 LABEL_HANDOVER = "handover"
+LABEL_BLOCKED = "blocked"
 LABEL_ANSWERED = "answered"
 LABEL_HUMAN_APPROVED = "human-approved"
 LABEL_WAITING = "waiting-human-approval"
 
 STATE_SKIP = "skip"
+STATE_BLOCKED = "blocked"
 STATE_ANSWERED = "answered"
 STATE_WAIT_APPROVAL = "wait-approval"
 STATE_APPLY = "apply"
 STATE_PROPOSE = "propose"
 
 ACTION_NONE = "none"
+ACTION_BLOCKED = "blocked"
 ACTION_WAIT = "wait"
 ACTION_APPLY = "apply"
 ACTION_START = "start"
@@ -21,14 +24,23 @@ ACTION_RESUME = "resume"
 ACTION_REPAIR = "repair"
 ACTION_PROPOSE_THEN_APPLY = "propose-then-apply"
 
+# The pure label states, highest precedence first. The human-approved
+# and waiting-human-approval branches stay below the table, because
+# they read artifacts and the existing order puts approval above
+# waiting.
+LABEL_PRECEDENCE = (
+    (LABEL_HANDOVER, STATE_SKIP, ACTION_NONE),
+    (LABEL_BLOCKED, STATE_BLOCKED, ACTION_BLOCKED),
+    (LABEL_ANSWERED, STATE_ANSWERED, ACTION_NONE),
+)
+
 
 def classify(labels, prs, has_artifacts):
     """Map one issue's labels, linked PRs, and artifact flag to its state."""
     labels = set(labels)
-    if LABEL_HANDOVER in labels:
-        return {"state": STATE_SKIP, "action": ACTION_NONE}
-    if LABEL_ANSWERED in labels:
-        return {"state": STATE_ANSWERED, "action": ACTION_NONE}
+    for label, state, action in LABEL_PRECEDENCE:
+        if label in labels:
+            return {"state": state, "action": action}
     if LABEL_HUMAN_APPROVED in labels:
         if has_artifacts:
             return {"state": STATE_APPLY, "action": ACTION_APPLY}
