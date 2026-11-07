@@ -3,7 +3,7 @@
 ## 1. The hook
 
 - [ ] 1.1 Write `.claude/hooks/halt-gate.sh`: root resolution, the halt file
-      check, the first-line reason cut at 200 characters, the deny message,
+      test, the first-line reason cut at 200 characters, the deny message,
       and the exit contract.
 - [ ] 1.2 Add `.claude/halt` to the gitignore.
 
