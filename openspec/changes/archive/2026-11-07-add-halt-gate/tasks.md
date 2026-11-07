@@ -18,4 +18,4 @@
 ## 3. Delivery
 
 - [x] 3.1 Run the root suite and the STE gate.
-- [ ] 3.2 Commit, push, open the pull request, and merge after review.
+- [x] 3.2 Commit, push, open the pull request, and merge after review.

@@ -1,7 +1,14 @@
 # halt-gate Specification
 
 ## Purpose
-TBD - created by archiving change add-halt-gate. Update Purpose after archive.
+The halt-gate capability gives the operator a one-file stop control over
+unattended agent work in this repository. While the `.claude/halt` file
+exists at a session root or in the primary checkout behind a worktree, the
+PreToolUse hook denies matched model-backed calls and names the reason from
+the file's first line. The gate is a safety control: it is pure bash, so a
+broken interpreter or venv cannot disarm it, and it fails closed once the
+root resolves. The peak-hours gate stays separate, because that gate is an
+availability control and fails open by design.
 
 ## Requirements
 
