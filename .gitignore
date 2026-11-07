@@ -161,3 +161,4 @@ htmlcov/
 # gate tool scratch (crapper, dryer, mutator runs at the analyzed root)
 .metrics/
 target/
+/.claude/halt

@@ -38,4 +38,4 @@ paths, and the wiring and state.
 ## ADR review
 
 No new ADR. The posture split between the two gates is a design decision the
-design doc records; it changes no existing architecture record.
+design doc records. It changes no existing architecture record.
