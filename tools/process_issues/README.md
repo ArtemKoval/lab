@@ -45,6 +45,25 @@ issue when its body carries a `Refs #NN` line. The `changeDir` field names
 the active change directory whose id a linked PR branch carries as its last
 path segment, with an optional `archive-` prefix.
 
+## The status command
+
+`status` reports the loop state under the dsh four-level contract: exit
+0 running, exit 1 stopped or restartable, exit 2 running with a
+component error, exit 3 waiting for setup. The examination runs a fixed
+table, and the first matched row decides the exit: the halt file at the
+working root or the primary checkout root, the local `gh auth token`
+probe, the open-issue list, the blocked issues through the scan
+classification, and the lock rows. A stale lock gives exit 1, no lock
+gives exit 1 as idle, and an unreadable lock record gives exit 2. A
+corrupt record that still parses stays stale. Plain mode prints nothing
+on exit 0 and one reason line on stderr otherwise. The `--json` payload
+carries `level`, `code`, `reason`, `blocked` (`number` and `title` per
+entry, or null), and `lock` (`state`, `holder`, `rule`, or null). A
+component the examination did not reach carries null. Status makes no
+GitHub write, and a revoked token that the probe accepts surfaces as a
+failed list call in exit 2, not in exit 3. The blocked detection shares
+the 200-issue list bound of the scan.
+
 ## The loop lock
 
 `acquire --holder LABEL` takes the run lock, and `release --holder LABEL`

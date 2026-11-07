@@ -35,6 +35,20 @@ LABEL_PRECEDENCE = (
 )
 
 
+def state_for_labels(labels):
+    """Return the pure label state from the precedence table, or None.
+
+    The walk covers the three pure label states. The states below the
+    table need pull requests and artifacts, so this helper returns None
+    for them.
+    """
+    labels = set(labels)
+    for label, state, _action in LABEL_PRECEDENCE:
+        if label in labels:
+            return state
+    return None
+
+
 def classify(labels, prs, has_artifacts):
     """Map one issue's labels, linked PRs, and artifact flag to its state."""
     labels = set(labels)

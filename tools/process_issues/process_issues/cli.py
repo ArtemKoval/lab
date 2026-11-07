@@ -1,6 +1,8 @@
 """Scan open issues into the process-issues queue.
 
-Exit 0 on success, 2 on operational failure, and 64 on a usage error.
+The scan exits 0 on success, 2 on an operational failure, and 64 on a
+usage error. The status command exits 0 running, 1 stopped or
+restartable, 2 on a component error, and 3 waiting for setup.
 """
 
 import argparse
@@ -12,6 +14,7 @@ from pathlib import Path
 
 from . import core
 from . import lock
+from . import status
 
 DEFAULT_LIMIT = "200"
 ISSUE_FIELDS = "number,title,createdAt,labels"
@@ -125,6 +128,120 @@ def _lock_inputs():
     }
 
 
+def _halt_reason(repo_root, state_dir):
+    """Return the halt reason from the working root or the primary root.
+
+    The working root wins when both files stand, in the manner of the
+    hook precedence. None marks no halt file in either location.
+    """
+    primary_root = Path(state_dir).parent
+    for root in (Path(repo_root), primary_root):
+        halt = root / ".claude" / "halt"
+        try:
+            text = halt.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not text.strip():
+            return status.HALT_FALLBACK
+        return status.halt_reason(text.splitlines()[0])
+    return None
+
+
+def _auth_error(runner):
+    """Return the setup reason when the local gh token probe fails."""
+    code, out, _err = runner(["auth", "token"])
+    if code != 0 or not out.strip():
+        return status.AUTH_REASON
+    return None
+
+
+def _blocked_entries(issues):
+    """Return the blocked entries through the scan label precedence."""
+    entries = []
+    for issue in core.sorted_issues(issues):
+        labels = {label.get("name") for label in issue.get("labels", [])}
+        if core.state_for_labels(labels) == core.STATE_BLOCKED:
+            entries.append((issue.get("number"), issue.get("title")))
+    return entries
+
+
+def _lock_facts(state_dir):
+    """Return (kind, rule, holder, read_reason) for the lock rows.
+
+    The read reason loses the process_issues prefix, because the status
+    output adds its own prefix once at the print boundary.
+    """
+    exists, record, error = lock.read_record(lock.lock_path(state_dir))
+    if error is not None:
+        prefix = "process_issues: "
+        reason = error[len(prefix):] if error.startswith(prefix) else error
+        return "unreadable", None, None, reason
+    kind, rule = lock.verdict(
+        exists, record, holder=None, probe=lock.probe_live,
+        host=lock.this_host(), boot_id=lock.this_boot_id(), now=time.time()
+    )
+    holder = record.get("holder") if record else None
+    return kind, rule, holder, None
+
+
+def _gather_status(runner, repo_root, state_dir):
+    """Gather the status facts in row order and stop at the first match."""
+    halt = _halt_reason(repo_root, state_dir)
+    if halt is not None:
+        return {"halt": halt, "auth_error": None,
+                "list_error": None, "blocked": None, "lock_row": None,
+                "lock_summary": None}
+    facts = {"halt": None, "auth_error": None, "list_error": None,
+             "blocked": None, "lock_row": None, "lock_summary": None}
+    facts["auth_error"] = _auth_error(runner)
+    if facts["auth_error"] is not None:
+        return facts
+    issues, list_error = _fetch(
+        runner,
+        ["issue", "list", "--state", "open", "--limit", DEFAULT_LIMIT,
+         "--json", "number,title,labels"],
+    )
+    facts["list_error"] = list_error
+    if list_error is not None:
+        return facts
+    entries = _blocked_entries(issues)
+    if entries:
+        facts["blocked"] = entries
+        return facts
+    kind, rule, holder, read_error = _lock_facts(state_dir)
+    facts["lock_row"] = status.lock_row(error=read_error,
+                                        verdict_kind=kind, rule=rule)
+    facts["lock_summary"] = status.lock_summary(kind, holder, rule)
+    return facts
+
+
+def _run_status(args, runner, repo_root, state_dir):
+    """Run the status subcommand. Return the exit code."""
+    facts = _gather_status(runner, repo_root, state_dir)
+    level, code, reason = status.decide(
+        halt=facts["halt"], auth_error=facts["auth_error"],
+        list_error=facts["list_error"], blocked=facts["blocked"],
+        lock_row=facts["lock_row"]
+    )
+    if args.as_json:
+        payload = {
+            "level": level,
+            "code": code,
+            "reason": reason,
+            "blocked": None,
+            "lock": facts["lock_summary"],
+        }
+        if level == status.LEVEL_BLOCKED:
+            payload["blocked"] = [
+                {"number": number, "title": title}
+                for number, title in facts["blocked"]
+            ]
+        print(json.dumps(payload))
+    elif code != 0:
+        print(f"process_issues: {reason}", file=sys.stderr)
+    return code
+
+
 def _run_lock(args, state_dir):
     """Run the acquire or release command. Return the exit code."""
     if args.command == "acquire" and not args.holder:
@@ -186,7 +303,8 @@ def _run_scan(args, runner, repo_root, state_dir):
 def main(argv=None, runner=run_gh, repo_root=None, git_runner=run_git):
     """Run one CLI command and return the exit code."""
     parser = argparse.ArgumentParser(prog="process_issues")
-    parser.add_argument("command", choices=["scan", "acquire", "release"])
+    parser.add_argument("command", choices=["scan", "acquire", "release",
+                                            "status"])
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument("--holder", dest="holder")
     parser.add_argument("--force", action="store_true", dest="force")
@@ -199,4 +317,6 @@ def main(argv=None, runner=run_gh, repo_root=None, git_runner=run_git):
     state_dir = lock.resolve_state_dir(repo_root, git_runner)
     if args.command == "scan":
         return _run_scan(args, runner, repo_root, state_dir)
+    if args.command == "status":
+        return _run_status(args, runner, repo_root, state_dir)
     return _run_lock(args, state_dir)
