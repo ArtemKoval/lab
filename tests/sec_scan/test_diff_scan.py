@@ -226,6 +226,66 @@ def test_default_runner_is_the_real_subprocess(tmp_path):
     assert result.stdout.strip() == "true"
 
 
+def test_parse_diff_ignores_the_no_newline_marker_inside_a_hunk():
+    text = (
+        "--- a/env.txt\n"
+        "+++ b/env.txt\n"
+        "@@ -5 +5,2 @@\n"
+        "-old_key = old\n"
+        "\\ No newline at end of file\n"
+        "+token = 'clean'\n"
+        "+export NEW_KEY=0123456789abcdef\n"
+    )
+    rows = parse_diff(text)
+    assert rows == [
+        ("env.txt", 5, "token = 'clean'"),
+        ("env.txt", 6, "export NEW_KEY=0123456789abcdef"),
+    ]
+
+
+def test_parse_diff_tracks_two_hunks_in_one_file_with_a_deletion_between():
+    text = (
+        "--- a/app.py\n"
+        "+++ b/app.py\n"
+        "@@ -2,1 +2,1 @@\n"
+        "-gone\n"
+        "+first add\n"
+        "@@ -9,2 +10,2 @@\n"
+        "-dropped\n"
+        "+second add\n"
+    )
+    rows = parse_diff(text)
+    assert rows == [
+        ("app.py", 2, "first add"),
+        ("app.py", 10, "second add"),
+    ]
+
+
+def test_scan_diff_matches_a_literal_with_regex_metacharacters(tmp_path):
+    literal = "v1.key)(.*^$really"
+    diff = (
+        "--- a/env.txt\n"
+        "+++ b/env.txt\n"
+        "@@ -0,0 +1 @@\n"
+        f"+value={literal}\n"
+    )
+    report = Report()
+    scan_diff(tmp_path, "origin/main", report, literals=[literal], runner=FakeRunner(0, diff))
+    literal_findings = [f for f in report.findings if f.provider == "operator literal"]
+    assert len(literal_findings) == 1
+
+
+def test_env_literals_deduplicate():
+    assert _env_literals("one\none\ntwo\n") == ["one", "two"]
+
+
+def test_new_path_strips_c_style_quotes():
+    from tools.sec_scan.sec_scan import _new_path
+
+    assert _new_path('+++ "b/quoted path.py"') == "quoted path.py"
+    assert _new_path("+++ b/plain.py") == "plain.py"
+
+
 def test_scan_history_returns_silently_when_git_fails(tmp_path):
     from tools.sec_scan.sec_scan import Report, scan_history
 

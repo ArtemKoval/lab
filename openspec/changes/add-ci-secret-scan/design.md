@@ -48,3 +48,8 @@ and the two target specs. The review settled these decisions:
 - The mutation gate does not cover `tools/sec_scan` today, because the CI
   whitelist omits the tool. This change keeps that gap and records it as a
   follow-up, so the diff-mode code still gets the full local gate run.
+- The scan sees the net diff. A secret added and deleted inside one pull
+  request never reaches the diff, and a direct push to `main` skips the
+  workflow. Push protection backstops provider shapes. Operator literals
+  carry no such backstop on those paths. The history scan through the
+  sec-scan skill is the manual backstop.

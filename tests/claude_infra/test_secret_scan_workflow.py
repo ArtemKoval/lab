@@ -15,6 +15,7 @@ def test_the_workflow_has_no_paths_filter():
     assert "workflow_dispatch:" in text
     assert "paths-ignore" not in text
     assert "paths:" not in text.split("permissions:", 1)[0]
+    assert "branches:" not in text.split("permissions:", 1)[0]
 
 
 def test_the_scan_job_runs_the_diff_mode():
@@ -24,4 +25,5 @@ def test_the_scan_job_runs_the_diff_mode():
     assert "SECRET_SCAN_LITERALS: ${{ secrets.SECRET_SCAN_LITERALS }}" in text
     assert "python3 tools/sec_scan/sec_scan.py --root . --diff " in text
     assert "origin/$base" in text
-    assert 'base="${{ github.base_ref }}"' in text
+    assert 'BASE_REF: ${{ github.base_ref }}' in text
+    assert 'DISPATCH_BASE: ${{ inputs.base }}' in text

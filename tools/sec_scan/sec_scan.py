@@ -239,17 +239,20 @@ HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)")
 
 def _new_path(line: str) -> str:
     """Return the new-file path from one `+++` header, or '' for a deletion."""
-    origin = line[4:].removeprefix("b/")
+    origin = line[4:]
+    if origin.startswith('"') and origin.endswith('"'):
+        origin = origin[1:-1]
+    origin = origin.removeprefix("b/")
     return "" if origin == "/dev/null" else origin
 
 
 def parse_diff(text: str) -> list[tuple[str, int, str]]:
     """Parse one unified diff into (path, new-file line, added line) rows.
 
-    Only added lines are collected. A deletion changes nothing, and a
-    context line advances the new-file line counter. The parser collects
-    only after a hunk header for the current file, so header noise
-    between files never produces a row.
+    Only added lines are collected. A deletion and the `\\ No newline`
+    marker change nothing, and a context line advances the new-file line
+    counter. The parser collects only after a hunk header for the
+    current file, so header noise between files never produces a row.
     """
     added: list[tuple[str, int, str]] = []
     path = ""
@@ -268,6 +271,8 @@ def parse_diff(text: str) -> list[tuple[str, int, str]]:
             continue
         if not path or not in_hunk:
             continue
+        if line.startswith("\\"):
+            continue
         if line.startswith("+"):
             added.append((path, lineno, line[1:]))
             lineno += 1
@@ -279,10 +284,12 @@ def parse_diff(text: str) -> list[tuple[str, int, str]]:
 
 
 def _env_literals(value: str | None) -> list[str]:
-    """Return the non-empty operator literals from an environment value."""
+    """Return the deduplicated, non-empty operator literals."""
     if not value:
         return []
-    return [item for item in value.splitlines() if item.strip()]
+    return list(dict.fromkeys(
+        item for item in (raw.strip() for raw in value.splitlines()) if item
+    ))
 
 
 class DiffScanError(RuntimeError):
@@ -296,7 +303,10 @@ def _default_git_runner(argv, cwd=None):
 def scan_diff(root, ref, report, literals=None, runner=None):
     """Scan the added lines of one git diff. Fails closed on a git error."""
     run = runner or _default_git_runner
-    result = run(["git", "diff", "--unified=0", ref], cwd=root)
+    result = run(
+        ["git", "-c", "core.quotePath=false", "diff", "--unified=0", ref],
+        cwd=root,
+    )
     if result.returncode != 0:
         raise DiffScanError(result.stderr.strip() or "git exited with an error")
     for path, lineno, line in parse_diff(result.stdout):
