@@ -9,9 +9,9 @@
 
 ## 1. Scope
 
-This run examines esf and maps its agentic tooling to the harness surfaces in
+This run examines esf and maps its agent tooling to the harness surfaces in
 this repository. This run does not change any skill, hook, or tool. Section 5
-lists the proposals in value-versus-effort order. The user selects the
+lists the proposals. The order is value against effort. The user selects the
 proposals to build. Each build is a separate change with its own review and
 gates.
 
@@ -19,8 +19,9 @@ gates.
 
 esf (Engineering Software Factory) is a self-hosted software factory. A task
 activates a durable Change. Each run executes a coding agent in a CubeSandbox
-microVM, verifies the patch with deterministic gates, and stores the patch and
-the evidence on the host. Temporal coordinates the workflow. esf began as a
+microVM. The run verifies the patch with deterministic gates. The host
+stores the patch and the evidence. Temporal coordinates the workflow. esf
+began as a
 fork of Machinist. The fork removed the inherited CLI, control plane, and web
 UI in version 0.6.2. The scale is about 41,000 lines of Go, 1,750 lines of
 Python, and a read-only operator console.
@@ -42,20 +43,20 @@ The disciplines that matter for this lab:
    modified. A comparison that did not run is recorded as not run, never as
    clean.
 4. **Behavior monitor.** `internal/threatmon` carries 40 named rules in 10
-   categories with severities. The rules match normalized lines (ANSI escapes
-   stripped, carriage returns dropped, backslash continuations joined), and
-   the monitor scans two inputs: the agent output and the patch. Operator
-   rules add, never remove. A finding at or above the trip severity
-   quarantines the run before verification.
+   categories with severities. The rules match normalized lines: ANSI escapes
+   stripped, carriage returns dropped, backslash continuations joined. The
+   monitor scans two inputs: the agent output and the patch. Operator rules
+   add, never remove. A finding at or above the trip severity quarantines the
+   run before verification.
 5. **BLOCKED as a first-class outcome.** The agent writes
    `.factory/blocked.json` beside the checkout with a reason. The run ends as
-   BLOCKED, and verification is recorded as SKIPPED. The factory runs the
-   gate-integrity comparison before it honors the signal. The documented
+   BLOCKED, and the factory records verification as SKIPPED. The factory runs
+   the gate-integrity comparison before it honors the signal. The documented
    reason: an agent with no honest way to stop looks for a dishonest one.
-6. **Honest evidence.** A capability the provider lacks is SKIPPED with a
-   reason. An alert with no webhook is recorded as not delivered, never as
-   delivered. The change record recomputes spend totals from the run
-   manifests. The total is a floor, never an estimate.
+6. **Honest evidence.** The factory records a capability the provider lacks
+   as SKIPPED with a reason. An alert with no webhook counts as not
+   delivered, never as delivered. The change record recomputes spend totals
+   from the run manifests. The total is a floor, never an estimate.
 7. **Change lineage.** A Change owns identity, and runs are activations of it
    with reasons `initial`, `rework`, `retry`, or `candidate` and a
    `parent_run_id`. A review rejection note becomes the rework note of the
@@ -111,19 +112,19 @@ threshold, a removed hook line in `.claude/settings.json`.
 - Change: a guard that fails when a pull request diff touches a protected
   path set and the pull request carries no explicit acknowledgment marker.
   The default protected set: `.claude/hooks/`, the hooks wiring in
-  `.claude/settings.json`, `pytest.ini`, the root conftest, `tools/crapper/`,
-  `tools/dryer/`, `tools/mutator/`, and the workflow files.
+  `.claude/settings.json`, `pytest.ini`, the `tests/**/conftest.py` set,
+  `tools/crapper/`, `tools/dryer/`, `tools/mutator/`, and the workflow files.
 - The guard derives the changed paths from the pull request base, in the
-  pattern the crm job already uses in `tests.yml`.
+  pattern the crm job already uses in `tests.yml`. The marker mechanism is an
+  open decision for the change.
 - ASIT: Unification. The changed-path derivation exists in CI. The guard adds
   one job or one root guard test, not a new framework.
 
 ### P2. A halt file for unattended loops — high value, low effort
 
 esf gives the operator `factory cancel` and `factory halt` with a dry run by
-default. An unattended loop in this lab (the process-issues loop, a `/loop`
-run) stops only when the operator kills the session. A kill loses the
-handover.
+default. An unattended loop in this lab stops only when the operator kills
+the session. A kill loses the handover.
 
 - Change: a halt file that the deny hook honors. When the file exists,
   model-backed calls get a deny with the reason from the file. The operator
@@ -132,6 +133,9 @@ handover.
 - ASIT: Unification. The peak-hours gate is the existing PreToolUse deny hook
   with tests. The halt condition extends that hook contract, or adds one
   sibling hook if the contract split is cleaner.
+- The split matters for posture: the peak-hours gate is an availability gate,
+  so it fails open on a broken environment. A halt is a safety control, so it
+  must fail closed.
 
 ### P3. A blocked state for the process-issues loop — medium value, low effort
 
@@ -144,12 +148,16 @@ loop equivalent is an issue that the loop retries without progress.
   structured reason comment on the issue and sets the label. The loop never
   retries a blocked issue. Only the operator clears the label.
 - ASIT: Unification. The scanner already owns the states and the precedence.
+  The place of `blocked` in the precedence order is an open decision for the
+  change.
 
 ### P4. Per-gate evidence in the handover — medium value, low effort
 
-esf records every gate result, keeps the output of passing gates, and records
-a skipped gate as SKIPPED with a reason, never as clean. The handover
-template today has a Metrics section but no gate outcome discipline.
+esf records every gate result, keeps the output of passing gates, and draws
+two lines that matter here. A gate that cannot run is a failed gate, never a
+pass. A capability the environment lacks is SKIPPED with a reason, never
+clean. The handover template today has a Metrics section but no gate outcome
+discipline.
 
 - Change: a Gates section in `.github/ISSUE_TEMPLATE/handover.md` with the
   rule: one line per gate, with the command, the result, and the reason for a
@@ -161,15 +169,18 @@ template today has a Metrics section but no gate outcome discipline.
 
 ### P5. A diff secret scan in CI — medium value, medium effort
 
-esf scans the patch separately from the agent output, with
-operator-registered literal secrets. GitHub push protection covers known
-provider shapes on this repo. It cannot know the secrets that live only in
-the operator configuration.
+esf scans the patch as a distinct input beside the agent output, with the
+same rule set. Literal-secret matching in esf belongs to a different
+mechanism: the evidence redactor masks registered secrets on write, and it
+never fails a run. GitHub push protection covers known provider shapes on
+this repo. It cannot know the secrets that live only in the operator
+configuration.
 
 - Change: a CI job that matches the pull request diff against candidate
   literal secrets and against the local secret-shape patterns. The literals
   travel through repository secrets, never through the repository. A finding
-  fails the job.
+  fails the job. This adaptation goes past the esf precedent: esf masks
+  secrets, and it does not fail on them.
 - ASIT: Multiplication. The sec-scan skill already owns the pattern set. The
   CI job reuses it, and the skill stays the manual authority.
 
@@ -219,6 +230,6 @@ memory).
 
 - Repository: https://github.com/mitkox/esf at v1.0.0-rc.1 (commit e5567fb)
 - ADR 0007 (defense in depth), ADR 0004 (deterministic verification), and
-  ADR 0001 (AX resources and the change model)
+  `docs/adr/0001-ax-inspired-resources.md` (resources and the change model)
 - Issue: https://github.com/ArtemKoval/lab/issues/100
 - Prior analysis: `reports/2026-11-07-issue-95-long-context-paper.md`
