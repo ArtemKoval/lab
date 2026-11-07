@@ -8,7 +8,7 @@
 - [x] 1.2 Write the CLI wiring: the `status` command in the parser,
       the fact gathering over the injected runners, the halt-file read
       at both locations, the auth and list probes, the blocked
-      detection through `core.classify`, the lock verdict, and the
+      detection through `core.state_for_labels`, the lock verdict, and the
       plain and `--json` output.
 
 ## 2. Tests and docs

@@ -39,4 +39,6 @@ def test_skill_scheduled_run_orders_status_action_peak_acquire_scan():
         < release_step
     assert "stop silently" in section
     assert "one issue per fire" in section
+    assert "human spec gate" in section
+    assert "named blocked" in section
     assert "cron" in section and "08:00" in section and "20:00" in section

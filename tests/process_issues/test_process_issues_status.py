@@ -164,6 +164,33 @@ def test_cli_halt_row_makes_no_gh_call(tmp_path, capsys):
     assert fake.index == 0
 
 
+def test_cli_halt_working_root_wins(tmp_path, capsys):
+    main_root = tmp_path / "main"
+    main_root.mkdir()
+    (main_root / ".claude").mkdir()
+    (main_root / ".claude" / "halt").write_text("primary stop\n")
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "halt").write_text("working stop\n")
+    fake = FakeGh([])
+    primary_git = lambda args: (0, str(main_root / ".git") + "\n", "")
+    code = cli.main(["status"], runner=fake, repo_root=str(tmp_path),
+                    git_runner=primary_git)
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "working stop" in captured.err
+    assert "primary stop" not in captured.err
+    assert fake.index == 0
+
+
+def test_cli_empty_halt_file_reports_fallback(tmp_path, capsys):
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".claude" / "halt").write_text("\n \n")
+    code, captured, fake = run_status(tmp_path, [], capsys=capsys)
+    assert code == 1
+    assert "the halt file stands" in captured.err
+    assert fake.index == 0
+
+
 def test_cli_halt_primary_root(tmp_path, capsys):
     main_root = tmp_path / "main"
     main_root.mkdir()
@@ -192,6 +219,7 @@ def test_cli_empty_token_reports_setup(tmp_path, capsys):
     code, captured, _ = run_status(tmp_path, [(0, "   \n", "")],
                                    capsys=capsys)
     assert code == 3
+    assert captured.err.count("\n") == 1
 
 
 def test_cli_failed_list_reports_component_error(tmp_path, capsys):
@@ -200,6 +228,7 @@ def test_cli_failed_list_reports_component_error(tmp_path, capsys):
         capsys=capsys)
     assert code == 2
     assert "api down" in captured.err
+    assert captured.err.count("\n") == 1
     assert fake.index == 2
 
 
@@ -277,10 +306,17 @@ def test_cli_unreadable_lock_reports_component_error(tmp_path, capsys):
         code, captured, _ = run_status(
             tmp_path, [(0, "tokentoken\n", ""), (0, ISSUES_CLEAN, "")],
             capsys=capsys)
+        code_json, captured_json, _ = run_status(
+            tmp_path, [(0, "tokentoken\n", ""), (0, ISSUES_CLEAN, "")],
+            argv=("status", "--json"), capsys=capsys)
     finally:
         path.chmod(0o600)
     assert code == 2
     assert "cannot read" in captured.err
+    assert captured.err.count("process_issues: process_issues:") == 0
+    payload = json.loads(captured_json.out)
+    assert payload["level"] == "lock" and payload["code"] == 2
+    assert payload["lock"]["state"] == "unreadable"
 
 
 def test_cli_corrupt_lock_is_stale(tmp_path, capsys):

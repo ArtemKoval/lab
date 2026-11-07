@@ -16,8 +16,7 @@ classification for the blocked row.
 
 - The recipe contradiction: an issue-list failure leaves no known
   actionable issues, so the recipe must branch on the level, not the
-reviewer folded
-  the raw code. The reviewer folded the level-keyed actions into the
+  raw code. The reviewer folded the level-keyed actions into the
   delta, and the proposal carries the action table.
 - The auth command: `gh auth token` is local-only, so a network
   outage lands in the list row at exit 2, and exit 3 stays strictly
@@ -107,10 +106,12 @@ following the house precedent.
    resolves from the git common directory like the state dir.
    Rationale: a session-root halt file must stop the report too, and
    the hook contract names both locations.
-4. The blocked detection reuses `core.classify` with its label
-   precedence over the open-issue list. Rationale: a handover+blocked
-   issue is skip in the scan, so status must not report it as blocked,
-   and one classifier serves both commands.
+4. The blocked detection walks the shared label precedence table
+   through the new `core.state_for_labels` helper over the open-issue
+   list. Rationale: a handover+blocked issue is skip in the scan, so
+   status must not report it as blocked, and the helper keeps one
+   precedence table while `core.classify` keeps its pull-request and
+   artifact inputs, which the blocked row never reads.
 5. The lock rows call `lock.read_record` and `lock.verdict` with
    holder=None and caller_pid=None. An OSError read gives exit 2, and
    a corrupt record falls in the stale row at exit 1. Rationale: the
