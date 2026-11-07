@@ -16,6 +16,11 @@ EVENT_INTENT = "intent"
 EVENT_CONFIRMED = "confirmed"
 KINDS = ("comment", "label", "merge", "close")
 
+REQUIRED_FIELDS = {
+    EVENT_INTENT: ("id", "kind", "key", "at"),
+    EVENT_CONFIRMED: ("id", "at"),
+}
+
 MARKER_PREFIX = "loop-"
 
 
@@ -96,8 +101,12 @@ def read_records(path):
         except ValueError:
             notes.append(f"skipped ledger line {number}")
             continue
-        if not isinstance(record, dict) or record.get("event") not in (
-            EVENT_INTENT, EVENT_CONFIRMED
+        fields = REQUIRED_FIELDS.get(
+            record.get("event") if isinstance(record, dict) else None
+        )
+        if fields is None or not all(
+            isinstance(record.get(name), str) and record.get(name)
+            for name in fields
         ):
             notes.append(f"skipped ledger line {number}")
             continue
@@ -128,5 +137,12 @@ def pending_view(records):
         else:
             groups.add(group)
     return [
-        dict(row, superseded=row.get("id") in superseded) for row in intents
+        {
+            "id": row.get("id"),
+            "kind": row.get("kind"),
+            "key": row.get("key"),
+            "at": row.get("at"),
+            "superseded": row.get("id") in superseded,
+        }
+        for row in intents
     ]

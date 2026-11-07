@@ -57,5 +57,11 @@ def test_skill_phases_carry_the_ledger_steps():
     assert -1 < write_step < confirm_step
     assert -1 < pending_step
     assert "process-issues loop" in section
+    assert "process-issues:MARKER-->" in section
+    assert "scan the bodies for the literal marker" in section
+    assert "with the same marker and no new intent" in section
+    assert "Retry a label" in section and "as a plain re-add" in section
+    assert "already-done" in section and "as the confirmation" in section
+    assert "behaves like a gate failure" in section
     fails = text.split("## Failures", 1)[1].split("\n## ", 1)[0]
     assert "pending list" in fails

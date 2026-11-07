@@ -63,14 +63,9 @@ def test_new_marker_regeneration_crosses_the_minute():
 
 
 def test_new_marker_regenerates_on_collision():
-    values = iter([0.0, 0.0])
-
-    def rng():
-        return next(values)
-
-    marker = ledger.new_marker({"loop-202611072258-0000"},
-                               now=1_700_000_000.0, rng=rng)
-    assert marker != "loop-202611072258-0000"
+    marker = ledger.new_marker({"loop-202311142213-0000"},
+                               now=1_700_000_000.0, rng=lambda: 0.0)
+    assert marker == "loop-202311142214-0000"
 
 
 def test_append_record_guards_the_newline(tmp_path):
@@ -96,10 +91,13 @@ def test_read_records_shapes(tmp_path):
     path = tmp_path / "ledger.jsonl"
     assert ledger.read_records(path) == ([], [])
     write_records(path, [intent("loop-a"), confirmed("loop-a"),
-                         "not json {", '{"event": "unknown-shape"}', "   "])
+                         "not json {", '{"event": "unknown-shape"}', "   ",
+                         '{"event": "confirmed"}',
+                         '{"event": "confirmed", "id": 42, "at": "t"}'])
     records, notes = ledger.read_records(path)
     assert [row["id"] for row in records] == ["loop-a", "loop-a"]
-    assert notes == ["skipped ledger line 3", "skipped ledger line 4"]
+    assert notes == ["skipped ledger line 3", "skipped ledger line 4",
+                     "skipped ledger line 6", "skipped ledger line 7"]
 
 
 def test_read_records_unreadable_raises(tmp_path):
@@ -199,8 +197,36 @@ def test_cli_pending_flags_superseded(tmp_path, capsys):
     rows = json.loads(capsys.readouterr().out)
     assert code == 0
     assert len(rows) == 2
+    assert rows[0]["id"] != rows[1]["id"]
+    assert set(rows[0]) == {"id", "kind", "key", "at", "superseded"}
     assert rows[0]["superseded"] is True
     assert rows[1]["superseded"] is False
+
+
+def test_cli_unreadable_store_exits_2(tmp_path, capsys):
+    path = tmp_path / ".process_issues" / "ledger.jsonl"
+    path.parent.mkdir(parents=True)
+    path.write_text("{}", encoding="utf-8")
+    path.chmod(0o000)
+    try:
+        code = run_ledger(tmp_path, ["ledger", "pending"])
+    finally:
+        path.chmod(0o600)
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "cannot read the ledger" in captured.err
+
+
+def test_cli_stray_action_exits_64(tmp_path):
+    assert run_ledger_stray(tmp_path, ["scan", "write"]) == 64
+    assert run_ledger_stray(tmp_path, ["status", "write"]) == 64
+
+
+def run_ledger_stray(tmp_path, argv):
+    """Run the CLI with the real scan path stubbed by a fake runner."""
+    code = cli.main(list(argv), runner=FakeGh([]), repo_root=str(tmp_path),
+                    git_runner=no_git)
+    return code
 
 
 def test_cli_second_write_draws_the_note(tmp_path, capsys):

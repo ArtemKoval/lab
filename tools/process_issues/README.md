@@ -86,8 +86,8 @@ embeds it at the end of the body behind the fixed `process-issues loop`
 first line. The kinds are `comment`, `label`, `merge`, and `close`, and
 the key is the issue or pull request number, or `number:label-name` for
 a label. A second live intent for one group draws a stderr note.
-`ledger confirm --id MARKER` lands once, no-ops on a second confirm,
-and refuses an unknown id at exit 2. `ledger pending` prints the
+`ledger confirm --id MARKER` lands once, treats a second confirm as a
+no-op, and refuses an unknown id at exit 2. `ledger pending` prints the
 unconfirmed intents with a superseded flag per kind and key, where the
 newest row of a group owns the decision. A line that is not a valid
 event record skips with one numbered note at exit 0, and only an

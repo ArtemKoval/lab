@@ -139,10 +139,11 @@ For each actionable issue, oldest first:
 
 Ledger steps wrap every loop GitHub write, in every path above:
 
-1. Before each GitHub write, run `ledger write --kind K --key N` with the
-   family (`comment`, `label`, `merge`, `close`) and the issue or pull
-   request number, or `number:label-name` for a label. Embed the printed
-   marker at the end of a comment body, behind the fixed
+1. Before each GitHub write, run `ledger write --kind K --key N`. The
+   kind carries the family (`comment`, `label`, `merge`, `close`). The
+   key carries the issue or pull request number, or `number:label-name`
+   for a label. Embed the printed marker at the end of a comment body
+   as `<!--process-issues:MARKER-->`, behind the fixed
    `process-issues loop` first line.
 2. After the write exits 0, run `ledger confirm --id MARKER`.
 3. The `resume`, `repair`, and `start` actions run `ledger pending`

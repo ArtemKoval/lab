@@ -368,14 +368,18 @@ def _run_ledger(args, state_dir):
     if usage is not None:
         return usage
     path = ledger.ledger_path(state_dir)
-    if args.action == "write":
-        return _ledger_write(path, args.kind, str(args.key), args.as_json)
-    if args.action == "confirm":
-        return _ledger_confirm(path, args.marker_id)
-    return _ledger_pending(path, args.as_json)
+    try:
+        if args.action == "write":
+            return _ledger_write(path, args.kind, str(args.key))
+        if args.action == "confirm":
+            return _ledger_confirm(path, args.marker_id)
+        return _ledger_pending(path, args.as_json)
+    except ledger.LedgerError as exc:
+        print(f"process_issues: {exc}", file=sys.stderr)
+        return 2
 
 
-def _ledger_write(path, kind, key, as_json):
+def _ledger_write(path, kind, key):
     """Run the write action. Return the exit code."""
     records, _notes = ledger.read_records(path)
     ids = {row.get("id") for row in records}
@@ -460,6 +464,10 @@ def main(argv=None, runner=run_gh, repo_root=None, git_runner=run_git):
     if repo_root is None:
         repo_root = Path.cwd()
     state_dir = lock.resolve_state_dir(repo_root, git_runner)
+    if args.command != "ledger" and args.action is not None:
+        print(f"process_issues: {args.command} takes no action argument",
+              file=sys.stderr)
+        return 64
     if args.command == "scan":
         return _run_scan(args, runner, repo_root, state_dir)
     if args.command == "status":

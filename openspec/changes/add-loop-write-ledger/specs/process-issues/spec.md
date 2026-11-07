@@ -55,10 +55,10 @@ own the decision.
 ### Requirement: The ledger exit contract
 
 The read SHALL skip a line that is not a valid event record with one
-numbered note at exit 0. The command SHALL exit 2 on an unreadable
-store or a confirm for an unknown id. A missing store SHALL give
-`write` a created store and `pending` an empty list at exit 0. A usage
-error SHALL exit 64.
+numbered note at exit 0, and a blank line SHALL skip without a note.
+The command SHALL exit 2 on an unreadable store or a confirm for an
+unknown id. A missing store SHALL give `write` a created store and
+`pending` an empty list at exit 0. A usage error SHALL exit 64.
 
 #### Scenario: A torn line skips with a note
 
