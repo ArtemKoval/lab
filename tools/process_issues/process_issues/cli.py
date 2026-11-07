@@ -12,12 +12,13 @@ import sys
 import time
 from pathlib import Path
 
+from . import authors
 from . import core
 from . import lock
 from . import status
 
 DEFAULT_LIMIT = "200"
-ISSUE_FIELDS = "number,title,createdAt,labels"
+ISSUE_FIELDS = "number,title,createdAt,labels,author"
 PR_FIELDS = "number,state,headRefName,body"
 
 
@@ -85,29 +86,50 @@ def active_change_dirs(repo_root):
     )
 
 
-def build_queue(issues, prs, repo_root):
-    """Assemble the sorted, classified queue for the open issues."""
+def author_login(issue):
+    """Return the author login from the fetch payload, or None."""
+    author = issue.get("author")
+    if not isinstance(author, dict):
+        return None
+    login = author.get("login")
+    return login if isinstance(login, str) else None
+
+
+def build_queue(issues, prs, repo_root, allowed):
+    """Assemble the sorted, classified queue for the open issues.
+
+    The admission gate runs before the label classification, and a
+    refused issue carries the refused state with no further assessment.
+    """
     dirs = active_change_dirs(repo_root)
     normalize_pr_states(prs)
     queue = []
     for issue in core.sorted_issues(issues):
+        login = author_login(issue)
         labels = {label.get("name") for label in issue.get("labels", [])}
+        entry = {
+            "number": issue.get("number"),
+            "title": issue.get("title"),
+            "createdAt": issue.get("createdAt"),
+            "author": login,
+            "labels": sorted(label for label in labels if label),
+            "prs": [],
+            "changeDir": None,
+        }
+        if not core.admitted(login, allowed):
+            entry["state"] = core.STATE_REFUSED
+            entry["action"] = core.ACTION_NONE
+            queue.append(entry)
+            continue
         raw_linked = core.linked_prs(prs, issue.get("number"))
         linked = linked_prs(raw_linked)
         change_dir = core.linked_change_dir(raw_linked, dirs)
         verdict = core.classify(labels, raw_linked, change_dir is not None)
-        queue.append(
-            {
-                "number": issue.get("number"),
-                "title": issue.get("title"),
-                "createdAt": issue.get("createdAt"),
-                "labels": sorted(label for label in labels if label),
-                "state": verdict["state"],
-                "action": verdict["action"],
-                "prs": linked,
-                "changeDir": change_dir,
-            }
-        )
+        entry["state"] = verdict["state"]
+        entry["action"] = verdict["action"]
+        entry["prs"] = linked
+        entry["changeDir"] = change_dir
+        queue.append(entry)
     return queue
 
 
@@ -155,10 +177,17 @@ def _auth_error(runner):
     return None
 
 
-def _blocked_entries(issues):
-    """Return the blocked entries through the scan label precedence."""
+def _blocked_entries(issues, allowed):
+    """Return the blocked entries through the scan label precedence.
+
+    The admission gate runs before the blocked test, so a refused
+    foreign issue never pages the operator.
+    """
     entries = []
     for issue in core.sorted_issues(issues):
+        login = author_login(issue)
+        if not core.admitted(login, allowed):
+            continue
         labels = {label.get("name") for label in issue.get("labels", [])}
         if core.state_for_labels(labels) == core.STATE_BLOCKED:
             entries.append((issue.get("number"), issue.get("title")))
@@ -188,23 +217,29 @@ def _gather_status(runner, repo_root, state_dir):
     """Gather the status facts in row order and stop at the first match."""
     halt = _halt_reason(repo_root, state_dir)
     if halt is not None:
-        return {"halt": halt, "auth_error": None,
+        return {"halt": halt, "auth_error": None, "config_error": None,
                 "list_error": None, "blocked": None, "lock_row": None,
                 "lock_summary": None}
-    facts = {"halt": None, "auth_error": None, "list_error": None,
-             "blocked": None, "lock_row": None, "lock_summary": None}
+    facts = {"halt": None, "auth_error": None, "config_error": None,
+             "list_error": None, "blocked": None, "lock_row": None,
+             "lock_summary": None}
     facts["auth_error"] = _auth_error(runner)
     if facts["auth_error"] is not None:
+        return facts
+    try:
+        allowed = authors.load_authors()
+    except authors.AuthorsError as exc:
+        facts["config_error"] = str(exc)
         return facts
     issues, list_error = _fetch(
         runner,
         ["issue", "list", "--state", "open", "--limit", DEFAULT_LIMIT,
-         "--json", "number,title,labels"],
+         "--json", "number,title,labels,author"],
     )
     facts["list_error"] = list_error
     if list_error is not None:
         return facts
-    entries = _blocked_entries(issues)
+    entries = _blocked_entries(issues, allowed)
     if entries:
         facts["blocked"] = entries
         return facts
@@ -220,6 +255,7 @@ def _run_status(args, runner, repo_root, state_dir):
     facts = _gather_status(runner, repo_root, state_dir)
     level, code, reason = status.decide(
         halt=facts["halt"], auth_error=facts["auth_error"],
+        config_error=facts["config_error"],
         list_error=facts["list_error"], blocked=facts["blocked"],
         lock_row=facts["lock_row"]
     )
@@ -268,6 +304,11 @@ def _run_scan(args, runner, repo_root, state_dir):
     _print_note(note)
     if code != 0:
         return code
+    try:
+        allowed = authors.load_authors()
+    except authors.AuthorsError as exc:
+        print(f"process_issues: {exc}", file=sys.stderr)
+        return 2
     issues, error = _fetch(
         runner,
         [
@@ -285,7 +326,7 @@ def _run_scan(args, runner, repo_root, state_dir):
     if prs is None:
         print(f"process_issues: the pr list failed: {error}", file=sys.stderr)
         return 2
-    queue = build_queue(issues, prs, repo_root)
+    queue = build_queue(issues, prs, repo_root, allowed)
     if args.as_json:
         print(json.dumps(queue))
     else:

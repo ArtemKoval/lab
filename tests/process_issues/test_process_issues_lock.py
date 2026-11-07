@@ -543,7 +543,7 @@ class FakeGh:
 
 ISSUES = json.dumps([
     {"number": 9, "title": "t", "createdAt": "2026-11-07T00:00:00Z",
-     "labels": []},
+     "author": {"login": "ArtemKoval"}, "labels": []},
 ])
 PRS = json.dumps([])
 

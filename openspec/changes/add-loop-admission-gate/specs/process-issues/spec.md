@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: The scan classifies each open issue into one loop state
-The `scan` subcommand SHALL list the open issues with their author, their labels, and their open pull requests. The CLI SHALL map each issue to one loop state from its author admission, its labels, the pull request links, and the artifact presence. The admission SHALL run before the label precedence. An author outside the allowed-author list SHALL map to the state `refused` with the action `none`. A login whose lowercase form ends with `[bot]` SHALL refuse. An absent or null author SHALL refuse. The refusal sits above every label state. The label precedence SHALL be `handover`, then `answered`, then `human-approved`, then `waiting-human-approval`, then no label. The allowed-author comparison SHALL ignore letter case. The scan order SHALL follow `createdAt` from oldest to newest.
+The `scan` subcommand SHALL list the open issues with their author, their labels, and their open pull requests. The CLI SHALL map each issue to one loop state from its author admission, its labels, the pull request links, and the artifact presence. The admission SHALL run before the label precedence. An author outside the allowed-author list SHALL map to the state `refused` with the action `none`. A login whose lowercase form ends with `[bot]` SHALL refuse. An absent or null author SHALL refuse. The refusal sits above every label state. The label precedence SHALL be `handover`, then `blocked`, then `answered`, then `human-approved`, then `waiting-human-approval`, then no label. The allowed-author comparison SHALL ignore letter case. The scan order SHALL follow `createdAt` from oldest to newest.
 
 #### Scenario: A foreign author refuses
 - **GIVEN** issue 30 carries the login `stranger` and the allowed list carries `ArtemKoval`
@@ -97,9 +97,9 @@ in the working root or the primary checkout root. A failed
 `gh auth token` probe SHALL decide the setup row. No token value SHALL
 reach the output. A missing, unparsable, or wrong-shape authors config
 SHALL decide the config row with exit 2 and the level `config`. The
-blocked detection SHALL reuse the scan classification, and an admitted
-gate SHALL run before the blocked test, so a refused foreign issue with
-the `blocked` label gives no exit 2 from that issue.
+blocked detection SHALL reuse the scan classification. The admission
+gate SHALL run before the blocked test, so a refused foreign issue
+with the `blocked` label gives no exit 2 from that issue.
 
 #### Scenario: A halt file reports stopped
 
