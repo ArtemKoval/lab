@@ -21,4 +21,4 @@
       the bridge regen.
 - [x] 3.2 Run the root suite, ruff, and the three gates on the changed
       paths.
-- [ ] 3.3 Commit, push, open the pull request, and merge after review.
+- [x] 3.3 Commit, push, open the pull request, and merge after review.
