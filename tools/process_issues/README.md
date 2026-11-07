@@ -3,9 +3,7 @@
 A stdlib CLI that scans the open GitHub issues of this repo and classifies
 each issue into one loop state. The `process-issues` skill reads the queue
 and runs the `feature-pipeline` steps for one actionable issue at a time.
-The capability spec lives at
-`openspec/changes/add-process-issues/specs/process-issues/spec.md` until the
-archive moves it under `openspec/specs/process-issues/`.
+The capability spec lives at `openspec/specs/process-issues/spec.md`.
 
 ## Why
 

@@ -51,9 +51,6 @@ def test_load_authors_wrong_shapes_name_the_path(tmp_path):
     assert "missing.json" in str(err.value)
 
 
-AUTHOR_OK = {"author": {"login": "ArtemKoval"}}
-
-
 def queue_fixture():
     """Return one issue list with foreign, allowed, and bot authors."""
     return [
@@ -161,18 +158,14 @@ def test_status_fetch_argv_pins_the_field_list(tmp_path, capsys):
     assert "author" in seen[1][-1].split(",")
 
 
-def test_scan_config_failure_exits_2_with_the_path(tmp_path, capsys):
+def test_scan_config_failure_exits_2_with_the_path(tmp_path, capsys,
+                                                   monkeypatch):
     broken = tmp_path / "broken-authors.json"
     broken.write_text("not json {", encoding="utf-8")
-    monkey_target = broken
-    original = authors.AUTHORS_PATH
-    authors.AUTHORS_PATH = monkey_target
-    try:
-        fake = FakeGh([])
-        code = cli.main(["scan", "--json"], runner=fake,
-                        repo_root=str(tmp_path), git_runner=no_git)
-    finally:
-        authors.AUTHORS_PATH = original
+    monkeypatch.setattr(authors, "AUTHORS_PATH", broken)
+    fake = FakeGh([])
+    code = cli.main(["scan", "--json"], runner=fake,
+                    repo_root=str(tmp_path), git_runner=no_git)
     captured = capsys.readouterr()
     assert code == 2
     assert "broken-authors.json" in captured.err
@@ -180,34 +173,27 @@ def test_scan_config_failure_exits_2_with_the_path(tmp_path, capsys):
     assert fake.index == 0
 
 
-def test_status_config_row_reports_component_error(tmp_path, capsys):
+def test_status_config_row_reports_component_error(tmp_path, capsys,
+                                                   monkeypatch):
     broken = tmp_path / "broken-authors.json"
     broken.write_text('{"allowed_authors": "nope"}', encoding="utf-8")
-    original = authors.AUTHORS_PATH
-    authors.AUTHORS_PATH = broken
-    try:
-        fake = FakeGh([(0, "tokentoken\n", "")])
-        code = cli.main(["status"], runner=fake, repo_root=str(tmp_path),
-                        git_runner=no_git)
-    finally:
-        authors.AUTHORS_PATH = original
+    monkeypatch.setattr(authors, "AUTHORS_PATH", broken)
+    fake = FakeGh([(0, "tokentoken\n", "")])
+    code = cli.main(["status"], runner=fake, repo_root=str(tmp_path),
+                    git_runner=no_git)
     captured = capsys.readouterr()
     assert code == 2
     assert "broken-authors.json" in captured.err
     assert fake.index == 1
 
 
-def test_status_json_config_level(tmp_path, capsys):
+def test_status_json_config_level(tmp_path, capsys, monkeypatch):
     broken = tmp_path / "broken-authors.json"
     broken.write_text("not json {", encoding="utf-8")
-    original = authors.AUTHORS_PATH
-    authors.AUTHORS_PATH = broken
-    try:
-        code = cli.main(["status", "--json"],
-                        runner=FakeGh([(0, "tokentoken\n", "")]),
-                        repo_root=str(tmp_path), git_runner=no_git)
-    finally:
-        authors.AUTHORS_PATH = original
+    monkeypatch.setattr(authors, "AUTHORS_PATH", broken)
+    code = cli.main(["status", "--json"],
+                    runner=FakeGh([(0, "tokentoken\n", "")]),
+                    repo_root=str(tmp_path), git_runner=no_git)
     payload = json.loads(capsys.readouterr().out)
     assert payload["level"] == "config" and payload["code"] == 2
 
@@ -224,6 +210,6 @@ def test_status_refused_blocked_issue_stays_off_the_rows(tmp_path, capsys):
     assert fake.index == 2
 
 
-def test_shipped_list_carries_the_operator(monkeypatch):
+def test_shipped_list_carries_the_operator():
     names = authors.load_authors()
     assert "ArtemKoval" in names
