@@ -433,7 +433,9 @@ The `openspec-git-discipline` skill owns the gate: archive
 runs on `main` only after the implementation merge is in. Merge through the
 review platform (or integrate locally if there is none), squashing where the
 project allows, subject `<type>: <summary> (<review ref>)`. Delete the branch locally and
-remotely, then resync the mainline and prune stale remote references. Deleting
+remotely, then resync the mainline and prune stale remote references. The
+`residue-scan` skill gives the scan that names any branch or worktree a
+finished run left behind. Deleting
 a merged branch and its worktree is cleanup, not destruction. Destroy other
 work only after the user types discard. Remove only worktrees this pipeline
 created. On a removal refusal, show the user the file list first and never
