@@ -58,6 +58,7 @@ def write_lock(root, rec):
 def write_raw(root, text):
     """Write raw bytes as the lock file under the state dir."""
     path = root / "lock.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     return path
 
@@ -256,6 +257,12 @@ def test_acquire_clears_boot_mismatch_and_takes(tmp_path):
     assert code == 0 and "boot" in note
 
 
+def test_acquire_clears_start_mismatch_and_takes(tmp_path):
+    write_lock(tmp_path, make_rec())
+    code, note = take(tmp_path, "loop-b", probe=probe_start)
+    assert code == 0 and "start" in note
+
+
 def test_acquire_unreadable_record_refuses(tmp_path):
     path = write_lock(tmp_path, make_rec())
     path.chmod(0o000)
@@ -281,6 +288,24 @@ def test_acquire_state_dir_failure_refuses(tmp_path):
     code, note = take(state, "loop-b")
     assert code == 2
     assert "cannot create the state dir" in note
+
+
+def test_release_force_clears_an_unreadable_file(tmp_path):
+    path = write_lock(tmp_path, make_rec())
+    path.chmod(0o000)
+    try:
+        code, note = lock.release(tmp_path, holder="loop-20261107-a", force=True)
+    finally:
+        if path.exists():
+            path.chmod(0o600)
+    assert (code, note) == (0, "")
+    assert not path.exists()
+
+
+def test_clear_vanished_lock_reports_retry(tmp_path):
+    code, note = lock._clear(tmp_path / "lock.json", "pid", "loop-b")
+    assert code == 2
+    assert "vanished" in note and "acquire again" in note
 
 
 def test_release_paths(tmp_path):
@@ -311,6 +336,14 @@ def test_release_corrupt_needs_force(tmp_path):
     assert code == 2
     assert "does not parse" in note and "--force" in note
     assert lock.release(tmp_path, force=True) == (0, "")
+
+
+def test_examine_foreign_host_fresh(tmp_path):
+    write_lock(tmp_path, make_rec(host="elsewhere"))
+    code, note = lock.examine(tmp_path, holder=None, probe=probe_dead,
+                              host="h1", boot_id="b1", now=NOW)
+    assert code == 2
+    assert "loop-20261107-a" in note
 
 
 def test_examine_paths(tmp_path):
@@ -538,13 +571,40 @@ def test_scan_holder_label_proceeds(tmp_path, capsys):
 
 
 def test_scan_reports_stale_and_proceeds(tmp_path, capsys):
-    write_lock(tmp_path / ".process_issues", fresh_rec(pid=dead_pid(), pid_start="1"))
+    path = write_lock(tmp_path / ".process_issues",
+                      fresh_rec(pid=dead_pid(), pid_start="1"))
+    before = path.read_bytes()
     fake = FakeGh([(0, ISSUES, ""), (0, PRS, "")])
     code = cli.main(["scan"], runner=fake, repo_root=str(tmp_path),
                     git_runner=lambda args: (1, "", ""))
     err = capsys.readouterr().err
     assert code == 0
     assert "stale" in err
+    assert fake.index == 2
+    assert path.read_bytes() == before
+
+
+def test_scan_reports_corrupt_and_proceeds(tmp_path, capsys):
+    write_raw(tmp_path / ".process_issues", "{oops")
+    fake = FakeGh([(0, ISSUES, ""), (0, PRS, "")])
+    code = cli.main(["scan"], runner=fake, repo_root=str(tmp_path),
+                    git_runner=lambda args: (1, "", ""))
+    err = capsys.readouterr().err
+    assert code == 0
+    assert "corrupt" in err
+    assert fake.index == 2
+
+
+def test_scan_reports_old_age_and_proceeds(tmp_path, capsys):
+    old_rec = fresh_rec(holder="loop-old")
+    old_rec["acquired_at"] = OLD
+    write_lock(tmp_path / ".process_issues", old_rec)
+    fake = FakeGh([(0, ISSUES, ""), (0, PRS, "")])
+    code = cli.main(["scan"], runner=fake, repo_root=str(tmp_path),
+                    git_runner=lambda args: (1, "", ""))
+    err = capsys.readouterr().err
+    assert code == 0
+    assert "age" in err
     assert fake.index == 2
 
 
@@ -589,6 +649,14 @@ def test_release_force_cli_clears(tmp_path):
     code = cli.main(["release", "--force"], repo_root=str(tmp_path),
                     git_runner=common)
     assert code == 0
+    assert not (tmp_path / ".process_issues" / "lock.json").exists()
+
+
+def test_acquire_with_force_exits_64(tmp_path):
+    common = lambda args: (1, "", "")
+    code = cli.main(["acquire", "--holder", "loop-x", "--force"],
+                    repo_root=str(tmp_path), git_runner=common)
+    assert code == 64
     assert not (tmp_path / ".process_issues" / "lock.json").exists()
 
 

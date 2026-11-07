@@ -58,8 +58,9 @@ record pins the calling session anchor.
 The lock file sits at `.process_issues/lock.json` under the primary checkout
 root, resolved from the git common directory. The record carries the schema
 version, the holder label, the host, the boot id, the process id, the
-process start time, and the acquire time. The two times are ISO 8601 UTC
-strings, and the version is the integer 1.
+process start time, and the acquire time. The acquire time is an ISO 8601
+UTC string, the process start time is the raw /proc start-time string of
+the session anchor, and the version is the integer 1.
 
 A stale lock never wedges the loop. The lock is stale when the record does
 not parse, the schema version is unknown, the boot id differs from this

@@ -3,10 +3,10 @@
 ### Requirement: The loop takes and releases the run lock
 
 The loop SHALL take the lock with `acquire --holder LABEL` before the
-first scan, and the label SHALL be unique to the run. The run SHALL
-release the lock with `release --holder LABEL` at its end. The
-release SHALL remove the file only on an exact holder label match, or
-behind `--force`. A release with no lock file SHALL NOT be an error.
+first scan, and the label SHALL name one run. The run SHALL release the
+lock with `release --holder LABEL` at its end. The release SHALL remove
+the file only on an exact holder label match, or behind `--force`. A
+release with no lock file SHALL NOT be an error.
 
 #### Scenario: A release without a lock is not an error
 
@@ -33,9 +33,8 @@ The lock file SHALL sit under the primary checkout root, resolved from
 the git common directory, and a non-git root SHALL use the working
 directory. The record SHALL carry the holder label, the host, the boot
 id, the process id, the process start time, and the acquire time. The
-record SHALL pin the session anchor: the first process of the calling
-session on the parent chain, or no process id when the chain carries
-none.
+record SHALL pin the session anchor of the calling session, or no
+process id when the chain carries none.
 
 #### Scenario: An acquire takes a free lock
 

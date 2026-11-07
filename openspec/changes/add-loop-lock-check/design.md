@@ -96,11 +96,12 @@ choices follow the add-peak-hours-gate precedent.
    `core.py` keeps its no-I/O charter, and the house pattern puts the
    pure part under test through injected inputs.
 3. The stale rules, in examination order: the record does not parse, the
-   schema version is unknown, the boot id differs, the pid is dead, the
-   start time differs, or the acquire time is older than 24 hours. A
-   foreign-host record with a young acquire time stays fresh. Rationale:
-   each rule alone heals one wedge path, and the order puts the cheap
-   field comparisons first.
+   schema version is unknown, the acquire time is older than 24 hours,
+   the host differs, the boot id differs, the record carries no process
+   id, the pid is dead, and the start time differs. A record that trips
+   several rules reports the first matched rule. Rationale: the age rule
+   sits before the host rule, so a foreign record ages out, and each
+   rule alone heals one wedge path.
 4. The record write is one `write()` of the full payload right after the
    exclusive create. Rationale: a crash leaves a short file, a short file
    fails to parse, and a failed parse is stale, so the wedge path ends in
@@ -123,7 +124,8 @@ choices follow the add-peak-hours-gate precedent.
    skill step gives the run an explicit early stop.
 8. No MCP wrapper. The lock is harness-facing, not model-facing. The
    skill documents the CLI.
-9. The record stores the two times as ISO 8601 UTC strings, the schema
+9. The record stores the acquire time as an ISO 8601 UTC string, the
+   process start time as the raw /proc start-time string, the schema
    version as the integer 1, and reads a missing version field as an
    unknown version. The boot id reads from
    `/proc/sys/kernel/random/boot_id`, and the start time reads from
@@ -149,8 +151,11 @@ choices follow the add-peak-hours-gate precedent.
   stderr details, kills the holder, and releases with `--force`. The ADR
   states this residual.
 - Two simultaneous acquirers of the same stale lock can both clear and
-  take it. Both already concluded that no live holder exists. The race
-  window is documented as best effort.
+  take it. Both already concluded that no live holder exists. A stale
+  view can also remove a fresh lock that another acquirer created
+  inside the window. The loser that finds no file exits 2 with a retry
+  message, and the next acquire re-reads and refuses. The window stays
+  a documented best effort.
 - An unreadable state directory fails the scan with exit 2, and the
   message names the path and the remedy. The loud failure beats a silent
   pass.
@@ -162,16 +167,22 @@ choices follow the add-peak-hours-gate precedent.
 
 ## Amendments during apply
 
-The reality pass rewrote two mechanics. First, the record pinned the CLI
-process id, and a CLI call dies at once, so every later call saw a dead
-pid and the lock never refused a second run. The record now pins the
-session anchor: the walk follows the parent chain from the calling
-process to the first process whose name matches one harness name, and a
+The reality pass rewrote two mechanics. First, the record pinned the
+CLI process id. A CLI call dies at once, so every later call saw a dead
+pid, and the lock never refused a second run. The record now pins the
+session anchor. The walk follows the parent chain from the calling
+process to the first process whose name matches one harness name. A
 chain with no harness process records no pid, so an anchorless record
 behaves like a foreign host and ages out. Second, the own-verdict gains
 the anchor path beside the label path, so the session identifies its own
-lock without repeating the label. The delta carries both amendments with
-two new scenarios, and the regen ran after the spec edits.
+lock without repeating the label. The delta carries the amendments with
+new scenarios, and the regen ran after the spec edits.
+
+The adversarial review of the diff folded five findings. The force
+release skips the read, so it clears a lock file that this process
+cannot read. A vanished stale lock reports a retry message. The acquire
+refuses `--force`. The CLI tests carry a refusing git runner, so they
+touch no real state dir. A guard test pins the skill pre-flight order.
 
 ## Entropy (ASIT)
 

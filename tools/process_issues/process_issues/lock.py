@@ -166,6 +166,11 @@ def _clear(path, rule, holder):
     """Remove one stale lock file. Return (code, note)."""
     try:
         Path(path).unlink()
+    except FileNotFoundError:
+        return 2, (
+            f"process_issues: the stale lock at {path} vanished; "
+            f"run acquire again"
+        )
     except OSError as exc:
         return 2, f"process_issues: cannot clear the stale lock at {path}: {exc}"
     note = f"process_issues: cleared a stale lock ({rule}) and took it for {holder}"
@@ -203,17 +208,17 @@ def release(state_dir, holder=None, force=False):
     """Drop the lock. Return (code, note), with the note for stderr.
 
     No lock file is success. The file leaves only on an exact holder
-    label match, or behind --force. A record that does not parse needs
-    --force.
+    label match, or behind --force. The force path skips the read, so it
+    clears a lock file that this process cannot even read.
     """
     path = lock_path(state_dir)
+    if force:
+        return _unlink(path)
     exists, record, error = read_record(path)
     if error is not None:
         return 2, error
     if not exists:
         return 0, ""
-    if force:
-        return _unlink(path)
     if record is not None and holder is not None:
         if holder == record.get("holder"):
             return _unlink(path)
@@ -338,9 +343,11 @@ def _parse_time(value):
 
 
 def _unlink(path):
-    """Remove the lock file. Return (code, note)."""
+    """Remove the lock file. Return (code, note). A missing file is success."""
     try:
         Path(path).unlink()
+        return 0, ""
+    except FileNotFoundError:
         return 0, ""
     except OSError as exc:
         return 2, f"process_issues: cannot remove the lock at {path}: {exc}"

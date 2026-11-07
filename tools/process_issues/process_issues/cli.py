@@ -130,6 +130,9 @@ def _run_lock(args, state_dir):
     if args.command == "acquire" and not args.holder:
         print("process_issues: acquire needs --holder LABEL", file=sys.stderr)
         return 64
+    if args.command == "acquire" and args.force:
+        print("process_issues: acquire takes no --force", file=sys.stderr)
+        return 64
     if args.command == "release" and not args.holder and not args.force:
         print("process_issues: release needs --holder LABEL or --force",
               file=sys.stderr)
