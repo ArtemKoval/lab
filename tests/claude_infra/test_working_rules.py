@@ -57,3 +57,9 @@ def test_handover_template_carries_the_gate_outcome_rule():
 def test_settings_allow_gh_issue_create():
     settings = json.loads(_read(".claude", "settings.json"))
     assert "Bash(gh issue create:*)" in settings["permissions"]["allow"]
+
+
+def test_claude_md_documents_the_gate_integrity_marker():
+    text = _read("CLAUDE.md")
+    assert "tests/claude_infra/test_gate_integrity.py" in text
+    assert "gate-integrity: acknowledged" in text
