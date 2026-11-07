@@ -117,6 +117,14 @@ the label, after reading the reason.
 
 For each actionable issue, oldest first:
 
+- Pick. When the loop takes an actionable issue for a pipeline path,
+  it posts one pick comment first. The fixed `process-issues loop`
+  line stays the first line. The next line names the object and the
+  expected result in the form `On it: <object and expected result>`.
+  The ledger steps wrap the write. The loop posts one pick comment per
+  issue. The loop posts no progress comment on the issue before the
+  phase result. The informational path posts no pick comment. The
+  answer comment serves that request.
 - Propose phase (`start`, `resume`, `repair`, `propose-then-apply`). Derive
   the change id from the issue title with the house form `<type>-<kebab
   title>`. Run the propose steps: the change artifacts, the gates, the
