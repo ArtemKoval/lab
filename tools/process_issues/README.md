@@ -75,6 +75,27 @@ GitHub write, and a revoked token that the probe accepts surfaces as a
 failed list call in exit 2, not in exit 3. The blocked detection shares
 the 200-issue list bound of the scan.
 
+## The write-ahead ledger
+
+The `ledger` command records one intent before each loop GitHub write
+and one confirmation after it. The store sits at
+`.process_issues/ledger.jsonl` beside the lock, as append-only JSONL
+with newline-guarded appends. `ledger write --kind K --key N` prints a
+fresh marker id of the form `loop-<yyyymmddhhmm>-<4 hex>`. A comment
+embeds it at the end of the body behind the fixed `process-issues loop`
+first line. The kinds are `comment`, `label`, `merge`, and `close`, and
+the key is the issue or pull request number, or `number:label-name` for
+a label. A second live intent for one group draws a stderr note.
+`ledger confirm --id MARKER` lands once, no-ops on a second confirm,
+and refuses an unknown id at exit 2. `ledger pending` prints the
+unconfirmed intents with a superseded flag per kind and key, where the
+newest row of a group owns the decision. A line that is not a valid
+event record skips with one numbered note at exit 0, and only an
+unreadable store exits 2. A missing store gives `write` a created
+store, `pending` an empty list at exit 0, and `confirm` the
+unknown-id failure. A usage error exits 64. The single-writer rule is
+recipe discipline under the run lock.
+
 ## The loop lock
 
 `acquire --holder LABEL` takes the run lock, and `release --holder LABEL`

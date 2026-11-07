@@ -30,6 +30,9 @@ PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m proc
 PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues release --holder LABEL
 PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues status
 PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues status --json
+PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues ledger write --kind K --key N
+PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues ledger confirm --id MARKER
+PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues ledger pending
 ```
 
 Exit 0 on success, 2 on operational failure, and 64 on a usage error, with
@@ -134,13 +137,33 @@ For each actionable issue, oldest first:
 - Pause path. Post the question when the pipeline needs a decision that the
   issue has not answered, and stop that issue. The state stays unchanged.
 
+Ledger steps wrap every loop GitHub write, in every path above:
+
+1. Before each GitHub write, run `ledger write --kind K --key N` with the
+   family (`comment`, `label`, `merge`, `close`) and the issue or pull
+   request number, or `number:label-name` for a label. Embed the printed
+   marker at the end of a comment body, behind the fixed
+   `process-issues loop` first line.
+2. After the write exits 0, run `ledger confirm --id MARKER`.
+3. The `resume`, `repair`, and `start` actions run `ledger pending`
+   first. For each pending comment intent, fetch the issue comments and
+   scan the bodies for the literal marker string, without the GitHub
+   search endpoint. Confirm every marker you find. Retry only a missing
+   newest marker, with the same marker and no new intent. Retry a label
+   as a plain re-add. Retry a merge or close and treat the already-done
+   error as the confirmation.
+4. The recipe runs every ledger command under the run lock. A ledger
+   exit 2 mid-phase behaves like a gate failure, and the stderr notes of
+   skipped lines reach the run report.
+
 ## Failures
 
 A gate failure posts one comment that names the failed gate. The loop
 continues with the next issue and does not retry in the same run. A propose
 failure leaves the issue unlabeled. An apply failure keeps the
 `human-approved` label. The next run resumes the failed phase from the
-change artifacts.
+change artifacts. A failed write leaves its intent in the pending list,
+and the next run reads it before any write.
 
 ## Labels
 
