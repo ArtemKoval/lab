@@ -22,6 +22,13 @@ labels:
 
 <!-- Command output, traces, and run logs that show what happened. -->
 
+## Gates
+
+<!-- One line per quality gate this run ran or skipped: the command, the
+     result, and the exit code. A skip carries the reason: an env gate,
+     missing credentials, or not applicable. A gate that vanished from the
+     run without a reason counts as a failed gate. -->
+
 ## Metrics
 
 <!-- Numbers from the run that the tool does not carry: coverage,

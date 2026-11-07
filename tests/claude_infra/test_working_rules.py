@@ -33,9 +33,25 @@ def test_feature_pipeline_carries_the_rules():
 def test_handover_template_has_the_report_sections():
     text = _read(".github", "ISSUE_TEMPLATE", "handover.md")
     assert "name: Handover" in text
-    for section in ("## Task", "## Logs", "## Metrics", "## Observations", "## Follow-ups"):
+    for section in (
+        "## Task",
+        "## Telemetry",
+        "## Logs",
+        "## Gates",
+        "## Metrics",
+        "## Observations",
+        "## Follow-ups",
+    ):
         assert section in text
     assert "Remove secrets" in text
+
+
+def test_handover_template_carries_the_gate_outcome_rule():
+    text = _read(".github", "ISSUE_TEMPLATE", "handover.md")
+    assert "the command, the" in text
+    assert "the exit code" in text
+    assert "A skip carries the reason" in text
+    assert "counts as a failed gate" in text
 
 
 def test_settings_allow_gh_issue_create():
