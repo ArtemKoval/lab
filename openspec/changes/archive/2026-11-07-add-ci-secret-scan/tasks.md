@@ -17,6 +17,6 @@
 
 ## 3. Delivery
 
-- [ ] 3.1 Run the root suite, ruff on the tool, and the three gates on the
+- [x] 3.1 Run the root suite, ruff on the tool, and the three gates on the
       changed paths.
-- [ ] 3.2 Commit, push, open the pull request, and merge after review.
+- [x] 3.2 Commit, push, open the pull request, and merge after review.
