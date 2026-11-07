@@ -160,6 +160,19 @@ choices follow the add-peak-hours-gate precedent.
   subprocess spawn, far below any hook budget concern, because the CLI
   runs per command, not per event.
 
+## Amendments during apply
+
+The reality pass rewrote two mechanics. First, the record pinned the CLI
+process id, and a CLI call dies at once, so every later call saw a dead
+pid and the lock never refused a second run. The record now pins the
+session anchor: the walk follows the parent chain from the calling
+process to the first process whose name matches one harness name, and a
+chain with no harness process records no pid, so an anchorless record
+behaves like a foreign host and ages out. Second, the own-verdict gains
+the anchor path beside the label path, so the session identifies its own
+lock without repeating the label. The delta carries both amendments with
+two new scenarios, and the regen ran after the spec edits.
+
 ## Entropy (ASIT)
 
 - Unification: the lock rides the existing CLI contract and the house

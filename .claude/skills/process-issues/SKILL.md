@@ -13,25 +13,36 @@ the loop state, and the issue comments carry the decisions.
 
 ## Discipline
 
-Run one loop invocation at a time. No lock mechanism enforces the rule, so
-the operator carries it.
+Run one loop invocation at a time. The loop lock enforces the rule: take
+the lock before the first scan, and release it at the end of the run.
+Build the holder label per run in the form `loop-<yyyymmddhhmm>-<4 hex>`.
+The acquire command enforces the lock, and the scan examination is
+cooperative. A stale lock never blocks: the scan reports it and proceeds,
+and the next acquire clears it. Release the lock before the run stops at
+the human spec gate, because the propose phase ends the run there.
 
 ## Commands
 
 ```bash
 PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues scan
 PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues scan --json
+PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues acquire --holder LABEL
+PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m process_issues release --holder LABEL
 ```
 
-Exit 0 on success and 2 on operational failure, with the reason on stderr.
-The `--json` payload carries `number`, `title`, `labels`, `state`, `action`,
-`prs`, and `changeDir` per issue.
+Exit 0 on success, 2 on operational failure, and 64 on a usage error, with
+the reason on stderr. The `--json` payload carries `number`, `title`,
+`labels`, `state`, `action`, `prs`, and `changeDir` per issue.
 
 ## Pre-flight
 
-Examine the z.ai peak window before the first issue, with the `check`
-command from the `peak-hours-gate` skill. Stop the run with a message when
-the window blocks model-backed work.
+Examine the `.claude/halt` file in the session root or in the primary
+checkout first. Stop the run with a message when the file stands. Examine
+the z.ai peak window next, with the `check` command from the
+`peak-hours-gate` skill. Stop the run with a message when the window blocks
+model-backed work. Take the lock with `acquire --holder LABEL`. Stop the
+run when the acquire refuses, and name the holder from the message. Run
+the scan with the same `--holder LABEL`.
 
 ## States
 
