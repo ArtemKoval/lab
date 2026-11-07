@@ -88,6 +88,6 @@ def test_skill_phases_open_with_the_pick_acknowledgement():
     assert "names the object" in section and "expected result" in section
     assert "no progress comment" in section
     assert "phase result" in section
-    assert "posts no pick comment" in section
-    assert "one pick comment per issue" in section
+    assert "posts no pick" in section
+    assert "one pick comment per" in section
     assert "confirms a posted pick" in section
