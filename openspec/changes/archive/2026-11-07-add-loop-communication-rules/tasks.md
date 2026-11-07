@@ -25,4 +25,4 @@
       STE gate.
 - [x] 3.2 Run the root suite, ruff, and the quality gates on the
       changed test path.
-- [ ] 3.3 Commit, push, open the pull request, and merge after review.
+- [x] 3.3 Commit, push, open the pull request, and merge after review.
