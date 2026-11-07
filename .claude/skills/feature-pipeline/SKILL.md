@@ -394,6 +394,28 @@ never copy a model name from older commits). Each commit says why, what
 changed, and how you proved it. Confirm the staged set is exactly
 what you intend, then publish the branch (push, shelve, or equivalent).
 
+## Communication rules
+
+These rules govern every comment, pull request body, and review thread
+that this pipeline writes to a person. Proposal P5 of
+`reports/2026-11-07-issue-103-dsh-superagent-analysis.md` requests the
+discipline.
+
+- Give one concrete acknowledgement per request. Write it in the form
+  `On it: <object and expected result>`. Name the object and the
+  expected result in the line.
+- Never give a generic `I will do it` in place of the acknowledgement.
+- Stay silent while the work runs. Post no progress comment between
+  the acknowledgement and the result.
+- After you fix and verify a review thread finding, resolve the thread
+  with no comment.
+- When you decline a suggestion, give one sentence of reason in its
+  own thread.
+- Label a draft as unfinished in the pull request title or the body.
+
+The `Pick` step of the `process-issues` skill carries the
+acknowledgement for the issue comments.
+
 ## Step 11 — Review request
 
 Open a pull request, merge request, or equivalent (e.g. a Gerrit change) against
@@ -451,7 +473,7 @@ secrets before you put artifacts in the issue. Report what was built, what
 review found, gate results, and anything the user should know (new
 dependencies, deliberate follow-ups). A handover issue stays open until its
 follow-ups land, and it is opened at the archive merge, never deferred past
-it; if a stray command closes one, reopen and pin it instead of opening a
+it. If a stray command closes one, reopen and pin it instead of opening a
 replacement, and link the reopened issue from the follow-up that mentions it.
 
 ## Step 14 — Close the loop
@@ -460,13 +482,13 @@ Each run is one turn of a loop that improves the harness (Claude Code, skills,
 tools, hooks, permissions) from a mechanical signal (logs) and a narrative one
 (reflection). The `cc-logging` hook and the `handover_telemetry` CLI are
 shipped (Step 13 and the `handover-telemetry` skill). No log-analysis tool or
-reflection skill is adopted in this repo yet; treat the Analyse and Reflect
-sub-steps below as the target design: skip each one
+reflection skill is adopted in this repo yet. Treat the Analyse and Reflect
+sub-steps below as the target design. Skip each one
 until its tooling exists, and adopt it via Step 8, as its own change, before
 relying on it.
 - **Log** — shipped: the cc-logging hook records every tool call, boundary,
-  and permission event to a local, uncommitted log at `.cc_logging/`; it
-  always exits 0 and redacts secrets at write time, so it can't break a
+  and permission event to a local, uncommitted log at `.cc_logging/`. The
+  hook always exits 0 and redacts secrets at write time, so it cannot break a
   session or leak one. The `handover-telemetry-hook` setup doctor confirms
   the wiring. The `handover_telemetry` CLI reads the log plus the session
   transcripts.
@@ -480,13 +502,13 @@ relying on it.
 - **Reflect** — after a substantial delivery, if a reflection skill exists,
   run it for what counts miss: an undocumented convention, a fix that took
   several attempts, a misleading CLAUDE.md claim, a tournament winner that
-  didn't hold. Shared lessons → this pipeline (committed), local → memory,
+  did not hold. Shared lessons → this pipeline (committed), local → memory,
   mechanical → the analysis. Act once the same friction recurs (~3+
-  reflections); lessons pay off only when consulted (inner-loop step 2).
+  reflections). Lessons pay off only when consulted (inner-loop step 2).
 - **Improve** — feed findings back through this pipeline, placed via Steps
   0.5/0.6 and solved ASIT-first (extend an existing skill, hook, or rule before
   adding one): permission-friction → scoped allow-rule (+ PowerShell twin) or a
-  hook via `update-config`; recurring-error → a fix or guarding hook;
-  repeated-command → helper, skill, or hook; slow-hook → trim it (fewer imports,
+  hook via `update-config`. Recurring-error → a fix or guarding hook.
+  Repeated-command → helper, skill, or hook. Slow-hook → trim it (fewer imports,
   less I/O), move work off the hot path, or drop it. Ship with a feature's
   rigor — the value is in acting on findings, not collecting logs.

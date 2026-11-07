@@ -65,3 +65,29 @@ def test_skill_phases_carry_the_ledger_steps():
     assert "behaves like a gate failure" in section
     fails = text.split("## Failures", 1)[1].split("\n## ", 1)[0]
     assert "pending list" in fails
+
+
+def test_skill_phases_open_with_the_pick_acknowledgement():
+    """Map the three pick scenarios to skill prose.
+
+    The acknowledgement rule lives in skill prose by design, so the
+    delta scenarios map to this text guard instead of CLI code: the
+    object line, the fixed first line, and the silence rule.
+    """
+    if not SKILL.exists():
+        pytest.skip("the skill text lives outside this copy")
+    text = SKILL.read_text(encoding="utf-8")
+    assert "## Phases" in text
+    section = text.split("## Phases", 1)[1].split("\n## ", 1)[0]
+    pick = section.find("- Pick.")
+    propose = section.find("- Propose phase")
+    assert -1 < pick < propose
+    fixed = section.find("process-issues loop", pick)
+    on_it = section.find("`On it:", pick)
+    assert -1 < fixed < on_it
+    assert "names the object" in section and "expected result" in section
+    assert "no progress comment" in section
+    assert "phase result" in section
+    assert "posts no pick comment" in section
+    assert "one pick comment per issue" in section
+    assert "confirms a posted pick" in section
