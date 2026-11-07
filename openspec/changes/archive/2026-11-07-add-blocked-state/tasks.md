@@ -18,4 +18,4 @@
 - [x] 3.1 Carry the spec delta and pass the strict validate, the lint, and
       the bridge regen.
 - [x] 3.2 Run the root suite and the STE gate.
-- [ ] 3.3 Commit, push, open the pull request, and merge after review.
+- [x] 3.3 Commit, push, open the pull request, and merge after review.
