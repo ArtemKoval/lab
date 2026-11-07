@@ -44,6 +44,8 @@ process id when the chain carries none.
 - **AND** the lock file records the holder, the host, the boot id, the
   process id, the process start time, and the acquire time
 
+### Requirement: The scan refuses a fresh foreign lock
+
 The scan SHALL examine the lock before the first `gh` call, and a refused
 scan SHALL make no `gh` call. A fresh foreign lock SHALL exit 2 with the
 holder details on stderr. A scan whose holder label matches the lock in
@@ -163,9 +165,9 @@ file exists.
 The `scan` subcommand SHALL print one line per open issue with its
 number, state, and pull request links. The `--json` flag SHALL print the
 same data as JSON. The lock examination SHALL run before the first `gh`
-call. The CLI SHALL exit 0 on success and 2 on an operational failure: a
-failed `gh` call, an unreadable state directory, or a fresh foreign lock.
-A usage error SHALL exit 64.
+call. The CLI SHALL exit 0 on success. The CLI SHALL exit 2 on an
+operational failure: a failed `gh` call, an unreadable state directory,
+or a fresh foreign lock. A usage error SHALL exit 64.
 
 #### Scenario: A scan prints the queue
 
