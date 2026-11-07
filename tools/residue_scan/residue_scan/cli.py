@@ -14,6 +14,7 @@ import sys
 from . import core
 
 BRANCH_FIELDS = "number,headRefName"
+PR_LIMIT = "500"
 
 
 def _run_tool(program, args):
@@ -94,16 +95,24 @@ def list_worktrees(runner):
 def pr_map(runner, state):
     """Return the branch-to-PR-number map for one PR state, or (None, error).
 
-    The call pages through the full list, so a truncation can never hide
-    an open pull request behind the page size and hand a live branch to
-    the prune.
+    The list carries a bounded limit, and a list that fills it refuses to
+    classify, because a truncation could hide a live open pull request
+    and hand its branch to the prune.
     """
     data, error = fetch(
         runner,
-        ["gh", "pr", "list", "--state", state, "--paginate", "--json", BRANCH_FIELDS],
+        [
+            "gh", "pr", "list", "--state", state,
+            "--limit", PR_LIMIT, "--json", BRANCH_FIELDS,
+        ],
     )
     if data is None:
         return None, error
+    if len(data) >= int(PR_LIMIT):
+        return None, (
+            f"the {state} pull request list hit the limit of {PR_LIMIT}; "
+            "raise the limit before the scan classifies"
+        )
     mapping = {}
     for item in data:
         branch = item.get("headRefName")
