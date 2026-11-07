@@ -24,6 +24,22 @@ From the repository root:
 Exit 0 means no findings; exit 2 means findings were reported. Vendored and
 dependency directories are skipped.
 
+## Diff scan in CI
+
+The `secret-scan` workflow (`.github/workflows/secret-scan.yml`) runs the
+tool in diff mode on every pull request and on dispatch:
+
+```bash
+.venv/bin/python tools/sec_scan/sec_scan.py --diff origin/main
+```
+
+The mode scans only the lines the diff adds, with the new-file line numbers.
+Operator literal secrets travel through the `SECRET_SCAN_LITERALS`
+repository secret into the job environment; the tool reads that variable,
+splits it on newlines, and reports each literal finding with a SHA-256
+prefix, never the value. A git failure fails the scan closed with exit 2.
+
+
 ## Revoke
 
 Without `--revoke` the tool makes no network call: each finding carries its

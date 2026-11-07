@@ -16,6 +16,7 @@ no network call. Without --revoke the tool makes no network call at all.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -180,53 +181,144 @@ def classify(match: str) -> tuple[str, str] | None:
     return None
 
 
-def scan_text(rel: str, text: str, report: Report, commit: str = "") -> None:
-    """Examine one text blob and append every finding to the report."""
+def _rule_hits(text: str) -> list[tuple[int, str, str, str, str | None]]:
+    """Return one tuple per rule hit: (offset, provider, kind, source, revoke_key).
+
+    The offset drives the line attribution of each caller. The tree scan
+    maps it through the blob, the diff scan uses the hunk line counter.
+    """
+    hits: list[tuple[int, str, str, str, str | None]] = []
     for provider, pattern, revoke_key in PROVIDER_PATTERNS:
         for match in pattern.finditer(text):
-            line = text.count("\n", 0, match.start()) + 1
-            report.findings.append(
-                Finding(
-                    file=rel,
-                    line=line,
-                    provider=provider,
-                    kind="provider key",
-                    preview=match.group(0)[:12] + "…",
-                    revoke_path=REVOKE_COMMANDS[revoke_key],
-                    commit=commit,
-                    key_hash=match.group(0),
-                )
-            )
+            hits.append((match.start(), provider, "provider key", match.group(0), revoke_key))
     for match in ASSIGNMENT_PATTERN.finditer(text):
         name, value = match.group(1), match.group(2)
         if classify(value):
             continue
         if shannon_entropy(value) >= ENTROPY_THRESHOLD:
-            line = text.count("\n", 0, match.start()) + 1
-            report.findings.append(
-                Finding(
-                    file=rel,
-                    line=line,
-                    provider="unknown",
-                    kind=f"high-entropy assignment to {name}",
-                    preview=value[:12] + "…",
-                    revoke_path=REVOKE_COMMANDS["private key"],
-                    commit=commit,
-                )
-            )
+            hits.append((match.start(), "unknown", f"high-entropy assignment to {name}", value, None))
     if PRIVATE_KEY.search(text):
-        line = text.count("\n", 0, PRIVATE_KEY.search(text).start()) + 1
+        hits.append((PRIVATE_KEY.search(text).start(), "private key", "private key block", "-----BEGIN …", None))
+    return hits
+
+
+def _finding_from_hit(
+    rel: str,
+    line: int,
+    provider: str,
+    kind: str,
+    source: str,
+    revoke_key: str | None,
+    commit: str,
+) -> Finding:
+    """Build one Finding from a rule hit."""
+    revoke_path = REVOKE_COMMANDS[revoke_key] if revoke_key else REVOKE_COMMANDS["private key"]
+    return Finding(
+        file=rel,
+        line=line,
+        provider=provider,
+        kind=kind,
+        preview=source[:12] + "…",
+        revoke_path=revoke_path,
+        commit=commit,
+        key_hash=source if revoke_key else "",
+    )
+
+
+def scan_text(rel: str, text: str, report: Report, commit: str = "") -> None:
+    """Examine one text blob and append every finding to the report."""
+    for offset, provider, kind, source, revoke_key in _rule_hits(text):
+        line = text.count("\n", 0, offset) + 1
         report.findings.append(
-            Finding(
-                file=rel,
-                line=line,
-                provider="private key",
-                kind="private key block",
-                preview="-----BEGIN …",
-                revoke_path=REVOKE_COMMANDS["private key"],
-                commit=commit,
-            )
+            _finding_from_hit(rel, line, provider, kind, source, revoke_key, commit)
         )
+
+
+HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)")
+
+
+def _new_path(line: str) -> str:
+    """Return the new-file path from one `+++` header, or '' for a deletion."""
+    origin = line[4:].removeprefix("b/")
+    return "" if origin == "/dev/null" else origin
+
+
+def parse_diff(text: str) -> list[tuple[str, int, str]]:
+    """Parse one unified diff into (path, new-file line, added line) rows.
+
+    Only added lines are collected. A deletion changes nothing, and a
+    context line advances the new-file line counter. The parser collects
+    only after a hunk header for the current file, so header noise
+    between files never produces a row.
+    """
+    added: list[tuple[str, int, str]] = []
+    path = ""
+    lineno = 0
+    in_hunk = False
+    for line in text.splitlines():
+        if line.startswith("+++ "):
+            path = _new_path(line)
+            in_hunk = False
+            continue
+        if line.startswith("@@"):
+            match = HUNK_RE.match(line)
+            if match:
+                lineno = int(match.group(1))
+                in_hunk = True
+            continue
+        if not path or not in_hunk:
+            continue
+        if line.startswith("+"):
+            added.append((path, lineno, line[1:]))
+            lineno += 1
+        elif line.startswith("-"):
+            continue
+        else:
+            lineno += 1
+    return added
+
+
+def _env_literals(value: str | None) -> list[str]:
+    """Return the non-empty operator literals from an environment value."""
+    if not value:
+        return []
+    return [item for item in value.splitlines() if item.strip()]
+
+
+class DiffScanError(RuntimeError):
+    """The diff scan could not read the diff. The caller fails closed."""
+
+
+def _default_git_runner(argv, cwd=None):
+    return subprocess.run(argv, cwd=cwd, capture_output=True, text=True, check=False)
+
+
+def scan_diff(root, ref, report, literals=None, runner=None):
+    """Scan the added lines of one git diff. Fails closed on a git error."""
+    run = runner or _default_git_runner
+    result = run(["git", "diff", "--unified=0", ref], cwd=root)
+    if result.returncode != 0:
+        raise DiffScanError(result.stderr.strip() or "git exited with an error")
+    for path, lineno, line in parse_diff(result.stdout):
+        for offset, provider, kind, source, revoke_key in _rule_hits(line):
+            report.findings.append(
+                _finding_from_hit(path, lineno, provider, kind, source, revoke_key, "")
+            )
+        literals_here = literals if literals is not None else _env_literals(os.environ.get("SECRET_SCAN_LITERALS"))
+        for literal in literals_here:
+            if literal in line:
+                digest = hashlib.sha256(literal.encode("utf-8")).hexdigest()[:12]
+                report.findings.append(
+                    Finding(
+                        file=path,
+                        line=lineno,
+                        provider="operator literal",
+                        kind=f"sha256:{digest}",
+                        preview=digest + "…",
+                        revoke_path="Rotate the literal at its source, then update the secret",
+                        commit="",
+                    )
+                )
 
 
 def scan_tree(root: Path, report: Report) -> None:
@@ -241,21 +333,29 @@ def scan_tree(root: Path, report: Report) -> None:
         scan_text(str(path.relative_to(root)), text, report)
 
 
-def scan_history(root: Path, report: Report) -> None:
-    """Walk `git log -p` and scan every blob the history carries."""
-    result = subprocess.run(
+def scan_history(root: Path, report: Report, runner=None) -> None:
+    """Walk `git log -p` and scan every blob the history carries.
+
+    A git failure returns silently, so the tree scan still decides the
+    exit code. That fail-open posture predates the diff scan, which
+    fails closed instead.
+    """
+    run = runner or _default_git_runner
+    result = run(
         ["git", "log", "-p", "--all", "--format=commit %H"],
         cwd=root,
-        capture_output=True,
-        text=True,
-        check=False,
     )
     if result.returncode != 0:
         return
+    _scan_log(result.stdout, report)
+
+
+def _scan_log(log: str, report: Report) -> None:
+    """Scan every blob one `git log -p` output carries."""
     commit = ""
     path = ""
     blob: list[str] = []
-    for line in result.stdout.splitlines():
+    for line in log.splitlines():
         if line.startswith("commit "):
             if blob:
                 scan_text(path, "\n".join(blob), report, commit)
@@ -330,17 +430,23 @@ def print_report(report: Report, as_json: bool) -> None:
         print(f"    revoke: {finding.revoke_path}")
 
 
-def main() -> int:
+def main(argv=None, runner=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="The repository root to scan")
     parser.add_argument("--json", action="store_true", help="Machine output")
     parser.add_argument("--history", action="store_true", help="Also scan git history")
     parser.add_argument(
+        "--diff",
+        metavar="REF",
+        default=None,
+        help="Scan only the lines the diff adds against REF",
+    )
+    parser.add_argument(
         "--revoke",
         action="store_true",
         help="Disable found OpenRouter keys through the provisioning API",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
     if not root.is_dir():
@@ -348,9 +454,17 @@ def main() -> int:
         return 2
 
     report = Report()
-    scan_tree(root, report)
-    if args.history:
-        scan_history(root, report)
+    if args.diff:
+        literals = _env_literals(os.environ.get("SECRET_SCAN_LITERALS"))
+        try:
+            scan_diff(root, args.diff, report, literals=literals, runner=runner)
+        except DiffScanError as error:
+            print(f"diff scan failed: {error}", file=sys.stderr)
+            return 2
+    else:
+        scan_tree(root, report)
+        if args.history:
+            scan_history(root, report)
     print_report(report, args.json)
 
     exit_code = 2 if report.findings else 0
