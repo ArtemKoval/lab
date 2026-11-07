@@ -63,3 +63,13 @@ def test_claude_md_documents_the_gate_integrity_marker():
     text = _read("CLAUDE.md")
     assert "tests/claude_infra/test_gate_integrity.py" in text
     assert "gate-integrity: acknowledged" in text
+
+
+def test_gate_integrity_guard_keeps_its_shape():
+    text = _read("tests", "claude_infra", "test_gate_integrity.py")
+    assert 'MARKER_LINE = "gate-integrity: acknowledged"' in text
+    assert "PROTECTED_PATTERNS = (" in text
+    assert ".claude/hooks/*" in text
+    assert "conftest.py" in text
+    assert "pytest.fail(" in text
+    assert '--name-only",\n        "origin/' in text

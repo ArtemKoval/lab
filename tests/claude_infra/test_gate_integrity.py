@@ -7,7 +7,11 @@ acknowledgment line. The operator merge is the acknowledgment.
 
 The guard runs inside the hermetic suite and is active only on
 pull_request events, where GitHub provides GITHUB_BASE_REF and
-GITHUB_EVENT_PATH. Outside CI the test skips.
+GITHUB_EVENT_PATH. Outside CI the test skips. The guard sees deletions
+too, so removing a gate path needs the marker as well. The guard
+protects its own file and the working-rules pin. The honest limit: one
+pull request that deletes the guard and rewrites the pin test still
+passes, so the operator review at merge time stays the anchor.
 """
 
 import fnmatch
@@ -22,15 +26,20 @@ MARKER_LINE = "gate-integrity: acknowledged"
 PROTECTED_PATTERNS = (
     ".claude/hooks/*",
     ".claude/settings.json",
+    ".claude/settings.local.json",
     "pytest.ini",
+    "conftest.py",
     "tests/conftest.py",
     "tests/*/conftest.py",
     "tools/crapper/*",
     "tools/dryer/*",
     "tools/mutator/*",
     ".github/workflows/*",
-    # The guard protects itself, so its own weakening needs the marker.
+    # The guard and its pin protect each other, so weakening either
+    # needs the marker. A single pull request can still remove both,
+    # which the module docstring records as the limit.
     "tests/claude_infra/test_gate_integrity.py",
+    "tests/claude_infra/test_working_rules.py",
 )
 
 _FAILURE_MESSAGE = (
@@ -40,12 +49,18 @@ _FAILURE_MESSAGE = (
     "'{marker}' to the pull request body."
 )
 
+_UNREADABLE_MESSAGE = (
+    "gate-integrity guard: the pull request body is unreadable, so the "
+    "acknowledgment cannot be verified. Protected paths hit: {hits}. "
+    "The merge must inspect the diff manually."
+)
+
 
 def protected_hits(changed_files, patterns=PROTECTED_PATTERNS):
     """Return the changed files that match one protected pattern."""
     return sorted(
         name for name in changed_files
-        if any(fnmatch.fnmatch(name, pattern) for pattern in patterns)
+        if any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
     )
 
 
@@ -65,9 +80,13 @@ def guard_decision(changed_files, body, patterns=PROTECTED_PATTERNS):
 
 
 def collect_changed_files(base_ref, runner):
-    """Return the pull request changed files through one git call."""
+    """Return the pull request changed files through one git call.
+
+    No --diff-filter here: a deletion of a gate path is a touch, and
+    the guard must see it.
+    """
     argv = [
-        "git", "diff", "--name-only", "--diff-filter=d",
+        "git", "diff", "--name-only",
         "origin/{}...HEAD".format(base_ref),
     ]
     output = runner(argv)
@@ -80,13 +99,19 @@ def _default_runner(argv):
 
 
 def _event_body(event_path):
-    """Return the pull request body from the event payload file."""
+    """Return the pull request body, or None when the payload is unreadable.
+
+    None means fail closed: the caller cannot verify the marker and the
+    guard reports an unreadable body instead of a missing marker.
+    """
     try:
         with open(event_path, encoding="utf-8") as stream:
             payload = json.load(stream)
     except (OSError, ValueError):
-        return ""
-    pull = payload.get("pull_request") if isinstance(payload, dict) else None
+        return None
+    if not isinstance(payload, dict):
+        return None
+    pull = payload.get("pull_request")
     body = pull.get("body") if isinstance(pull, dict) else None
     return body if isinstance(body, str) else ""
 
@@ -100,7 +125,9 @@ def test_protected_hits_match_each_pattern_class():
     assert protected_hits(["README.md", "reports/x.md"]) == []
     assert protected_hits([".claude/hooks/cc-logging.sh"]) == [".claude/hooks/cc-logging.sh"]
     assert protected_hits([".claude/settings.json"]) == [".claude/settings.json"]
+    assert protected_hits([".claude/settings.local.json"]) == [".claude/settings.local.json"]
     assert protected_hits(["pytest.ini"]) == ["pytest.ini"]
+    assert protected_hits(["conftest.py"]) == ["conftest.py"]
     assert protected_hits(["tests/conftest.py"]) == ["tests/conftest.py"]
     assert protected_hits(["tests/peak_hours_gate/conftest.py"]) == [
         "tests/peak_hours_gate/conftest.py",
@@ -108,10 +135,27 @@ def test_protected_hits_match_each_pattern_class():
     assert protected_hits(["tools/crapper/crapper/__init__.py"]) == [
         "tools/crapper/crapper/__init__.py",
     ]
+    assert protected_hits(["tools/dryer/dryer/__init__.py"]) == [
+        "tools/dryer/dryer/__init__.py",
+    ]
+    assert protected_hits(["tools/mutator/mutator/__init__.py"]) == [
+        "tools/mutator/mutator/__init__.py",
+    ]
     assert protected_hits([".github/workflows/tests.yml"]) == [".github/workflows/tests.yml"]
     assert protected_hits(["tests/claude_infra/test_gate_integrity.py"]) == [
         "tests/claude_infra/test_gate_integrity.py",
     ]
+    assert protected_hits(["tests/claude_infra/test_working_rules.py"]) == [
+        "tests/claude_infra/test_working_rules.py",
+    ]
+
+
+def test_protected_exact_names_do_not_over_match():
+    assert protected_hits(["docs/pytest.ini"]) == []
+    assert protected_hits([".claude/settings.json.bak"]) == []
+    assert protected_hits(["old/conftest.py"]) == []
+    assert protected_hits(["tools/crapperpy/x.py"]) == []
+    assert protected_hits(["tools/crapper/x.py"]) == ["tools/crapper/x.py"]
 
 
 def test_protected_hits_come_back_sorted():
@@ -165,12 +209,15 @@ def test_event_body_reads_the_pull_request_body(tmp_path):
     assert _event_body(str(event)) == "x\ngate-integrity: acknowledged"
 
 
-def test_event_body_stays_empty_on_a_broken_payload(tmp_path):
+def test_event_body_fails_closed_on_a_broken_payload(tmp_path):
     broken = tmp_path / "broken.json"
     broken.write_text("{not json", encoding="utf-8")
-    assert _event_body(str(broken)) == ""
+    assert _event_body(str(broken)) is None
     missing = tmp_path / "missing.json"
-    assert _event_body(str(missing)) == ""
+    assert _event_body(str(missing)) is None
+    not_a_dict = tmp_path / "list.json"
+    not_a_dict.write_text("[]", encoding="utf-8")
+    assert _event_body(str(not_a_dict)) is None
     empty_pull = tmp_path / "empty.json"
     empty_pull.write_text('{"pull_request": {"body": null}}', encoding="utf-8")
     assert _event_body(str(empty_pull)) == ""
@@ -182,4 +229,6 @@ def test_pull_request_protects_the_gate_paths():
     body = _event_body(os.environ.get("GITHUB_EVENT_PATH", ""))
     hits = guard_decision(changed, body)
     if hits:
+        if body is None:
+            pytest.fail(_UNREADABLE_MESSAGE.format(hits=", ".join(hits)))
         pytest.fail(_FAILURE_MESSAGE.format(hits=", ".join(hits), marker=MARKER_LINE))
