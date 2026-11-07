@@ -23,10 +23,11 @@ requests GitHub knows:
 A residue branch whose worktree is still registered adds a worktree entry,
 one per registered worktree. The open pull request list reads first, so a
 branch name that a merged PR and a live open PR share stays in flight. The
-pull request lists come from `gh pr list --paginate`. Without gh
-authentication every scan exits 2 with the reason, which is not a residue
-verdict. The `--repo-root` flag scopes the git calls only, so run the tool
-from the repository when the pull request maps must match.
+pull request lists carry a limit of 500, and a list that fills the limit
+refuses to classify, so a truncation can never hand a live branch to the
+prune. Without gh authentication every scan exits 2 with the reason, which
+is not a residue verdict. The `--repo-root` flag scopes the git calls only,
+so run the tool from the repository when the pull request maps must match.
 
 ## Commands
 

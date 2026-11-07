@@ -14,9 +14,11 @@ settled these decisions:
   rebase or a reset left nothing unique on it. A squash merge shows up in
   the merged list instead. Unmerged commits with no pull request are
   unclaimed, and the tool leaves them alone.
-- The pull request lists page through the full list with `--paginate`, so a
-  page size can never hide a live open pull request and hand its branch to
-  the prune.
+- The pull request lists carry a bounded limit, and a list that fills the
+  limit refuses to classify, so a truncation can never hide a live open
+  pull request and hand its branch to the prune. The bound sits at 500
+  entries, because the host `gh` carries no `--paginate` flag on
+  `gh pr list`.
 - A failed worktree list fails the scan like the other fact calls, because a
   silently missing worktree entry would let the operator prune without
   seeing it.

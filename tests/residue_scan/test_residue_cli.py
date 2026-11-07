@@ -169,6 +169,16 @@ def test_prune_reports_a_refused_removal_and_exits_2(capsys):
     assert "checked out" in capsys.readouterr().err
 
 
+def test_a_full_pr_list_refuses_to_classify(capsys):
+    full = json.dumps(
+        [{"number": index, "headRefName": f"feat/x{index}"} for index in range(500)]
+    )
+    fake = _repo_runner({"pr list --state open": [(0, full, "")]})
+    code = cli.main(["scan"], run=fake, repo_root="/repo")
+    assert code == 2
+    assert "hit the limit" in capsys.readouterr().err
+
+
 def test_prune_reports_a_refused_worktree_and_exits_2(capsys):
     fake = _repo_runner(
         {
