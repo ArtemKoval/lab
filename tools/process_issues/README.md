@@ -15,12 +15,13 @@ loop needs judgment only for the per-issue pipeline phases.
 
 ## States
 
-The labels carry the state. The precedence is `handover`, `answered`,
-`human-approved`, `waiting-human-approval`, then no label.
+The labels carry the state. The precedence is `handover`, `blocked`,
+`answered`, `human-approved`, `waiting-human-approval`, then no label.
 
 | State | Meaning |
 | --- | --- |
 | `skip` | The `handover` label sits on the issue. The loop never closes it. |
+| `blocked` | The run could not proceed and left one structured reason comment. The loop never retries it, and only the operator clears the label. |
 | `answered` | The loop answered this informational issue. |
 | `wait-approval` | The spec gate waits for `human-approved`. |
 | `apply` | Approved, with change artifacts. The loop runs the apply phase. |

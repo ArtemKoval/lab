@@ -118,3 +118,37 @@ def test_linked_prs_respects_number_boundary():
 def test_linked_prs_skips_bodies_without_refs_line():
     prs = [{"number": 86, "state": "open", "headRefName": "b", "body": "closes 86"}]
     assert core.linked_prs(prs, 86) == []
+
+
+def test_a_blocked_issue_reports_the_blocked_state():
+    verdict = core.classify({"blocked"}, [], False)
+    assert verdict == {"state": "blocked", "action": "blocked"}
+
+
+def test_handover_stays_above_a_blocked_label():
+    assert core.classify({"handover", "blocked"}, [], False) == {
+        "state": "skip",
+        "action": "none",
+    }
+
+
+def test_blocked_outranks_a_stale_answered_label():
+    assert core.classify({"blocked", "answered"}, [], False) == {
+        "state": "blocked",
+        "action": "blocked",
+    }
+
+
+def test_the_existing_order_survives_the_table():
+    assert core.classify({"answered"}, [], False) == {
+        "state": "answered",
+        "action": "none",
+    }
+    assert core.classify({"waiting-human-approval"}, [], False) == {
+        "state": "wait-approval",
+        "action": "wait",
+    }
+    assert core.classify(set(), [], False) == {
+        "state": "propose",
+        "action": "start",
+    }

@@ -276,3 +276,22 @@ def test_normalize_pr_states_skips_entries_without_a_state():
     assert prs[0]["state"] == "merged"
     assert prs[1] == {"number": 1}
     assert prs[2] == "not-a-dict"
+
+
+def test_scan_json_reports_the_blocked_state(capsys):
+    issues = json.dumps(
+        [
+            {
+                "number": 130,
+                "title": "An issue the loop cannot finish",
+                "createdAt": "2026-11-07T10:00:00Z",
+                "labels": [{"name": "blocked"}],
+            }
+        ]
+    )
+    fake = FakeGh([(0, issues, ""), (0, "[]", "")])
+    code = cli.main(["scan", "--json"], runner=fake, repo_root=".")
+    entries = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert entries[0]["state"] == "blocked"
+    assert entries[0]["action"] == "blocked"
