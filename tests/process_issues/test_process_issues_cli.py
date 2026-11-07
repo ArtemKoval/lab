@@ -11,13 +11,13 @@ ISSUES_JSON = json.dumps(
             "number": 86,
             "title": "Process Issues Skill",
             "createdAt": "2026-11-04T08:00:00Z",
-            "labels": [{"name": "human-approved"}],
+            "author": {"login": "ArtemKoval"}, "labels": [{"name": "human-approved"}],
         },
         {
             "number": 85,
             "title": "cc-logging hook writes no logs",
             "createdAt": "2026-11-04T07:00:00Z",
-            "labels": [],
+            "author": {"login": "ArtemKoval"}, "labels": [],
         },
     ]
 )
@@ -98,7 +98,7 @@ def test_scan_plain_lines_carry_state_and_links(capsys, tmp_path):
 def test_scan_plain_lines_carry_state(capsys):
     fake = FakeGh(
         [
-            (0, json.dumps([{"number": 12, "title": "T", "createdAt": "x", "labels": [{"name": "handover"}]}]), ""),
+            (0, json.dumps([{"number": 12, "title": "T", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": [{"name": "handover"}]}]), ""),
             (0, "[]", ""),
         ]
     )
@@ -111,7 +111,7 @@ def test_scan_plain_lines_carry_state(capsys):
 
 def test_pr_body_match_respects_number_boundary(capsys):
     issues = json.dumps(
-        [{"number": 8, "title": "T", "createdAt": "x", "labels": []}]
+        [{"number": 8, "title": "T", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": []}]
     )
     prs = json.dumps(
         [{"number": 86, "state": "open", "headRefName": "b", "body": "Refs #86"}]
@@ -130,7 +130,7 @@ def test_artifact_link_comes_from_branch_name(capsys, tmp_path):
     (changes / "add-process-issues").mkdir(parents=True)
     (changes / "archive").mkdir()
     issues = json.dumps(
-        [{"number": 30, "title": "T", "createdAt": "x", "labels": [{"name": "human-approved"}]}]
+        [{"number": 30, "title": "T", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": [{"name": "human-approved"}]}]
     )
     prs = json.dumps(
         [
@@ -235,9 +235,9 @@ def test_scan_excludes_archive_and_hidden_change_dirs(capsys, tmp_path):
     )
     issues = json.dumps(
         [
-            {"number": 40, "title": "A", "createdAt": "x", "labels": []},
-            {"number": 41, "title": "B", "createdAt": "y", "labels": []},
-            {"number": 42, "title": "C", "createdAt": "z", "labels": []},
+            {"number": 40, "title": "A", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": []},
+            {"number": 41, "title": "B", "createdAt": "y", "author": {"login": "ArtemKoval"}, "labels": []},
+            {"number": 42, "title": "C", "createdAt": "z", "author": {"login": "ArtemKoval"}, "labels": []},
         ]
     )
     fake = FakeGh([(0, issues, ""), (0, prs, "")])
@@ -251,7 +251,7 @@ def test_scan_rejects_a_branch_that_only_extends_the_change_id(capsys, tmp_path)
     changes = tmp_path / "openspec" / "changes"
     (changes / "add-x").mkdir(parents=True)
     issues = json.dumps(
-        [{"number": 50, "title": "T", "createdAt": "x", "labels": []}]
+        [{"number": 50, "title": "T", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": []}]
     )
     prs = json.dumps(
         [
@@ -296,7 +296,7 @@ def test_scan_json_reports_the_blocked_state(capsys):
                 "number": 130,
                 "title": "An issue the loop cannot finish",
                 "createdAt": "2026-11-07T10:00:00Z",
-                "labels": [{"name": "blocked"}],
+                "author": {"login": "ArtemKoval"}, "labels": [{"name": "blocked"}],
             }
         ]
     )

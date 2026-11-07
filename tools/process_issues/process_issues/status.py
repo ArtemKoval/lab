@@ -8,6 +8,7 @@ no signal or a row the examination did not reach.
 LEVEL_RUNNING = "running"
 LEVEL_HALT = "halt"
 LEVEL_AUTH = "auth"
+LEVEL_CONFIG = "config"
 LEVEL_ISSUE_LIST = "issue-list"
 LEVEL_BLOCKED = "blocked"
 LEVEL_STALE = "stale"
@@ -31,18 +32,20 @@ AUTH_REASON = "setup: the gh token is missing or the gh call failed"
 IDLE_REASON = "idle: no lock file stands"
 
 
-def decide(halt=None, auth_error=None, list_error=None, blocked=None,
-           lock_row=None):
+def decide(halt=None, auth_error=None, config_error=None, list_error=None,
+           blocked=None, lock_row=None):
     """Return (level, code, reason) for the first matched row.
 
-    The row order is the halt file, the auth probe, the issue list,
-    the blocked issues, and the lock. A None fact carries no signal,
-    and the first non-None fact wins.
+    The row order is the halt file, the auth probe, the authors config,
+    the issue list, the blocked issues, and the lock. A None fact
+    carries no signal, and the first non-None fact wins.
     """
     if halt is not None:
         return LEVEL_HALT, CODE_STOPPED, halt
     if auth_error is not None:
         return LEVEL_AUTH, CODE_SETUP, auth_error
+    if config_error is not None:
+        return LEVEL_CONFIG, CODE_COMPONENT, config_error
     if list_error is not None:
         return LEVEL_ISSUE_LIST, CODE_COMPONENT, list_error
     if blocked is not None:

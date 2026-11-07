@@ -34,7 +34,7 @@ PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m proc
 
 Exit 0 on success, 2 on operational failure, and 64 on a usage error, with
 the reason on stderr. The `--json` payload carries `number`, `title`,
-`labels`, `state`, `action`, `prs`, and `changeDir` per issue. The status
+`author`, `labels`, `state`, `action`, `prs`, and `changeDir` per issue. The status
 command carries its own contract in the Scheduled run section: exit 0
 running, exit 1 stopped or restartable, exit 2 component error, exit 3
 waiting for setup, and its `--json` payload carries `level`, `code`,
@@ -52,9 +52,9 @@ runs one issue per fire, in this order:
    intentional stop, and the recipe reports nothing.
 4. Exit 1 from the stale or idle row: proceed. The acquire clears a
    stale lock.
-5. Exit 2 from the issue-list or lock row, or exit 3: stop and report
-   the reason. The scan would fail with the same fault, or the setup is
-   missing.
+5. Exit 2 from the config, issue-list, or lock row, or exit 3: stop and
+   report the reason. The scan would fail with the same fault, or the
+   setup is missing.
 6. Exit 2 from the blocked row: proceed, and report the named blocked
    issues with the run result. The loop never retries a blocked issue.
 7. On proceed: run the gate command from the `peak-hours-gate` skill,
@@ -86,6 +86,12 @@ run when the acquire refuses, and name the holder from the message. Run
 the scan with the same `--holder LABEL`.
 
 ## States
+
+The admission gate runs before the labels. An author outside
+`process_issues/authors.json`, a login whose lowercase form ends with
+`[bot]`, or an issue with no author maps to the state `refused` with the
+action `none`, and the loop makes no change to a refused issue. The list
+edits only through a pull request.
 
 The scan maps each issue to one state and one action. The precedence is
 `handover`, then `blocked`, then `answered`, then `human-approved`, then

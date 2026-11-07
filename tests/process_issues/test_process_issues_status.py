@@ -74,15 +74,15 @@ class FakeGh:
 
 
 ISSUES = json.dumps([
-    {"number": 9, "title": "plain work", "labels": []},
-    {"number": 12, "title": "stuck work", "labels": [{"name": "blocked"}]},
-    {"number": 15, "title": "handover doc", "labels": [{"name": "handover"},
+    {"number": 9, "title": "plain work", "author": {"login": "ArtemKoval"}, "labels": []},
+    {"number": 12, "title": "stuck work", "author": {"login": "ArtemKoval"}, "labels": [{"name": "blocked"}]},
+    {"number": 15, "title": "handover doc", "author": {"login": "ArtemKoval"}, "labels": [{"name": "handover"},
                                                        {"name": "blocked"}]},
 ])
 
 ISSUES_CLEAN = json.dumps([
-    {"number": 9, "title": "plain work", "labels": []},
-    {"number": 15, "title": "handover doc", "labels": [{"name": "handover"}]},
+    {"number": 9, "title": "plain work", "author": {"login": "ArtemKoval"}, "labels": []},
+    {"number": 15, "title": "handover doc", "author": {"login": "ArtemKoval"}, "labels": [{"name": "handover"}]},
 ])
 
 
@@ -249,7 +249,7 @@ def test_cli_blocked_issue_reports_and_names(tmp_path, capsys):
 def test_cli_handover_outranks_blocked(tmp_path, capsys):
     only_handover = json.dumps([
         {"number": 15, "title": "handover doc",
-         "labels": [{"name": "handover"}, {"name": "blocked"}]},
+         "author": {"login": "ArtemKoval"}, "labels": [{"name": "handover"}, {"name": "blocked"}]},
     ])
     code, captured, fake = run_status(
         tmp_path, [(0, "tokentoken\n", ""), (0, only_handover, "")],

@@ -15,11 +15,23 @@ loop needs judgment only for the per-issue pipeline phases.
 
 ## States
 
+The admission gate runs before the labels. The refusal is the state
+`refused` with the action `none`, and the loop makes no change to a
+refused issue. An author outside the allowed-author list, a login whose
+lowercase form ends with `[bot]`, or an issue with no author refuses.
+The allowed-author list ships at
+`process_issues/authors.json` beside the module, carries
+`{"allowed_authors": ["ArtemKoval"]}`, compares logins
+case-insensitively, and edits only through a pull request. A missing,
+unparsable, or wrong-shape config is an operational failure: one stderr
+note names the config path, and the scan exits 2 with no queue.
+
 The labels carry the state. The precedence is `handover`, `blocked`,
 `answered`, `human-approved`, `waiting-human-approval`, then no label.
 
 | State | Meaning |
 | --- | --- |
+| `refused` | The author admission refuses the issue. The loop touches nothing. |
 | `skip` | The `handover` label sits on the issue. The loop never closes it. |
 | `blocked` | The run could not proceed and left one structured reason comment. The loop never retries it, and only the operator clears the label. |
 | `answered` | The loop answered this informational issue. |
@@ -38,7 +50,8 @@ PYTHONPATH=tools/process_issues tools/zai_routing_audit/.venv/bin/python -m proc
 
 Exit 0 on success, 2 on operational failure, and 64 on a usage error, with
 the reason on stderr. The `--json` payload is a JSON array with `number`,
-`title`, `labels`, `state`, `action`, `prs`, and `changeDir` per issue.
+`title`, `author`, `labels`, `state`, `action`, `prs`, and `changeDir` per
+issue, where `author` carries the login string or null.
 
 The CLI calls `gh issue list` and `gh pr list --state all`. A PR links to an
 issue when its body carries a `Refs #NN` line. The `changeDir` field names

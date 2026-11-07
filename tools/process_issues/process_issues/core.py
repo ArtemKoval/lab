@@ -14,6 +14,9 @@ STATE_ANSWERED = "answered"
 STATE_WAIT_APPROVAL = "wait-approval"
 STATE_APPLY = "apply"
 STATE_PROPOSE = "propose"
+STATE_REFUSED = "refused"
+
+BOT_SUFFIX = "[bot]"
 
 ACTION_NONE = "none"
 ACTION_BLOCKED = "blocked"
@@ -75,6 +78,21 @@ def linked_prs(prs, number):
     """Return the raw PRs whose body carries a Refs line for this issue."""
     pattern = re.compile(rf"Refs #{number}\b")
     return [pr for pr in prs if pattern.search(pr.get("body") or "")]
+
+
+def admitted(login, allowed):
+    """Return True when the login passes the admission gate.
+
+    A None login, an unknown login, or a login whose lowercase form
+    ends with the bot suffix refuses. The comparison ignores letter
+    case on both sides.
+    """
+    if not isinstance(login, str) or not login:
+        return False
+    lowered = login.lower()
+    if lowered.endswith(BOT_SUFFIX):
+        return False
+    return lowered in {name.lower() for name in allowed}
 
 
 def sorted_issues(issues):
