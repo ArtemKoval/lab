@@ -26,19 +26,23 @@ The loop keeps the automation authority of ADR 0012. It merges its own
 proposal and implementation pull requests to `main`, closes issues, and
 runs the fix path without per-PR review. The two-label gate stays the
 only review control for spec-carrying changes, and the allow set stays
-part of the trust boundary. The single-run rule gains a mechanical
-backstop. The loop takes the lock with `acquire --holder LABEL` before
-the first scan and releases it at its end. The acquire command enforces
-the lock with one exclusive file create. The scan examination is
-cooperative. A stale lock never wedges the run. A record that does not
-parse, an unknown schema version, a foreign boot id, a dead process id,
-a start-time mismatch, or an age past 24 hours marks the lock stale, the
-scan reports it and proceeds, and the acquire clears it and takes it.
-The operator heals a lost or hung lock with `release --force`. Rejected
-options: the edit of ADR 0012 in place, because history stays frozen. A
-heartbeat, because a live but wedged holder is rare and the operator
-path is enough. A 30 second age rule in the dsh manner, because this
-lock spans a run of hours and a short age wedge new legitimate runs.
+part of the trust boundary.
+
+The single-run rule gains a mechanical backstop. The loop takes the
+lock with `acquire --holder LABEL` before the first scan and releases
+it at its end. The acquire command enforces the lock with one exclusive
+file create. The scan examination is cooperative. A stale lock never
+wedges the run. A record that does not parse, an unknown schema
+version, a foreign boot id, a dead process id, a start-time mismatch,
+or an age past 24 hours marks the lock stale. The scan reports it and
+proceeds, and the acquire clears it and takes it. The operator heals a
+lost or hung lock with `release --force`.
+
+Rejected options: the edit of ADR 0012 in place, because history stays
+frozen. A heartbeat, because a live but wedged holder is rare and the
+operator path is enough. A 30 second age rule in the dsh manner,
+because this lock spans a run of hours, and a short age rule wedges
+new legitimate runs.
 
 ## Consequences
 

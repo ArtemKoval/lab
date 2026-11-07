@@ -53,6 +53,11 @@ class FakeGh:
         return code, out, err
 
 
+def _no_git(args):
+    """Runner that refuses the git call, so the tests stay hermetic."""
+    return 1, "", "tests use no real git"
+
+
 def _repo_with_active_change(tmp_path):
     """Build a repo root whose active changes carry the fixture change dir."""
     changes = tmp_path / "openspec" / "changes"
@@ -97,7 +102,8 @@ def test_scan_plain_lines_carry_state(capsys):
             (0, "[]", ""),
         ]
     )
-    code = cli.main(["scan"], runner=fake, repo_root=".")
+    code = cli.main(["scan"], runner=fake, repo_root=".",
+             git_runner=_no_git)
     out = capsys.readouterr().out
     assert code == 0
     assert "12" in out and "skip" in out
@@ -111,7 +117,8 @@ def test_pr_body_match_respects_number_boundary(capsys):
         [{"number": 86, "state": "open", "headRefName": "b", "body": "Refs #86"}]
     )
     fake = FakeGh([(0, issues, ""), (0, prs, "")])
-    code = cli.main(["scan", "--json"], runner=fake, repo_root=".")
+    code = cli.main(["scan", "--json"], runner=fake, repo_root=".",
+             git_runner=_no_git)
     entries = json.loads(capsys.readouterr().out)
     assert code == 0
     assert entries[0]["prs"] == []
@@ -145,7 +152,8 @@ def test_artifact_link_comes_from_branch_name(capsys, tmp_path):
 
 def test_gh_failure_exits_2_and_names_the_failure(capsys):
     fake = FakeGh([(1, "", "gh: auth error")])
-    code = cli.main(["scan"], runner=fake, repo_root=".")
+    code = cli.main(["scan"], runner=fake, repo_root=".",
+             git_runner=_no_git)
     err = capsys.readouterr().err
     assert code == 2
     assert "gh: auth error" in err
@@ -153,13 +161,15 @@ def test_gh_failure_exits_2_and_names_the_failure(capsys):
 
 def test_bad_issue_json_exits_2(capsys):
     fake = FakeGh([(0, "not json", ""), (0, "[]", "")])
-    code = cli.main(["scan"], runner=fake, repo_root=".")
+    code = cli.main(["scan"], runner=fake, repo_root=".",
+             git_runner=_no_git)
     assert code == 2
 
 
 def test_bad_pr_json_exits_2(capsys):
     fake = FakeGh([(0, "[]", ""), (0, "not json", "")])
-    code = cli.main(["scan"], runner=fake, repo_root=".")
+    code = cli.main(["scan"], runner=fake, repo_root=".",
+             git_runner=_no_git)
     assert code == 2
 
 
@@ -190,7 +200,8 @@ def test_scan_without_openspec_dir_reports_no_change_dir(capsys, tmp_path):
 
 def test_scan_defaults_repo_root_to_cwd(capsys):
     fake = FakeGh([(0, "[]", ""), (0, "[]", "")])
-    code = cli.main(["scan", "--json"], runner=fake)
+    code = cli.main(["scan", "--json"], runner=fake,
+                    git_runner=_no_git)
     assert code == 0
 
 
@@ -264,7 +275,7 @@ def test_gh_missing_binary_exits_2_and_names_the_failure(capsys, monkeypatch):
         raise FileNotFoundError(2, "No such file", "gh")
 
     monkeypatch.setattr(cli.subprocess, "run", raising_run)
-    code = cli.main(["scan"], repo_root=".")
+    code = cli.main(["scan"], repo_root=".", git_runner=_no_git)
     err = capsys.readouterr().err
     assert code == 2
     assert "the gh call failed" in err
@@ -290,7 +301,8 @@ def test_scan_json_reports_the_blocked_state(capsys):
         ]
     )
     fake = FakeGh([(0, issues, ""), (0, "[]", "")])
-    code = cli.main(["scan", "--json"], runner=fake, repo_root=".")
+    code = cli.main(["scan", "--json"], runner=fake, repo_root=".",
+             git_runner=_no_git)
     entries = json.loads(capsys.readouterr().out)
     assert code == 0
     assert entries[0]["state"] == "blocked"

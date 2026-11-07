@@ -1,15 +1,17 @@
 """Scan open issues into the process-issues queue.
 
-Exit 0 on success and 2 on operational failure.
+Exit 0 on success, 2 on operational failure, and 64 on a usage error.
 """
 
 import argparse
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from . import core
+from . import lock
 
 DEFAULT_LIMIT = "200"
 ISSUE_FIELDS = "number,title,createdAt,labels"
@@ -24,6 +26,17 @@ def run_gh(args):
         )
     except OSError as exc:
         return 1, "", f"the gh call failed: {exc}"
+    return proc.returncode, proc.stdout, proc.stderr
+
+
+def run_git(args):
+    """Run one git call and return (code, stdout, stderr)."""
+    try:
+        proc = subprocess.run(
+            args, capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        return 1, "", f"the git call failed: {exc}"
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -95,14 +108,49 @@ def build_queue(issues, prs, repo_root):
     return queue
 
 
-def main(argv=None, runner=run_gh, repo_root=None):
-    """Run the scan subcommand and return the exit code."""
-    parser = argparse.ArgumentParser(prog="process_issues")
-    parser.add_argument("command", choices=["scan"])
-    parser.add_argument("--json", action="store_true", dest="as_json")
-    args = parser.parse_args(argv)
-    if repo_root is None:
-        repo_root = Path.cwd()
+def _print_note(note):
+    """Print one stderr note when one exists."""
+    if note:
+        print(note, file=sys.stderr)
+
+
+def _lock_inputs():
+    """Assemble the real liveness inputs for the lock module."""
+    return {
+        "probe": lock.probe_live,
+        "host": lock.this_host(),
+        "boot_id": lock.this_boot_id(),
+        "now": time.time(),
+        "caller_pid": lock.session_anchor()[0],
+    }
+
+
+def _run_lock(args, state_dir):
+    """Run the acquire or release command. Return the exit code."""
+    if args.command == "acquire" and not args.holder:
+        print("process_issues: acquire needs --holder LABEL", file=sys.stderr)
+        return 64
+    if args.command == "acquire" and args.force:
+        print("process_issues: acquire takes no --force", file=sys.stderr)
+        return 64
+    if args.command == "release" and not args.holder and not args.force:
+        print("process_issues: release needs --holder LABEL or --force",
+              file=sys.stderr)
+        return 64
+    if args.command == "acquire":
+        code, note = lock.acquire(state_dir, args.holder, **_lock_inputs())
+    else:
+        code, note = lock.release(state_dir, holder=args.holder, force=args.force)
+    _print_note(note)
+    return code
+
+
+def _run_scan(args, runner, repo_root, state_dir):
+    """Run the scan subcommand. Return the exit code."""
+    code, note = lock.examine(state_dir, holder=args.holder, **_lock_inputs())
+    _print_note(note)
+    if code != 0:
+        return code
     issues, error = _fetch(
         runner,
         [
@@ -133,3 +181,22 @@ def main(argv=None, runner=run_gh, repo_root=None):
                 f"\t{links}\t{item['title']}"
             )
     return 0
+
+
+def main(argv=None, runner=run_gh, repo_root=None, git_runner=run_git):
+    """Run one CLI command and return the exit code."""
+    parser = argparse.ArgumentParser(prog="process_issues")
+    parser.add_argument("command", choices=["scan", "acquire", "release"])
+    parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--holder", dest="holder")
+    parser.add_argument("--force", action="store_true", dest="force")
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        return 0 if exc.code in (0, None) else 64
+    if repo_root is None:
+        repo_root = Path.cwd()
+    state_dir = lock.resolve_state_dir(repo_root, git_runner)
+    if args.command == "scan":
+        return _run_scan(args, runner, repo_root, state_dir)
+    return _run_lock(args, state_dir)

@@ -3,20 +3,10 @@
 ### Requirement: The loop takes and releases the run lock
 
 The loop SHALL take the lock with `acquire --holder LABEL` before the
-first scan, and the label SHALL be unique to the run. The run SHALL
-release the lock with `release --holder LABEL` at its end. The
-release SHALL remove the file only on an exact holder label match, or
-behind `--force`. A release with no lock file SHALL NOT be an error. The
-lock file SHALL sit under the primary checkout root, resolved from the
-git common directory, and a non-git root SHALL use the working directory.
-
-#### Scenario: An acquire takes a free lock
-
-- **GIVEN** no lock file exists
-- **WHEN** `acquire` runs with the holder `loop-20261108-a`
-- **THEN** the exit code is 0
-- **AND** the lock file records the holder, the host, the boot id, the
-  process id, the process start time, and the acquire time
+first scan, and the label SHALL name one run. The run SHALL release the
+lock with `release --holder LABEL` at its end. The release SHALL remove
+the file only on an exact holder label match, or behind `--force`. A
+release with no lock file SHALL NOT be an error.
 
 #### Scenario: A release without a lock is not an error
 
@@ -37,7 +27,22 @@ git common directory, and a non-git root SHALL use the working directory.
 - **WHEN** `release --force` runs
 - **THEN** the lock file is gone and the exit code is 0
 
-### Requirement: The scan refuses a fresh foreign lock
+### Requirement: The run lock record
+
+The lock file SHALL sit under the primary checkout root, resolved from
+the git common directory, and a non-git root SHALL use the working
+directory. The record SHALL carry the holder label, the host, the boot
+id, the process id, the process start time, and the acquire time. The
+record SHALL pin the session anchor of the calling session, or no
+process id when the chain carries none.
+
+#### Scenario: An acquire takes a free lock
+
+- **GIVEN** no lock file exists
+- **WHEN** `acquire` runs with the holder `loop-20261108-a`
+- **THEN** the exit code is 0
+- **AND** the lock file records the holder, the host, the boot id, the
+  process id, the process start time, and the acquire time
 
 The scan SHALL examine the lock before the first `gh` call, and a refused
 scan SHALL make no `gh` call. A fresh foreign lock SHALL exit 2 with the
@@ -57,6 +62,13 @@ force SHALL proceed. The scan SHALL NOT write the lock file.
 - **GIVEN** the lock file records the holder `loop-20261108-a` with a
   live process on this host
 - **WHEN** the scan runs with the holder `loop-20261108-a`
+- **THEN** the scan prints the queue
+
+#### Scenario: The session anchor exempts the scan
+
+- **GIVEN** the lock file records the process that anchors this calling
+  session, with a live process on this host
+- **WHEN** the scan runs with no holder label
 - **THEN** the scan prints the queue
 
 #### Scenario: A missing lock does not refuse the scan
@@ -85,6 +97,13 @@ SHALL stay fresh until the acquire time passes the age rule.
 - **GIVEN** the lock file records another host with a young acquire time
 - **WHEN** the scan runs
 - **THEN** the exit code is 2 and stderr names the holder
+
+#### Scenario: An anchorless record ages out
+
+- **GIVEN** the lock file records no process id and an acquire time
+  more than 24 hours old
+- **WHEN** the scan runs
+- **THEN** stderr reports the stale lock and the scan prints the queue
 
 #### Scenario: An old acquire time marks the lock stale
 
