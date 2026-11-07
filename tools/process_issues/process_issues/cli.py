@@ -10,10 +10,12 @@ import json
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import authors
 from . import core
+from . import ledger
 from . import lock
 from . import status
 
@@ -341,14 +343,120 @@ def _run_scan(args, runner, repo_root, state_dir):
     return 0
 
 
+def _ledger_usage(args):
+    """Return the usage exit code for the ledger arguments, or None."""
+    if args.action is None:
+        print("process_issues: ledger needs an action", file=sys.stderr)
+        return 64
+    if args.action == "write" and (not args.kind or not args.key):
+        print("process_issues: ledger write needs --kind and --key",
+              file=sys.stderr)
+        return 64
+    if args.action == "write" and args.kind not in ledger.KINDS:
+        print("process_issues: ledger write needs a known --kind",
+              file=sys.stderr)
+        return 64
+    if args.action == "confirm" and not args.marker_id:
+        print("process_issues: ledger confirm needs --id", file=sys.stderr)
+        return 64
+    return None
+
+
+def _run_ledger(args, state_dir):
+    """Run the ledger command. Return the exit code."""
+    usage = _ledger_usage(args)
+    if usage is not None:
+        return usage
+    path = ledger.ledger_path(state_dir)
+    try:
+        if args.action == "write":
+            return _ledger_write(path, args.kind, str(args.key))
+        if args.action == "confirm":
+            return _ledger_confirm(path, args.marker_id)
+        return _ledger_pending(path, args.as_json)
+    except ledger.LedgerError as exc:
+        print(f"process_issues: {exc}", file=sys.stderr)
+        return 2
+
+
+def _ledger_write(path, kind, key):
+    """Run the write action. Return the exit code."""
+    records, _notes = ledger.read_records(path)
+    ids = {row.get("id") for row in records}
+    marker = ledger.new_marker(ids)
+    live_groups = {
+        (row.get("kind"), row.get("key"))
+        for row in ledger.pending_view(records)
+    }
+    payload = {
+        "event": ledger.EVENT_INTENT,
+        "id": marker,
+        "kind": kind,
+        "key": key,
+        "at": datetime.now(timezone.utc).isoformat(),
+    }
+    ledger.append_record(path, payload)
+    if (kind, key) in live_groups:
+        print(
+            f"process_issues: the group {kind} {key} already carries a "
+            f"live pending intent",
+            file=sys.stderr,
+        )
+    print(marker)
+    return 0
+
+
+def _ledger_confirm(path, marker):
+    """Run the confirm action. Return the exit code."""
+    records, _notes = ledger.read_records(path)
+    known = {}
+    for row in records:
+        if row.get("id") == marker:
+            known[marker] = row.get("event") == ledger.EVENT_INTENT
+    if marker not in known:
+        print(f"process_issues: unknown ledger marker {marker}",
+              file=sys.stderr)
+        return 2
+    if not known[marker]:
+        return 0
+    ledger.append_record(path, {
+        "event": ledger.EVENT_CONFIRMED,
+        "id": marker,
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    return 0
+
+
+def _ledger_pending(path, as_json):
+    """Run the pending action. Return the exit code."""
+    records, notes = ledger.read_records(path)
+    for note in notes:
+        print(f"process_issues: {note}", file=sys.stderr)
+    rows = ledger.pending_view(records)
+    if as_json:
+        print(json.dumps(rows))
+        return 0
+    for row in rows:
+        superseded = "superseded" if row["superseded"] else "live"
+        print(f"{row['id']}\t{row['kind']}\t{row['key']}\t{row['at']}"
+              f"\t{superseded}")
+    return 0
+
+
 def main(argv=None, runner=run_gh, repo_root=None, git_runner=run_git):
     """Run one CLI command and return the exit code."""
     parser = argparse.ArgumentParser(prog="process_issues")
     parser.add_argument("command", choices=["scan", "acquire", "release",
-                                            "status"])
+                                            "status", "ledger"])
+    parser.add_argument("action", nargs="?", choices=["write", "confirm",
+                                                      "pending"],
+                        default=None)
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument("--holder", dest="holder")
     parser.add_argument("--force", action="store_true", dest="force")
+    parser.add_argument("--kind", dest="kind")
+    parser.add_argument("--key", dest="key")
+    parser.add_argument("--id", dest="marker_id")
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:
@@ -356,8 +464,14 @@ def main(argv=None, runner=run_gh, repo_root=None, git_runner=run_git):
     if repo_root is None:
         repo_root = Path.cwd()
     state_dir = lock.resolve_state_dir(repo_root, git_runner)
+    if args.command != "ledger" and args.action is not None:
+        print(f"process_issues: {args.command} takes no action argument",
+              file=sys.stderr)
+        return 64
     if args.command == "scan":
         return _run_scan(args, runner, repo_root, state_dir)
     if args.command == "status":
         return _run_status(args, runner, repo_root, state_dir)
+    if args.command == "ledger":
+        return _run_ledger(args, state_dir)
     return _run_lock(args, state_dir)

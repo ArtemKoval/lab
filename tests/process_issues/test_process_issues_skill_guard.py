@@ -43,3 +43,25 @@ def test_skill_scheduled_run_orders_status_action_peak_acquire_scan():
     assert "named blocked" in section
     assert "config, issue-list, or lock row" in section
     assert "cron" in section and "08:00" in section and "20:00" in section
+
+
+def test_skill_phases_carry_the_ledger_steps():
+    if not SKILL.exists():
+        pytest.skip("the skill text lives outside this copy")
+    text = SKILL.read_text(encoding="utf-8")
+    assert "## Phases" in text
+    section = text.split("## Phases", 1)[1].split("\n## ", 1)[0]
+    write_step = section.find("run `ledger write --kind K --key N`")
+    confirm_step = section.find("run `ledger confirm --id MARKER`")
+    pending_step = section.find("actions run `ledger pending`")
+    assert -1 < write_step < confirm_step
+    assert -1 < pending_step
+    assert "process-issues loop" in section
+    assert "process-issues:MARKER-->" in section
+    assert "scan the bodies for the literal marker" in section
+    assert "with the same marker and no new intent" in section
+    assert "Retry a label" in section and "as a plain re-add" in section
+    assert "already-done" in section and "as the confirmation" in section
+    assert "behaves like a gate failure" in section
+    fails = text.split("## Failures", 1)[1].split("\n## ", 1)[0]
+    assert "pending list" in fails
