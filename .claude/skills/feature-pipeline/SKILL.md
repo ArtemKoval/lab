@@ -402,13 +402,13 @@ that this pipeline writes to a person. Proposal P5 of
 discipline.
 
 - Give one concrete acknowledgement per request. Write it in the form
-  `On it: <object and expected result>`, and name the object and the
+  `On it: <object and expected result>`. Name the object and the
   expected result in the line.
 - Never give a generic `I will do it` in place of the acknowledgement.
 - Stay silent while the work runs. Post no progress comment between
   the acknowledgement and the result.
-- Resolve a review thread with no comment after you fix and verify
-  its finding.
+- After you fix and verify a review thread finding, resolve the thread
+  with no comment.
 - When you decline a suggestion, give one sentence of reason in its
   own thread.
 - Label a draft as unfinished in the pull request title or the body.

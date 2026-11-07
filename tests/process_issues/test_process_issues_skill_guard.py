@@ -66,6 +66,7 @@ def test_skill_phases_carry_the_ledger_steps():
     fails = text.split("## Failures", 1)[1].split("\n## ", 1)[0]
     assert "pending list" in fails
 
+
 def test_skill_phases_open_with_the_pick_acknowledgement():
     """Map the three pick scenarios to skill prose.
 
@@ -88,3 +89,5 @@ def test_skill_phases_open_with_the_pick_acknowledgement():
     assert "no progress comment" in section
     assert "phase result" in section
     assert "posts no pick comment" in section
+    assert "one pick comment per issue" in section
+    assert "confirms a posted pick" in section
