@@ -1,16 +1,11 @@
-"""Make the saturation_pass module importable from tools/, with the
-mutation stand-down: under mutmut the mirror layout wins."""
+"""Make the saturation_pass module importable from tools/.
 
-import os
+absolute(), not resolve(): the mutator symlink overlay must keep this
+path inside the worker tree, so the tests import the mutated copy.
+"""
+
 import sys
 from pathlib import Path
 
-# absolute(), not resolve(): the mutator symlink overlay must keep this
-# path inside the worker tree, so the tests import the mutated copy.
 REPO_ROOT = Path(__file__).absolute().parents[2]
-
-if "MUTANT_UNDER_TEST" not in os.environ:
-    for _candidate in (REPO_ROOT / "tools" / "saturation_pass", REPO_ROOT):
-        if (_candidate / "saturation_pass.py").is_file():
-            sys.path.insert(0, str(_candidate))
-            break
+sys.path.insert(0, str(REPO_ROOT / "tools" / "saturation_pass"))

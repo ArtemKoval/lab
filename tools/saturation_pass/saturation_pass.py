@@ -53,7 +53,7 @@ def parse_table(text):
             continue
         if set(parts[0]) == {"-"}:
             continue
-        if parts[0] == "Total":
+        if parts[0] == "Total" and len(parts) == 6:
             break
         row = rows.setdefault(parts[1], {
             "killed": 0, "survived": 0, "uncovered": 0, "sites": 0,
@@ -65,7 +65,7 @@ def parse_table(text):
     return rows
 
 
-def module_scores(tool, text):
+def module_scores(text):
     """Aggregate the table into per-module scores for one tool."""
     scores = {}
     for namespace, row in parse_table(text).items():
@@ -110,7 +110,7 @@ def _verdict(tool, namespace, kind, stored, run):
     }
 
 
-def mutator_argv(entry, coverage):
+def mutator_argv(entry):
     """Return one mutator argv for one table entry."""
     return [
         MUTATOR, "--use-existing-coverage", "--max-workers", "4",
@@ -126,12 +126,15 @@ def run_mutator(argv):
 
 
 def load_store(path):
-    """Load the store JSON. Return None when it is missing or unreadable."""
+    """Load the store JSON. Return None when it is missing or unusable."""
     try:
         with open(path, encoding="utf-8") as handle:
-            return json.load(handle)
+            data = json.load(handle)
     except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
+    return data
 
 
 def write_store(path, store):
@@ -142,18 +145,19 @@ def write_store(path, store):
         handle.write("\n")
 
 
-def run_tool(entry, coverage, mutator):
+def run_tool(entry, mutator):
     """Run one tool. Return its report dict."""
     name, _product, _suite = entry
-    code, out, err = mutator(mutator_argv(entry, coverage))
-    modules = module_scores(name, out)
+    code, out, err = mutator(mutator_argv(entry))
+    modules = module_scores(out)
     report = {"modules": modules, "verdicts": [], "dropped": [],
               "mutator_code": code, "error": None}
-    if not modules:
-        report["error"] = f"{name}: the mutator printed no table"
-        return report
     if code not in (0, 3):
         report["error"] = f"{name}: the mutator exited with code {code}: {err.strip()}"
+        return report
+    if not modules:
+        report["error"] = (f"{name}: the mutator printed no table "
+                           f"(exit {code})")
         return report
     return report
 
@@ -183,13 +187,12 @@ def pass_notes(entry, report):
     return notes
 
 
-def run_pass(entries, coverage, store, mutator):
+def run_pass(entries, store, mutator):
     """Run every entry and compare against the store. Return the report."""
     tools = {}
     failed = False
     for entry in entries:
-        report = compare_tool(entry, run_tool(entry, coverage, mutator),
-                              store)
+        report = compare_tool(entry, run_tool(entry, mutator), store)
         notes = pass_notes(entry, report)
         report["notes"] = notes
         tools[entry[0]] = report
@@ -230,18 +233,32 @@ def _write_report(path, report):
 
 
 def _select_entries(names):
-    """Return the table entries for the requested tools. None on unknown."""
+    """Return the table entries for the requested tools. None on unknown.
+
+    The selection runs in table order and deduplicates repeats.
+    """
     if not names:
         return list(TOOL_TABLE)
-    by_name = {entry[0]: entry for entry in TOOL_TABLE}
+    picked_names = set()
     picked = []
+    for entry in TOOL_TABLE:
+        if entry[0] in names:
+            picked_names.add(entry[0])
+            picked.append(entry)
     for name in names:
-        if name not in by_name:
+        if name not in picked_names:
             _print(f"saturation_pass: unknown tool {name}; "
                    f"the table holds {[e[0] for e in TOOL_TABLE]}")
             return None
-        picked.append(by_name[name])
     return picked
+
+
+def _coverage_note(coverage):
+    """Return the discovery note when the coverage path is not the default."""
+    if coverage == COVERAGE_PATH:
+        return None
+    return ("saturation_pass: the mutator discovers the house lcov "
+            "path itself; --coverage only verifies the file exists")
 
 
 def main(argv=None, mutator=None, clock=None):
@@ -259,13 +276,15 @@ def main(argv=None, mutator=None, clock=None):
         _print(f"saturation_pass: no coverage report at {args.coverage}; "
                f"pass --coverage or run the gate coverage pass first")
         return 2
+    if args.coverage != COVERAGE_PATH:
+        _print(_coverage_note(args.coverage))
     store = load_store(args.store)
     if args.init:
         return _init_action(args, entries, store, mutator, clock)
     if store is None:
         _print(f"saturation_pass: no store at {args.store}; run --init first")
         return 2
-    report = run_pass(entries, args.coverage, store, mutator)
+    report = run_pass(entries, store, mutator)
     return _finish(args, entries, report, store, clock)
 
 
@@ -275,7 +294,7 @@ def _init_action(args, entries, store, mutator, clock):
         _print(f"saturation_pass: the store at {args.store} exists; "
                f"--init refuses to overwrite it")
         return 2
-    report = run_pass(entries, args.coverage, {}, mutator)
+    report = run_pass(entries, {}, mutator)
     if report["failed"]:
         for tool in report["tools"].values():
             for note in tool["notes"]:
@@ -287,6 +306,9 @@ def _init_action(args, entries, store, mutator, clock):
         tools[entry[0]] = {"stamp": clock(),
                            "modules": report["tools"][entry[0]]["modules"]}
     write_store(args.store, {"schema": 1, "tools": tools})
+    report["stamp"] = clock()
+    report["exit"] = "clean"
+    _write_report(args.report_path, report)
     return 0
 
 
@@ -298,6 +320,10 @@ def _finish(args, entries, report, store, clock):
     stamp = clock()
     if args.update and not report["failed"]:
         _apply_update(entries, report, store, args.store, stamp)
+    for name, tool in report["tools"].items():
+        for namespace, module in tool["modules"].items():
+            print(f"{name}: {namespace} score {module['score']} "
+                  f"at {module['sites']} sites")
     report["stamp"] = stamp
     report["exit"] = _report_verdict(report)
     _write_report(args.report_path, report)

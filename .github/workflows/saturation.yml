@@ -50,11 +50,13 @@ jobs:
             --data-file=target/coverage/python/.coverage \
             -o target/coverage/python/lcov.info
       - name: Run the saturation pass
+        env:
+          TOOLS_INPUT: ${{ github.event.inputs.tools }}
         run: |
           mkdir -p target/saturation
           picks=""
-          if [ -n "${{ github.event.inputs.tools }}" ]; then
-            for tool in $(printf '%s' "${{ github.event.inputs.tools }}" | tr ',' ' '); do
+          if [ -n "$TOOLS_INPUT" ]; then
+            for tool in $(printf '%s' "$TOOLS_INPUT" | tr ',' ' '); do
               picks="$picks --tool $tool"
             done
           fi

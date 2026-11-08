@@ -20,6 +20,8 @@ def test_workflow_triggers_on_the_weekly_cron_and_dispatch():
     assert "cron: '37 4 * * 1'" in text
     assert "workflow_dispatch" in text
     assert "tools:" in text
+    assert "--tool $tool" in text
+    assert "TOOLS_INPUT: ${{ github.event.inputs.tools }}" in text
 
 
 def test_workflow_carries_the_escape_variable():

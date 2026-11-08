@@ -41,7 +41,7 @@ PAST_STAMP = "2026-11-08T08:00:00+00:00"
 
 def clean_modules():
     """Return the module scores the clean table reports."""
-    return module_scores("spec_ste_check", TABLE)
+    return module_scores(TABLE)
 
 
 def seeded_store():
@@ -93,7 +93,7 @@ def test_parse_table_of_an_empty_run_carries_no_rows():
 
 
 def test_module_scores_compute_one_decimal_scores():
-    scores = module_scores("spec_ste_check", TABLE)
+    scores = module_scores(TABLE)
     assert scores["tools.spec_ste_check.spec_ste_check.rules"] == {
         "sites": 9, "score": 88.9,
     }
@@ -103,7 +103,7 @@ def test_module_scores_compute_one_decimal_scores():
 
 
 def test_module_scores_of_scoreless_rows_give_none():
-    scores = module_scores("spec_ste_check", NA_TABLE)
+    scores = module_scores(NA_TABLE)
     assert scores["tools.spec_ste_check.spec_ste_check.cli"] == {
         "sites": 1, "score": None,
     }
@@ -115,7 +115,7 @@ def test_module_scores_omit_siteless_namespaces():
              if line.startswith("word_count")),
         "word_count tools.spec_ste_check.spec_ste_check.cli 0 0 0 0 n/a",
     )
-    scores = module_scores("spec_ste_check", siteless)
+    scores = module_scores(siteless)
     assert "tools.spec_ste_check.spec_ste_check.cli" not in scores
     assert scores["tools.spec_ste_check.spec_ste_check.rules"] == {
         "sites": 9, "score": 88.9,
@@ -212,7 +212,7 @@ def test_table_names_the_nine_owned_tools():
     ]
 
 
-def test_main_runs_one_tool_and_exits_0(tmp_path):
+def test_main_runs_one_tool_and_exits_0(tmp_path, capsys):
     store_path, coverage = seeded(tmp_path)
     calls = []
     code = main(
@@ -226,6 +226,110 @@ def test_main_runs_one_tool_and_exits_0(tmp_path):
     assert "--use-existing-coverage" in calls[0]
     assert "tests/spec_ste_check" in calls[0][-2]
     assert calls[0][-1] == "tools/spec_ste_check/spec_ste_check"
+    out = capsys.readouterr().out
+    assert "tools.spec_ste_check.spec_ste_check.rules score 88.9" in out
+
+
+def test_main_runs_the_selected_tools_in_table_order(tmp_path):
+    store_path, coverage = seeded(tmp_path)
+    order = []
+    code = main(
+        ["--tool", "process_issues", "--tool", "plan_exec",
+         "--tool", "plan_exec", "--store", str(store_path),
+         "--coverage", str(coverage)],
+        mutator=lambda argv: order.append(argv[-1]) or (0, TABLE, ""),
+        clock=lambda: STAMP,
+    )
+    assert code == 0
+    assert order == ["tools/plan_exec/plan_exec",
+                     "tools/process_issues/process_issues"]
+
+
+def test_main_prints_one_score_line_per_module_on_a_clean_run(
+        tmp_path, capsys):
+    store_path, coverage = seeded(tmp_path)
+    code = main(
+        ["--tool", "spec_ste_check", "--store", str(store_path),
+         "--coverage", str(coverage)],
+        mutator=ok_mutator, clock=lambda: STAMP,
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert len([line for line in out.splitlines()
+                if " score " in line]) == 3
+
+
+def test_parse_table_reads_a_function_named_total():
+    rows = parse_table(TABLE.replace(
+        "check_tenses",
+        "Total   ",
+    ))
+    assert "tools.spec_ste_check.spec_ste_check.rules" in rows
+    assert rows["tools.spec_ste_check.spec_ste_check.rules"]["sites"] == 9
+
+
+def test_load_store_of_a_wrong_shape_gives_none(tmp_path):
+    path = tmp_path / "scores.json"
+    path.write_text("[1, 2]", encoding="utf-8")
+    assert load_store(path) is None
+
+
+def test_main_init_writes_the_json_report(tmp_path):
+    store_path, coverage = seeded(tmp_path)
+    store_path.unlink()
+    report = tmp_path / "report.json"
+    code = main(
+        ["--init", "--tool", "spec_ste_check", "--store", str(store_path),
+         "--coverage", str(coverage), "--json", str(report)],
+        mutator=ok_mutator, clock=lambda: STAMP,
+    )
+    assert code == 0
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["exit"] == "clean"
+
+
+def test_main_warns_that_the_mutator_discovers_its_own_coverage(
+        tmp_path, capsys):
+    store_path, coverage = seeded(tmp_path)
+    other = tmp_path / "elsewhere.info"
+    other.write_text("SF:x\n", encoding="utf-8")
+    code = main(
+        ["--tool", "spec_ste_check", "--store", str(store_path),
+         "--coverage", str(other)],
+        mutator=ok_mutator, clock=lambda: STAMP,
+    )
+    assert code == 0
+    assert "discovers the house lcov path" in capsys.readouterr().err
+
+
+def test_the_coverage_note_stays_silent_on_the_default_path():
+    from saturation_pass import COVERAGE_PATH, _coverage_note
+
+    assert _coverage_note(COVERAGE_PATH) is None
+    assert _coverage_note("elsewhere.info") is not None
+
+
+def test_store_write_creates_nested_dirs(tmp_path):
+    path = tmp_path / "a" / "b" / "scores.json"
+    write_store(path, seeded_store())
+    assert load_store(path) == seeded_store()
+
+
+def test_main_update_lands_a_higher_score(tmp_path):
+    store_path, coverage = seeded(tmp_path)
+    low_store = seeded_store()
+    low_store["tools"]["spec_ste_check"]["modules"][
+        "tools.spec_ste_check.spec_ste_check.rules"]["score"] = 77.8
+    write_store(store_path, low_store)
+    code = main(
+        ["--update", "--tool", "spec_ste_check", "--store", str(store_path),
+         "--coverage", str(coverage)],
+        mutator=ok_mutator, clock=lambda: STAMP,
+    )
+    assert code == 0
+    store = load_store(store_path)
+    assert store["tools"]["spec_ste_check"]["modules"][
+        "tools.spec_ste_check.spec_ste_check.rules"]["score"] == 88.9
 
 
 def test_main_refuses_an_unknown_tool(tmp_path, capsys):
