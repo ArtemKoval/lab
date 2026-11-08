@@ -129,8 +129,12 @@ The proposal 1 mechanism cannot kill the survivor. The progressive
 regex at `rules.py:49` matches one auxiliary word and one `-ing` word,
 so every match carries two tokens. The sentence `has been running`
 matches `been running`, and the two indices agree for every input. No
-test can kill that mutant. The change that reaches exit 0 captures the
-participle in the regex and reads `match.group(1)`. The `[-1]` site
-ceases to exist. The new `1 -> 0` site at `rules.py:191` dies through
-the existing allowlist test. The full pass on this host records 65
-sites, 64 killed, one uncovered, no survivors, and exit 0.
+test can kill that mutant under this tool's operator set. The change
+that reaches exit 0 captures the participle in the regex and reads
+`match.group(1)`. Line 191 held three sites before the change and one
+after, so the tool total moves from 67 to 65 sites. The new `1 -> 0`
+site at `rules.py:191` dies through the existing allowlist test. The
+full pass on this host, with the manual coverage pass from the quality
+gates, records 65 sites, 64 killed, no survivors, and exit 0. One site
+at `cli.py:62` stays uncovered in that pass, because the manual
+coverage pass misses the subprocess that hits it.
