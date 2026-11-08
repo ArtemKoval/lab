@@ -7,7 +7,29 @@ description: Prepare or repair a clean clone of this repository. Use this skill 
 
 The file `tools/project_setup/registry.json` names each item that a clean clone must have. Each item is a unit.
 
+## Interview protocol
+
+Run the setup work as one interview. Proposal P6 of
+`reports/2026-11-07-issue-103-dsh-superagent-analysis.md` describes the
+dsh SETUP.md protocol. The rules keep the operator attention small:
+
+1. Run the probe first. The unit `check` commands are the probe. Give
+   the probe report before any question.
+2. Ask one question per message. Give each question one recommended
+   answer and one sentence of reason.
+3. Collect every answer before you execute anything.
+4. Send one plan message that lists the install commands in order.
+5. Put every hands-on step that involves a secret into one operator
+   message with the exact commands. Do not request a secret in the
+   chat.
+6. After the operator approves the plan, run the `install` command of
+   each approved unit, and report one result line per unit.
+7. If every `check` command exits with 0, give the probe report and
+   ask no question.
+
 ## Examine and repair a clone
+
+Run the steps of this section inside the interview protocol above.
 
 1. Read `tools/project_setup/registry.json`.
 2. Run the `check` command of each unit.
