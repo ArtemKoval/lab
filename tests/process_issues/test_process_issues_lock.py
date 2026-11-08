@@ -494,6 +494,39 @@ def test_session_anchor_survives_a_cycle():
     assert lock.session_anchor(5, chain.get) == (None, None)
 
 
+def test_session_anchor_stops_when_the_chain_breaks():
+    chain = {102: ("python3", 404, "9")}
+    assert lock.session_anchor(102, chain.get) == (None, None)
+
+
+def test_parse_stat_returns_the_fields():
+    data = "102 (python3) S 101 102 " + " ".join(["0"] * 16) + " 9 1 2 3"
+    assert lock._parse_stat(data) == ("python3", 101, "9")
+
+
+def test_parse_stat_rejects_malformed_payloads():
+    assert lock._parse_stat("") is None
+    assert lock._parse_stat("no parens here") is None
+    assert lock._parse_stat("12 (name) X not-a-number 9") is None
+
+
+def test_start_time_of_a_missing_process_is_none():
+    assert lock.start_time(10**9) is None
+
+
+def test_probe_live_of_a_live_pid_with_an_unreadable_start_refuses(monkeypatch):
+    monkeypatch.setattr(lock, "_stat_fields", lambda pid: None)
+    assert lock.probe_live(os.getpid(), "1") == lock.RULE_START
+
+
+def test_this_boot_id_of_an_unreadable_source_is_none(monkeypatch):
+    def raise_os_error(self):
+        raise OSError("no boot id")
+
+    monkeypatch.setattr("pathlib.Path.read_text", raise_os_error)
+    assert lock.this_boot_id() is None
+
+
 def test_session_anchor_is_stable_in_process():
     assert lock.session_anchor() == lock.session_anchor()
 
@@ -546,6 +579,11 @@ ISSUES = json.dumps([
      "author": {"login": "ArtemKoval"}, "labels": []},
 ])
 PRS = json.dumps([])
+
+
+def gh_empty(args):
+    """Return one empty gh answer for tests that never read its output."""
+    return (0, "[]", "")
 
 
 def test_scan_refuses_fresh_foreign_and_skips_gh(tmp_path, capsys):
@@ -619,14 +657,15 @@ def test_scan_without_lock_proceeds(tmp_path, capsys):
 
 def test_acquire_and_release_cli_round_trip(tmp_path, capsys):
     common = lambda args: (1, "", "")
-    gh_empty = lambda args: (0, "[]", "")
     code = cli.main(["acquire", "--holder", "loop-x"], runner=gh_empty,
                     repo_root=str(tmp_path), git_runner=common)
     assert code == 0
     assert holder_of(tmp_path / ".process_issues") == "loop-x"
-    code = cli.main(["scan", "--holder", "loop-x"], runner=gh_empty,
+    fake = FakeGh([(0, ISSUES, ""), (0, PRS, "")])
+    code = cli.main(["scan", "--holder", "loop-x"], runner=fake,
                     repo_root=str(tmp_path), git_runner=common)
     assert code == 0
+    assert "9" in capsys.readouterr().out
     code = cli.main(["release", "--holder", "loop-x"], runner=gh_empty,
                     repo_root=str(tmp_path), git_runner=common)
     assert code == 0
@@ -635,20 +674,20 @@ def test_acquire_and_release_cli_round_trip(tmp_path, capsys):
 
 def test_release_mismatch_cli_refuses(tmp_path):
     common = lambda args: (1, "", "")
-    cli.main(["acquire", "--holder", "loop-x"], repo_root=str(tmp_path),
-             git_runner=common)
-    code = cli.main(["release", "--holder", "loop-y"], repo_root=str(tmp_path),
-                    git_runner=common)
+    cli.main(["acquire", "--holder", "loop-x"], runner=gh_empty,
+             repo_root=str(tmp_path), git_runner=common)
+    code = cli.main(["release", "--holder", "loop-y"], runner=gh_empty,
+                    repo_root=str(tmp_path), git_runner=common)
     assert code == 2
     assert holder_of(tmp_path / ".process_issues") == "loop-x"
 
 
 def test_release_force_cli_clears(tmp_path):
     common = lambda args: (1, "", "")
-    cli.main(["acquire", "--holder", "loop-x"], repo_root=str(tmp_path),
-             git_runner=common)
-    code = cli.main(["release", "--force"], repo_root=str(tmp_path),
-                    git_runner=common)
+    cli.main(["acquire", "--holder", "loop-x"], runner=gh_empty,
+             repo_root=str(tmp_path), git_runner=common)
+    code = cli.main(["release", "--force"], runner=gh_empty,
+                    repo_root=str(tmp_path), git_runner=common)
     assert code == 0
     assert not (tmp_path / ".process_issues" / "lock.json").exists()
 
@@ -656,7 +695,8 @@ def test_release_force_cli_clears(tmp_path):
 def test_acquire_with_force_exits_64(tmp_path):
     common = lambda args: (1, "", "")
     code = cli.main(["acquire", "--holder", "loop-x", "--force"],
-                    repo_root=str(tmp_path), git_runner=common)
+                    runner=gh_empty, repo_root=str(tmp_path),
+                    git_runner=common)
     assert code == 64
     assert not (tmp_path / ".process_issues" / "lock.json").exists()
 
@@ -677,8 +717,8 @@ def test_usage_errors_exit_64(tmp_path):
 
 def test_acquire_cli_uses_the_session_anchor(tmp_path):
     common = lambda args: (1, "", "")
-    code = cli.main(["acquire", "--holder", "loop-x"], repo_root=str(tmp_path),
-                    git_runner=common)
+    code = cli.main(["acquire", "--holder", "loop-x"], runner=gh_empty,
+                    repo_root=str(tmp_path), git_runner=common)
     assert code == 0
     rec = json.loads((tmp_path / ".process_issues" / "lock.json").read_text())
     anchor_pid, anchor_start = lock.session_anchor()
@@ -687,3 +727,50 @@ def test_acquire_cli_uses_the_session_anchor(tmp_path):
     else:
         assert rec["pid"] == anchor_pid
         assert rec["pid_start"] == anchor_start
+
+
+def test_acquire_of_an_unlinkable_stale_lock_refuses(tmp_path):
+    state = tmp_path / ".process_issues"
+    write_lock(state, make_rec(holder="loop-b", host="h2", acquired_at=OLD))
+    state.chmod(0o500)
+    try:
+        code, note = lock.acquire(state, "loop-b", probe=probe_dead,
+                                  host="h1", boot_id="b1", now=NOW,
+                                  pid=5, pid_start="7")
+    finally:
+        state.chmod(0o700)
+    assert code == 2
+    assert "cannot clear" in note
+
+
+def test_acquire_in_an_unwritable_state_dir_refuses(tmp_path):
+    tmp_path.chmod(0o500)
+    try:
+        code, note = take(tmp_path, "loop-b")
+    finally:
+        tmp_path.chmod(0o700)
+    assert code == 2
+    assert "cannot create the lock" in note
+
+
+def test_acquire_fills_the_start_time_of_the_given_pid(tmp_path):
+    code, _note = lock.acquire(tmp_path, "loop-b", probe=probe_ok,
+                               host="h1", boot_id="b1", now=NOW,
+                               pid=os.getpid(), pid_start=None)
+    assert code == 0
+    rec = json.loads((tmp_path / "lock.json").read_text())
+    assert rec["pid_start"] == lock.start_time(os.getpid())
+
+
+def test_release_of_an_unreadable_record_refuses(tmp_path):
+    (tmp_path / "lock.json").mkdir()
+    code, _note = lock.release(tmp_path, holder="loop-b")
+    assert code == 2
+
+
+def test_unlink_of_a_directory_refuses(tmp_path):
+    target = tmp_path / "lock.json"
+    target.mkdir()
+    code, note = lock._unlink(target)
+    assert code == 2
+    assert "cannot remove" in note

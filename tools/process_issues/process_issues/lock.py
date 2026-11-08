@@ -287,6 +287,11 @@ def _stat_fields(pid):
             data = handle.read().decode("utf-8", "replace")
     except OSError:
         return None
+    return _parse_stat(data)
+
+
+def _parse_stat(data):
+    """Parse one stat payload. Return (comm, ppid, start) or None."""
     try:
         comm = data.split("(", 1)[1].rsplit(")", 1)[0]
         rest = data.rsplit(")", 1)[1].split()
