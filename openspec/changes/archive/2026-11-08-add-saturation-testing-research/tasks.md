@@ -39,5 +39,5 @@
 - [x] 6.1 Run the root test suite with the shared venv, and confirm green.
 - [x] 6.2 Run the STE checker on the report path, and fix every error.
 - [x] 6.3 Confirm `.metrics/` and `target/` stay out of the commit.
-- [ ] 6.4 Open the implementation PR with the proof line, and pass review.
-- [ ] 6.5 After the merge, open the handover issue from the report summary, with the telemetry block.
+- [x] 6.4 Open the implementation PR with the proof line, and pass review.
+- [x] 6.5 After the merge, open the handover issue from the report summary, with the telemetry block.
