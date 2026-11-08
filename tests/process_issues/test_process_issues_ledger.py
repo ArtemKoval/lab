@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from process_issues import cli, ledger
 
 
@@ -85,6 +87,44 @@ def test_append_record_creates_nested_dirs(tmp_path):
     records, notes = ledger.read_records(path)
     assert [row["id"] for row in records] == ["loop-a"]
     assert notes == []
+
+
+def test_append_record_of_a_directory_path_raises(tmp_path):
+    target = tmp_path / "ledger.jsonl"
+    target.mkdir()
+    with pytest.raises(ledger.LedgerError):
+        ledger.append_record(target, intent("loop-a"))
+
+
+def test_append_record_of_a_file_parent_raises(tmp_path):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("x", encoding="utf-8")
+    with pytest.raises(ledger.LedgerError):
+        ledger.append_record(blocker / "ledger.jsonl", intent("loop-a"))
+
+
+def test_append_record_of_a_failing_mkdir_raises(tmp_path, monkeypatch):
+    def raise_os_error(self, *args, **kwargs):
+        raise OSError("no mkdir")
+
+    monkeypatch.setattr("pathlib.Path.mkdir", raise_os_error)
+    with pytest.raises(ledger.LedgerError):
+        ledger.append_record(tmp_path / "ledger.jsonl", intent("loop-a"))
+
+
+def test_cli_confirm_skips_records_of_other_markers(tmp_path, capsys):
+    run_ledger(tmp_path, ["ledger", "write", "--kind", "comment",
+                          "--key", "15"])
+    capsys.readouterr()
+    run_ledger(tmp_path, ["ledger", "write", "--kind", "comment",
+                          "--key", "16"])
+    marker = capsys.readouterr().out.strip()
+    assert marker.startswith("loop-")
+    code = run_ledger(tmp_path, ["ledger", "confirm", "--id", marker])
+    assert code == 0
+    records, _notes = ledger.read_records(
+        tmp_path / ".process_issues" / "ledger.jsonl")
+    assert records[-1]["event"] == "confirmed"
 
 
 def test_read_records_shapes(tmp_path):
