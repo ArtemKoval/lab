@@ -69,6 +69,8 @@ def module_scores(tool, text):
     """Aggregate the table into per-module scores for one tool."""
     scores = {}
     for namespace, row in parse_table(text).items():
+        if row["sites"] == 0:
+            continue
         executed = row["killed"] + row["survived"]
         score = None if executed == 0 else round(
             100 * row["killed"] / executed, 1)
@@ -162,11 +164,6 @@ def compare_tool(entry, report, store):
     stored = store.get("tools", {}).get(name, {}).get("modules", {})
     report["verdicts"] = compare(name, report["modules"], stored)
     return report
-
-
-def _note(report, text):
-    """Append one refusal note to a tool report."""
-    report.setdefault("notes", []).append(text)
 
 
 def pass_notes(entry, report):
@@ -320,3 +317,7 @@ def _apply_update(entries, report, store, store_path, stamp):
             _print(f"saturation_pass: dropped stale module {module}")
         tools[name] = {"stamp": stamp, "modules": run_modules}
     write_store(store_path, store)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

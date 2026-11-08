@@ -36,15 +36,36 @@ The CLI SHALL parse the printed per-function table of the mutator.
 The CLI SHALL group the rows by the namespace column and SHALL
 compute each module score as `round(100 * sum(killed) / (sum(killed)
 + sum(survived)), 1)`. The CLI SHALL skip the header, the separator
-line, and the `Total` row. A module whose score is `n/a` never holds
-or improves. When the mutator prints no table at all, the CLI SHALL
-treat that tool as failed and name it.
+line, and the `Total` row.
+
+#### Scenario: The table groups by namespace
+- **GIVEN** a printed table with rows from two namespaces
+- **WHEN** the CLI parses the table
+- **THEN** each namespace carries the sum of its rows, and the header,
+  the separator, and the `Total` row stay out
+
+### Requirement: The pass scores modules by their mutants
+A namespace whose aggregated site count is zero carries no mutants.
+The CLI SHALL omit it from the report and the store. A namespace with
+sites but no executed mutants carries no score and never holds or
+improves.
 
 #### Scenario: A score-less run fails the pass
 - **GIVEN** a mutator table whose module scores are all `n/a`
 - **WHEN** the CLI compares the run against the store
 - **THEN** the CLI exits 2 and names the tool and the modules with no
   score
+
+#### Scenario: A siteless namespace stays out of the store
+- **GIVEN** a mutator table with one namespace whose rows carry zero
+  sites
+- **WHEN** the CLI computes the module scores
+- **THEN** the scores carry no entry for that namespace and the other
+  namespaces keep their scores
+
+### Requirement: The pass fails a table-less tool
+When the mutator prints no table at all, the CLI SHALL treat that
+tool as failed and name it.
 
 #### Scenario: A mutator run with no table fails the tool
 - **GIVEN** a mutator run that prints no table for one tool

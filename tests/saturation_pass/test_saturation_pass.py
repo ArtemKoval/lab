@@ -108,6 +108,19 @@ def test_module_scores_of_scoreless_rows_give_none():
     }
 
 
+def test_module_scores_omit_siteless_namespaces():
+    siteless = TABLE.replace(
+        next(line for line in TABLE.splitlines()
+             if line.startswith("word_count")),
+        "word_count tools.spec_ste_check.spec_ste_check.cli 0 0 0 0 n/a",
+    )
+    scores = module_scores("spec_ste_check", siteless)
+    assert "tools.spec_ste_check.spec_ste_check.cli" not in scores
+    assert scores["tools.spec_ste_check.spec_ste_check.rules"] == {
+        "sites": 9, "score": 88.9,
+    }
+
+
 STORED = {
     "tools.spec_ste_check.spec_ste_check.rules": {"sites": 9, "score": 88.9},
     "tools.spec_ste_check.spec_ste_check.cli": {"sites": 1, "score": 100.0},
@@ -163,6 +176,13 @@ def test_run_mutator_returns_code_stdout_and_stderr():
 
 def test_store_roundtrip_keeps_the_schema(tmp_path):
     path = tmp_path / "scores.json"
+    write_store(path, seeded_store())
+    assert load_store(path) == seeded_store()
+
+
+def test_store_write_twice_to_the_same_path_succeeds(tmp_path):
+    path = tmp_path / "scores.json"
+    write_store(path, seeded_store())
     write_store(path, seeded_store())
     assert load_store(path) == seeded_store()
 
@@ -340,8 +360,7 @@ def test_main_mutator_baseline_failure_fails_one_tool(tmp_path, capsys):
     )
     assert code == 2
     captured = capsys.readouterr().err
-    assert "spec_ste_check" in captured
-    assert "code 2" in captured
+    assert "spec_ste_check: the mutator exited with code 2" in captured
 
 
 def test_main_mutator_with_no_table_fails_the_tool(tmp_path, capsys):
@@ -378,3 +397,15 @@ def test_main_writes_the_json_report(tmp_path):
     data = json.loads(report.read_text(encoding="utf-8"))
     assert data["schema"] == 1
     assert data["tools"]["spec_ste_check"]["verdicts"][0]["verdict"] == "hold"
+
+
+def test_main_writes_the_json_report_twice(tmp_path):
+    store_path, coverage = seeded(tmp_path)
+    report = tmp_path / "nested" / "report.json"
+    argv = ["--tool", "spec_ste_check", "--store", str(store_path),
+            "--coverage", str(coverage), "--json", str(report)]
+    main(argv, mutator=lambda argv: (3, TABLE, ""), clock=lambda: STAMP)
+    code = main(argv, mutator=lambda argv: (3, TABLE, ""),
+                clock=lambda: STAMP)
+    assert code == 0
+    assert report.is_file()

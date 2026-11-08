@@ -80,6 +80,14 @@ workflow), and the exit-0 CI bar. The review settled these decisions:
   is unlikely. The baseline records their site counts in the pull
   request description, so a zero-site entry surfaces once, at the
   baseline.
+- Amendment, found by the first baseline attempt: dspy_gate holds
+  namespaces with zero mutable sites (`harness.registry`,
+  `harness.triage`, `mcp_server`, and the `harness.preview` handler),
+  and the first n/a rule conflated them with coverage gaps. The rule
+  now separates the two: a namespace with zero aggregated sites
+  carries no mutants and stays out of the report and the store, while
+  a namespace with sites but no executed mutants fails the run. The
+  delta scenario pins the split.
 
 ## Diagram
 
