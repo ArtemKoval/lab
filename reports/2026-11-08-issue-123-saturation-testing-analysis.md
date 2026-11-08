@@ -138,3 +138,44 @@ full pass on this host, with the manual coverage pass from the quality
 gates, records 65 sites, 64 killed, no survivors, and exit 0. One site
 at `cli.py:62` stays uncovered in that pass, because the manual
 coverage pass misses the subprocess that hits it.
+
+## 9. The baseline record
+
+Proposal 4 asked for the measurement to reach the remaining owned
+tools. The `add-saturation-ratchet` change delivered it: the first
+baseline pass covered all nine Python-bearing tools with their area
+suites and landed the store at `reports/saturation/scores.json`. The
+ratchet holds that store as the floor, and the weekly pass refuses
+any per-module drop against it. The table carries one row per tool:
+the module count, the site count, and the lowest module score.
+
+| Tool | Modules | Sites | Lowest module score |
+| --- | --- | --- | --- |
+| `plan_exec` | 4 | 104 | 95.7 |
+| `spec_ste_check` | 3 | 67 | 95.5 |
+| `devcontainer_init` | 2 | 9 | 100.0 |
+| `handover_telemetry` | 11 | 321 | 95.2 |
+| `handover_telemetry_setup` | 1 | 25 | 83.3 |
+| `dspy_gate` | 25 | 350 | 75.0 |
+| `dspy_gate_setup` | 1 | 49 | 90.0 |
+| `peak_hours_gate` | 2 | 34 | 96.7 |
+| `process_issues` | 6 | 187 | 100.0 |
+
+Two tools hold the bar at every module: `devcontainer_init` and
+`process_issues`. The weakest modules sit in the gate machinery:
+`dspy_gate.matrix` at 75.0 with 4 sites, `dspy_gate.manifest` at 80.0
+with 6 sites, `handover_telemetry_setup` at 83.3 with 25 sites, and
+`dspy_gate_setup` at 90.0 with 49 sites. Each score below 100.0 marks
+a surviving mutant under the area suite, and each survivor is a
+missing assertion. The follow-up list lands in the run's handover
+issue. The scores measure area-suite killing power. The
+per-pull-request gate keeps its stronger root-suite bar on changed
+paths.
+
+Two open questions travel with this record. First, the fde surfaces
+keep their mutmut 95 percent target, and the scheduled pass does not
+govern fde. The operator owns that alignment. Second, the coverage
+export of this run omits comprehension-body lines, so a module can
+print uncovered sites that its own suite covers. The weekly pass
+counts those sites as not run, which lowers no score, but a reader
+comparing the store with the coverage report should expect the gap.
