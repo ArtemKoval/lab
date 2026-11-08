@@ -1,6 +1,6 @@
 ---
 name: feature-pipeline
-description: Full delivery pipeline for ANY prompt that asks to build, add, implement, fix, refactor, automate, or change something in this repository — isolated branch, spec capture with OpenSpec, ASIT-guided design, standalone code, unit tests at maximum coverage, cyclomatic complexity ≤ 10, mutation score ≥ 95%, Claude tool and skill, docs, adversarial pull/merge-request review, merge, and cleanup, on any version control system. Invoke for every request that changes repository files; skip only for purely informational questions that change nothing.
+description: Full delivery pipeline for ANY prompt that asks to build, add, implement, fix, refactor, automate, or change something in this repository — isolated branch, spec capture with OpenSpec, ASIT-guided design, standalone code, unit tests at maximum coverage, cyclomatic complexity ≤ 10, mutation with no survivors, Claude tool and skill, docs, adversarial pull/merge-request review, merge, and cleanup, on any version control system. Invoke for every request that changes repository files; skip only for purely informational questions that change nothing.
 ---
 
 # Feature delivery pipeline
@@ -116,7 +116,8 @@ pipeline lacked:
   `--max-absolute B`, lizard `-C 10`, ESLint `complexity: ["error", 10]`). A
   touched legacy function above 10 is split (Division) in the same change, or
   listed as a follow-up if that's unsafe in scope.
-- **Mutation score ≥ 95%** on added or modified code — diff-scoped where the
+- **Mutation bar: no survivors** on added or modified code (the mutator's
+  exit 0) — diff-scoped where the
   tool allows, else per touched module (e.g. mutmut, cosmic-ray, Stryker, PIT,
   cargo-mutants). Timeouts count as killed; an equivalent mutant is excluded
   only with a written per-mutant reason, never by loosening tool config. Each
