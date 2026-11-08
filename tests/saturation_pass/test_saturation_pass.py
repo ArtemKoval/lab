@@ -205,7 +205,8 @@ def test_main_refuses_an_unknown_tool(tmp_path, capsys):
 
 
 def test_main_missing_coverage_fails_with_the_hint(tmp_path, capsys):
-    code = main(["--store", str(tmp_path / "s.json")],
+    code = main(["--store", str(tmp_path / "s.json"),
+                 "--coverage", str(tmp_path / "absent.info")],
                 mutator=ok_mutator, clock=lambda: STAMP)
     assert code == 2
     assert "--coverage" in capsys.readouterr().err
