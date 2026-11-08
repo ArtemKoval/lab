@@ -1,6 +1,7 @@
 """Behavior tests for the saturation pass CLI in saturation_pass."""
 
 import json
+import sys
 
 from saturation_pass import (
     TOOL_TABLE,
@@ -9,6 +10,7 @@ from saturation_pass import (
     main,
     module_scores,
     parse_table,
+    run_mutator,
     write_store,
 )
 
@@ -145,6 +147,18 @@ def test_compare_marks_a_scoreless_module_as_a_violation():
 
 def test_load_store_of_a_missing_file_gives_none(tmp_path):
     assert load_store(tmp_path / "absent.json") is None
+
+
+def test_load_store_of_corrupt_json_gives_none(tmp_path):
+    path = tmp_path / "scores.json"
+    path.write_text("not json {", encoding="utf-8")
+    assert load_store(path) is None
+
+
+def test_run_mutator_returns_code_stdout_and_stderr():
+    code, out, err = run_mutator(
+        [sys.executable, "-c", "print('table out'); raise SystemExit(3)"])
+    assert (code, out.strip(), err) == (3, "table out", "")
 
 
 def test_store_roundtrip_keeps_the_schema(tmp_path):
@@ -316,7 +330,7 @@ def test_main_mutator_baseline_failure_fails_one_tool(tmp_path, capsys):
 
     def failing(argv):
         if argv[-1].endswith("spec_ste_check"):
-            return 2, "", "baseline broke"
+            return 2, TABLE, "baseline broke"
         return 0, TABLE, ""
 
     code = main(
@@ -324,7 +338,21 @@ def test_main_mutator_baseline_failure_fails_one_tool(tmp_path, capsys):
         mutator=failing, clock=lambda: STAMP,
     )
     assert code == 2
-    assert "spec_ste_check" in capsys.readouterr().err
+    captured = capsys.readouterr().err
+    assert "spec_ste_check" in captured
+    assert "code 2" in captured
+
+
+def test_main_mutator_with_no_table_fails_the_tool(tmp_path, capsys):
+    store_path, coverage = seeded(tmp_path)
+    code = main(
+        ["--tool", "spec_ste_check", "--store", str(store_path),
+         "--coverage", str(coverage)],
+        mutator=lambda argv: (0, "No functions to mutate.\n", ""),
+        clock=lambda: STAMP,
+    )
+    assert code == 2
+    assert "no table" in capsys.readouterr().err
 
 
 def test_main_mutator_exit_three_with_held_scores_passes(tmp_path):

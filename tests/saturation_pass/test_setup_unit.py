@@ -21,7 +21,8 @@ def test_the_cli_help_exit_is_0():
     import subprocess
 
     proc = subprocess.run(
-        ["python3", "tools/saturation_pass/saturation_pass.py", "--help"],
+        ["tools/zai_routing_audit/.venv/bin/python",
+         "tools/saturation_pass/saturation_pass.py", "--help"],
         capture_output=True, text=True, check=False, cwd=REPO_ROOT)
     assert proc.returncode == 0
     assert "saturation_pass" in proc.stdout
