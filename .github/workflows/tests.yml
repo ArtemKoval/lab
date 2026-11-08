@@ -160,8 +160,8 @@ jobs:
             exit 0
           fi
           # The gate holds the saturation bar: the mutator exits 0 only
-          # when every executed mutant dies. Exit 3 names a survivor and
-          # exit 2 names a failed baseline; both fail the pull request.
+          # when every executed mutant dies. Exit 3 names a survivor.
+          # Exit 2 names a failed baseline. Both fail the pull request.
           tools/mutator/mutator \
             --use-existing-coverage \
             --max-workers 4 \
