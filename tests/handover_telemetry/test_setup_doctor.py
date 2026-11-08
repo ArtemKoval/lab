@@ -87,6 +87,13 @@ def test_doctor_json_carries_ok_and_checks(repo, capsys, monkeypatch):
     assert set(report["checks"]) == {"shim exists and runs", "hook groups wired", "charter group untouched", "interpreter resolves"}
 
 
+def test_doctor_json_key_order_is_stable(repo, capsys, monkeypatch):
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: "/usr/bin/python3")
+    doctor.main(["--repo-root", str(repo), "--json"])
+    raw = capsys.readouterr().out
+    assert raw.index('"ok"') < raw.index('"repo_root"') < raw.index('"checks"')
+
+
 def test_doctor_plain_output_names_every_check(repo, capsys, monkeypatch):
     monkeypatch.setattr(doctor.shutil, "which", lambda name: "/usr/bin/python3")
     assert doctor.main(["--repo-root", str(repo)]) == 0
