@@ -2,6 +2,7 @@
 stable slugs, source hashes, requirement grouping, and the refusal
 contract for an unparseable scenario."""
 
+import hashlib
 import textwrap
 
 import pytest
@@ -70,6 +71,14 @@ def test_the_source_hash_is_stable_across_runs(tmp_path):
     a = first["requirements"][0]["scenarios"][0]["source_hash"]
     b = second["requirements"][0]["scenarios"][0]["source_hash"]
     assert a == b and len(a) == 10
+
+
+def test_the_source_hash_covers_the_whole_scenario_block(tmp_path):
+    change_dir = write_change(tmp_path, spec_text=SPEC)
+    data = scenarioparse.parse_change(change_dir)
+    match = next(scenarioparse.SCENARIO_RE.finditer(textwrap.dedent(SPEC)))
+    expected = hashlib.sha1(match.group(0).encode()).hexdigest()[:10]
+    assert data["requirements"][0]["scenarios"][0]["source_hash"] == expected
 
 
 def test_a_scenario_without_when_is_refused(tmp_path):

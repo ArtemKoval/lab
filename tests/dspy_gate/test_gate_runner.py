@@ -2,6 +2,7 @@
 suite runs, the failure routes, and the conformance matrix."""
 
 import json
+import types
 
 from dspy_gate import checks, evals, matrix
 
@@ -126,3 +127,28 @@ def test_the_matrix_json_is_stable():
     first = matrix.to_json(report)
     second = matrix.to_json(report)
     assert json.loads(first) == json.loads(second)
+
+
+def test_the_matrix_renders_the_tier_column():
+    report = types.SimpleNamespace(
+        rows=[
+            {
+                "scenario_id": "one-scenario",
+                "green": True,
+                "deferred": False,
+                "tiers": {"A": True},
+                "route": "no route",
+            },
+            {
+                "scenario_id": "two-scenario",
+                "green": True,
+                "deferred": False,
+                "tiers": {},
+                "route": None,
+            },
+        ],
+        exit=0,
+    )
+    text = matrix.render(report)
+    assert "| one-scenario | green | A | no route |" in text
+    assert "| two-scenario | green | - | - |" in text

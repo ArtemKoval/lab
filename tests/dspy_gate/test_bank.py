@@ -56,6 +56,30 @@ def test_retrieval_returns_the_most_similar_first(tmp_path):
     assert hits[0]["scenario_id"] == "billing-disputes-route-to-billing"
 
 
+def test_retrieve_holds_the_union_floor_on_empty_text(tmp_path):
+    path = tmp_path / "bank.jsonl"
+    path.write_text('{"scenario_id": "bare-entry"}\n', encoding="utf-8")
+    assert bank.retrieve(path, "") == [{"scenario_id": "bare-entry"}]
+
+
+def test_retrieve_orders_equal_overlaps_by_union_size(tmp_path):
+    path = tmp_path / "bank.jsonl"
+    bank.write(
+        path,
+        entry(
+            scenario_id="wide-entry",
+            inputs="alpha beta gamma delta",
+            prediction="",
+        ),
+    )
+    bank.write(
+        path,
+        entry(scenario_id="exact-entry", inputs="alpha beta", prediction=""),
+    )
+    hits = bank.retrieve(path, "alpha beta")
+    assert [hit["scenario_id"] for hit in hits] == ["exact-entry", "wide-entry"]
+
+
 def test_the_bank_file_holds_one_json_object_per_line(tmp_path):
     path = tmp_path / "bank.jsonl"
     bank.write(path, entry())

@@ -426,3 +426,17 @@ def test_optimize_reports_no_optimized_modules(tmp_path, capsys, monkeypatch):
     capsys.readouterr()
     assert run(["optimize", "demo"], root, monkeypatch) == 0
     assert "no optimized modules" in capsys.readouterr().out
+
+
+def test_a_bare_call_fails_with_usage(capsys):
+    assert cli.main([]) == 2
+    captured = capsys.readouterr()
+    assert "usage:" in captured.err
+    assert captured.out == ""
+
+
+def test_nightly_without_the_report_flag_fails_with_usage(capsys):
+    assert cli.main(["nightly", "demo"]) == 2
+    captured = capsys.readouterr()
+    assert "--from-report" in captured.err
+    assert captured.out == ""

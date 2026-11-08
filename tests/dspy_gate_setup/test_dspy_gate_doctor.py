@@ -43,6 +43,32 @@ def test_the_hooks_wired_check_reads_the_settings(tmp_path):
     assert doctor._hooks_wired(tmp_path) is False
 
 
+def test_the_hooks_wired_check_needs_both_shims(tmp_path):
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True)
+    hooks = {
+        "PreToolUse": [
+            {"hooks": [{"type": "command", "command": "spec-gates-protect.sh"}]}
+        ]
+    }
+    settings.write_text(json.dumps({"hooks": hooks}), encoding="utf-8")
+    assert doctor._hooks_wired(tmp_path) is False
+
+
+def test_a_failing_probe_leaves_the_output_clean(tmp_path, capfd):
+    venv_bin = tmp_path / "tools" / "dspy_gate" / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    interpreter = venv_bin / "python"
+    interpreter.write_text("#!/bin/sh\necho probe boom >&2\nexit 1\n", encoding="utf-8")
+    interpreter.chmod(0o755)
+    policy = tmp_path / "tools" / "dspy_gate" / "gates.yaml"
+    policy.write_text("version: 1\n", encoding="utf-8")
+    assert doctor.main(["--repo-root", str(tmp_path), "--json"]) == 2
+    captured = capfd.readouterr()
+    assert captured.err == ""
+    assert json.loads(captured.out)["ok"] is False
+
+
 def test_install_marks_the_shims_executable(tmp_path):
     hooks = tmp_path / ".claude" / "hooks"
     hooks.mkdir(parents=True)
