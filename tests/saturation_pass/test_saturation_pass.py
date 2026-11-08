@@ -302,11 +302,25 @@ def test_main_warns_that_the_mutator_discovers_its_own_coverage(
     assert "discovers the house lcov path" in capsys.readouterr().err
 
 
-def test_the_coverage_note_stays_silent_on_the_default_path():
+def test_the_coverage_note_stays_silent_on_the_default_path(
+        tmp_path, monkeypatch, capsys):
+    import saturation_pass
     from saturation_pass import COVERAGE_PATH, _coverage_note
 
     assert _coverage_note(COVERAGE_PATH) is None
     assert _coverage_note("elsewhere.info") is not None
+    other = tmp_path / "elsewhere.info"
+    other.write_text("SF:x\n", encoding="utf-8")
+    monkeypatch.setattr(saturation_pass, "COVERAGE_PATH", str(other))
+    store_path = tmp_path / "scores.json"
+    write_store(store_path, seeded_store())
+    code = main(
+        ["--tool", "spec_ste_check", "--store", str(store_path),
+         "--coverage", str(other)],
+        mutator=ok_mutator, clock=lambda: STAMP,
+    )
+    assert code == 0
+    assert "discovers" not in capsys.readouterr().err
 
 
 def test_store_write_creates_nested_dirs(tmp_path):

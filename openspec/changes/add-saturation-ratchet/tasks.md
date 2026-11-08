@@ -51,7 +51,7 @@
   `reports/saturation/scores.json` as the first baseline. Record the
   per-tool site counts in the pull request description.
 - [x] 4.2 Land `adr/0014-scheduled-saturation-pass.md`.
-- [ ] 4.3 Run the full hermetic suite, the branch-coverage floor, the
+- [x] 4.3 Run the full hermetic suite, the branch-coverage floor, the
   CRAP gate, and the mutation gate on the changed code, and run
   `openspec validate add-saturation-ratchet --type change --strict`.
 - [ ] 4.4 Open the implementation pull request with the line
