@@ -10,3 +10,10 @@ omit =
     tools/dspy_gate/dspy_gate/__main__.py
     tools/peak_hours_gate/peak_hours_gate/__main__.py
     tools/process_issues/process_issues/__main__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    # The script entry guard only calls main, which the suite tests
+    # directly.
+    ^\s*if __name__ == .__main__.:\s*$
