@@ -122,3 +122,15 @@ checker misses the bar by one known mutant with a known fix. The
 saturation definition fits the vendored tools exactly, because the
 tools are the tools the definition names. The next actions, in value
 order, sit in section 6, and each one waits for its own approval.
+
+## 8. Correction, 2026-11-08
+
+The proposal 1 mechanism cannot kill the survivor. The progressive
+regex at `rules.py:49` matches one auxiliary word and one `-ing` word,
+so every match carries two tokens. The sentence `has been running`
+matches `been running`, and the two indices agree for every input. No
+test can kill that mutant. The change that reaches exit 0 captures the
+participle in the regex and reads `match.group(1)`. The `[-1]` site
+ceases to exist. The new `1 -> 0` site at `rules.py:191` dies through
+the existing allowlist test. The full pass on this host records 65
+sites, 64 killed, one uncovered, no survivors, and exit 0.
