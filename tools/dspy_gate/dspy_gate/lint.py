@@ -7,11 +7,26 @@ existing rubric, every scenario carries a known surface tag, and every
 change threshold sits inside the policy bounds.
 """
 
+import re
 import subprocess
 from pathlib import Path
 
 from . import compile as compile_mod
 from . import gatepolicy, scenarioparse
+
+
+def declares_skip_specs(change_dir):
+    """Return True when the change metadata declares skip_specs.
+
+    A docs-only change declares it and carries no delta spec, so the
+    zero-scenario refusal does not apply.
+    """
+    meta = Path(change_dir) / ".openspec.yaml"
+    try:
+        text = meta.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return bool(re.search(r"^skip_specs:\s*true\s*$", text, re.MULTILINE))
 
 
 def openspec_validate(change_dir):
@@ -50,14 +65,23 @@ def lint_change(change_dir, policy, modules=None, validate=None):
     ok, output = validate(change_dir)
     if not ok:
         found.append(f"openspec validate failed: {output.strip()}")
+    skip = declares_skip_specs(change_dir)
     try:
         data = scenarioparse.parse_change(change_dir)
         parse_error = None
     except scenarioparse.ScenarioParseError as exc:
         data = {"change_id": "", "requirements": []}
         parse_error = str(exc)
-    if parse_error:
+    if parse_error and not skip:
         found.append(parse_error)
+    found.extend(_scenario_findings(change_dir, data, modules))
+    found.extend(_bounds_violations(change_dir, policy))
+    return found
+
+
+def _scenario_findings(change_dir, data, modules):
+    """Return the scenario violations of one parsed change."""
+    found = []
     found.extend(_slug_duplicates(data))
     for requirement in data["requirements"]:
         name = requirement["name"]
@@ -66,7 +90,6 @@ def lint_change(change_dir, policy, modules=None, validate=None):
         for scenario in requirement["scenarios"]:
             if modules is None or scenario["capability"] in modules:
                 found.extend(_scenario_violations(change_dir, scenario))
-    found.extend(_bounds_violations(change_dir, policy))
     return found
 
 
