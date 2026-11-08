@@ -12,6 +12,7 @@ from saturation_pass import (
     parse_table,
     run_mutator,
     write_store,
+    _write_report,
 )
 
 TABLE = """Some header noise
@@ -187,6 +188,14 @@ def test_store_write_twice_to_the_same_path_succeeds(tmp_path):
     assert load_store(path) == seeded_store()
 
 
+def test_report_write_twice_to_the_same_path_succeeds(tmp_path):
+    path = tmp_path / "nested" / "report.json"
+    report = {"schema": 1, "tools": {}}
+    _write_report(path, report)
+    _write_report(path, report)
+    assert path.is_file()
+
+
 def test_table_names_the_nine_owned_tools():
     names = [entry[0] for entry in TOOL_TABLE]
     assert names == [
@@ -221,7 +230,9 @@ def test_main_refuses_an_unknown_tool(tmp_path, capsys):
         mutator=ok_mutator, clock=lambda: STAMP,
     )
     assert code == 2
-    assert "nope" in capsys.readouterr().err
+    captured = capsys.readouterr().err
+    assert "nope" in captured
+    assert str([entry[0] for entry in TOOL_TABLE]) in captured
 
 
 def test_main_missing_coverage_fails_with_the_hint(tmp_path, capsys):
@@ -346,8 +357,9 @@ def test_main_update_drops_a_stale_module(tmp_path):
     assert "gone.rules" not in store["tools"]["spec_ste_check"]["modules"]
 
 
-def test_main_mutator_baseline_failure_fails_one_tool(tmp_path, capsys):
+def test_main_mutator_baseline_failure_fails_one_tool(tmp_path):
     store_path, coverage = seeded(tmp_path)
+    report = tmp_path / "report.json"
 
     def failing(argv):
         if argv[-1].endswith("spec_ste_check"):
@@ -355,12 +367,14 @@ def test_main_mutator_baseline_failure_fails_one_tool(tmp_path, capsys):
         return 0, TABLE, ""
 
     code = main(
-        ["--store", str(store_path), "--coverage", str(coverage)],
+        ["--store", str(store_path), "--coverage", str(coverage),
+         "--json", str(report)],
         mutator=failing, clock=lambda: STAMP,
     )
     assert code == 2
-    captured = capsys.readouterr().err
-    assert "spec_ste_check: the mutator exited with code 2" in captured
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["tools"]["spec_ste_check"]["error"] == (
+        "spec_ste_check: the mutator exited with code 2: baseline broke")
 
 
 def test_main_mutator_with_no_table_fails_the_tool(tmp_path, capsys):
