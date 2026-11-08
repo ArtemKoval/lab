@@ -331,6 +331,7 @@ def test_main_update_rewrites_the_store_after_a_clean_run(tmp_path):
 
 def test_main_update_refuses_a_violation_and_keeps_the_store(tmp_path):
     store_path, coverage = seeded(tmp_path)
+    report = tmp_path / "report.json"
     low = TABLE.replace(
         "_check_word_hits               tools.spec_ste_check"
         ".spec_ste_check.rules       2         0          0      2 100.0%",
@@ -339,11 +340,15 @@ def test_main_update_refuses_a_violation_and_keeps_the_store(tmp_path):
     )
     code = main(
         ["--update", "--tool", "spec_ste_check", "--store", str(store_path),
-         "--coverage", str(coverage)],
+         "--coverage", str(coverage), "--json", str(report)],
         mutator=lambda argv: (0, low, ""), clock=lambda: STAMP,
     )
     assert code == 2
     assert load_store(store_path) == seeded_store()
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["tools"]["spec_ste_check"]["notes"] == [
+        "spec_ste_check: tools.spec_ste_check.spec_ste_check.rules"
+        " dropped from 88.9 to 77.8"]
 
 
 def test_main_update_drops_a_stale_module(tmp_path):
