@@ -54,6 +54,19 @@ def test_doctor_reports_missing_shim(repo):
     assert doctor.main(["--repo-root", str(repo), "--json"]) == 2
 
 
+def test_doctor_reports_a_non_executable_shim(repo, monkeypatch):
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: "/usr/bin/python3")
+    shim = repo / ".claude" / "hooks" / "cc-logging.sh"
+    shim.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    assert doctor.main(["--repo-root", str(repo), "--json"]) == 2
+
+
+def test_charter_check_fails_on_unreadable_settings(repo):
+    (repo / ".claude" / "settings.json").write_text("{", encoding="utf-8")
+    settings = repo / ".claude" / "settings.json"
+    assert doctor._charter_present(settings) is False
+
+
 def test_doctor_reports_missing_groups(repo):
     data = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
     del data["hooks"]["Stop"]
@@ -74,6 +87,43 @@ def test_doctor_json_carries_ok_and_checks(repo, capsys, monkeypatch):
     assert set(report["checks"]) == {"shim exists and runs", "hook groups wired", "charter group untouched", "interpreter resolves"}
 
 
+def test_doctor_json_key_order_is_stable(repo, capsys, monkeypatch):
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: "/usr/bin/python3")
+    doctor.main(["--repo-root", str(repo), "--json"])
+    raw = capsys.readouterr().out
+    assert raw.index('"ok"') < raw.index('"repo_root"') < raw.index('"checks"')
+
+
+def test_doctor_plain_output_names_every_check(repo, capsys, monkeypatch):
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: "/usr/bin/python3")
+    assert doctor.main(["--repo-root", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert "ok: shim exists and runs" in out
+    assert "ok: charter group untouched" in out
+
+
+def test_doctor_install_flag_runs_through_main(repo, monkeypatch):
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: "/usr/bin/python3")
+    before = (repo / ".claude" / "settings.json").read_bytes()
+    assert doctor.main(["--repo-root", str(repo), "--install"]) == 0
+    after = (repo / ".claude" / "settings.json").read_bytes()
+    assert before == after
+
+
+def test_charter_check_fails_without_the_hooks_key(repo):
+    settings = repo / ".claude" / "settings.json"
+    settings.write_text(json.dumps({"outputStyle": "ASD-STE100"}), encoding="utf-8")
+    assert doctor._charter_present(settings) is False
+
+
+def test_charter_check_fails_on_a_commandless_hook(repo):
+    settings = repo / ".claude" / "settings.json"
+    data = json.loads(settings.read_text(encoding="utf-8"))
+    data["hooks"]["SessionStart"] = [{"hooks": [{"type": "command"}]}]
+    settings.write_text(json.dumps(data), encoding="utf-8")
+    assert doctor._charter_present(settings) is False
+
+
 def test_install_adds_missing_groups(repo):
     data = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
     del data["hooks"]["Stop"]
@@ -82,6 +132,16 @@ def test_install_adds_missing_groups(repo):
     doctor.install(repo)
     wired = doctor._wired_events(repo / ".claude" / "settings.json")
     assert set(wired) == set(EVENTS)
+
+
+def test_install_writes_the_full_hook_entry(repo):
+    data = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    del data["hooks"]["Stop"]
+    (repo / ".claude" / "settings.json").write_text(json.dumps(data), encoding="utf-8")
+    doctor.install(repo)
+    data = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    entry = data["hooks"]["Stop"][-1]["hooks"][0]
+    assert entry == {"type": "command", "command": HOOK, "timeout": 10, "async": False}
 
 
 def test_install_keeps_charter_and_output_style(repo):

@@ -106,6 +106,13 @@ def test_write_and_load_round_trip(tmp_path):
     )
 
 
+def test_write_creates_a_missing_nested_directory(tmp_path):
+    target = tmp_path / "evals" / "demo" / "eval_manifest.json"
+    manifest.write(built(), target)
+    loaded = json.loads(target.read_text(encoding="utf-8"))
+    assert loaded["changes"]["demo"]["eval_cases"]
+
+
 def test_verify_passes_on_full_coverage_both_ways():
     assert manifest.verify(built(), CHANGE, MODULES) == []
 

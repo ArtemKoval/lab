@@ -135,6 +135,13 @@ def test_a_second_promotion_keeps_the_previous_pointer(tmp_path):
     assert json.loads((artifacts / "previous.json").read_text())["source"] == "candidates/a"
 
 
+def test_promote_creates_a_missing_nested_artifacts_root(tmp_path):
+    root = tmp_path / "runs" / "weekly" / "artifacts"
+    result = nightly.promote(root, "candidates/c")
+    assert result == {"current": "candidates/c", "previous": None}
+    assert json.loads((root / "current.json").read_text())["source"] == "candidates/c"
+
+
 def test_an_existing_draft_is_returned_as_is(tmp_path):
     classified = [{"scenario_id": "ghost-scenario", "kind": "spec gap"}]
     first = nightly.escalate(classified, tmp_path, {"ghost-scenario": 3})

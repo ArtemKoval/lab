@@ -4,11 +4,9 @@ One JSONL entry per validated trajectory. Writes are the sensitive
 path: only trajectories whose gate verdicts are all green enter, and
 an entry leaves when it fails a frozen suite. Retrieval scores token
 overlap, so the runtime needs no model to recall a demonstration.
-
-Accepted equivalent mutants: the union floor (max(1, ...)) and the
-division in the overlap are order-preserving for every input the
-public API can reach, because the str(dict) tokenization never
-produces a one-token union. Verified against the retrieval tests.
+The retrieval tests pin the union floor and the overlap division: an
+entry without text must not crash retrieval, and equal intersections
+order by union size.
 """
 
 import json
