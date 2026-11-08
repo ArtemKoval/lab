@@ -33,7 +33,7 @@ def test_workflow_runs_the_suite_through_the_repo_venv():
         "tools/zai_routing_audit/.venv/bin/python -m pytest "
         "--cov plan_exec --cov spec_ste_check --cov handover_telemetry "
         "--cov dspy_gate --cov dspy_gate_setup --cov peak_hours_gate "
-        "--cov process_issues "
+        "--cov process_issues --cov saturation_pass "
         "--cov-branch --cov-fail-under=100" in text
     )
 
@@ -52,6 +52,10 @@ def test_workflow_lints_the_tools():
     assert (
         "tools/zai_routing_audit/.venv/bin/ruff check tools/process_issues" in text
     )
+    assert (
+        "tools/zai_routing_audit/.venv/bin/ruff check tools/saturation_pass"
+        in text
+    )
 
 
 def test_workflow_gates_the_dspy_gate_paths():
@@ -59,7 +63,7 @@ def test_workflow_gates_the_dspy_gate_paths():
     assert "dspy_gate|dspy_gate_setup" in text
     assert (
         "tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,"
-        "tools/process_issues,tests" in text
+        "tools/process_issues,tools/saturation_pass,tests" in text
     )
 
 
@@ -90,7 +94,7 @@ def test_workflow_whitelists_the_gated_roots():
     assert (
         "grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|devcontainer_init"
         "|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup"
-        "|peak_hours_gate|process_issues)/|tests/)'"
+        "|peak_hours_gate|process_issues|saturation_pass)/|tests/)'"
         in text
     )
     # The whitelist is the only exclusion mechanism in the derive step.
@@ -103,7 +107,8 @@ def test_workflow_measures_coverage_over_the_gated_roots():
         "--source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,"
         "tools/devcontainer_init,tools/handover_telemetry,"
         "tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,"
-        "tools/peak_hours_gate,tools/process_issues,tests" in text
+        "tools/peak_hours_gate,tools/process_issues,"
+        "tools/saturation_pass,tests" in text
     )
     assert "coverage lcov" in text
     assert "-o target/coverage/python/lcov.info" in text

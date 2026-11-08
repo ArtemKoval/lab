@@ -1,0 +1,69 @@
+name: saturation-pass
+
+on:
+  workflow_dispatch:
+    inputs:
+      tools:
+        description: 'Comma-separated tool names; empty runs all owned tools'
+        required: false
+        default: ''
+  schedule:
+    - cron: '37 4 * * 1'
+
+concurrency:
+  group: saturation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  saturation-pass:
+    # Default on: the pass burns runner minutes only. The variable is
+    # the operator escape hatch. The workflow enforces only: the store
+    # moves only through pull requests, so no step writes it.
+    if: vars.SATURATION_PASS_ENABLED != 'false'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build the shared repository venv
+        run: |
+          python -m venv tools/zai_routing_audit/.venv
+          tools/zai_routing_audit/.venv/bin/python -m pip install --upgrade pip
+          tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt
+      - name: Build the gate tool venvs
+        run: |
+          python -m venv tools/crapper/.venv
+          tools/crapper/.venv/bin/python -m pip install -e 'tools/crapper[dev]' coverage
+          python -m venv tools/dryer/.venv
+          tools/dryer/.venv/bin/python -m pip install -e 'tools/dryer[dev]' coverage
+          python -m venv tools/mutator/.venv
+          tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage
+      - name: Produce the gate coverage report
+        run: |
+          tools/zai_routing_audit/.venv/bin/python -m coverage run \
+            --data-file=target/coverage/python/.coverage \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tests \
+            -m pytest -q tests
+          tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
+            --data-file=target/coverage/python/.coverage \
+            -o target/coverage/python/lcov.info
+      - name: Run the saturation pass
+        run: |
+          mkdir -p target/saturation
+          picks=""
+          if [ -n "${{ github.event.inputs.tools }}" ]; then
+            for tool in $(printf '%s' "${{ github.event.inputs.tools }}" | tr ',' ' '); do
+              picks="$picks --tool $tool"
+            done
+          fi
+          tools/zai_routing_audit/.venv/bin/python \
+            tools/saturation_pass/saturation_pass.py \
+            $picks --json target/saturation/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saturation-report
+          path: target/saturation/report.json
+          if-no-files-found: ignore
