@@ -188,6 +188,12 @@ def test_store_write_twice_to_the_same_path_succeeds(tmp_path):
     assert load_store(path) == seeded_store()
 
 
+def test_report_write_creates_nested_dirs(tmp_path):
+    path = tmp_path / "a" / "b" / "report.json"
+    _write_report(path, {"schema": 1, "tools": {}})
+    assert path.is_file()
+
+
 def test_report_write_twice_to_the_same_path_succeeds(tmp_path):
     path = tmp_path / "nested" / "report.json"
     report = {"schema": 1, "tools": {}}
@@ -375,6 +381,8 @@ def test_main_mutator_baseline_failure_fails_one_tool(tmp_path):
     data = json.loads(report.read_text(encoding="utf-8"))
     assert data["tools"]["spec_ste_check"]["error"] == (
         "spec_ste_check: the mutator exited with code 2: baseline broke")
+    assert data["tools"]["spec_ste_check"]["notes"] == [
+        "spec_ste_check: the mutator exited with code 2: baseline broke"]
 
 
 def test_main_mutator_with_no_table_fails_the_tool(tmp_path, capsys):
