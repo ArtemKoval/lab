@@ -159,25 +159,11 @@ jobs:
             echo "No gated product Python changed."
             exit 0
           fi
-          set -o pipefail
-          # The pipeline sits in an if-condition so the step's errexit
-          # does not kill the script before the score resolution runs.
-          if tools/mutator/mutator \
+          # The gate holds the saturation bar: the mutator exits 0 only
+          # when every executed mutant dies. Exit 3 names a survivor.
+          # Exit 2 names a failed baseline. Both fail the pull request.
+          tools/mutator/mutator \
             --use-existing-coverage \
             --max-workers 4 \
             --test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests" \
-            $product 2>&1 | tee /tmp/mutation.log; then
-            code=0
-          else
-            code=${PIPESTATUS[0]}
-          fi
-          # The mutator exits 3 on any survivor; the gate contract is a
-          # score of at least 95 percent, so exit 3 resolves against the
-          # printed Total row. Any other non-zero exit stays a failure.
-          if [ "$code" = "3" ]; then
-            score=$(awk '$1 == "Total" {gsub(/%/, "", $NF); s = $NF} END {print s}' /tmp/mutation.log)
-            echo "Mutation score: $score"
-            awk -v s="$score" 'BEGIN { exit (s + 0 >= 95.0) ? 0 : 3 }'
-          elif [ "$code" != "0" ]; then
-            exit "$code"
-          fi
+            $product

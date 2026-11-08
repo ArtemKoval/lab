@@ -99,7 +99,7 @@ $VENV -m mutmut results
 
 The copy's `pyproject.toml` points at `tests/handover_telemetry/`. Edit
 the copy's pyproject.toml test paths to `tests/` before the run.
-Target: 95 percent or higher. `__main__.py` carries a
+Target: the saturation bar, exit 0 with no survivors. `__main__.py` carries a
 `do_not_mutate_patterns` exclusion: the two-line shim holds no logic.
 
 ## Limits

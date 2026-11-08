@@ -120,10 +120,11 @@ def test_workflow_runs_the_mutator_gate_on_product_paths():
     assert "--use-existing-coverage" in text
     assert "--max-workers 4" in text
     assert "timeout-minutes: 45" in text
-    # The mutator exits 3 on any survivor; the gate resolves against the
-    # printed Total row and passes at the 95 percent contract floor.
-    assert "s + 0 >= 95.0" in text
-    assert "/tmp/mutation.log" in text
+    # The gate holds the saturation bar: any non-zero mutator exit
+    # fails the pull request. The score resolution and its log file
+    # are gone.
+    assert "s + 0 >= 95.0" not in text
+    assert "/tmp/mutation.log" not in text
     assert (
         '--test-command "tools/zai_routing_audit/.venv/bin/python -m pytest -q tests"'
         in text

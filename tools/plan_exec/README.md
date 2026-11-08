@@ -101,8 +101,8 @@ cd /tmp/pe_mut/pe
 
 The unmutated copy passes first (`PYTHONPATH=/tmp/pe_mut/pe $VENV -m
 pytest tests/`). Each survivor is a missing assertion: add a test until
-it dies, or exclude it with a written reason. Target: 95 percent or
-higher. `__main__.py` carries a `do_not_mutate_patterns` exclusion: the
+it dies, or exclude it with a written reason. Target: the
+saturation bar, exit 0 with no survivors. `__main__.py` carries a `do_not_mutate_patterns` exclusion: the
 two-line shim holds no logic, the same reason the coverage omit lists
 it.
 

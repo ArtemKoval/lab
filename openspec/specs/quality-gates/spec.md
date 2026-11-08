@@ -1,7 +1,7 @@
 # quality-gates Specification
 
 ## Purpose
-The vendored gate tools hold changed Python to the quality bar. CRAP stays at or below 10, duplication stays under the 0.8 pair threshold, and the mutation score stays at or above 95 percent.
+The vendored gate tools hold changed Python to the quality bar. CRAP stays at or below 10, and duplication stays under the 0.8 pair threshold. Mutation holds the saturation bar with no surviving mutant on the changed code.
 
 ## Requirements
 
@@ -94,11 +94,11 @@ The gate step SHALL fetch the pull request base and SHALL derive the changed gat
 - **THEN** it reads the LCOV conversion of the coverage report the workflow coverage run produced, with the test paths among the measured sources
 
 ### Requirement: The mutator CI step carries a runtime budget
-The mutator step SHALL cap its workers and SHALL carry a timeout as its budget. The gate venvs SHALL carry `pytest` and `coverage` from the install step, so no gate run installs tooling on demand. The workflow contract test SHALL state the mutation policy after this change.
+The mutator step SHALL cap its workers and SHALL carry a timeout as its budget. The gate venvs SHALL carry `pytest` and `coverage` from the install step, so no gate run installs tooling on demand. The workflow contract test SHALL state that any non-zero mutator exit fails the pull request.
 
-#### Scenario: The contract test states the new policy
-- **WHEN** a reader opens the workflow contract test after this change
-- **THEN** its docstring states that CI runs the mutator gate on changed gated paths
+#### Scenario: The contract test states the mutation policy
+- **WHEN** a reader opens the workflow contract test
+- **THEN** its docstring states that any non-zero mutator exit fails the pull request on the changed gated paths
 
 ### Requirement: The e2e smoke exercises the three launchers
 An opt-in e2e test at `tests/quality_gates/` SHALL run the three launchers against a fixture tree when `UB_TOOLS_E2E=1` and the unit venvs exist. It SHALL assert exit 0 on a conforming fixture, exit 2 above each threshold, and exit 3 for a surviving mutant. It SHALL skip when the variable is unset or a venv is absent. The pytest marker docstring SHALL name `UB_TOOLS_E2E`.
