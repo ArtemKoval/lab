@@ -140,3 +140,20 @@ def test_a_change_without_gates_yaml_passes_the_bounds_rule(tmp_path):
     change = make_change(tmp_path)
     found = lint.lint_change(change, make_policy(tmp_path), registry(), validate=fake_validate())
     assert found == []
+
+
+def test_a_skip_specs_change_needs_no_scenarios(tmp_path):
+    change = make_change(tmp_path, spec_text="")
+    (change / ".openspec.yaml").write_text(
+        "schema: intent-driven\nskip_specs: true\n", encoding="utf-8")
+    found = lint.lint_change(change, make_policy(tmp_path), registry(),
+                             validate=fake_validate())
+    assert found == []
+
+
+def test_a_zero_scenario_change_without_the_declaration_still_refuses(
+        tmp_path):
+    change = make_change(tmp_path, spec_text="")
+    found = lint.lint_change(change, make_policy(tmp_path), registry(),
+                             validate=fake_validate())
+    assert any("No scenarios found" in v for v in found)
