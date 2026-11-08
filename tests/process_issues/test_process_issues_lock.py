@@ -619,15 +619,16 @@ def test_scan_without_lock_proceeds(tmp_path, capsys):
 
 def test_acquire_and_release_cli_round_trip(tmp_path, capsys):
     common = lambda args: (1, "", "")
-    code = cli.main(["acquire", "--holder", "loop-x"], repo_root=str(tmp_path),
-                    git_runner=common)
+    gh_empty = lambda args: (0, "[]", "")
+    code = cli.main(["acquire", "--holder", "loop-x"], runner=gh_empty,
+                    repo_root=str(tmp_path), git_runner=common)
     assert code == 0
     assert holder_of(tmp_path / ".process_issues") == "loop-x"
-    code = cli.main(["scan", "--holder", "loop-x"], repo_root=str(tmp_path),
-                    git_runner=common)
+    code = cli.main(["scan", "--holder", "loop-x"], runner=gh_empty,
+                    repo_root=str(tmp_path), git_runner=common)
     assert code == 0
-    code = cli.main(["release", "--holder", "loop-x"], repo_root=str(tmp_path),
-                    git_runner=common)
+    code = cli.main(["release", "--holder", "loop-x"], runner=gh_empty,
+                    repo_root=str(tmp_path), git_runner=common)
     assert code == 0
     assert not (tmp_path / ".process_issues" / "lock.json").exists()
 

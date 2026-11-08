@@ -145,7 +145,9 @@ def test_a_primary_checkout_halt_denies_from_a_worktree(tmp_path):
     repo.mkdir()
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(
-        ["git", "-C", str(repo), "commit", "--allow-empty", "-qm", "init"],
+        ["git", "-C", str(repo), "-c", "user.name=Suite",
+         "-c", "user.email=suite@example.invalid",
+         "commit", "--allow-empty", "-qm", "init"],
         check=True,
         capture_output=True,
     )
