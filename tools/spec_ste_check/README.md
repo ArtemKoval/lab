@@ -84,8 +84,6 @@ equivalence class:
   lowercased before the strip, so an `X` can never sit at either end.
 - `_check_word_hits` fallback word `XXXX`: the value sits outside the
   determiner set and outside the noun allowlist, like the original.
-- `check_tenses` index `[-1]` to `[1]`: the match always holds exactly
-  two words, so both indexes read the participle.
 - `cli.scan` encoding aliases: `UTF-8` is a registered alias of
   `utf-8`, and the locale encoding prefers UTF-8 on every platform the
   gate runs on.

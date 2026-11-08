@@ -46,7 +46,7 @@ _BANNED_RE = re.compile(
     re.I,
 )
 _CHECK_RE = re.compile(r"(?<![\w-])checks?\b", re.I)
-_PROGRESSIVE_RE = re.compile(r"\b(?:is|are|was|were|be|been|being)\s+\w+ing\b", re.I)
+_PROGRESSIVE_RE = re.compile(r"\b(?:is|are|was|were|be|been|being)\s+(\w+ing)\b", re.I)
 _PERFECT_RE = re.compile(r"\b(?:has|have|had)\s+\w+(?:ed|en)\b", re.I)
 _PREV_WORD_RE = re.compile(r"(\w+)\W+$")
 _DETERMINERS = frozenset(
@@ -188,7 +188,7 @@ def check_tenses(sentence):
     allowlisted adjectival participle stays clean."""
     hits = []
     for match in _PROGRESSIVE_RE.finditer(sentence.text):
-        participle = match.group(0).split()[-1].lower()
+        participle = match.group(1).lower()
         if participle not in _TENSE_ALLOWLIST:
             hits.append(_violation("progressive-tense", sentence))
             break
