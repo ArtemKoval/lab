@@ -64,7 +64,12 @@ def _run_build(args) -> int:
     project_dir = _resolve_project_dir(args)
     path = _resolve_transcript(args, project_dir)
     if path is None or not path.is_file():
-        if args.session is not None:
+        if args.transcript is not None:
+            print(
+                f"handover_telemetry: no transcript at {args.transcript}",
+                file=sys.stderr,
+            )
+        elif args.session is not None:
             print(
                 f"handover_telemetry: no transcript for session {args.session}",
                 file=sys.stderr,

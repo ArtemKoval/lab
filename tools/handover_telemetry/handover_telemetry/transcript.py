@@ -101,11 +101,16 @@ def find_named_transcript(session_id: str) -> Path | None:
     candidates = []
     for project_dir in root.iterdir():
         named = project_dir / f"{session_id}.jsonl"
-        if _is_transcript(named):
-            candidates.append(named)
+        if not _is_transcript(named):
+            continue
+        try:
+            stamp = _mtime(named)
+        except OSError:
+            continue
+        candidates.append((named, stamp))
     if not candidates:
         return None
-    return min(candidates, key=lambda path: (-_mtime(path), path))
+    return min(candidates, key=lambda pair: (-pair[1], pair[0]))[0]
 
 
 def _is_transcript(path: Path) -> bool:

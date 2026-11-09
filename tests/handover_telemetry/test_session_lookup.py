@@ -95,6 +95,23 @@ def test_find_named_transcript_skips_a_project_shaped_file(
     assert transcript.find_named_transcript(SESSION_ID) is None
 
 
+def test_find_named_transcript_skips_a_candidate_that_loses_its_stat(
+    monkeypatch, claude_root
+):
+    stable = _put_session(_project_dir(claude_root, "-a-proj"))
+    _put_session(_project_dir(claude_root, "-b-proj"))
+    real_mtime = transcript._mtime
+
+    def _flaky_mtime(path):
+        if "-b-proj" in str(path):
+            raise OSError("file vanished")
+        return real_mtime(path)
+
+    monkeypatch.setattr(transcript, "_mtime", _flaky_mtime)
+    _patch_root(monkeypatch, claude_root)
+    assert transcript.find_named_transcript(SESSION_ID) == stable
+
+
 def _args(**overrides) -> argparse.Namespace:
     base = {
         "transcript": None,
@@ -235,6 +252,51 @@ def test_build_global_miss_exits_2_and_names_the_session(
     code = cli.main(["build", "--session", "ghost-1", "--repo", str(repo)])
     assert code == 2
     assert "no transcript for session ghost-1" in capsys.readouterr().err
+
+
+def test_build_named_miss_keeps_no_newest_fallback(
+    tmp_path, monkeypatch, capsys
+):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    root = tmp_path / "claude-root"
+    root.mkdir()
+    launch = tmp_path / "launch"
+    launch.mkdir()
+    slug_dir = root / transcript.project_dir_for(launch).name
+    slug_dir.mkdir(parents=True)
+    _put_session(slug_dir, "real-999")
+    _patch_root(monkeypatch, root)
+    monkeypatch.chdir(launch)
+    code = cli.main(["build", "--session", "ghost-1", "--repo", str(repo)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert "no transcript for session ghost-1" in captured.err
+
+
+def test_build_transcript_flag_miss_names_the_path(
+    tmp_path, monkeypatch, capsys
+):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    gone = tmp_path / "gone.jsonl"
+    root = tmp_path / "claude-root"
+    root.mkdir()
+    _patch_root(monkeypatch, root)
+    code = cli.main(
+        [
+            "build",
+            "--transcript",
+            str(gone),
+            "--session",
+            SESSION_ID,
+            "--repo",
+            str(repo),
+        ]
+    )
+    assert code == 2
+    assert f"no transcript at {gone}" in capsys.readouterr().err
 
 
 def test_build_without_a_session_flag_reports_the_directory(
