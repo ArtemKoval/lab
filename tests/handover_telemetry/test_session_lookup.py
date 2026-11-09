@@ -80,6 +80,27 @@ def test_find_named_transcript_breaks_a_tie_by_path_order(
     assert transcript.find_named_transcript(SESSION_ID) == first
 
 
+def test_find_named_transcript_tie_ignores_the_iteration_order(
+    monkeypatch, claude_root
+):
+    late = _project_dir(claude_root, "-b-proj")
+    early = _project_dir(claude_root, "-a-proj")
+    first = _put_session(early)
+    second = _put_session(late)
+    _set_mtime(first, 1000)
+    _set_mtime(second, 1000)
+
+    class _FixedOrderRoot:
+        def is_dir(self):
+            return True
+
+        def iterdir(self):
+            return iter([late, early])
+
+    monkeypatch.setattr(transcript, "projects_root", lambda: _FixedOrderRoot())
+    assert transcript.find_named_transcript(SESSION_ID) == first
+
+
 def test_find_named_transcript_missing_projects_root_is_none(
     monkeypatch, tmp_path
 ):

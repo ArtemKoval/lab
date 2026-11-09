@@ -198,15 +198,17 @@ def _consume_kind(session: Session, entry: dict) -> None:
 def _earliest(current: str | None, candidate: str | None) -> str | None:
     if candidate is None:
         return current
-    # pragma: no mutate block - an equal candidate returns the same value
-    return candidate if current is None or candidate < current else current
+    if current is None:
+        return candidate
+    return min(candidate, current)
 
 
 def _latest(current: str | None, candidate: str | None) -> str | None:
     if candidate is None:
         return current
-    # pragma: no mutate block - an equal candidate returns the same value
-    return candidate if current is None or candidate > current else current
+    if current is None:
+        return candidate
+    return max(candidate, current)
 
 
 def _consume_assistant(run: AgentRun, entry: dict) -> None:
