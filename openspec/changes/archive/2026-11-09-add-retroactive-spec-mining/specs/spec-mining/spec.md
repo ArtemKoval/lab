@@ -1,3 +1,10 @@
+## Purpose
+
+The spec-mining capability audits the repository against the OpenSpec
+specs. One opt-in, read-only run names the live units without capability
+coverage, the archived deltas that drifted from the specs, and the merged
+commit weight of each uncovered area.
+
 ## ADDED Requirements
 
 ### Requirement: The tree scan

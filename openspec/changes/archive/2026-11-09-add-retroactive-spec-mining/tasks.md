@@ -47,4 +47,4 @@
 - [x] 8.3 Hold cyclomatic complexity at 10 or less on every new function.
 - [x] 8.4 Run the mutator on an out-of-tree copy and reach no survivors.
 - [x] 8.5 Run the tool once against this repository and commit the run under `reports/spec_mining/`. The run names `spec_mining` itself as uncovered, because its spec lands at archive. The pull request review examines `units.json` and the run.
-- [ ] 8.6 Run `openspec validate add-retroactive-spec-mining --type change --strict` before archive.
+- [x] 8.6 Run `openspec validate add-retroactive-spec-mining --type change --strict` before archive.
