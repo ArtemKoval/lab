@@ -48,10 +48,13 @@ def test_handover_template_has_the_report_sections():
 
 def test_handover_template_carries_the_gate_outcome_rule():
     text = _read(".github", "ISSUE_TEMPLATE", "handover.md")
-    assert "the command, the" in text
-    assert "the exit code" in text
-    assert "A skip carries the reason" in text
-    assert "counts as a failed gate" in text
+    phrases = (
+        "the command, the",
+        "the exit code",
+        "A skip carries the reason",
+        "counts as a failed gate",
+    )
+    assert all(phrase in text for phrase in phrases)
 
 
 def test_settings_allow_gh_issue_create():
@@ -73,3 +76,39 @@ def test_gate_integrity_guard_keeps_its_shape():
     assert "conftest.py" in text
     assert "pytest.fail(" in text
     assert '--name-only",\n        "origin/' in text
+
+
+def test_confidence_discipline_pinned():
+    text = " ".join(_read("CLAUDE.md").split())
+    rules = text.split("## Working rules", 1)[1]
+    first = (
+        "Every finding in a report or a handover issue carries a "
+        "confidence of observed, derived, or inferred"
+    )
+    second = "A limitation goes in a limitations list, not in the finding text"
+    third = "An open unknown goes in a list with a status and a next probe"
+    assert first in rules
+    assert second in rules
+    assert third in rules
+    order = [
+        rules.index("Keep reusable artifacts under version control"),
+        rules.index(first),
+        rules.index("Open a handover issue after you solve a task"),
+    ]
+    assert order == sorted(order)
+
+
+def test_handover_template_has_the_unknown_sections():
+    text = _read(".github", "ISSUE_TEMPLATE", "handover.md")
+    expected = """## Limitations
+
+<!-- One line per limitation. A limitation says what this run's
+     results do not cover. Write None when the run has no limitation. -->
+
+## Open unknowns
+
+<!-- One line per open unknown: the question, the status, and the
+     next probe. Write None when the run leaves no question open. -->
+
+## Follow-ups"""
+    assert expected in text

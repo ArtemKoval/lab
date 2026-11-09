@@ -2,16 +2,16 @@
 
 ## 1. The rule and the template
 
-- [ ] 1.1 Add the confidence rules bullet to the working rules in
+- [x] 1.1 Add the confidence rules bullet to the working rules in
       `CLAUDE.md`, after the version-control bullet, with the three
       sentences.
-- [ ] 1.2 Add the `## Limitations` and `## Open unknowns` sections to
+- [x] 1.2 Add the `## Limitations` and `## Open unknowns` sections to
       `.github/ISSUE_TEMPLATE/handover.md`, between Observations and
       Follow-ups.
 
 ## 2. Tests
 
-- [ ] 2.1 Add `test_confidence_discipline_pinned` and
+- [x] 2.1 Add `test_confidence_discipline_pinned` and
       `test_handover_template_has_the_unknown_sections` to
       `tests/claude_infra/test_working_rules.py`.
 

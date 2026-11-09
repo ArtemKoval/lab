@@ -38,6 +38,16 @@ labels:
 
 <!-- What behaved differently from the plan. Ideas and causes for later work. -->
 
+## Limitations
+
+<!-- One line per limitation. A limitation says what this run's
+     results do not cover. Write None when the run has no limitation. -->
+
+## Open unknowns
+
+<!-- One line per open unknown: the question, the status, and the
+     next probe. Write None when the run leaves no question open. -->
+
 ## Follow-ups
 
 <!-- Links to the issues that this run opened, or write "None". -->
