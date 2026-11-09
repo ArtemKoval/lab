@@ -2,13 +2,13 @@
 
 ## 1. The skill text
 
-- [ ] 1.1 Add the remediation rule bullet to Step 2 of
+- [x] 1.1 Add the remediation rule bullet to Step 2 of
       `.claude/skills/feature-pipeline/SKILL.md`, after the CLI
       contract bullet, with the three sentences.
 
 ## 2. Tests
 
-- [ ] 2.1 Add `test_tool_remediation_rule_present` to
+- [x] 2.1 Add `test_tool_remediation_rule_present` to
       `tests/claude_infra/test_pipeline_rules.py`, with one assertion
       per rule sentence.
 

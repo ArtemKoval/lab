@@ -71,3 +71,16 @@ def test_apply_skill_carries_the_plan_exec_section():
 def test_gitignore_keeps_the_plan_exec_ledger_out_of_version_control():
     gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
     assert ".plan_exec/" in gitignore
+
+
+def test_tool_remediation_rule_present():
+    text = _collapsed(PIPELINE)
+    assert (
+        "Every operational failure (exit 2) names one next action in its message"
+        in text
+    )
+    assert (
+        "A `--json` failure carries a `remediation` field beside the exit code"
+        in text
+    )
+    assert "New and touched tools adopt this rule" in text
