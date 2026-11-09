@@ -331,6 +331,8 @@ backend code), and meet the gates.
 - The default `pytest` run stays hermetic: externals faked in
   `tests/conftest.py`, no network.
 - e2e tests are marked `e2e` and env-var gated — opt-in only.
+- A skipped test lane implies no coverage. The pull request body names
+  each lane the run skipped.
 - Assert on behavior and outputs, not on mocks echoing their configuration.
 - Test behavior, not implementation. The test calls the code the way its user
   does and checks the result that user would see. Throw out a test that still
@@ -388,6 +390,10 @@ Run e2e when the task has it and credentials exist
 (`<GATE_VAR>=... pytest -m e2e`). Then all three gates: branch coverage (e.g.
 `pytest --cov --cov-branch`), the complexity checker, the mutation run — plus
 `openspec validate <change>` when Step 1.5 opened one. Nothing proceeds on red.
+- A change to code with cleanup, cancellation, or ownership behavior
+  lists its lifecycle scenarios: success, cleanup failure, cancellation
+  mid-run, and partial completion. Each scenario names the test that
+  holds it.
 
 A governed change adds its spec gates here: `python -m dspy_gate lint
 <change-id>` (Gate 0), `python -m dspy_gate check-manifest <change-id>` (Gate 1),
