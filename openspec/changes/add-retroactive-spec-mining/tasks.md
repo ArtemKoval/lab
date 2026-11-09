@@ -1,0 +1,50 @@
+# Tasks: add-retroactive-spec-mining
+
+## 1. Package scaffold
+
+- [ ] 1.1 Create the `tools/spec_mining/` package with `__init__.py`, `__main__.py`, `cli.py`, `core.py`, and the house packaging files.
+- [ ] 1.2 Add `tests/spec_mining/` with a hermetic conftest and the injected runner fixture.
+- [ ] 1.3 Add `units.json` with the alias, project, and coverage maps built from the current tree, and pin it with a test.
+
+## 2. Tree scan
+
+- [ ] 2.1 Write the tests first for the tree scan. The cases cover the uncovered unit and the alias keep-off rule.
+- [ ] 2.2 Implement the tree scan in `core.py` over the injected tree facts.
+- [ ] 2.3 Implement the tree walk and the units read in `cli.py` behind the runner seam.
+
+## 3. Archive drift scan
+
+- [ ] 3.1 Write the tests first for the drift scan. The cases cover the drift entry, the synced clean case, and the no-delta skip.
+- [ ] 3.2 Implement the drift scan with the local scenario-name regex in `core.py`.
+
+## 4. History ranking
+
+- [ ] 4.1 Write the tests first for the ranking over canned git facts.
+- [ ] 4.2 Implement the ranking in `core.py` and the one bounded `git log` call in `cli.py`.
+
+## 5. Run output
+
+- [ ] 5.1 Write the tests first for the run layout. The cases cover the report set, the seeds outside `openspec/changes/`, and the same-day replace rule.
+- [ ] 5.2 Implement the `coverage.json` and `report.md` builders and the seed scaffold in `core.py`.
+
+## 6. CLI contract
+
+- [ ] 6.1 Write the tests first for the exit 0 and 2 codes and the `--json` payload.
+- [ ] 6.2 Implement the `run` dispatch in `cli.py` and the `__main__.py` entry.
+
+## 7. Skill and docs
+
+- [ ] 7.1 Write `.claude/skills/spec-mining/SKILL.md` with the commands, the exit codes, the report reading, and the seed to propose flow.
+- [ ] 7.2 Make the seed to propose section mandate the STE gate run when a seed enters `openspec/changes/`.
+- [ ] 7.3 Write `tools/spec_mining/README.md` with the purpose and the commands.
+- [ ] 7.4 Add the CLAUDE.md Projects line for the tool and the skill.
+- [ ] 7.5 Join the package to the CI coverage source and the root suite wiring.
+
+## 8. Gates and verification
+
+- [ ] 8.1 Run the full hermetic suite from the worktree and make it green.
+- [ ] 8.2 Hold 100 percent line and branch coverage on the new code and ratchet the floor.
+- [ ] 8.3 Hold cyclomatic complexity at 10 or less on every new function.
+- [ ] 8.4 Run the mutator on an out-of-tree copy and reach no survivors.
+- [ ] 8.5 Run the tool once against this repository and commit the run under `reports/spec_mining/`.
+- [ ] 8.6 Run `openspec validate add-retroactive-spec-mining --type change --strict` before archive.
