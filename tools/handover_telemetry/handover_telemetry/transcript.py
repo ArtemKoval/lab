@@ -86,6 +86,28 @@ def newest_transcript(project_dir: Path) -> Path | None:
     return max(candidates, key=_mtime)
 
 
+def find_named_transcript(session_id: str) -> Path | None:
+    """The newest top-level transcript of one named session across the
+    project directories, or None when no directory holds one.
+
+    The search reads the top-level files of each project directory
+    only, so a sidechain file under `<project>/<session>/subagents/`
+    never wins. The newest modification time wins, and the path order
+    breaks a tie.
+    """
+    root = projects_root()
+    if not root.is_dir():
+        return None
+    candidates = []
+    for project_dir in root.iterdir():
+        named = project_dir / f"{session_id}.jsonl"
+        if _is_transcript(named):
+            candidates.append(named)
+    if not candidates:
+        return None
+    return min(candidates, key=lambda path: (-_mtime(path), path))
+
+
 def _is_transcript(path: Path) -> bool:
     return path.is_file() and path.suffix == ".jsonl"
 

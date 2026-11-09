@@ -31,7 +31,12 @@ PYTHONPATH=tools/handover_telemetry $VENV -m handover_telemetry build --create  
 
 Exit 0 on success and 2 on operational failure. The default path makes
 no network call. Flags: `--project-dir`, `--transcript`, `--session`,
-`--prices`, `--out`, `--json`, `--create`, `--repo`.
+`--prices`, `--out`, `--json`, `--create`, `--repo`. A named
+`--session` resolves inside the launch project directory first, and
+then across the top-level transcripts of every project directory, so
+a worktree run finds its transcript. `--project-dir` keeps the
+search inside that one directory. A named session with no match
+exits 2 and names the session.
 
 ## The hook
 

@@ -54,6 +54,9 @@ def _resolve_transcript(args, project_dir: Path) -> Path | None:
         named = project_dir / f"{args.session}.jsonl"
         if named.is_file():
             return named
+        if args.project_dir is not None:
+            return None
+        return transcript.find_named_transcript(args.session)
     return transcript.newest_transcript(project_dir)
 
 
@@ -61,8 +64,14 @@ def _run_build(args) -> int:
     project_dir = _resolve_project_dir(args)
     path = _resolve_transcript(args, project_dir)
     if path is None or not path.is_file():
-        name = path or project_dir
-        print(f"handover_telemetry: no transcript at {name}", file=sys.stderr)
+        if args.session is not None:
+            print(
+                f"handover_telemetry: no transcript for session {args.session}",
+                file=sys.stderr,
+            )
+        else:
+            name = path or project_dir
+            print(f"handover_telemetry: no transcript at {name}", file=sys.stderr)
         return 2
     try:
         report = _build_report(args, path)
