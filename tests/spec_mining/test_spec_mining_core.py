@@ -79,6 +79,30 @@ def test_a_project_without_a_matching_capability_is_uncovered():
     assert "crm" in names
 
 
+def test_a_coverage_entry_holds_a_glob_list():
+    data = {
+        "aliases": {},
+        "projects": {},
+        "coverage": {".claude/skills/widget-guide": ["widget-*"]},
+    }
+    units = _units(skills=[".claude/skills/widget-guide"])
+    report = core.scan_tree(units, SPECS + ["widget-guide"], data)
+    names = [entry["unit"] for entry in report["uncovered"]]
+    assert ".claude/skills/widget-guide" not in names
+
+
+def test_a_string_coverage_entry_covers_a_renamed_skill():
+    data = {
+        "aliases": {},
+        "projects": {},
+        "coverage": {".claude/skills/gizmo-guide": "gizmo-capability"},
+    }
+    units = _units(skills=[".claude/skills/gizmo-guide"])
+    report = core.scan_tree(units, SPECS + ["gizmo-capability"], data)
+    names = [entry["unit"] for entry in report["uncovered"]]
+    assert ".claude/skills/gizmo-guide" not in names
+
+
 def test_a_data_file_entry_without_a_unit_is_stale():
     data = {
         "aliases": {"tools/gone_tool": "residue-scan"},

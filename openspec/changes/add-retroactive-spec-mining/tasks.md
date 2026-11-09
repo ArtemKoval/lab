@@ -34,17 +34,17 @@
 
 ## 7. Skill and docs
 
-- [ ] 7.1 Write `.claude/skills/spec-mining/SKILL.md` with the commands, the exit codes, the report reading, and the seed to propose flow. The section warns that a rerun replaces the files the run owns and leaves the other files in place.
-- [ ] 7.2 Make the seed to propose section mandate the STE gate run when a seed enters `openspec/changes/`.
-- [ ] 7.3 Write `tools/spec_mining/README.md` with the purpose and the commands.
-- [ ] 7.4 Add the CLAUDE.md Projects line for the tool and the skill.
-- [ ] 7.5 Join the package to the CI coverage wiring. The files are `.coveragerc` (omit entry), the `--cov` line in `.github/workflows/tests.yml`, and the pin in `tests/claude_infra/test_ci_workflow.py`.
+- [x] 7.1 Write `.claude/skills/spec-mining/SKILL.md` with the commands, the exit codes, the report reading, and the seed to propose flow. The section warns that a rerun replaces the files the run owns and leaves the other files in place.
+- [x] 7.2 Make the seed to propose section mandate the STE gate run when a seed enters `openspec/changes/`.
+- [x] 7.3 Write `tools/spec_mining/README.md` with the purpose and the commands.
+- [x] 7.4 Add the CLAUDE.md Projects line for the tool and the skill.
+- [x] 7.5 Join the package to the CI coverage wiring. The files are `.coveragerc` (omit entry), the `--cov` line in `.github/workflows/tests.yml`, and the pin in `tests/claude_infra/test_ci_workflow.py`.
 
 ## 8. Gates and verification
 
-- [ ] 8.1 Run the full hermetic suite from the worktree and make it green.
-- [ ] 8.2 Hold 100 percent line and branch coverage on the new code and ratchet the floor.
-- [ ] 8.3 Hold cyclomatic complexity at 10 or less on every new function.
-- [ ] 8.4 Run the mutator on an out-of-tree copy and reach no survivors.
-- [ ] 8.5 Run the tool once against this repository and commit the run under `reports/spec_mining/`. The run names `spec_mining` itself as uncovered, because its spec lands at archive. The pull request review examines `units.json` and the run.
+- [x] 8.1 Run the full hermetic suite from the worktree and make it green.
+- [x] 8.2 Hold 100 percent line and branch coverage on the new code and ratchet the floor.
+- [x] 8.3 Hold cyclomatic complexity at 10 or less on every new function.
+- [x] 8.4 Run the mutator on an out-of-tree copy and reach no survivors.
+- [x] 8.5 Run the tool once against this repository and commit the run under `reports/spec_mining/`. The run names `spec_mining` itself as uncovered, because its spec lands at archive. The pull request review examines `units.json` and the run.
 - [ ] 8.6 Run `openspec validate add-retroactive-spec-mining --type change --strict` before archive.

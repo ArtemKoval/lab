@@ -10,6 +10,7 @@ omit =
     tools/dspy_gate/dspy_gate/__main__.py
     tools/peak_hours_gate/peak_hours_gate/__main__.py
     tools/process_issues/process_issues/__main__.py
+    tools/spec_mining/spec_mining/__main__.py
 
 [report]
 exclude_lines =

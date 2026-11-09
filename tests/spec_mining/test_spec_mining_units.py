@@ -8,9 +8,18 @@ import json
 import fnmatch
 from pathlib import Path
 
+import pytest
+
 from spec_mining import cli
 
 REPO_ROOT = Path(__file__).absolute().parents[2]
+
+# The pin walks the real repository shape. Under the out-of-tree mutation
+# copy that shape is absent, so the pin stands down there.
+pytestmark = pytest.mark.skipif(
+    not (REPO_ROOT / "openspec" / "specs").is_dir(),
+    reason="the repository shape is absent in the mutation copy",
+)
 
 DATA = json.loads(
     (REPO_ROOT / "tools" / "spec_mining" / "spec_mining" / "units.json").read_text()

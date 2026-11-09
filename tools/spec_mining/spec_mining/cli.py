@@ -73,7 +73,7 @@ def _delta_scenarios(text):
     """Return the scenario names of the ADDED and MODIFIED sections."""
     parts = SECTION_RE.split(text)
     names = []
-    for i in range(1, len(parts) - 1, 2):
+    for i in range(1, len(parts), 2):
         if parts[i] in DELTA_SECTIONS:
             names.extend(SCENARIO_RE.findall(parts[i + 1]))
     return names
@@ -173,7 +173,8 @@ def _seed_text(candidate, units, commits, drift_rows):
         "",
     ]
     for unit in units:
-        lines.append(f"- unit `{unit['unit']}` with {commits.get(unit['unit'], 0)} commits")
+        count = commits.get(unit["unit"], 0)
+        lines.append(f"- unit `{unit['unit']}` with {count} commits")
     for row in drift_rows:
         lines.append(f"- drift: `{row['scenario']}` from {row['change']}")
     return "\n".join(lines) + "\n"

@@ -16,7 +16,7 @@ dspy-gate bridge. The review settled these decisions:
   sits in the tool.
 - The unit classes in the default scan are the `tools/` directories, the
   hook scripts, the skills, and the projects. The name rule matches the
-  exact capability names; the data file entries carry the units whose
+  exact capability names. The data file entries carry the units whose
   names differ, so the report does not drown in skill noise.
 - The archive drift scan compares scenario names only, because names are
   the stable identity of a scenario in this corpus. The report guides a
@@ -84,7 +84,7 @@ couple two tools. The house package shape won.
 
 The name rule normalizes a unit name to one lowercase kebab token: it
 strips the extension, turns each `_` into a `-`, and collapses repeated
-dashes. Every class follows the name rule first; the data file entries
+dashes. Every class follows the name rule first. The data file entries
 cover the units whose names differ from their capability. A skill or a
 project with neither a name match nor an entry reports as uncovered. A
 data-file entry whose unit left the tree surfaces in one stale-entries

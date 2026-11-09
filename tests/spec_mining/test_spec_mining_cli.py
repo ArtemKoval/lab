@@ -36,10 +36,10 @@ def _fabricate(root):
         "#### Scenario: A merged branch reports\n- **THEN** the report names it\n"
     )
     archive = root / "openspec" / "changes" / "archive" / "2026-01-01-add-x"
-    (archive / "specs" / "residue-scan").mkdir(parents=True)
-    (archive / "specs" / "residue-scan" / "spec.md").write_text(
-        "## ADDED Requirements\n#### Scenario: A merged branch reports\n"
-        "#### Scenario: A lost scenario\n"
+    (archive / "specs" / "widget-maker").mkdir(parents=True)
+    (archive / "specs" / "widget-maker" / "spec.md").write_text(
+        "## ADDED Requirements\n#### Scenario: A lost scenario\n"
+        "## REMOVED Requirements\n#### Scenario: A removed scenario\n"
     )
     (root / "tools" / "widget_maker").mkdir(parents=True)
     (root / ".claude" / "hooks").mkdir(parents=True)
@@ -108,6 +108,36 @@ def test_the_json_payload_carries_the_three_sections(tmp_path, capsys):
     assert set(payload) == {"tree", "drift", "ranking"}
 
 
+def test_the_json_stdout_matches_the_stored_payload(tmp_path, capsys):
+    root = _fabricate(tmp_path)
+    cli.main(
+        ["run", "--repo-root", str(root), "--json"],
+        run=FakeRunner(out=GIT_LOG),
+        today=TODAY,
+    )
+    stdout = capsys.readouterr().out
+    stored = (
+        root / "reports" / "spec_mining" / TODAY / "coverage.json"
+    ).read_text()
+    assert stdout == stored
+    assert stdout == json.dumps(json.loads(stdout), indent=2, sort_keys=True) + "\n"
+
+
+def test_a_seed_prints_zero_commits_for_an_unranked_unit():
+    text = cli._seed_text("cap", [{"unit": "tools/a"}], {}, [])
+    assert "- unit `tools/a` with 0 commits" in text
+
+
+def test_the_seed_write_is_idempotent(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    run_dir = root / "reports" / "spec_mining" / TODAY
+    payload = json.loads((run_dir / "coverage.json").read_text())
+    cli._write_drafts(run_dir, payload)
+    seed = run_dir / "drafts" / "widget-maker" / "proposal.md"
+    assert seed.is_file()
+
+
 def test_the_ranking_counts_commits_per_uncovered_area(tmp_path):
     root = _fabricate(tmp_path)
     cli.main(
@@ -140,6 +170,102 @@ def test_a_missing_specs_root_exits_2(tmp_path, capsys):
     assert "openspec/specs" in captured.err
 
 
+def test_a_missing_archive_root_exits_2(tmp_path, capsys):
+    root = tmp_path / "half"
+    (root / "openspec" / "specs").mkdir(parents=True)
+    code = _main(root, FakeRunner(out=GIT_LOG))
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "archive" in captured.err
+
+
+def test_the_git_call_pins_the_subprocess_contract(tmp_path, monkeypatch):
+    root = _fabricate(tmp_path)
+    seen = {}
+
+    class FakeProc:
+        returncode = 0
+        stdout = GIT_LOG
+        stderr = ""
+
+    def fake_run(argv, **kwargs):
+        seen.update(kwargs)
+        if kwargs.get("check") is not False:
+            raise AssertionError("check must stay False")
+        if kwargs.get("capture_output") is not True:
+            raise AssertionError("capture_output must stay True")
+        if kwargs.get("text") is not True:
+            raise AssertionError("text must stay True")
+        return FakeProc()
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+    code = cli.main(["run", "--repo-root", str(root)])
+    assert code == 0
+    assert seen["check"] is False
+
+
+def test_the_project_walk_skips_dot_dirs_and_loose_files(tmp_path):
+    root = _fabricate(tmp_path)
+    (root / ".custom").mkdir()
+    (root / "loose.txt").write_text("not a unit\n")
+    code = _main(root, FakeRunner(out=GIT_LOG))
+    assert code == 0
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    units = [row["unit"] for row in payload["tree"]["uncovered"]]
+    assert ".custom" not in units
+    assert "loose.txt" not in units
+
+
+def test_a_delta_whose_removed_section_comes_first(tmp_path):
+    root = _fabricate(tmp_path)
+    delta = (
+        root / "openspec" / "changes" / "archive" / "2026-01-01-add-x"
+        / "specs" / "widget-maker" / "spec.md"
+    )
+    delta.write_text(
+        "## REMOVED Requirements\n#### Scenario: A gone scenario\n"
+        "## ADDED Requirements\n#### Scenario: A kept scenario\n"
+    )
+    _main(root, FakeRunner(out=GIT_LOG))
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    names = [row["scenario"] for row in payload["drift"]]
+    assert "A kept scenario" in names
+    assert "A gone scenario" not in names
+
+
+def test_the_seed_file_ends_with_a_newline(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    seed = (
+        root / "reports" / "spec_mining" / TODAY / "drafts"
+        / "widget-maker" / "proposal.md"
+    ).read_text()
+    assert seed.endswith("\n")
+    assert seed.startswith("# Proposal: add-widget-maker (seed)\n")
+
+
+def test_the_coverage_payload_file_ends_with_a_newline(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    text = (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    assert text.endswith("\n")
+
+
+def test_the_drafts_hold_exactly_the_candidates(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    run_dir = root / "reports" / "spec_mining" / TODAY
+    names = sorted(p.name for p in (run_dir / "drafts").iterdir())
+    assert names == ["crm", "halt-gate", "widget-guide", "widget-maker"]
+    report = (run_dir / "report.md").read_text()
+    assert report.startswith("# Spec mining report\n")
+    assert "Uncovered units: 4" in report
+
+
 def test_a_rerun_replaces_owned_files_and_keeps_the_rest(tmp_path):
     root = _fabricate(tmp_path)
     _main(root, FakeRunner(out=GIT_LOG))
@@ -153,3 +279,76 @@ def test_a_rerun_replaces_owned_files_and_keeps_the_rest(tmp_path):
     assert (run_dir / "note.txt").read_text() == "hand-written\n"
     assert not (run_dir / "drafts" / "gone-maker").exists()
     assert (run_dir / "drafts" / "widget-maker" / "proposal.md").is_file()
+
+
+def test_the_default_dispatch_runs_git_through_subprocess(tmp_path, monkeypatch):
+    root = _fabricate(tmp_path)
+    calls = []
+
+    class FakeProc:
+        returncode = 0
+        stdout = GIT_LOG
+        stderr = ""
+
+    def fake_run(argv, *args, **kwargs):
+        calls.append(list(argv))
+        return FakeProc()
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+    code = cli.main(["run", "--repo-root", str(root)])
+    assert code == 0
+    assert calls and calls[0][0] == "git"
+
+
+def test_a_failed_git_program_exits_2(tmp_path, monkeypatch):
+    root = _fabricate(tmp_path)
+
+    def fake_run(*args, **kwargs):
+        raise OSError("no git binary")
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+    assert cli.main(["run", "--repo-root", str(root)]) == 2
+
+
+def test_a_removed_delta_section_stays_out_of_the_drift(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    names = [row["scenario"] for row in payload["drift"]]
+    assert "A removed scenario" not in names
+
+
+def test_a_seed_carries_the_drift_of_its_candidate(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    seed = (root / "reports" / "spec_mining" / TODAY / "drafts" / "widget-maker" / "proposal.md").read_text()
+    assert "drift: `A lost scenario` from 2026-01-01-add-x" in seed
+
+
+def test_the_repo_root_flows_through_the_argv(tmp_path):
+    root = _fabricate(tmp_path)
+    code = cli.main(
+        ["run", "--repo-root", str(root)], run=FakeRunner(out=GIT_LOG), today=TODAY
+    )
+    assert code == 0
+
+
+def test_the_git_parse_skips_blank_and_orphan_lines(tmp_path):
+    root = _fabricate(tmp_path)
+    messy = (
+        "tools/widget_maker/orphan.py\n"
+        "\n"
+        "dddddddddddddddddddddddddddddddddddddddd\n"
+        "\n"
+        "tools/widget_maker/wheel.py\n"
+        "\n"
+    )
+    code = _main(root, FakeRunner(out=messy))
+    assert code == 0
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    rows = {row["area"]: row["commits"] for row in payload["ranking"]}
+    assert rows["tools/widget_maker"] == 1
