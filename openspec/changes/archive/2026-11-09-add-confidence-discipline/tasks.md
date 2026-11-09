@@ -17,7 +17,7 @@
 
 ## 3. Spec and delivery
 
-- [ ] 3.1 Carry the delta-less declaration and pass the strict
+- [x] 3.1 Carry the delta-less declaration and pass the strict
       validate and the STE gate.
-- [ ] 3.2 Run the root suite and ruff on the changed test path.
-- [ ] 3.3 Commit, push, open the pull request, and merge after review.
+- [x] 3.2 Run the root suite and ruff on the changed test path.
+- [x] 3.3 Commit, push, open the pull request, and merge after review.
