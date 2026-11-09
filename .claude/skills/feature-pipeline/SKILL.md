@@ -309,6 +309,9 @@ The core deliverable runs without Claude Code or any LLM.
   `backend/` or `frontend/`; tooling in `tools/<task_name>/` (snake_case) with a
   module and CLI (`argparse`, `--json` for machine output, exit 0 on success /
   2 on operational failure).
+- Every operational failure (exit 2) names one next action in its
+  message. A `--json` failure carries a `remediation` field beside the
+  exit code. New and touched tools adopt this rule.
 - `tools/` code depends only on `tools/<task_name>/requirements.txt`, never on
   the `mcp` package (wrapper only); application code follows CLAUDE.md's
   backend/frontend dependency setup.
