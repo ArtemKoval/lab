@@ -19,8 +19,8 @@ vulture:
 tools/zai_routing_audit/.venv/bin/python tools/dead_export_scan/dead_export_scan.py
 ```
 
-The default scan walks `tools/` and skips the vendored and test
-trees. Scope the scan with `--paths`:
+The default scan walks `tools/` and skips tests, virtual
+environments, and build artifacts. Scope the scan with `--paths`:
 
 ```bash
 tools/zai_routing_audit/.venv/bin/python tools/dead_export_scan/dead_export_scan.py --paths tools/dead_export_scan
