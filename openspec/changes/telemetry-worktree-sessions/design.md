@@ -3,8 +3,8 @@
 ## Decision summary
 
 The grill-me round settled six decisions. Codebase facts settled the
-first branch; the issue text and the session scope answers settled the
-rest.
+first branch. The issue text and the session scope answers settled
+the rest.
 
 1. The default path keeps the newest-transcript behavior. The issue
    names `--session` only. The common case stays one directory read.
@@ -42,11 +42,11 @@ Open question: none at this level.
   +-----------------------------+    |  <slug-a>/<session>.jsonl |
   | _resolve_transcript()       |    |  <slug-b>/<session>.jsonl |
   | 1. --project-dir given?     |    |  <slug>/<session>/subagents/
-  |    yes -> scope = that dir; |    +---------------------------+
+  |    yes -> scope = that dir, |    +---------------------------+
   |    the launch-path lookup   |              ^
   |    does not run             |              | top-level .jsonl
-  |    no  -> 2a. exact slug of |              | only; mtime desc,
-  |        launch cwd first;    |              | path ascending on
+  |    no  -> 2a. exact slug of |              | only, mtime desc,
+  |        launch cwd first,    |              | path ascending on
   |        2b. then all dirs    |--------------+
   | 3. matches: newest mtime,   |
   |    path ascending on a tie  |
@@ -86,4 +86,4 @@ Bullets:
 - Extend the `sessions` listing to all projects: rejected for this
   change. It is a separate surface with no issue demand behind it.
 - A configuration file for search roots: rejected. `projects_root()`
-  already carries the roots; no new component.
+  already carries the roots, so the change adds no new component.

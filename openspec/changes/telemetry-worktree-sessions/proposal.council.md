@@ -15,9 +15,9 @@ delta surfaces.
 - The Impact said the main spec changes in the implementation pull
   request. OpenSpec applies the delta at archive time.
 - The exit-2 branch lives in `_run_build()`, not in
-  `_resolve_transcript()`; the message today names a path, never the
+  `_resolve_transcript()`. The message today names a path, never the
   session.
-- The cross-project search did not say "top-level files only"; a
+- The cross-project search did not say "top-level files only". A
   recursive search could match a sidechain file under
   `<project>/<session>/subagents/`.
 - Seven STE word breaches: slugifies, misses, hits, pins/pin, scans,
@@ -39,11 +39,11 @@ delta surfaces.
   helper guard note.
 - Rejected: none.
 - Deferred: the `sessions` subcommand keeps its worktree gap by
-  declared scope; a future change can extend it.
+  declared scope. A future change can extend it.
 
 ## Remaining Risks
 
-- Exit 2 is also the argparse usage-error code; the no-match message
+- Exit 2 is also the argparse usage-error code. The no-match message
   must name the session to stay distinguishable.
 - The tie-break tests must use distinct modification times to avoid
   flaky ordering.
