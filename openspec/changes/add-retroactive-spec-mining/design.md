@@ -14,10 +14,10 @@ dspy-gate bridge. The review settled these decisions:
   matches a capability directory name, or the committed data file supplies
   the alias or the coverage entry. No model and no heuristic text analysis
   sits in the tool.
-- The unit classes in the default scan are the `tools/` directories and the
-  hook scripts. The skills and the projects enter through explicit coverage
-  entries in the data file, because a bare name match over 41 skills would
-  name most of them uncovered and drown the report.
+- The unit classes in the default scan are the `tools/` directories, the
+  hook scripts, the skills, and the projects. The name rule matches the
+  exact capability names. The data file entries carry the units whose
+  names differ, so the report does not drown in skill noise.
 - The archive drift scan compares scenario names only, because names are
   the stable identity of a scenario in this corpus. The report guides a
   human, so a missed body edit stays a human question, not a gate.
@@ -84,12 +84,14 @@ couple two tools. The house package shape won.
 
 The name rule normalizes a unit name to one lowercase kebab token: it
 strips the extension, turns each `_` into a `-`, and collapses repeated
-dashes. The default scan walks `tools/` and `.claude/hooks/` by the name
-rule. A skill or a project with no coverage entry reports as uncovered. A
+dashes. Every class follows the name rule first. The data file entries
+cover the units whose names differ from their capability. A skill or a
+project with neither a name match nor an entry reports as uncovered. A
 data-file entry whose unit left the tree surfaces in one stale-entries
 section. Alternatives: a full explicit inventory for every unit gives
-exact numbers but rots fastest. A pure name rule drowns the report in
-skill noise. The hybrid keeps the file small and the report sharp.
+exact numbers but rots fastest. A data-file-only rule hides the exact
+name matches of the skills. The name rule plus the data file keeps the
+file small and the report sharp.
 
 ### D3. The drift scan compares scenario names
 
@@ -97,7 +99,10 @@ The drift scan parses `#### Scenario: <name>` lines from the `ADDED` and
 `MODIFIED` sections of each archived delta and from each capability spec
 with a local regex. It reports the archived scenario names the capability
 spec lost. An archived scenario whose capability spec directory does not
-exist reports as drift with one missing-spec mark. The `REMOVED` and
+exist reports as drift with one missing-spec mark. The parser reads the
+section headers as plain lines, so a `## REMOVED Requirements` line
+inside a code fence would still split the body. The corpus holds no such
+fence today. The `REMOVED` and
 `RENAMED` delta sections stay out, because a removed scenario left the
 spec on purpose and a rename keeps the new name in the body text.
 Alternatives: importing the dspy-gate scenario parser couples two tools.

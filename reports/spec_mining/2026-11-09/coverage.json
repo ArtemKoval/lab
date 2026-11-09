@@ -1,0 +1,195 @@
+{
+  "drift": [
+    {
+      "capability": "intent-driven-harness",
+      "change": "2026-10-26-adopt-superpowers-harness-upgrades",
+      "missing_spec": false,
+      "scenario": "A reader finds the new pipeline rules"
+    },
+    {
+      "capability": "crm-engine",
+      "change": "2026-10-29-add-crm-engine-pilot",
+      "missing_spec": false,
+      "scenario": "Payment happens once"
+    },
+    {
+      "capability": "quality-gates",
+      "change": "2026-10-29-adopt-ub-mode",
+      "missing_spec": false,
+      "scenario": "The contract test states the new policy"
+    },
+    {
+      "capability": "crm-aws-rollout",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "The skill examines readiness before it deploys"
+    },
+    {
+      "capability": "crm-aws-rollout",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "A failed step stops the rollout"
+    },
+    {
+      "capability": "crm-aws-rollout",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "Roll-down removes the stack"
+    },
+    {
+      "capability": "crm-domain-onboarding",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "A good pack validates clean"
+    },
+    {
+      "capability": "crm-domain-onboarding",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "A broken pack names its findings"
+    },
+    {
+      "capability": "crm-domain-onboarding",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "A smoke run works three cases"
+    },
+    {
+      "capability": "crm-domain-onboarding",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "The smoke run never reaches the network"
+    },
+    {
+      "capability": "crm-domain-onboarding",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "A description lands a working pack"
+    },
+    {
+      "capability": "crm-domain-onboarding",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": true,
+      "scenario": "The skill changes no engine code"
+    },
+    {
+      "capability": "crm-domain-pack",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": false,
+      "scenario": "Every examination is named and runnable"
+    },
+    {
+      "capability": "crm-domain-pack",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": false,
+      "scenario": "A broken seed reference is named"
+    },
+    {
+      "capability": "crm-domain-pack",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": false,
+      "scenario": "An illegal eval decision is named"
+    },
+    {
+      "capability": "crm-domain-pack",
+      "change": "2026-10-30-add-crm-domain-onboarding",
+      "missing_spec": false,
+      "scenario": "The helpdesk pack passes the engine's gates"
+    },
+    {
+      "capability": "crm-local-aws",
+      "change": "2026-10-30-add-crm-local-aws",
+      "missing_spec": true,
+      "scenario": "The skill runs the app with the wiring live"
+    },
+    {
+      "capability": "crm-local-aws",
+      "change": "2026-10-30-add-crm-local-aws",
+      "missing_spec": true,
+      "scenario": "The gate proves the runtime path"
+    },
+    {
+      "capability": "crm-local-aws",
+      "change": "2026-10-30-add-crm-local-aws",
+      "missing_spec": true,
+      "scenario": "The gate fails when the emulator is down"
+    },
+    {
+      "capability": "crm-local-aws",
+      "change": "2026-10-30-add-crm-local-aws",
+      "missing_spec": true,
+      "scenario": "The skill names the boundary"
+    }
+  ],
+  "ranking": [
+    {
+      "area": "tools/project_setup",
+      "commits": 11
+    },
+    {
+      "area": ".claude/skills/project-setup",
+      "commits": 2
+    },
+    {
+      "area": "apple",
+      "commits": 2
+    },
+    {
+      "area": "notebooks",
+      "commits": 2
+    },
+    {
+      "area": "configs",
+      "commits": 1
+    },
+    {
+      "area": "tools/knights_notebook_run",
+      "commits": 1
+    },
+    {
+      "area": ".claude/skills/spec-mining",
+      "commits": 0
+    },
+    {
+      "area": "tools/spec_mining",
+      "commits": 0
+    }
+  ],
+  "tree": {
+    "stale": [],
+    "uncovered": [
+      {
+        "class": "tools",
+        "unit": "tools/knights_notebook_run"
+      },
+      {
+        "class": "tools",
+        "unit": "tools/project_setup"
+      },
+      {
+        "class": "tools",
+        "unit": "tools/spec_mining"
+      },
+      {
+        "class": "skills",
+        "unit": ".claude/skills/project-setup"
+      },
+      {
+        "class": "skills",
+        "unit": ".claude/skills/spec-mining"
+      },
+      {
+        "class": "projects",
+        "unit": "apple"
+      },
+      {
+        "class": "projects",
+        "unit": "configs"
+      },
+      {
+        "class": "projects",
+        "unit": "notebooks"
+      }
+    ]
+  }
+}
