@@ -1,0 +1,30 @@
+# Change-level gates for telemetry-worktree-sessions. Thresholds are
+# reviewed artifacts. This change declares no governed capability: the
+# harness registry holds no handover-telemetry module, so the dspy gates
+# stay out of scope and this file carries the policy reference only. The
+# change's own Python tests meet the house gates: full cover, CRAP at 10
+# or less, duplication with no pair at or above 0.8, and mutation with
+# no survivors on changed code.
+version: 1
+
+models:
+  provider: zai
+  base_url: https://api.z.ai/api/paas/v4/
+  key_var: ZAI_API_KEY
+
+policy_bounds:
+  tier_b_min: { min: 0.60, max: 1.00 }
+  holdout_ratio: { min: 0.10, max: 0.50 }
+  judge_ensemble: { min: 1, max: 5 }
+
+capabilities: {}
+
+suites:
+  frozen: openspec/specs/**/evals/
+  delta: openspec/changes/*/evals/
+
+ci:
+  tier_a_on_push: true
+  e2e_gate_var: DSPY_GATE_E2E
+  nightly_var: DSPY_NIGHTLY_ENABLED
+  quarantine_expiry_days: 14
