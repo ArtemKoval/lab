@@ -30,11 +30,16 @@ part owns the process runs. The complexity of every function stays at
 
 Semantics:
 
-- Read-only run: validate the registry, run each unit's `check`
-  command, and classify each unit as `present` or `absent`. Absent
-  units are findings, not failures, because a clean clone starts with
-  absent units. Exit 2 only for an invalid registry, an unknown unit
-  in `--units`, a failed install, or a readback mismatch.
+- Read-only run: validate the registry and report the plan. Each unit
+  of the plan carries the status `unchecked` and its install command.
+  `--units` runs the named units' `check` commands and classifies them
+  as `present` or `absent`. Absent units are findings, not failures,
+  because a clean clone starts with absent units. Exit 2 only for an
+  invalid registry, an unknown unit in `--units`, a failed install, or
+  a readback mismatch. The implementation refines the default run to
+  the static plan: the doctor's own registry run must stay fast, and
+  a full examination runs every unit command, some of them slow. The
+  consent flow keeps the contract.
 - `--install`: refuses a run without `--units`. Per named unit, the
   doctor runs the `check` and skips a present unit. For an absent
   unit, the doctor runs the `install` and re-runs the `check`. A unit

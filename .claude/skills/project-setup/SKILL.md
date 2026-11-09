@@ -27,6 +27,15 @@ dsh SETUP.md protocol. The rules keep the operator attention small:
 7. If every `check` command exits with 0, give the probe report and
    ask no question.
 
+## Consent rules
+
+The registry doctor at `tools/project_setup_setup/` carries the
+consent mechanics. The doctor's read-only run is the plan. Detection
+selects nothing, and only a unit with explicit consent installs. The
+installer makes a backup copy of each file it replaces. Any blanket
+consent flag covers only registry-owned state. The `--install` flag
+refuses a run without `--units`.
+
 ## Examine and repair a clone
 
 Run the steps of this section inside the interview protocol above.
@@ -62,4 +71,4 @@ If a change adds an item that a clean clone must have, add one unit to the regis
 
 Examples of an item are a dependency file, a system tool, and a gate tool.
 
-The repository has no setup doctor script. Claude Code examines the units and installs them with this skill.
+The registry doctor examines the registry and reports the plan. Claude Code runs the doctor, then installs the approved units with this skill.
