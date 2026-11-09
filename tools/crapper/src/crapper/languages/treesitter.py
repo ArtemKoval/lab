@@ -8,7 +8,13 @@ from pathlib import Path
 def parser_for(language: str):
     from tree_sitter_language_pack import download, get_parser
 
-    download([language])
+    # The local cache serves the parser offline. The download runs only
+    # when the pack has not cached the language yet, so a release
+    # endpoint outage cannot block a cached runner.
+    try:
+        return get_parser(language)
+    except Exception:
+        download([language])
     return get_parser(language)
 
 
