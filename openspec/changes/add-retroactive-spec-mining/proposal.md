@@ -16,8 +16,8 @@ skills, and archived changes. A manual audit of that surface does not scale.
   read-only and needs no LLM.
 - The working tree miner matches the repo surface (tools, hooks, skills,
   projects) against the capability names in `openspec/specs/`. A committed
-  data file in the package holds the aliases and the coverage entries. Bare
-  name matching is brittle.
+  data file in the package holds the alias, project, and coverage entries.
+  Bare name matching is brittle.
 - The archive miner examines the `specs/` delta of each archived change with
   a delta and compares its scenarios with the scenarios in
   `openspec/specs/<capability>/spec.md`. The report names each drift.

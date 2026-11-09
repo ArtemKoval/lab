@@ -24,11 +24,14 @@ dspy-gate bridge. The review settled these decisions:
 - The data file is committed source, never generated. The report names the
   units the file does not know, so the operator extends the file when the
   tree grows.
-- A same-day rerun replaces the run directory. The reports are reproducible
-  from the repo state, so no run history is lost information.
+- A same-day rerun replaces the files the run owns and leaves any other
+  file in the run directory in place. The reports are reproducible from
+  the repo state, so no run history is lost information.
 - The exit contract follows the house shape: 0 on success, 2 on operational
-  failure with the reason on stderr. `--json` switches the human report on
-  stdout for one machine payload.
+  failure with the reason on stderr and an empty stdout. A missing root
+  directory (`openspec/specs/`, the archive, or the git read) is an
+  operational failure. `--json` switches the human report on stdout for
+  one machine payload on the success path only.
 
 ## Context
 
@@ -71,34 +74,44 @@ couple two tools. The house package shape won.
 
 `tools/spec_mining/spec_mining/units.json` holds three maps:
 
-- `aliases`: unit name to capability name for the units whose names differ
+- `aliases`: unit path to capability name for the units whose names differ
   from the capability name. Example: `tools/spec_ste_check` maps to
-  `spec-ste-enforcement`.
-- `projects`: one project directory to its capability set. Example: `crm`
-  maps to the `crm-*` set.
+  `spec-ste-enforcement`. Hook keys drop the `.sh` suffix.
+- `projects`: one project directory to its capability set. A set entry can
+  carry one glob with a trailing `*`. Example: `crm` maps to `crm-*`.
 - `coverage`: explicit entries for units whose coverage no name rule
   finds. The skills enter here.
 
-The default scan walks `tools/` and `.claude/hooks/` by name rule. The
-data file decides the rest. Alternatives: a full explicit inventory for
-every unit gives exact numbers but rots fastest. A pure name rule drowns
-the report in skill noise. The hybrid keeps the file small and the report
-sharp.
+The name rule normalizes a unit name to one lowercase kebab token: it
+strips the extension, turns each `_` into a `-`, and collapses repeated
+dashes. The default scan walks `tools/` and `.claude/hooks/` by the name
+rule. A skill or a project with no coverage entry reports as uncovered. A
+data-file entry whose unit left the tree surfaces in one stale-entries
+section. Alternatives: a full explicit inventory for every unit gives
+exact numbers but rots fastest. A pure name rule drowns the report in
+skill noise. The hybrid keeps the file small and the report sharp.
 
 ### D3. The drift scan compares scenario names
 
-The drift scan parses `#### Scenario: <name>` lines from each archived
-delta and from each capability spec with a local regex. It reports the
-archived scenario names the capability spec lost. Alternatives: importing
-the dspy-gate scenario parser couples two tools. A full body compare makes
-every wording edit a drift entry. The name compare won.
+The drift scan parses `#### Scenario: <name>` lines from the `ADDED` and
+`MODIFIED` sections of each archived delta and from each capability spec
+with a local regex. It reports the archived scenario names the capability
+spec lost. An archived scenario whose capability spec directory does not
+exist reports as drift with one missing-spec mark. The `REMOVED` and
+`RENAMED` delta sections stay out, because a removed scenario left the
+spec on purpose and a rename keeps the new name in the body text.
+Alternatives: importing the dspy-gate scenario parser couples two tools.
+A full body compare makes every wording edit a drift entry. The name
+compare won.
 
 ### D4. The history ranking counts one bounded git log
 
 One `git log --name-only --format=%H` call over `main` feeds a count per
-uncovered area. The area of a unit is its first path segment. No pagination
-and no per-area calls. Alternatives: `shortlog` hides the path counts. A
-full per-commit parse adds cost with no extra signal. The single call won.
+uncovered area. The area of a unit is its repo-relative path, so the
+scenario granularity of the spec holds. Ties order by area name in
+ascending order. No pagination and no per-area calls. Alternatives:
+`shortlog` hides the path counts. A first-path-segment area merges all
+tools into one rank. The per-unit call won.
 
 ### D5. Seeds are scaffolds, not changes
 
@@ -115,9 +128,12 @@ The staged seed won.
 
 A run writes `reports/spec_mining/<UTC-date>/` with `coverage.json` (one
 payload with the tree, drift, and ranking sections), `report.md` (the
-human summary), and `drafts/`. A same-day rerun replaces the directory.
-Alternatives: timestamped run dirs accumulate residue. The replace rule
-won.
+human summary), and `drafts/`. The date is the ISO `YYYY-MM-DD` form in
+UTC. A same-day rerun replaces the files the run owns and leaves any other
+file in the directory in place, so a hand-written note survives.
+Alternatives: timestamped run dirs accumulate residue, and a wholesale
+directory replace deletes files the run never wrote. The owned-files
+replace won.
 
 ### D7. The interpreter follows the house fallback
 

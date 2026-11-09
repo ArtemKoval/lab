@@ -3,9 +3,9 @@
 ### Requirement: The tree scan
 The `spec_mining` CLI SHALL carry a read-only tree scan that matches each
 repo surface unit against the capability names in `openspec/specs/`. The
-match SHALL use the alias and coverage data file in the package. The unit
-set covers the tools, the hooks, the skills, and the projects. A unit with
-no capability match SHALL report as uncovered.
+match SHALL use the alias, project, and coverage data file in the package.
+The unit set covers the tools, the hooks, the skills, and the projects. A
+unit with no capability match SHALL report as uncovered.
 
 #### Scenario: A tool with no capability reports as uncovered
 - **GIVEN** the tree holds `tools/widget_maker` and no capability name or alias matches it
@@ -16,6 +16,11 @@ no capability match SHALL report as uncovered.
 - **GIVEN** the data file maps the unit `tools/spec_ste_check` to the capability `spec-ste-enforcement`
 - **WHEN** the tree scan runs
 - **THEN** `spec_ste_check` stays off the uncovered list
+
+#### Scenario: A skill with no coverage entry reports as uncovered
+- **GIVEN** `.claude/skills/` holds the skill `widget-guide` and the data file carries no entry for it
+- **WHEN** the tree scan runs
+- **THEN** the report names `widget-guide` as uncovered
 
 ### Requirement: The archive drift scan
 The CLI SHALL examine the `specs/` delta of each archived change and
@@ -69,8 +74,9 @@ A run SHALL write `coverage.json`, `report.md`, and one
 - **THEN** the directory holds no seed entry from the run
 
 ### Requirement: The CLI contract
-The CLI SHALL accept a `--json` flag and SHALL exit 0 on success and 2 on
-operational failure. A failure SHALL put the reason on stderr. The CLI
+The CLI SHALL carry one `run` subcommand. The CLI SHALL accept a `--json`
+flag and SHALL exit 0 on success and 2 on operational failure. A failure
+SHALL put the reason on stderr and keep the stdout empty. The CLI
 SHALL read the tree, the archive, and `git log` without a network call.
 
 #### Scenario: The JSON output parses
