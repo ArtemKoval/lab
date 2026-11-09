@@ -18,6 +18,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 ## Working rules
 - Build a tool first. When a task includes computation, data processing, or analysis, write a script that does the work without an LLM. Call the LLM only for the steps where judgment is necessary: plan review, vision, analysis of results, and code writing.
 - Keep reusable artifacts under version control. Put logs, metrics, scripts, and reports in the repository at a stable path. Reports go in `reports/`. Do not put them in `/tmp` or another scratch location. A scratch file is only for output that no one will read again.
+- Every finding in a report or a handover issue carries a confidence of observed, derived, or inferred. A limitation goes in a limitations list, not in the finding text. An open unknown goes in a list with a status and a next probe.
 - Open a handover issue after you solve a task. When the run produces logs, metrics, or observations that later work can use, open a handover issue. Use the `handover` issue template on GitHub after the merge. Remove secrets before you put artifacts in the issue.
 
 ## Specs
