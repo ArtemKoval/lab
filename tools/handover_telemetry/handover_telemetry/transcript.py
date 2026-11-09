@@ -86,6 +86,33 @@ def newest_transcript(project_dir: Path) -> Path | None:
     return max(candidates, key=_mtime)
 
 
+def find_named_transcript(session_id: str) -> Path | None:
+    """The newest top-level transcript of one named session across the
+    project directories, or None when no directory holds one.
+
+    The search reads the top-level files of each project directory
+    only, so a sidechain file under `<project>/<session>/subagents/`
+    never wins. The newest modification time wins, and the path order
+    breaks a tie.
+    """
+    root = projects_root()
+    if not root.is_dir():
+        return None
+    candidates = []
+    for project_dir in root.iterdir():
+        named = project_dir / f"{session_id}.jsonl"
+        if not _is_transcript(named):
+            continue
+        try:
+            stamp = _mtime(named)
+        except OSError:
+            continue
+        candidates.append((named, stamp))
+    if not candidates:
+        return None
+    return min(candidates, key=lambda pair: (-pair[1], pair[0]))[0]
+
+
 def _is_transcript(path: Path) -> bool:
     return path.is_file() and path.suffix == ".jsonl"
 
@@ -171,15 +198,17 @@ def _consume_kind(session: Session, entry: dict) -> None:
 def _earliest(current: str | None, candidate: str | None) -> str | None:
     if candidate is None:
         return current
-    # pragma: no mutate block - an equal candidate returns the same value
-    return candidate if current is None or candidate < current else current
+    if current is None:
+        return candidate
+    return min(candidate, current)
 
 
 def _latest(current: str | None, candidate: str | None) -> str | None:
     if candidate is None:
         return current
-    # pragma: no mutate block - an equal candidate returns the same value
-    return candidate if current is None or candidate > current else current
+    if current is None:
+        return candidate
+    return max(candidate, current)
 
 
 def _consume_assistant(run: AgentRun, entry: dict) -> None:

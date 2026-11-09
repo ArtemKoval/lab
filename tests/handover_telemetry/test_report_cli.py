@@ -294,10 +294,10 @@ def test_no_command_exits_2(capsys):
     assert exc.value.code == 2
 
 
-def test_session_fallthrough_uses_newest(project, repo, capsys):
+def test_session_miss_with_project_dir_exits_2(project, repo, capsys):
     code = cli.main(["build", "--project-dir", str(project), "--session", "absent", "--repo", str(repo)])
-    assert code == 0
-    assert "## Telemetry" in capsys.readouterr().out
+    assert code == 2
+    assert "no transcript for session absent" in capsys.readouterr().err
 
 
 def test_create_with_gh_missing_exits_2(project, repo, tmp_path, monkeypatch):

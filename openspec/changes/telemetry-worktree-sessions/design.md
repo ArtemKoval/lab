@@ -12,7 +12,8 @@ the rest.
    first, then searches the top-level `.jsonl` files of every project
    directory under `projects_root()`.
 3. Several matches resolve to the newest file by modification time.
-   Equal times order by path ascending, and the first wins.
+   Equal times order by path ascending, and the first wins. The
+   comparison orders path components, as `PurePath` orders them.
 4. `--project-dir` with `--session` sets the search scope to that one
    directory. No cross-project read happens, and the launch-path
    first lookup does not run.
