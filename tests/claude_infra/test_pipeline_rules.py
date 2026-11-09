@@ -100,3 +100,19 @@ def test_tool_admission_rubric_present():
     assert question in text
     assert shapes in text
     assert primitive in text
+
+
+def test_testing_lane_honesty_present():
+    text = _collapsed(PIPELINE)
+    lane = "A skipped test lane implies no coverage"
+    named = "The pull request body names each lane the run skipped"
+    scenarios = (
+        "A change to code with cleanup, cancellation, or ownership behavior "
+        "lists its lifecycle scenarios: success, cleanup failure, cancellation "
+        "mid-run, and partial completion"
+    )
+    held = "Each scenario names the test that holds it"
+    assert lane in text
+    assert named in text
+    assert scenarios in text
+    assert held in text
