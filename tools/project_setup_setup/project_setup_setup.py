@@ -101,12 +101,20 @@ def examine(rows, cwd):
 
 
 def run_install_command(install, cwd):
-    """Return the exit code of one install command run in cwd."""
-    if isinstance(install, list):
-        done = subprocess.run(install, cwd=str(cwd), check=False)
+    """Return the exit code of one install command run in cwd.
+
+    An install command that cannot start returns 127, so the run
+    reports install_failed instead of a traceback.
+    """
+    try:
+        if isinstance(install, list):
+            done = subprocess.run(install, cwd=str(cwd), check=False)
+            return done.returncode
+        done = subprocess.run(install, cwd=str(cwd), shell=True, check=False)
         return done.returncode
-    done = subprocess.run(install, cwd=str(cwd), shell=True, check=False)
-    return done.returncode
+    except OSError as exc:
+        print(f"install command failed to start: {exc}", file=sys.stderr)
+        return 127
 
 
 def install_rows(rows, cwd):

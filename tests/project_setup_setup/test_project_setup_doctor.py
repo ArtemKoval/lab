@@ -117,6 +117,17 @@ def test_plan_view_joins_an_argv_install():
     assert view == [{"id": "a", "status": "absent", "install": "echo hi"}]
 
 
+def test_main_unstartable_argv_install_fails(tmp_path, capsys):
+    units = [make_unit("alpha", check=MARKER_CHECK, install=["no-such-install-binary-xyz"])]
+    make_registry(tmp_path, units)
+    code = run_main(tmp_path, "--json", "--units", "alpha", "--install")
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert code == 2
+    assert report["units"][0]["status"] == "install_failed"
+    assert "install command failed to start" in captured.err
+
+
 def test_main_valid_plan_reports_unchecked(tmp_path, capsys):
     make_registry(tmp_path, [make_unit("alpha")])
     code = run_main(tmp_path, "--json")
