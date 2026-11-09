@@ -95,7 +95,7 @@ def test_workflow_whitelists_the_gated_roots():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert (
         "grep -E '^(tools/(plan_exec|spec_ste_check|project_setup"
-        "|project_setup_setup|devcontainer_init"
+        "|project_setup_setup|dead_export_scan|devcontainer_init"
         "|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup"
         "|peak_hours_gate|process_issues|saturation_pass|spec_mining)/|tests/)'"
         in text
@@ -108,7 +108,8 @@ def test_workflow_measures_coverage_over_the_gated_roots():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert (
         "--source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,"
-        "tools/project_setup_setup,tools/devcontainer_init,tools/handover_telemetry,"
+        "tools/project_setup_setup,tools/dead_export_scan,"
+        "tools/devcontainer_init,tools/handover_telemetry,"
         "tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,"
         "tools/peak_hours_gate,tools/process_issues,"
         "tools/saturation_pass,tools/spec_mining,tests" in text

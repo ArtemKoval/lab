@@ -204,6 +204,19 @@
       "requires": "Python 3.10 or newer"
     },
     {
+      "id": "dead-export-scan",
+      "kind": "dependency-file",
+      "purpose": "Scans the owned tools for dead code with vulture and reports the findings. Optional: runs only when a dead-code scan is asked for.",
+      "check": [
+        "tools/zai_routing_audit/.venv/bin/python",
+        "tools/dead_export_scan/dead_export_scan.py",
+        "--paths",
+        "tools/project_setup_setup"
+      ],
+      "install": "tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/dead_export_scan/requirements.txt",
+      "requires": "The shared zai venv unit, installed first"
+    },
+    {
       "id": "saturation-pass",
       "kind": "dependency-file",
       "purpose": "Runs the vendored mutator over the owned tools and holds the per-module ratchet against the committed store. The scheduled workflow and the saturation-run skill call it.",
