@@ -25,6 +25,6 @@
 
 - [ ] 3.1 Carry the delta-less declaration and pass the strict
       validate and the STE gate.
-- [ ] 3.2 Run the root suite, ruff, and the quality gates on the
+- [x] 3.2 Run the root suite, ruff, and the quality gates on the
       changed paths.
 - [ ] 3.3 Commit, push, open the pull request, and merge after review.

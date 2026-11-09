@@ -191,6 +191,19 @@
       "requires": "Python 3.10 or newer"
     },
     {
+      "id": "project-setup-doctor",
+      "kind": "dependency-file",
+      "purpose": "Validates the project-setup registry and reports the consent plan: each unit's status and the exact install command of each absent unit. The project-setup skill reads the plan.",
+      "check": [
+        "python3",
+        "tools/project_setup_setup/project_setup_setup.py",
+        "--repo-root",
+        "."
+      ],
+      "install": "echo 'project-setup-doctor is stdlib-only; no install needed'",
+      "requires": "Python 3.10 or newer"
+    },
+    {
       "id": "saturation-pass",
       "kind": "dependency-file",
       "purpose": "Runs the vendored mutator over the owned tools and holds the per-module ratchet against the committed store. The scheduled workflow and the saturation-run skill call it.",

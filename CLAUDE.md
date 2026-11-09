@@ -28,7 +28,7 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 - Spec gates: the `dspy-gate` tool governs the capabilities the harness registry declares. Every scenario carries a surface tag, and every THEN parses into an assertion or carries a `[judge]` tag with a rubric. After a spec edit, regenerate through the bridge before implementing code. The change template carries `gates.yaml` and `rubrics/` as reviewed artifacts. Never hand-edit a GENERATED path; the protect hook denies it. The feature-pipeline skill owns the gate placement.
 
 ## Setup
-- A clean clone must have the units in `tools/project_setup/registry.json`. The `project-setup` skill examines them and installs each unit that the clone does not have.
+- A clean clone must have the units in `tools/project_setup/registry.json`. The `project-setup` skill examines them and installs each unit that the clone does not have. The registry doctor at `tools/project_setup_setup/` validates the registry and reports the plan.
 - If a change adds an item that a clean clone must have, add a unit to the registry.
 
 ## Projects
