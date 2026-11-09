@@ -72,11 +72,11 @@ The disciplines that matter for this lab:
    each interpretation and resource. Unresolved identity stays unknown. A
    process run token, not a PID, proves ownership. Cleanup reports
    cleaned: false with a reason instead of assumed success.
-7. **Governance artifacts with generated proof.** A generated error
-   contract schema, a 125-row audit of user-visible error copy,
-   testing lanes with the rule that a skipped lane implies no coverage,
-   lifecycle regression tables, and obligation ledgers bound by SHA-256
-   owner digests.
+7. **Governance artifacts with generated proof.** rea keeps a
+   generated error contract schema and a 125-row audit of user-visible
+   error copy. Testing lanes follow the rule that a skipped lane
+   implies no coverage. Lifecycle regression tables pair scenarios
+   with assertions. SHA-256 owner digests bind the obligation ledgers.
 
 ## 3. What this lab already covers
 
@@ -100,7 +100,7 @@ The two systems agree on several designs. These mechanisms need no port:
 **A contract registry with one handler pipeline.** A contract record is the single source of truth for one tool
 (src/contracts/toolContractTypes.ts). The record holds the name, the
 title, the kind, a requiresActiveTarget flag, the zod input and output
-schemas, the effects, the annotations, and the examples. Twenty-four
+schemas, the effects, the annotations, and the examples. Forty-seven
 group arrays across the per-domain contract files form one ordered
 list, TOOL_CONTRACTS (src/contracts/toolContracts.ts). The MCP side registers each contract
 through one shared pipeline that validates, logs, executes, records,
@@ -133,12 +133,12 @@ id is a content digest over semantic content, and display metadata such
 as the caller path stays outside the id. Re-parsing authenticates the
 digest, so tampering produces a mismatch error. Each record carries raw
 and normalized results, a confidence of observed, derived, or inferred,
-an authority enum, the execution environment, typed locations, and a
-limitations list. Downstream tools accept an evidence reference or an
-evidence file path, and refuse a digest mismatch. An unknown is a
-record with its own digest id, a status of open, investigating,
-blocked, contradicted, or resolved, a revision chain, and separate
-links to supporting and contradicting evidence
+and an authority enum. It also carries the execution environment, typed
+locations, and a limitations list. Downstream tools accept an evidence
+reference or an evidence file path, and refuse a digest mismatch. An
+unknown is a record with its own digest id and a revision chain. Its
+status is open, investigating, blocked, contradicted, or resolved. It
+keeps separate links to supporting and contradicting evidence
 (src/domain/residualUnknown.ts). Updates use optimistic concurrency
 through an expected revision.
 
@@ -167,10 +167,10 @@ adapter cannot guess.
 (src/process/ProcessOwnership.ts). The reader takes the token only from
 the environment of the process itself, and distinguishes absent from
 unavailable (src/process/ProcessRunTokenObservations.ts). Cleanup
-re-reads the process table, revalidates the group against the recorded
-command and parent, plans the signal, and reports cleaned: false with a
-reason when a group reappears. A lease type gives cross-process,
-single-owner semantics with typed failure kinds
+re-reads the process table and revalidates the group against the
+recorded command and parent. It plans the signal, and reports
+cleaned: false with a reason when a group reappears. A lease type gives
+cross-process, single-owner semantics with typed failure kinds
 (src/process/OwnedLease.ts).
 
 **The setup flow.** A declarative table describes 28 supported clients with their config
@@ -181,9 +181,9 @@ registrations that rea owns. Two confirm stages separate the selection
 from the approval. The approval shows exact paths, backup paths,
 commands, environment keys, and network origins. A --yes flag without a
 scope flag covers only rea-owned registrations. The writer keeps the
-first backup file, preserves a digest-named recovery copy when the
-bytes differ, publishes through a staged path, reads the written file
-again, and restores the prior state on a mismatch
+first backup file. It preserves a digest-named recovery copy when the
+bytes differ. It publishes through a staged path, reads the written
+file again, and restores the prior state on a mismatch
 (src/application/SetupClientConfiguration.ts). Setup refuses to replace
 any registration whose owner identity it cannot prove
 (src/application/ClientRegistrationIdentity.ts). The entry script
@@ -198,9 +198,9 @@ implementation status, and verification result
 (docs/user-visible-errors.csv). The task graph verifies the freshness
 of every generated artifact against the committed output (turbo.json).
 The testing discipline defines seven behavior depths with admission
-limits, and names the lifecycle regressions that an ownership or
-cleanup change must cover as scenario and assertion pairs
-(docs/development/testing.md). The lanes document names more than 30
+limits (docs/development/testing.md). It names the lifecycle
+regressions that an ownership or cleanup change must cover as scenario
+and assertion pairs. The lanes document names more than 30
 real-toolchain lanes with exact preconditions, and states the rule that
 a skipped lane implies no coverage (docs/testing-lanes.md). The
 deterministic suite runs on every pull request, and the real-toolchain
@@ -225,9 +225,9 @@ SHA-256 owner digest binds each obligation.
   schema today. The trigger for a port is a schema that a client
   refuses, or a server with more than about ten tools. The mechanism to
   port then is the ladder in section 4.
-- **RL environments.** The AgentEnv builder turns recorded API sessions
-  into runnable environments for training runs. This lab runs no RL
-  training.
+- **RL environments.** The AgentEnv builder builds runnable
+  environments from recorded API sessions for training runs. This lab
+  runs no RL training.
 - **Run-token process ownership.** No lab tool supervises foreign
   processes. The residue scan reads git state, and the charter already
   binds worktree removal to the worktrees this pipeline created.
@@ -283,7 +283,9 @@ rea plans every write in the open, asks for approval twice, keeps
 backups, and reads the written file again before it claims success. The
 project-setup skill examines the registry and asks for permission. It
 states no plan shape, no backup rule, and no verification of a write.
-The repository has no setup doctor script.
+No setup doctor covers the project-setup registry. This proposal
+outranks the low-effort proposals below it, because a wrong setup
+write is destructive.
 
 - Change: the project-setup skill gains the mechanics as written rules,
   and a new setup doctor in the house doctor contract gains them as
@@ -307,9 +309,9 @@ easy to read as coverage.
 - Change: Step 3 and Step 9 of the feature pipeline gain the rules. A
   skipped lane implies no coverage, and the pull request body names
   each skipped lane. A change to code with cleanup, cancellation, or
-  ownership behavior lists its lifecycle scenarios: success, cleanup
-  failure, cancellation mid-run, and partial completion, with the test
-  that holds each scenario.
+  ownership behavior lists its lifecycle scenarios. The list covers
+  success, cleanup failure, cancellation mid-run, and partial
+  completion, and names the test that holds each scenario.
 - ASIT: Unification. The e2e marks and the gates exist, and the rules
   extend their reading.
 
