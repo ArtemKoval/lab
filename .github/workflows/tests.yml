@@ -37,6 +37,12 @@ jobs:
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv sync --project crm
+      - name: Cache the tree-sitter parser packs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tree-sitter-language-pack
+          key: tree-sitter-pack-${{ runner.os }}-v1
+          restore-keys: tree-sitter-pack-${{ runner.os }}-
       - name: Build the gate tool venvs
         if: github.event_name == 'pull_request'
         run: |
@@ -87,6 +93,12 @@ jobs:
           python -m venv tools/zai_routing_audit/.venv
           tools/zai_routing_audit/.venv/bin/python -m pip install --upgrade pip
           tools/zai_routing_audit/.venv/bin/python -m pip install -r tools/zai_routing_audit/requirements-dev.txt
+      - name: Cache the tree-sitter parser packs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tree-sitter-language-pack
+          key: tree-sitter-pack-${{ runner.os }}-v1
+          restore-keys: tree-sitter-pack-${{ runner.os }}-
       - name: Build the gate tool venvs
         run: |
           python -m venv tools/crapper/.venv
