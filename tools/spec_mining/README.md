@@ -41,9 +41,10 @@ PYTHONPATH=tools/spec_mining tools/zai_routing_audit/.venv/bin/python -m spec_mi
 PYTHONPATH=tools/spec_mining tools/zai_routing_audit/.venv/bin/python -m spec_mining run --json
 ```
 
-The interpreter falls back to the system `python3`. Exit 0 on a completed
-run and 2 on a failed fact call, with the reason on stderr and an empty
-stdout.
+When the shared venv does not exist, run the same commands with the
+system `python3` instead of the venv path. The package needs only the
+stdlib, so the fallback runs it unchanged. Exit 0 on a completed run and
+2 on a failed fact call, with the reason on stderr and an empty stdout.
 
 ## Data file
 
@@ -59,10 +60,11 @@ entry or an unresolved capability reference.
 tools/zai_routing_audit/.venv/bin/python -m pytest tests/spec_mining
 ```
 
-The tests inject the runner and fabricate the tree, so they run
-hermetic. The quality gates (CRAP at 10 or less, duplication under 0.8,
-mutation with no survivors) run over the package on every pull request
-that touches it.
+The tests inject the runner and fabricate the tree, so they run hermetic.
+One exception stands: the `units.json` structure pin walks the real
+repository shape and skips when that shape is absent. The quality gates
+(CRAP at 10 or less, duplication under 0.8, mutation with no survivors)
+run over the package on every pull request that touches it.
 
 ## Mutation run
 

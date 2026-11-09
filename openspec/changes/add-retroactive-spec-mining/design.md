@@ -99,7 +99,10 @@ The drift scan parses `#### Scenario: <name>` lines from the `ADDED` and
 `MODIFIED` sections of each archived delta and from each capability spec
 with a local regex. It reports the archived scenario names the capability
 spec lost. An archived scenario whose capability spec directory does not
-exist reports as drift with one missing-spec mark. The `REMOVED` and
+exist reports as drift with one missing-spec mark. The parser reads the
+section headers as plain lines, so a `## REMOVED Requirements` line
+inside a code fence would still split the body. The corpus holds no such
+fence today. The `REMOVED` and
 `RENAMED` delta sections stay out, because a removed scenario left the
 spec on purpose and a rename keeps the new name in the body text.
 Alternatives: importing the dspy-gate scenario parser couples two tools.

@@ -138,6 +138,113 @@ def test_the_seed_write_is_idempotent(tmp_path):
     assert seed.is_file()
 
 
+def test_a_hook_counts_commits_through_its_extension(tmp_path):
+    root = _fabricate(tmp_path)
+    log = (
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+        ".claude/hooks/halt-gate.sh\n"
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+        ".claude/hooks/halt-gate.sh\n"
+        "cccccccccccccccccccccccccccccccccccccccc\n"
+        "tools/widget_maker/wheel.py\n"
+    )
+    _main(root, FakeRunner(out=log))
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    rows = {row["area"]: row["commits"] for row in payload["ranking"]}
+    assert rows[".claude/hooks/halt-gate"] == 2
+    assert rows["tools/widget_maker"] == 1
+
+
+def test_a_nested_archived_delta_is_drift_scanned(tmp_path):
+    root = _fabricate(tmp_path)
+    nested = (
+        root / "openspec" / "changes" / "archive" / "2026-01-02-add-nested"
+        / "specs" / "fde" / "onboarding"
+    )
+    nested.mkdir(parents=True)
+    (nested / "spec.md").write_text(
+        "## ADDED Requirements\n#### Scenario: A nested scenario\n"
+    )
+    _main(root, FakeRunner(out=GIT_LOG))
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    row = next(
+        r for r in payload["drift"] if r["capability"] == "fde/onboarding"
+    )
+    assert row["scenario"] == "A nested scenario"
+    assert row["missing_spec"] is True
+
+
+def test_a_change_with_no_delta_stays_off_the_drift_scan(tmp_path):
+    root = _fabricate(tmp_path)
+    (root / "openspec" / "changes" / "archive" / "2026-01-03-no-delta").mkdir(
+        parents=True
+    )
+    _main(root, FakeRunner(out=GIT_LOG))
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    changes = {row["change"] for row in payload["drift"]}
+    assert "2026-01-03-no-delta" not in changes
+
+
+def test_the_drift_scans_a_deeply_nested_delta_only_once(tmp_path):
+    root = _fabricate(tmp_path)
+    nested = (
+        root / "openspec" / "changes" / "archive" / "2026-01-02-add-nested"
+        / "specs" / "fde" / "onboarding"
+    )
+    nested.mkdir(parents=True)
+    (nested / "spec.md").write_text(
+        "## ADDED Requirements\n#### Scenario: A nested scenario   \n"
+    )
+    _main(root, FakeRunner(out=GIT_LOG))
+    payload = json.loads(
+        (root / "reports" / "spec_mining" / TODAY / "coverage.json").read_text()
+    )
+    rows = [
+        r for r in payload["drift"] if r["capability"] == "fde/onboarding"
+    ]
+    assert [r["scenario"] for r in rows] == ["A nested scenario"]
+
+
+def test_the_fallback_git_message_names_the_code(tmp_path, capsys):
+    root = _fabricate(tmp_path)
+    code = _main(root, FakeRunner(code=1, err=""))
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "exited with code 1" in captured.err
+
+
+def test_the_report_marks_missing_specs(tmp_path):
+    root = _fabricate(tmp_path)
+    _main(root, FakeRunner(out=GIT_LOG))
+    report = (root / "reports" / "spec_mining" / TODAY / "report.md").read_text()
+    assert "(missing spec)" in report
+
+
+def test_a_dotted_unit_gets_a_kebab_candidate(tmp_path):
+    root = _fabricate(tmp_path)
+    (root / "tools" / "a.b").mkdir()
+    _main(root, FakeRunner(out=GIT_LOG))
+    run_dir = root / "reports" / "spec_mining" / TODAY
+    assert (run_dir / "drafts" / "a-b" / "proposal.md").is_file()
+
+
+def test_an_empty_candidate_writes_no_collapsed_seed(tmp_path):
+    root = _fabricate(tmp_path)
+    (root / "tools" / ".hidden").mkdir()
+    (root / "tools" / "-").mkdir()
+    _main(root, FakeRunner(out=GIT_LOG))
+    run_dir = root / "reports" / "spec_mining" / TODAY
+    assert not (run_dir / "drafts" / "proposal.md").exists()
+    report = (run_dir / "report.md").read_text()
+    assert "tools/-" in report
+
+
 def test_the_ranking_counts_commits_per_uncovered_area(tmp_path):
     root = _fabricate(tmp_path)
     cli.main(

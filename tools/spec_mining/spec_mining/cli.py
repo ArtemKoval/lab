@@ -75,20 +75,30 @@ def _delta_scenarios(text):
     names = []
     for i in range(1, len(parts), 2):
         if parts[i] in DELTA_SECTIONS:
-            names.extend(SCENARIO_RE.findall(parts[i + 1]))
+            names.extend(
+                found.strip() for found in SCENARIO_RE.findall(parts[i + 1])
+            )
     return names
 
 
 def _archive_rows(root):
-    """Return one parsed delta row per archived change and capability."""
+    """Return one parsed delta row per archived change and capability.
+
+    The capability name is the path under the change specs/ directory,
+    so nested capability deltas like fde/onboarding keep their full
+    name.
+    """
     archive = Path(root) / "openspec" / "changes" / "archive"
     rows = []
     for change in sorted(p for p in archive.iterdir() if p.is_dir()):
-        for spec in sorted((change / "specs").glob("*/spec.md")):
+        specs = change / "specs"
+        if not specs.is_dir():
+            continue
+        for spec in sorted(specs.rglob("spec.md")):
             rows.append(
                 {
                     "change": change.name,
-                    "capability": spec.parent.name,
+                    "capability": spec.parent.relative_to(specs).as_posix(),
                     "scenarios": _delta_scenarios(spec.read_text(encoding="utf-8")),
                 }
             )
@@ -130,18 +140,31 @@ def _git_commits(runner):
 
 
 def _counts(commits, uncovered):
-    """Return the commit counts per uncovered unit path."""
+    """Return the commit counts per uncovered unit path.
+
+    Directory units count the files under their path prefix. Hook units
+    carry the stem, while git paths keep the extension, so the hook
+    match compares the stripped path stem.
+    """
     counts = {row["unit"]: 0 for row in uncovered}
     for files in commits:
-        for unit in counts:
-            if any(p == unit or p.startswith(unit + "/") for p in files):
+        for row in uncovered:
+            unit = row["unit"]
+            if row["class"] == "hooks":
+                hit = any(p == unit or p.rsplit(".", 1)[0] == unit for p in files)
+            else:
+                hit = any(p == unit or p.startswith(unit + "/") for p in files)
+            if hit:
                 counts[unit] += 1
     return counts
 
 
 def _candidate(unit):
-    """Return the kebab candidate name of one unit path."""
-    return core.normalize(unit.rsplit("/", 1)[-1])
+    """Return the kebab candidate name of one unit path.
+
+    Dots become dashes, so a dotted unit name seeds one kebab directory.
+    """
+    return core.normalize(unit.rsplit("/", 1)[-1].replace(".", "-"))
 
 
 def _seed_text(candidate, units, commits, drift_rows):
@@ -204,7 +227,7 @@ def _report_text(payload):
     return "\n".join(lines) + "\n"
 
 
-def _write_run(root, today, payload, data_specs):
+def _write_run(root, today, payload):
     """Write the report set into the dated run directory."""
     run_dir = Path(root) / "reports" / "spec_mining" / today
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -227,7 +250,10 @@ def _write_drafts(run_dir, payload):
     drafts = run_dir / "drafts"
     by_candidate = {}
     for row in payload["tree"]["uncovered"]:
-        by_candidate.setdefault(_candidate(row["unit"]), []).append(row)
+        candidate = _candidate(row["unit"])
+        if not candidate:
+            continue
+        by_candidate.setdefault(candidate, []).append(row)
     for candidate, units in sorted(by_candidate.items()):
         commits = {r["area"]: r["commits"] for r in payload["ranking"]}
         drift_rows = [
@@ -274,7 +300,7 @@ def main(argv=None, run=None, repo_root=None, today=None):
         print(f"spec_mining: {error}", file=sys.stderr)
         return 2
     stamp = today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    _write_run(root, stamp, payload, None)
+    _write_run(root, stamp, payload)
     if args.as_json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:

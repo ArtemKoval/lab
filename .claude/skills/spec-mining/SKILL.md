@@ -22,8 +22,8 @@ PYTHONPATH=tools/spec_mining $VENV -m spec_mining run
 PYTHONPATH=tools/spec_mining $VENV -m spec_mining run --json
 ```
 
-The interpreter falls back to the system `python3` when the shared venv
-does not exist.
+When the shared venv does not exist, run the same commands with the
+system `python3` in place of `$VENV`.
 
 ## Reading the report
 
