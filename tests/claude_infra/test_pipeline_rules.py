@@ -84,3 +84,19 @@ def test_tool_remediation_rule_present():
         in text
     )
     assert "New and touched tools adopt this rule" in text
+
+
+def test_tool_admission_rubric_present():
+    text = _collapsed(PIPELINE)
+    question = "A new tool names the question it answers"
+    shapes = (
+        "and picks one of six shapes: inspect, search-list, trace, "
+        "compare, workflow, observe-capture"
+    )
+    primitive = (
+        "A primitive comes before a composed workflow, and each "
+        "interpretation a tool produces gets one owner"
+    )
+    assert question in text
+    assert shapes in text
+    assert primitive in text

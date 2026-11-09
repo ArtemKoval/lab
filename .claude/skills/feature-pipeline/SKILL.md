@@ -312,6 +312,10 @@ The core deliverable runs without Claude Code or any LLM.
 - Every operational failure (exit 2) names one next action in its
   message. A `--json` failure carries a `remediation` field beside the
   exit code. New and touched tools adopt this rule.
+- A new tool names the question it answers, and picks one of six
+  shapes: inspect, search-list, trace, compare, workflow,
+  observe-capture. A primitive comes before a composed workflow, and
+  each interpretation a tool produces gets one owner.
 - `tools/` code depends only on `tools/<task_name>/requirements.txt`, never on
   the `mcp` package (wrapper only); application code follows CLAUDE.md's
   backend/frontend dependency setup.
