@@ -22,7 +22,7 @@ Before diagramming, determine these choices. If the user already specified one, 
 | --- | --- | --- |
 | Purpose | Existing code, new system, design review | Existing code requires codebase exploration first; new systems require assumptions called out. |
 | Format | ASCII, Mermaid | Ask the user. Mermaid means plain Mermaid syntax, not C4-specific Mermaid. |
-| Rigor | Strict C4, lightweight C4-inspired, hybrid | Ask the user. Do not decide silently. |
+| Rigor | Strict C4, lightweight C4-inspired, hybrid | Ask the user. The choice stays with the user. |
 
 If the user asks to skip questions for speed, still preserve unresolved choices as explicit assumptions and keep the first diagram lightweight.
 
@@ -53,7 +53,7 @@ For small systems, challenge requests for all four C4 levels and offer a smaller
 - Mermaid diagrams must use plain `flowchart` or `sequenceDiagram` syntax for portability.
 - ASCII diagrams should favor readable boxes and arrows over decorative complexity.
 - Keep labels concrete: actor, system, container, component, database, queue, external service.
-- Do not mix levels accidentally: containers are runnable/deployable units; components live inside one container.
+- Keep every box at one level: containers are runnable/deployable units, and components live inside one container.
 - Always include assumptions when diagramming a future system or incomplete codebase.
 - Always include open questions when boundaries, ownership, data flow, or deployment are uncertain.
 
