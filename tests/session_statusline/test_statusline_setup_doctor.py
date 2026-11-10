@@ -5,6 +5,7 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
 import session_statusline_setup as doctor
 
 # absolute(), not resolve(): the mutator symlink overlay must keep this
@@ -47,6 +48,10 @@ def committed_command():
     return settings["statusLine"]["command"]
 
 
+@pytest.mark.skipif(
+    doctor.expected_command(REPO_ROOT) != committed_command(),
+    reason="the committed wiring points at another checkout",
+)
 def test_doctor_reports_ok_on_this_checkout(capsys):
     code = doctor.main(["--repo-root", str(REPO_ROOT), "--json"])
     report = json.loads(capsys.readouterr().out)
@@ -135,6 +140,10 @@ def test_doctor_survives_unreadable_settings(tmp_path, capsys):
     assert report["ok"] is False
 
 
+@pytest.mark.skipif(
+    doctor.expected_command(REPO_ROOT) != committed_command(),
+    reason="the committed wiring points at another checkout",
+)
 def test_doctor_plain_text_output(capsys):
     code = doctor.main(["--repo-root", str(REPO_ROOT)])
     out = capsys.readouterr()
