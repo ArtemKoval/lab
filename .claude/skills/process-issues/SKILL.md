@@ -98,7 +98,8 @@ edits only through a pull request.
 
 The scan maps each issue to one state and one action. The precedence is
 `handover`, then `blocked`, then `answered`, then `human-approved`, then
-`waiting-human-approval`, then no label. `handover` skips the issue.
+`waiting-human-approval`, then no label. A `tech-debt:` title prefix or a
+`tech-debt` label skips the issue. `handover` skips the issue.
 `blocked` stops the issue: the loop never retries it. `answered`
 takes no action. `waiting-human-approval` waits. `human-approved` applies
 when the change artifacts exist, and proposes and then applies when they do

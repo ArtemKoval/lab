@@ -26,11 +26,15 @@ note names the config path, and the scan exits 2 with no queue.
 
 The labels carry the state. The precedence is `handover`, `blocked`,
 `answered`, `human-approved`, `waiting-human-approval`, then no label.
+A title that starts with `tech-debt:` maps to `skip` below the gate
+labels, and so does the `tech-debt` label. The prefix match is exact
+lowercase. The fast-mode debt issue carries the prefix, so the loop
+never treats debt as new work.
 
 | State | Meaning |
 | --- | --- |
 | `refused` | The author admission refuses the issue. The loop touches nothing. |
-| `skip` | The `handover` label sits on the issue. The loop never closes it. |
+| `skip` | The `handover` label, the `tech-debt` label, or the `tech-debt:` title prefix sits on the issue. The loop never closes a handover issue. |
 | `blocked` | The run could not proceed and left one structured reason comment. The loop never retries it, and only the operator clears the label. |
 | `answered` | The loop answered this informational issue. |
 | `wait-approval` | The spec gate waits for `human-approved`. |

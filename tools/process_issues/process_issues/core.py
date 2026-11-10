@@ -7,6 +7,9 @@ LABEL_BLOCKED = "blocked"
 LABEL_ANSWERED = "answered"
 LABEL_HUMAN_APPROVED = "human-approved"
 LABEL_WAITING = "waiting-human-approval"
+LABEL_TECH_DEBT = "tech-debt"
+
+TECH_DEBT_PREFIX = "tech-debt:"
 
 STATE_SKIP = "skip"
 STATE_BLOCKED = "blocked"
@@ -52,8 +55,21 @@ def state_for_labels(labels):
     return None
 
 
-def classify(labels, prs, has_artifacts):
-    """Map one issue's labels, linked PRs, and artifact flag to its state."""
+def is_tech_debt(title, labels):
+    """Return True when the title prefix or the label names tech debt.
+
+    The debt issue from a fast-mode run carries the lowercase title
+    prefix. The label match covers a manual issue after the operator
+    creates the label. The labels argument is a set of label names.
+    """
+    return (
+        isinstance(title, str) and title.startswith(TECH_DEBT_PREFIX)
+    ) or LABEL_TECH_DEBT in labels
+
+
+def classify(labels, prs, has_artifacts, title=""):
+    """Map one issue's labels, linked PRs, artifact flag, and title to
+    its state."""
     labels = set(labels)
     for label, state, action in LABEL_PRECEDENCE:
         if label in labels:
@@ -64,6 +80,8 @@ def classify(labels, prs, has_artifacts):
         return {"state": STATE_PROPOSE, "action": ACTION_PROPOSE_THEN_APPLY}
     if LABEL_WAITING in labels:
         return {"state": STATE_WAIT_APPROVAL, "action": ACTION_WAIT}
+    if is_tech_debt(title, labels):
+        return {"state": STATE_SKIP, "action": ACTION_NONE}
     pr_states = {pr.get("state") for pr in prs}
     if "merged" in pr_states:
         return {"state": STATE_PROPOSE, "action": ACTION_REPAIR}

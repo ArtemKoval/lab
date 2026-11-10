@@ -109,6 +109,20 @@ def test_scan_plain_lines_carry_state(capsys):
     assert "12" in out and "skip" in out
 
 
+def test_scan_carries_the_tech_debt_title_to_classify(capsys):
+    fake = FakeGh(
+        [
+            (0, json.dumps([{"number": 13, "title": "tech-debt: prototype x", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": []}]), ""),
+            (0, "[]", ""),
+        ]
+    )
+    code = cli.main(["scan"], runner=fake, repo_root=".",
+             git_runner=_no_git)
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "13" in out and "skip" in out
+
+
 def test_pr_body_match_respects_number_boundary(capsys):
     issues = json.dumps(
         [{"number": 8, "title": "T", "createdAt": "x", "author": {"login": "ArtemKoval"}, "labels": []}]

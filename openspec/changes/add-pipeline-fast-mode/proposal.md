@@ -45,7 +45,8 @@ with no capability spec.
 
 ### Modified Capabilities
 
-None. The change declares `skip_specs` and carries no delta.
+- `process-issues`: the classifier rule adds the title input and the
+  tech-debt skip below the gate labels.
 
 ## Out of scope
 
