@@ -58,6 +58,14 @@ def test_workflow_lints_the_tools():
         in text
     )
     assert "tools/zai_routing_audit/.venv/bin/ruff check tools/spec_mining" in text
+    assert (
+        "tools/zai_routing_audit/.venv/bin/ruff check tools/session_statusline"
+        in text
+    )
+    assert (
+        "tools/zai_routing_audit/.venv/bin/ruff check "
+        "tools/session_statusline_setup" in text
+    )
 
 
 def test_workflow_gates_the_dspy_gate_paths():

@@ -33,11 +33,6 @@
 - [x] 4.1 Add `tools/session_statusline/README.md`.
 - [x] 4.2 Add one Projects line for the tool to `CLAUDE.md`.
 
-## 4. Docs
-
-- [x] 4.1 Add `tools/session_statusline/README.md`.
-- [x] 4.2 Add one Projects line for the tool to `CLAUDE.md`.
-
 ## 5. The CI gates
 
 - [x] 5.1 Extend the gate whitelist, the coverage source list, and the

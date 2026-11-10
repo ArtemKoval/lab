@@ -2,7 +2,7 @@
     "outputStyle": "ASD-STE100",
     "statusLine": {
         "type": "command",
-        "command": "/home/repos/lab/target/mutation-workers/run-07fb772b-d193-4ec8-9f51-fa5f2253e88f/worker-2/tools/zai_routing_audit/.venv/bin/python /home/repos/lab/target/mutation-workers/run-07fb772b-d193-4ec8-9f51-fa5f2253e88f/worker-2/tools/session_statusline/session_statusline.py",
+        "command": "/home/repos/lab/target/mutation-workers/run-6bc607a4-90ae-4469-a7fa-4186ac638aa3/worker-3/tools/zai_routing_audit/.venv/bin/python /home/repos/lab/target/mutation-workers/run-6bc607a4-90ae-4469-a7fa-4186ac638aa3/worker-3/tools/session_statusline/session_statusline.py",
         "padding": 0,
         "refreshInterval": 15
     },

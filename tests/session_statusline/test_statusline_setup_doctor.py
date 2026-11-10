@@ -40,12 +40,37 @@ def test_registry_carries_the_statusline_unit():
     assert "zai-routing-audit-python-deps" in unit["requires"]
 
 
+def committed_command():
+    settings = json.loads(
+        (REPO_ROOT / ".claude" / "settings.json").read_text(encoding="utf-8")
+    )
+    return settings["statusLine"]["command"]
+
+
 def test_doctor_reports_ok_on_this_checkout(capsys):
     code = doctor.main(["--repo-root", str(REPO_ROOT), "--json"])
     report = json.loads(capsys.readouterr().out)
     assert code == 0
     assert report["ok"] is True
     assert report["problems"] == []
+
+
+def test_committed_block_carries_this_checkouts_tool_paths():
+    command = committed_command()
+    assert "target/mutation-workers" not in command
+    interpreter, tool = command.split(" ", 1)
+    assert interpreter.endswith("tools/zai_routing_audit/.venv/bin/python")
+    assert tool.endswith("tools/session_statusline/session_statusline.py")
+
+
+def test_committed_block_shape():
+    settings = json.loads(
+        (REPO_ROOT / ".claude" / "settings.json").read_text(encoding="utf-8")
+    )
+    block = settings["statusLine"]
+    assert block["type"] == "command"
+    assert block["refreshInterval"] == 15
+    assert block["padding"] == 0
 
 
 def test_doctor_install_writes_the_checkout_paths(tmp_path, capsys):
@@ -115,6 +140,7 @@ def test_doctor_plain_text_output(capsys):
     out = capsys.readouterr()
     assert code == 0
     assert "session-statusline wiring: ok" in out.out
+    assert "target/mutation-workers" not in committed_command()
 
 
 def test_doctor_install_skips_without_the_tool_dir(tmp_path, capsys):

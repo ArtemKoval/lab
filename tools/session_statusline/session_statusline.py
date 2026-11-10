@@ -181,14 +181,19 @@ def read_transcript_sums(transcript_path, cache_path, session_id):
         return None
     path = Path(transcript_path)
     try:
-        size = path.stat().st_size
-        text = path.read_text(encoding="utf-8", errors="replace")
+        raw = path.read_bytes()
     except OSError:
         return None
+    size = len(raw)
     offset, rows, totals = cache_totals(
         read_json_cache(cache_path), session_id, size
     )
-    sums = transcript_sums(text[offset:])
+    chunk = raw[offset:]
+    # Commit only up to the last newline, so a line that was mid-write
+    # at refresh time is re-parsed on the next refresh.
+    boundary = chunk.rfind(b"\n") + 1
+    text = chunk[:boundary].decode("utf-8", errors="replace")
+    sums = transcript_sums(text)
     keys = ("in", "out", "cache_read", "cache_creation")
     totals = {key: totals[key] + sums[key] for key in keys}
     rows += sums["rows"]
@@ -196,7 +201,7 @@ def read_transcript_sums(transcript_path, cache_path, session_id):
     sums["rows"] = rows
     record = {
         "session_id": session_id,
-        "offset": size,
+        "offset": offset + boundary,
         "rows": rows,
         "in": totals["in"],
         "out": totals["out"],
@@ -239,6 +244,8 @@ def pool_percentages(stdout):
         payload = json.loads(stdout)
     except ValueError:
         return None, None
+    if not isinstance(payload, dict):
+        return None, None
     pools = [
         row
         for row in payload.get("pools", [])
@@ -250,7 +257,10 @@ def pool_percentages(stdout):
     for row in pools:
         consumed = row.get("consumed")
         remaining = row.get("remaining")
-        if consumed is None or remaining is None or consumed + remaining <= 0:
+        usable = isinstance(consumed, (int, float)) and isinstance(
+            remaining, (int, float)
+        )
+        if not usable or consumed + remaining <= 0:
             percents.append(None)
         else:
             percents.append(round(100 * consumed / (consumed + remaining)))
@@ -321,9 +331,9 @@ def render(payload, now, transport, cache_dir):
     five, seven = resolve_windows(payload, now, transport, cache_dir)
     cache = resolve_cache_rate(payload, sums)
     fields = {
-        "model": (payload.get("model", {}).get("display_name") or "n/a")[
-            :MODEL_MAX_CHARS
-        ],
+        "model": (
+            payload_mapping(payload, "model").get("display_name") or "n/a"
+        )[:MODEL_MAX_CHARS],
         "effort": payload_effort(payload) or "n/a",
         "five": fmt_pct(five),
         "seven": fmt_pct(seven),

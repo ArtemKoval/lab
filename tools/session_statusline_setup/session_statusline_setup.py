@@ -14,7 +14,9 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -81,9 +83,13 @@ def install(root):
         "padding": 0,
         "refreshInterval": 15,
     }
-    settings_path.write_text(
-        json.dumps(data, indent=4) + "\n", encoding="utf-8"
+    handle = tempfile.NamedTemporaryFile(
+        "w", dir=settings_path.parent, delete=False, suffix=".tmp"
     )
+    with handle:
+        json.dump(data, handle, indent=4)
+        handle.write("\n")
+    os.replace(handle.name, settings_path)
 
 
 def main(argv=None):

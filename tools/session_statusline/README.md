@@ -17,8 +17,8 @@ does not carry, behind a 300 second cache with a 10 second timeout.
 The line fails open: every data fault renders n/a fields and exits 0,
 so a broken transcript or a dead console never blanks the line. A
 wrong invocation exits 2. The line can blank while the shared venv
-interpreter itself is missing or rebuilding; the doctor catches that
-state at install time.
+interpreter itself is missing or rebuilding. The doctor reports that
+state on every run.
 
 ## Commands
 
@@ -49,5 +49,5 @@ and `sums.json`. Delete the directory to reset them.
 - The two pool percentages follow the console display order: the first
   pool renders as `5h`, the second as `wk`. The mapping is an
   assumption about an undocumented endpoint.
-- The detector reads the payload, the transcript, and the console. It
+- The tool reads the payload, the transcript, and the console. It
   makes no other network call.

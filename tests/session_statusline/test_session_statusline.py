@@ -166,24 +166,29 @@ def test_stale_offset_triggers_full_reread(tmp_path):
     cache_dir.mkdir()
     (cache_dir / "sums.json").write_text(
         json.dumps(
-            {"session_id": "s1", "offset": 10 ** 9, "in": 1, "out": 1,
-             "cache_read": 0, "cache_creation": 0}
+            {"session_id": "s1", "offset": 10 ** 9, "in": 500000,
+             "out": 900000, "cache_read": 0, "cache_creation": 0}
         )
     )
     _, fields = render(payload, NOW, fake_transport(), cache_dir)
     assert fields["in_millions"] == "0.61M"
+    assert fields["out_millions"] == "0.21M"
 
 
 def test_partial_line_is_skipped(tmp_path):
     transcript = write_transcript(
         tmp_path,
-        [usage_line(100, 200), '{"broken": ', usage_line(300, 400)],
+        [
+            usage_line(100000, 200000),
+            '{"broken": ',
+            usage_line(300000, 400000),
+        ],
     )
     payload = {**FULL_PAYLOAD, "transcript_path": transcript}
     del payload["prompt_cache"]
     _, fields = render_line(payload, tmp_path)
-    assert fields["in_millions"] == "0.00M"
-    assert fields["out_millions"] == "0.00M"
+    assert fields["in_millions"] == "0.40M"
+    assert fields["out_millions"] == "0.60M"
 
 
 def test_missing_transcript_renders_na_totals(tmp_path):
@@ -254,10 +259,7 @@ def test_fresh_cache_makes_no_console_call(tmp_path):
         json.dumps({"updated": NOW - 10, "five": 5, "seven": 50})
     )
     transport = fake_transport()
-    _, fields = render_line(
-        {"session_id": "s1", "transcript_path": "",
-         "model": {"display_name": "m"}}, tmp_path, transport=transport,
-    ) if False else render(
+    _, fields = render(
         {"session_id": "s1", "transcript_path": "",
          "model": {"display_name": "m"}},
         NOW, transport, cache_dir,
@@ -309,9 +311,9 @@ def test_broken_payload_renders_degraded_line():
     assert line.endswith("14:05 UTC")
 
 
-def test_main_renders_degraded_on_broken_stdin(monkeypatch, capsys):
+def test_main_renders_degraded_on_broken_stdin(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr("sys.stdin", io.StringIO("{not json"))
-    assert main(["--cache-dir", "/tmp/ssl-test-cache"]) == 0
+    assert main(["--cache-dir", str(tmp_path / "c")]) == 0
     out = capsys.readouterr().out
     assert "unparsable payload" in out
     assert "n/a" in out
@@ -342,6 +344,7 @@ def test_load_payload_rejects_non_object():
 
 def test_pool_percentages_rejects_bad_json():
     assert pool_percentages("{nope") == (None, None)
+    assert pool_percentages("[1, 2]") == (None, None)
 
 
 def test_formatters_round_and_render_na():
@@ -400,3 +403,27 @@ def test_console_failure_with_no_cache_renders_na(tmp_path):
     )
     assert fields["five"] == "n/a"
     assert fields["seven"] == "n/a"
+
+
+def test_corrupt_sums_cache_counts_as_no_cache(tmp_path):
+    transcript = write_transcript(tmp_path, [usage_line(606225, 205336)])
+    payload = {**FULL_PAYLOAD, "transcript_path": transcript}
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "sums.json").write_text("{not json", encoding="utf-8")
+    _, fields = render(payload, NOW, fake_transport(), cache_dir)
+    assert fields["in_millions"] == "0.61M"
+
+
+def test_non_ascii_transcript_keeps_the_byte_offset(tmp_path):
+    transcript = write_transcript(
+        tmp_path, ["{\"type\":\"note\",\"text\":\"héllo wörld\"}"]
+    )
+    payload = {**FULL_PAYLOAD, "transcript_path": transcript}
+    cache_dir = tmp_path / "cache"
+    render(payload, NOW, fake_transport(), cache_dir)
+    with open(transcript, "a", encoding="utf-8") as handle:
+        handle.write(usage_line(606225, 205336) + "\n")
+    _, fields = render(payload, NOW, fake_transport(), cache_dir)
+    assert fields["in_millions"] == "0.61M"
+    assert fields["out_millions"] == "0.21M"
