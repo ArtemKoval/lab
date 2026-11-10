@@ -7,7 +7,7 @@ The process-issues loop scans the open GitHub issues of this repo and runs the f
 ## Requirements
 
 ### Requirement: The scan classifies each open issue into one loop state
-The `scan` subcommand SHALL list the open issues with their author, their labels, and their open pull requests. The CLI SHALL map each issue to one loop state from its author admission, its labels, the pull request links, and the artifact presence. The admission SHALL run before the label precedence. An author outside the allowed-author list SHALL map to the state `refused` with the action `none`. A login whose lowercase form ends with `[bot]` SHALL refuse. An absent or null author SHALL refuse. The refusal sits above every label state. The label precedence SHALL be `handover`, then `blocked`, then `answered`, then `human-approved`, then `waiting-human-approval`, then no label. The allowed-author comparison SHALL ignore letter case. The scan order SHALL follow `createdAt` from oldest to newest.
+The `scan` subcommand SHALL list the open issues with their author, their labels, their titles, and their open pull requests. The CLI SHALL map each issue to one loop state from five inputs. The inputs are the author admission, the labels, the title, the pull request links, and the artifact presence. The admission SHALL run before the label precedence. An author outside the allowed-author list SHALL map to the state `refused` with the action `none`. A login whose lowercase form ends with `[bot]` SHALL refuse. An absent or null author SHALL refuse. The refusal sits above every label state. The label precedence SHALL be `handover`, then `blocked`, then `answered`, then `human-approved`, then `waiting-human-approval`, then the tech-debt rule, then no label. A title that starts with `tech-debt:` SHALL map to the state `skip` with the action `none` below the gate labels and before the pull-request branches. The `tech-debt` label SHALL map to the same skip. The allowed-author comparison SHALL ignore letter case. The scan order SHALL follow `createdAt` from oldest to newest.
 
 #### Scenario: A foreign author refuses
 - **GIVEN** issue 30 carries the login `stranger` and the allowed list carries `ArtemKoval`
@@ -61,6 +61,21 @@ The `scan` subcommand SHALL list the open issues with their author, their labels
 #### Scenario: A plain issue proposes
 - **WHEN** the scan classifies issue 15 with no gate label
 - **THEN** the state is propose
+
+#### Scenario: A tech-debt title skips
+- **GIVEN** issue 40 carries the login `ArtemKoval` and the title `tech-debt: prototype x`
+- **WHEN** the scan classifies issue 40
+- **THEN** the state is skip and the action is none
+
+#### Scenario: A tech-debt label skips
+- **GIVEN** issue 41 carries the login `ArtemKoval` and the `tech-debt` label
+- **WHEN** the scan classifies issue 41
+- **THEN** the state is skip and the action is none
+
+#### Scenario: The tech-debt rule sits below the gate labels
+- **GIVEN** issue 42 carries the login `ArtemKoval`, the title `tech-debt: prototype x`, and the `human-approved` label
+- **WHEN** the scan classifies issue 42
+- **THEN** the state is apply
 
 #### Scenario: The order is oldest first
 - **GIVEN** issues 15 and 9 both classify as propose
