@@ -9,9 +9,11 @@ import io
 import json
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from session_statusline import (
+    cache_totals,
     default_transport,
     degraded_line,
     fmt_cache_rate,
@@ -22,6 +24,8 @@ from session_statusline import (
     pool_percentages,
     read_transcript_sums,
     render,
+    transcript_sums,
+    usable_offset,
     write_json_cache,
 )
 
@@ -427,3 +431,158 @@ def test_non_ascii_transcript_keeps_the_byte_offset(tmp_path):
     _, fields = render(payload, NOW, fake_transport(), cache_dir)
     assert fields["in_millions"] == "0.61M"
     assert fields["out_millions"] == "0.21M"
+
+
+def test_transcript_sums_carry_exact_integers():
+    lines = [
+        json.dumps({"message": {"usage": {"input_tokens": 3}}}),
+        json.dumps({"message": {"usage": {"output_tokens": 7}}}),
+        json.dumps({"message": {"usage": {}}}),
+        json.dumps({"message": {"usage": {"input_tokens": 5,
+                                          "output_tokens": 11,
+                                          "cache_read_input_tokens": 13,
+                                          "cache_creation_input_tokens": 17}}}),
+    ]
+    sums = transcript_sums("\n".join(lines))
+    assert sums == {
+        "rows": 4,
+        "in": 8,
+        "out": 18,
+        "cache_read": 13,
+        "cache_creation": 17,
+    }
+
+
+def test_transcript_sums_reject_non_dict_usage():
+    sums = transcript_sums(json.dumps({"message": {"usage": "x"}}))
+    assert sums["rows"] == 0
+    assert sums["in"] == 0
+
+
+def test_cache_write_leaves_no_temporary_files(tmp_path):
+    target = tmp_path / "sums.json"
+    write_json_cache(target, {"session_id": "s1"})
+    assert target.is_file()
+    assert list(tmp_path.glob("*.tmp")) == []
+
+
+def test_usable_offset_boundaries():
+    assert usable_offset(1, 10) is True
+    assert usable_offset(10, 10) is True
+    assert usable_offset(0, 10) is False
+    assert usable_offset(11, 10) is False
+    assert usable_offset("3", 10) is False
+    assert usable_offset(3, 0) is False
+
+
+def test_cache_totals_return_the_cached_totals_exactly():
+    cache = {
+        "session_id": "s1",
+        "offset": 5,
+        "rows": 2,
+        "in": 10,
+        "out": 20,
+        "cache_read": 30,
+        "cache_creation": 40,
+    }
+    assert cache_totals(cache, "s1", 100) == (
+        5, 2,
+        {"in": 10, "out": 20, "cache_read": 30, "cache_creation": 40},
+    )
+
+
+def test_cache_totals_reject_foreign_sessions_and_bad_offsets():
+    empty = (0, 0, {"in": 0, "out": 0, "cache_read": 0, "cache_creation": 0})
+    cache = {"session_id": "s1", "offset": 5, "rows": 2, "in": 10,
+             "out": 20, "cache_read": 30, "cache_creation": 40}
+    assert cache_totals(None, "s1", 100) == empty
+    assert cache_totals(cache, "s2", 100) == empty
+    assert cache_totals({**cache, "offset": 0}, "s1", 100) == empty
+    assert cache_totals({**cache, "offset": 101}, "s1", 100) == empty
+    assert cache_totals({**cache, "rows": None}, "s1", 100)[1] == 0
+    assert cache_totals({**cache, "cache_read": None}, "s1", 100)[2]["cache_read"] == 0
+
+
+def test_pool_rows_reject_strings_and_zero_windows(tmp_path):
+    transport = fake_transport(
+        pools=[
+            {"type": "CREDIT_LIMIT", "consumed": "5", "remaining": 5},
+            {"type": "CREDIT_LIMIT", "consumed": 0, "remaining": 1},
+        ]
+    )
+    _, fields = render(
+        {"session_id": "s1", "transcript_path": "",
+         "model": {"display_name": "m"}},
+        NOW, transport, tmp_path / "cache",
+    )
+    assert fields["five"] == "n/a"
+    assert fields["seven"] == "0%"
+
+
+def test_pool_rows_skip_non_dict_entries(tmp_path):
+    transport = fake_transport(
+        pools=["row", {"type": "CREDIT_LIMIT", "consumed": 1, "remaining": 3}]
+    )
+    _, fields = render(
+        {"session_id": "s1", "transcript_path": "",
+         "model": {"display_name": "m"}},
+        NOW, transport, tmp_path / "cache",
+    )
+    assert fields["five"] == "n/a"
+    assert fields["seven"] == "n/a"
+
+
+def test_console_cache_expires_at_exact_ttl(tmp_path):
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    (cache_dir / "console.json").write_text(
+        json.dumps({"updated": NOW - 300, "five": 5, "seven": 50})
+    )
+    transport = fake_transport(
+        pools=[
+            {"type": "CREDIT_LIMIT", "consumed": 1, "remaining": 3},
+            {"type": "CREDIT_LIMIT", "consumed": 1, "remaining": 1},
+        ]
+    )
+    _, fields = render(
+        {"session_id": "s1", "transcript_path": "",
+         "model": {"display_name": "m"}},
+        NOW, transport, cache_dir,
+    )
+    assert fields["five"] == "25%"
+    assert len(transport.calls) == 1
+
+
+def test_cache_offset_covers_the_whole_file(tmp_path):
+    transcript = write_transcript(tmp_path, [usage_line(10, 20)])
+    payload = {**FULL_PAYLOAD, "transcript_path": transcript}
+    render(payload, NOW, fake_transport(), tmp_path / "cache")
+    record = json.loads((tmp_path / "cache" / "sums.json").read_text())
+    assert record["offset"] == Path(transcript).stat().st_size
+
+
+def test_main_honors_the_cache_dir(monkeypatch, capsys, tmp_path):
+    transcript = write_transcript(tmp_path, [usage_line(10, 20)])
+    payload = {**FULL_PAYLOAD, "transcript_path": transcript}
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
+    cache_dir = tmp_path / "c"
+    code = main(["--json", "--cache-dir", str(cache_dir)])
+    assert code == 0
+    assert (cache_dir / "sums.json").is_file()
+
+
+def test_cache_write_lands_in_an_existing_directory(tmp_path):
+    transcript = write_transcript(tmp_path, [usage_line(10, 20)])
+    payload = {**FULL_PAYLOAD, "transcript_path": transcript}
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    render(payload, NOW, fake_transport(), cache_dir)
+    assert (cache_dir / "sums.json").is_file()
+
+
+def test_cache_write_creates_missing_parent_directories(tmp_path):
+    transcript = write_transcript(tmp_path, [usage_line(10, 20)])
+    payload = {**FULL_PAYLOAD, "transcript_path": transcript}
+    cache_dir = tmp_path / "a" / "b"
+    render(payload, NOW, fake_transport(), cache_dir)
+    assert (cache_dir / "sums.json").is_file()
