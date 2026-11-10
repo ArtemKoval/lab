@@ -246,6 +246,19 @@
         "--install"
       ],
       "requires": "Python 3.11 or newer; the live paths need the tool venv the doctor builds"
+    },
+    {
+      "id": "session-statusline",
+      "kind": "hook-wiring",
+      "purpose": "Wires the session status line into project settings and ships the tool. The doctor examines the tool file, the venv interpreter, and the statusLine block, and repairs the checkout paths on install.",
+      "check": [
+        "python3",
+        "tools/session_statusline_setup/session_statusline_setup.py",
+        "--repo-root",
+        "."
+      ],
+      "install": "python3 tools/session_statusline_setup/session_statusline_setup.py --repo-root . --install",
+      "requires": "The zai-routing-audit-python-deps unit first; the status line command runs through the shared venv"
     }
   ]
 }

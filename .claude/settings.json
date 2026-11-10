@@ -1,6 +1,15 @@
 {
     "outputStyle": "ASD-STE100",
-    "enabledMcpjsonServers": ["zai-routing-audit", "dspy-gate"],
+    "statusLine": {
+        "type": "command",
+        "command": "/home/repos/lab/target/mutation-workers/run-07fb772b-d193-4ec8-9f51-fa5f2253e88f/worker-2/tools/zai_routing_audit/.venv/bin/python /home/repos/lab/target/mutation-workers/run-07fb772b-d193-4ec8-9f51-fa5f2253e88f/worker-2/tools/session_statusline/session_statusline.py",
+        "padding": 0,
+        "refreshInterval": 15
+    },
+    "enabledMcpjsonServers": [
+        "zai-routing-audit",
+        "dspy-gate"
+    ],
     "permissions": {
         "allow": [
             "mcp__zai-routing-audit",
