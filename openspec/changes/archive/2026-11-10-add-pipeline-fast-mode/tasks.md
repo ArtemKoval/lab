@@ -59,5 +59,5 @@
       validate and the STE gate.
 - [x] 6.2 Run the root suite, ruff, and the three quality gates on
       the changed classifier path.
-- [ ] 6.3 Commit, push, open the pull request, and merge after
+- [x] 6.3 Commit, push, open the pull request, and merge after
       review. The pull request body names the skipped lanes: none.
