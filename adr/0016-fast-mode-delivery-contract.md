@@ -1,7 +1,7 @@
 # 0016 - Fast-mode delivery contract
 
 - Status: accepted
-- Date: 2026-11-11
+- Date: 2026-11-10
 
 ## Context
 
@@ -13,8 +13,8 @@ minutes, and the skips need one durable record per run.
 
 The `fast:` prefix selects a reduced flow for one invocation. The run
 skips the spec artifacts, the new test matrix, the quality gates, and
-the agent dispatches, and it opens one technical debt issue before
-the merge. Rejected options: a separate fast-pipeline skill, because
+the agent dispatches. It opens one technical debt issue before the
+merge. Rejected options: a separate fast-pipeline skill, because
 one flow with one prefix keeps the modes honest. Direct pushes to
 main, because the pull request keeps the diff reviewable. One
 standing ledger issue, because debt items mix across runs and the

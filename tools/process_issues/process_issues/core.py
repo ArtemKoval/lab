@@ -55,19 +55,16 @@ def state_for_labels(labels):
     return None
 
 
-def is_tech_debt_title(title):
-    """Return True when the title starts with the tech-debt prefix."""
-    return isinstance(title, str) and title.startswith(TECH_DEBT_PREFIX)
-
-
 def is_tech_debt(title, labels):
     """Return True when the title prefix or the label names tech debt.
 
-    The debt issue from a fast-mode run carries the title prefix. The
-    label match covers a manual issue after the operator creates the
-    label. The labels argument is a set of label names.
+    The debt issue from a fast-mode run carries the lowercase title
+    prefix. The label match covers a manual issue after the operator
+    creates the label. The labels argument is a set of label names.
     """
-    return is_tech_debt_title(title) or LABEL_TECH_DEBT in labels
+    return (
+        isinstance(title, str) and title.startswith(TECH_DEBT_PREFIX)
+    ) or LABEL_TECH_DEBT in labels
 
 
 def classify(labels, prs, has_artifacts, title=""):

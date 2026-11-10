@@ -49,6 +49,9 @@
       `tests/process_issues/test_process_issues_core.py`.
 - [x] 5.5 Add one line for the rule to
       `tools/process_issues/README.md`.
+- [x] 5.6 Restore the spec delta for the classifier rule at
+      `specs/process-issues/spec.md`, regenerate the eval manifest,
+      and pass the three spec gates on the change.
 
 ## 6. Spec and delivery
 

@@ -47,7 +47,7 @@ Fast mode keeps these steps:
 Before the merge, the run opens one technical debt issue from the
 `tech-debt` template at `.github/ISSUE_TEMPLATE/tech-debt.md`. The issue
 title starts with `tech-debt:`. The issue lists every skip as one debt
-item with a next action, and it always carries one item for the unwaited
+item with a next action, and it carries one item for the unwaited
 CI run. The pull request body carries `fast-mode: <issue-url>` and no
 close keyword for the issue. The debt issue replaces the handover issue
 in fast mode, and its Telemetry section carries the handover-telemetry

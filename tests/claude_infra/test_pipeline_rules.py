@@ -137,8 +137,10 @@ def test_fast_mode_skip_set_present():
     assert "A step that does not apply to the task is not a skip" in text
     assert "no OpenSpec change, no proposal pull request, no archive" in text
     assert "no new tests and no coverage target" in text
+    assert "crapper, dryer, the mutator, and the complexity gate" in text
     assert "no agent dispatches" in text
     assert "The plan review and the result review run inline in one agent" in text
+    assert "no MCP wrapper, no README, no CLAUDE.md update" in text
 
 
 def test_fast_mode_keep_set_present():
@@ -149,16 +151,28 @@ def test_fast_mode_keep_set_present():
     )
     assert "Branch protection removes this rule" in text
     assert "The smoke run of the deliverable" in text
+    assert "the `sec-scan --diff` scan" in text
     assert "open the debt issue, merge, delete the branch, and resync the mainline" in text
 
 
 def test_fast_mode_debt_issue_rule_present():
     text = _collapsed(PIPELINE)
     assert ".github/ISSUE_TEMPLATE/tech-debt.md" in text
-    assert "it always carries one item for the unwaited CI run" in text
+    assert "The issue title starts with `tech-debt:`" in text
+    assert "The issue lists every skip as one debt item with a next action" in text
+    assert "it carries one item for the unwaited CI run" in text
+    assert "The pull request body carries `fast-mode: <issue-url>`" in text
     assert "no close keyword for the issue" in text
     assert "The debt issue replaces the handover issue in fast mode" in text
     assert "The issue stays open until a normal-pipeline run pays the items" in text
+
+
+def test_fast_mode_description_carries_the_prefix():
+    description = PIPELINE.read_text(encoding="utf-8").splitlines()[2]
+    assert (
+        "The `fast:` prefix in the arguments selects fast mode for a "
+        "prototype run" in description
+    )
 
 
 def test_fast_mode_guardrails_present():
@@ -172,12 +186,17 @@ def test_fast_mode_guardrails_present():
 
 
 def test_tech_debt_template_present():
-    text = TECH_DEBT_TEMPLATE.read_text(encoding="utf-8")
+    text = _collapsed(TECH_DEBT_TEMPLATE)
     assert "name: Tech debt" in text
     for section in ("## Task", "## Telemetry", "## Debt items", "## Follow-ups"):
         assert section in text
     assert "labels:" in text
     assert "- tech-debt" in text
+    assert "The next action names the post-merge CI run and the fix on a red result" in text
+    assert (
+        "Write None when branch protection held the merge and no other "
+        "skip applies" in text
+    )
 
 
 def test_claude_md_names_the_fast_mode_debt_issue():

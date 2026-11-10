@@ -24,10 +24,12 @@ labels:
 ## Debt items
 
 <!-- One line per skipped step, gate, or test lane that applies to
-     the task. Each item carries a next action. The unwaited CI run
-     is always one item, except when branch protection held the merge
-     for the green CI result. Write the CI item alone when nothing
-     else applies. -->
+     the task. Each item carries a next action. The issue carries one
+     item for the unwaited CI run. The next action names the
+     post-merge CI run and the fix on a red result. The CI item drops
+     when branch protection held the merge for the green CI result.
+     Write None when branch protection held the merge and no other
+     skip applies. -->
 
 ## Follow-ups
 

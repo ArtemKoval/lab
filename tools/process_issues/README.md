@@ -27,8 +27,9 @@ note names the config path, and the scan exits 2 with no queue.
 The labels carry the state. The precedence is `handover`, `blocked`,
 `answered`, `human-approved`, `waiting-human-approval`, then no label.
 A title that starts with `tech-debt:` maps to `skip` below the gate
-labels, and so does the `tech-debt` label. The fast-mode debt issue
-carries the prefix, so the loop never treats debt as new work.
+labels, and so does the `tech-debt` label. The prefix match is exact
+lowercase. The fast-mode debt issue carries the prefix, so the loop
+never treats debt as new work.
 
 | State | Meaning |
 | --- | --- |
