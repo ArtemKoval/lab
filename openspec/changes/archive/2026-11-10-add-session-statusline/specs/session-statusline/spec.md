@@ -1,3 +1,12 @@
+## Purpose
+
+The session status line renders one console line for the current
+Claude Code session: the model, the thinking effort, the z.ai limit
+percentages, the session cache rate, the token totals in millions,
+and the time in UTC. The payload is the first source, the transcript
+backs the totals, and the console backs absent limits, so the line
+survives every data fault.
+
 ## ADDED Requirements
 
 ### Requirement: The status line renders the session summary
