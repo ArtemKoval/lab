@@ -18,6 +18,39 @@ def test_waiting_label_waits():
     assert result == {"state": core.STATE_WAIT_APPROVAL, "action": core.ACTION_WAIT}
 
 
+def test_tech_debt_title_prefix_skips():
+    result = core.classify(set(), [], False, title="tech-debt: prototype x")
+    assert result == {"state": core.STATE_SKIP, "action": core.ACTION_NONE}
+
+
+def test_tech_debt_label_skips():
+    result = core.classify({"tech-debt"}, [], False)
+    assert result == {"state": core.STATE_SKIP, "action": core.ACTION_NONE}
+
+
+def test_tech_debt_rule_sits_below_the_gate_labels():
+    result = core.classify({"handover"}, [], False, title="tech-debt: x")
+    assert result == {"state": core.STATE_SKIP, "action": core.ACTION_NONE}
+    result = core.classify({"blocked"}, [], False, title="tech-debt: x")
+    assert result == {"state": core.STATE_BLOCKED, "action": core.ACTION_BLOCKED}
+    result = core.classify({"human-approved"}, [], True, title="tech-debt: x")
+    assert result == {"state": core.STATE_APPLY, "action": core.ACTION_APPLY}
+    result = core.classify({"waiting-human-approval"}, [], False, title="tech-debt: x")
+    assert result == {"state": core.STATE_WAIT_APPROVAL, "action": core.ACTION_WAIT}
+
+
+def test_lookalike_titles_do_not_skip():
+    result = core.classify(set(), [], False, title="tech-debt without colon")
+    assert result == {"state": core.STATE_PROPOSE, "action": core.ACTION_START}
+    result = core.classify(set(), [], False, title="x tech-debt: y")
+    assert result == {"state": core.STATE_PROPOSE, "action": core.ACTION_START}
+
+
+def test_none_title_does_not_skip():
+    result = core.classify(set(), [], False, title=None)
+    assert result == {"state": core.STATE_PROPOSE, "action": core.ACTION_START}
+
+
 def test_plain_issue_proposes():
     result = core.classify(set(), [], False)
     assert result == {"state": core.STATE_PROPOSE, "action": core.ACTION_START}

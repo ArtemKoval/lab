@@ -7,6 +7,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PIPELINE = REPO_ROOT / ".claude" / "skills" / "feature-pipeline" / "SKILL.md"
 APPLY_SKILL = REPO_ROOT / ".claude" / "skills" / "openspec-apply-change" / "SKILL.md"
+TECH_DEBT_TEMPLATE = REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "tech-debt.md"
+CLAUDE_MD = REPO_ROOT / "CLAUDE.md"
 
 
 def _collapsed(path):
@@ -116,3 +118,68 @@ def test_testing_lane_honesty_present():
     assert named in text
     assert scenarios in text
     assert held in text
+
+
+def test_fast_mode_activation_present():
+    text = _collapsed(PIPELINE)
+    assert (
+        "The `fast:` prefix in the arguments selects fast mode for one "
+        "invocation" in text
+    )
+    assert "Runs without the prefix keep the full flow" in text
+    assert "The mode never switches mid-run" in text
+    assert "The issue title starts with `tech-debt:`" in text
+
+
+def test_fast_mode_skip_set_present():
+    text = _collapsed(PIPELINE)
+    assert "A skipped step that applies to the task becomes one debt item" in text
+    assert "A step that does not apply to the task is not a skip" in text
+    assert "no OpenSpec change, no proposal pull request, no archive" in text
+    assert "no new tests and no coverage target" in text
+    assert "no agent dispatches" in text
+    assert "The plan review and the result review run inline in one agent" in text
+
+
+def test_fast_mode_keep_set_present():
+    text = _collapsed(PIPELINE)
+    assert (
+        "The run merges the pull request when the local suite is green, "
+        "and it does not wait for CI" in text
+    )
+    assert "Branch protection removes this rule" in text
+    assert "The smoke run of the deliverable" in text
+    assert "open the debt issue, merge, delete the branch, and resync the mainline" in text
+
+
+def test_fast_mode_debt_issue_rule_present():
+    text = _collapsed(PIPELINE)
+    assert ".github/ISSUE_TEMPLATE/tech-debt.md" in text
+    assert "it always carries one item for the unwaited CI run" in text
+    assert "no close keyword for the issue" in text
+    assert "The debt issue replaces the handover issue in fast mode" in text
+    assert "The issue stays open until a normal-pipeline run pays the items" in text
+
+
+def test_fast_mode_guardrails_present():
+    text = _collapsed(PIPELINE)
+    assert (
+        "A fast task that touches a capability in the dspy-gate harness "
+        "registry runs the normal flow" in text
+    )
+    assert "keeps the `gate-integrity: acknowledged` rule" in text
+    assert "Fast mode makes no dispatches, so the window does not block it" in text
+
+
+def test_tech_debt_template_present():
+    text = TECH_DEBT_TEMPLATE.read_text(encoding="utf-8")
+    assert "name: Tech debt" in text
+    for section in ("## Task", "## Telemetry", "## Debt items", "## Follow-ups"):
+        assert section in text
+    assert "labels:" in text
+    assert "- tech-debt" in text
+
+
+def test_claude_md_names_the_fast_mode_debt_issue():
+    text = _collapsed(CLAUDE_MD)
+    assert "opens the debt issue instead of the handover issue" in text

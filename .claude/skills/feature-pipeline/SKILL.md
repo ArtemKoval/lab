@@ -1,6 +1,6 @@
 ---
 name: feature-pipeline
-description: Full delivery pipeline for ANY prompt that asks to build, add, implement, fix, refactor, automate, or change something in this repository — isolated branch, spec capture with OpenSpec, ASIT-guided design, standalone code, unit tests at maximum coverage, cyclomatic complexity ≤ 10, mutation with no survivors, Claude tool and skill, docs, adversarial pull/merge-request review, merge, and cleanup, on any version control system. Invoke for every request that changes repository files; skip only for purely informational questions that change nothing.
+description: Full delivery pipeline for ANY prompt that asks to build, add, implement, fix, refactor, automate, or change something in this repository — isolated branch, spec capture with OpenSpec, ASIT-guided design, standalone code, unit tests at maximum coverage, cyclomatic complexity ≤ 10, mutation with no survivors, Claude tool and skill, docs, adversarial pull/merge-request review, merge, and cleanup, on any version control system. Invoke for every request that changes repository files; skip only for purely informational questions that change nothing. The `fast:` prefix in the arguments selects fast mode for a prototype run.
 ---
 
 # Feature delivery pipeline
@@ -8,6 +8,53 @@ description: Full delivery pipeline for ANY prompt that asks to build, add, impl
 Take any repository change from prompt to merged review. Every step is mandatory
 unless it genuinely doesn't apply (a docs-only task has no MCP tool); when
 skipping one, say which and why.
+
+## Fast mode
+
+The `fast:` prefix in the arguments selects fast mode for one invocation:
+`/feature-pipeline fast: <task>`. Runs without the prefix keep the full
+flow. The mode never switches mid-run. Fast mode serves the 1-1
+decomposition sessions: the run ships a working prototype in minutes,
+and the debt goes to one dedicated issue.
+
+Fast mode skips these steps. A skipped step that applies to the task
+becomes one debt item. A step that does not apply to the task is not a
+skip:
+
+- Step 1.5: no OpenSpec change, no proposal pull request, no archive.
+- Step 3: no new tests and no coverage target. The existing suite stays
+  the merge bar.
+- The quality gates: crapper, dryer, the mutator, and the complexity
+  gate.
+- Step 12: no agent dispatches. The plan review and the result review
+  run inline in one agent.
+- Steps 4, 6, and 7: no MCP wrapper, no README, no CLAUDE.md update.
+
+A fast task that touches a capability in the dspy-gate harness registry
+runs the normal flow. A fast task that touches a protected gate path
+keeps the `gate-integrity: acknowledged` rule.
+
+Fast mode keeps these steps:
+
+- Step 1: the branch and the pull request. The run merges the pull
+  request when the local suite is green, and it does not wait for CI.
+  Branch protection removes this rule: when protection holds the merge,
+  the run waits for the green CI result.
+- The smoke run of the deliverable, and the `sec-scan --diff` scan.
+- The reduced Step 13: open the debt issue, merge, delete the branch,
+  and resync the mainline.
+
+Before the merge, the run opens one technical debt issue from the
+`tech-debt` template at `.github/ISSUE_TEMPLATE/tech-debt.md`. The issue
+title starts with `tech-debt:`. The issue lists every skip as one debt
+item with a next action, and it always carries one item for the unwaited
+CI run. The pull request body carries `fast-mode: <issue-url>` and no
+close keyword for the issue. The debt issue replaces the handover issue
+in fast mode, and its Telemetry section carries the handover-telemetry
+block when the run produced observations. The issue stays open until a
+normal-pipeline run pays the items. The peak-hours gate denies agent
+dispatches in the window. Fast mode makes no dispatches, so the window
+does not block it.
 
 ## Cross-cutting rules
 

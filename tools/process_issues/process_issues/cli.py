@@ -126,7 +126,9 @@ def build_queue(issues, prs, repo_root, allowed):
         raw_linked = core.linked_prs(prs, issue.get("number"))
         linked = linked_prs(raw_linked)
         change_dir = core.linked_change_dir(raw_linked, dirs)
-        verdict = core.classify(labels, raw_linked, change_dir is not None)
+        verdict = core.classify(
+            labels, raw_linked, change_dir is not None, title=issue.get("title") or ""
+        )
         entry["state"] = verdict["state"]
         entry["action"] = verdict["action"]
         entry["prs"] = linked
