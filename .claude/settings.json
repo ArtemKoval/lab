@@ -1,6 +1,15 @@
 {
     "outputStyle": "ASD-STE100",
-    "enabledMcpjsonServers": ["zai-routing-audit", "dspy-gate"],
+    "statusLine": {
+        "type": "command",
+        "command": "/home/repos/lab/tools/zai_routing_audit/.venv/bin/python /home/repos/lab/tools/session_statusline/session_statusline.py",
+        "padding": 0,
+        "refreshInterval": 15
+    },
+    "enabledMcpjsonServers": [
+        "zai-routing-audit",
+        "dspy-gate"
+    ],
     "permissions": {
         "allow": [
             "mcp__zai-routing-audit",
