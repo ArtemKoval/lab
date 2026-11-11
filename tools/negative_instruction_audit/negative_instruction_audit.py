@@ -23,7 +23,8 @@ import sys
 from pathlib import Path
 
 NEGATIVE_RE = re.compile(
-    r"\b(never|do not|don't|must not|shall not|cannot|avoid)\b|^(no|never)\b",
+    r"\b(never|do not|don't|should not|must not|shall not|cannot|avoid)\b"
+    r"|^(no|never)\b",
     re.IGNORECASE | re.MULTILINE,
 )
 SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")

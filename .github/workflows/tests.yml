@@ -108,7 +108,7 @@ jobs:
           python -m venv tools/mutator/.venv
           tools/mutator/.venv/bin/python -m pip install -e 'tools/mutator[dev]' coverage
       - name: Run the root test suite
-        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov handover_telemetry --cov dspy_gate --cov dspy_gate_setup --cov peak_hours_gate --cov process_issues --cov saturation_pass --cov spec_mining --cov session_statusline --cov session_statusline_setup --cov-branch --cov-fail-under=100 --cov-config .coveragerc
+        run: tools/zai_routing_audit/.venv/bin/python -m pytest --cov plan_exec --cov spec_ste_check --cov handover_telemetry --cov dspy_gate --cov dspy_gate_setup --cov peak_hours_gate --cov process_issues --cov saturation_pass --cov spec_mining --cov session_statusline --cov session_statusline_setup --cov negative_instruction_audit --cov-branch --cov-fail-under=100 --cov-config .coveragerc
       - name: Run the vendored gate suites
         run: |
           tools/crapper/.venv/bin/python -m pytest -q tools/crapper/tests
@@ -127,11 +127,12 @@ jobs:
           tools/zai_routing_audit/.venv/bin/ruff check tools/spec_mining
           tools/zai_routing_audit/.venv/bin/ruff check tools/session_statusline
           tools/zai_routing_audit/.venv/bin/ruff check tools/session_statusline_setup
+          tools/zai_routing_audit/.venv/bin/ruff check tools/negative_instruction_audit
       - name: Derive the changed gated paths
         if: github.event_name == 'pull_request'
         run: |
           changed=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" -- '*.py' \
-            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|project_setup_setup|dead_export_scan|devcontainer_init|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup|peak_hours_gate|process_issues|saturation_pass|spec_mining|session_statusline|session_statusline_setup)/|tests/)' || true)
+            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|project_setup_setup|dead_export_scan|devcontainer_init|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup|peak_hours_gate|process_issues|saturation_pass|spec_mining|session_statusline|session_statusline_setup|negative_instruction_audit)/|tests/)' || true)
           echo "GATED_PATHS<<EOF" >> "$GITHUB_ENV"
           echo "$changed" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
@@ -144,7 +145,7 @@ jobs:
           fi
           tools/zai_routing_audit/.venv/bin/python -m coverage run \
             --data-file=target/coverage/python/.coverage \
-            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/project_setup_setup,tools/dead_export_scan,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tools/saturation_pass,tools/spec_mining,tools/session_statusline,tools/session_statusline_setup,tests \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/project_setup_setup,tools/dead_export_scan,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tools/saturation_pass,tools/spec_mining,tools/session_statusline,tools/session_statusline_setup,tools/negative_instruction_audit,tests \
             -m pytest -q tests
           tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
             --data-file=target/coverage/python/.coverage \
