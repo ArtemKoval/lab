@@ -35,6 +35,7 @@ def test_workflow_runs_the_suite_through_the_repo_venv():
         "--cov dspy_gate --cov dspy_gate_setup --cov peak_hours_gate "
         "--cov process_issues --cov saturation_pass --cov spec_mining "
         "--cov session_statusline --cov session_statusline_setup "
+        "--cov negative_instruction_audit "
         "--cov-branch --cov-fail-under=100" in text
     )
 
@@ -66,6 +67,10 @@ def test_workflow_lints_the_tools():
         "tools/zai_routing_audit/.venv/bin/ruff check "
         "tools/session_statusline_setup" in text
     )
+    assert (
+        "tools/zai_routing_audit/.venv/bin/ruff check "
+        "tools/negative_instruction_audit" in text
+    )
 
 
 def test_workflow_gates_the_dspy_gate_paths():
@@ -74,7 +79,8 @@ def test_workflow_gates_the_dspy_gate_paths():
     assert (
         "tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,"
         "tools/process_issues,tools/saturation_pass,tools/spec_mining,"
-        "tools/session_statusline,tools/session_statusline_setup,tests"
+        "tools/session_statusline,tools/session_statusline_setup,"
+        "tools/negative_instruction_audit,tests"
         in text
     )
 
@@ -108,7 +114,8 @@ def test_workflow_whitelists_the_gated_roots():
         "|project_setup_setup|dead_export_scan|devcontainer_init"
         "|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup"
         "|peak_hours_gate|process_issues|saturation_pass|spec_mining"
-        "|session_statusline|session_statusline_setup)/|tests/)'"
+        "|session_statusline|session_statusline_setup"
+        "|negative_instruction_audit)/|tests/)'"
         in text
     )
     # The whitelist is the only exclusion mechanism in the derive step.
@@ -124,7 +131,8 @@ def test_workflow_measures_coverage_over_the_gated_roots():
         "tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,"
         "tools/peak_hours_gate,tools/process_issues,"
         "tools/saturation_pass,tools/spec_mining,"
-        "tools/session_statusline,tools/session_statusline_setup,tests" in text
+        "tools/session_statusline,tools/session_statusline_setup,"
+        "tools/negative_instruction_audit,tests" in text
     )
     assert "coverage lcov" in text
     assert "-o target/coverage/python/lcov.info" in text
