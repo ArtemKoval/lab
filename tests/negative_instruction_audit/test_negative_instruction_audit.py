@@ -48,7 +48,10 @@ def test_iter_harness_files_orders_the_surfaces(repo):
     assert "tests/claude_infra/test_pin.py" not in names
     skills = [name for name in names if "skills" in name]
     assert skills == sorted(skills)
+    agents = [name for name in names if "agents" in name]
+    assert agents == sorted(agents)
     assert any("worker.md" in name for name in names)
+    assert any("reviewer.md" in name for name in names)
     assert any("harness-charter.sh" in name for name in names)
 
 
@@ -66,8 +69,13 @@ def test_extract_sentences_joins_wrapped_lines_and_drops_short():
 
 
 def test_extract_sentences_splits_bullets_and_strips_markers():
-    text = "- Never guess the path.\n2. Do not rush.\n"
-    assert extract_sentences(text) == ["Never guess the path.", "Do not rush."]
+    text = "- Never guess the path.\n* Do not rush.\n2. Avoid silence.\n3) No new debts.\n"
+    assert extract_sentences(text) == [
+        "Never guess the path.",
+        "Do not rush.",
+        "Avoid silence.",
+        "No new debts.",
+    ]
 
 
 def test_extract_sentences_drops_code_fences():
@@ -79,6 +87,11 @@ def test_extract_sentences_drops_code_fences():
 
 def test_extract_sentences_drops_very_short_lines():
     assert extract_sentences("ok\n") == []
+
+
+def test_extract_sentences_pins_the_twelve_char_floor():
+    assert extract_sentences("x" * 11) == []
+    assert extract_sentences("x" * 12) == ["x" * 12]
 
 
 def test_load_pin_literals_reads_only_long_strings(tmp_path):
@@ -117,6 +130,10 @@ def test_is_negative_covers_the_marker_set():
     assert is_negative("No files were touched.")
     assert is_negative("Avoid silent refactors.")
     assert is_negative("No. is the answer.")
+    assert is_negative("Don't guess the path.")
+    assert is_negative("The branch shall not merge red.")
+    assert not is_negative("Guess the path instead.")
+    assert not is_negative("The branch merges green.")
     assert not is_negative("Build the tool first.")
     assert not is_negative("Run the gates in order.")
 
@@ -141,7 +158,9 @@ def test_run_aggregates_the_totals(repo):
     assert payload["totals"]["files"] >= 4
     assert payload["totals"]["negative"] >= 3
     assert payload["totals"]["pinned"] >= 1
-    assert payload["totals"]["candidates"] >= payload["totals"]["negative"] - payload["totals"]["pinned"]
+    assert payload["totals"]["candidates"] == (
+        payload["totals"]["negative"] - payload["totals"]["pinned"]
+    )
 
 
 def test_main_prints_the_text_report(repo, capsys):
