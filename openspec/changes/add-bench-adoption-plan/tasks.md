@@ -11,7 +11,7 @@
 
 - [x] 2.1 Carry the delta-less declaration and pass the strict
       validate and the STE gate.
-- [ ] 2.2 Commit, push, open the proposal pull request with the
+- [x] 2.2 Commit, push, open the proposal pull request with the
       `Refs #208` line, and merge it.
-- [ ] 2.3 Post the plan reference on issue 208 and add the
+- [x] 2.3 Post the plan reference on issue 208 and add the
       `waiting-human-approval` label.
