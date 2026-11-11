@@ -1,9 +1,11 @@
 """Render the Claude Code status line for the current session.
 
 The tool reads one status line payload on standard input and prints
-one summary line: the model, the thinking effort, the 5-hour and
+one summary line: the model, the coding plan effort, the 5-hour and
 weekly limit percentages, the session cache rate, the input and
-output token totals in millions, and the time in UTC. The payload is
+output token totals in millions, and the time in UTC. The blocks
+join with the ` | ` separator, and the effort level maps through
+the z.ai coding plan table. The payload is
 the first source for every field. The session transcript backs the
 token totals and the cache rate. The `usage` command of
 `zai_routing_audit` backs absent limit percentages behind a cache.
@@ -68,6 +70,31 @@ def payload_mapping(payload, key):
 def payload_effort(payload):
     """Return the effort level from the payload, or None."""
     return payload_mapping(payload, "effort").get("level")
+
+
+# The z.ai coding plan maps the harness effort levels to its own
+# low/high/max ontology. Source: docs.z.ai/guides/capabilities/
+# thinking, coding plan section, page dated 2026-11-02.
+CODING_PLAN_EFFORT = {
+    "none": "low",
+    "minimal": "low",
+    "low": "low",
+    "medium": "high",
+    "high": "high",
+    "xhigh": "max",
+    "max": "max",
+}
+
+
+def mapped_effort(level):
+    """Map one payload effort level to the coding plan effort.
+
+    The map applies to every payload. An unknown or non-string level
+    passes raw. A falsy level renders n/a in the caller.
+    """
+    if isinstance(level, str) and level:
+        return CODING_PLAN_EFFORT.get(level.lower(), level)
+    return level
 
 
 def payload_window(payload, window):
@@ -320,6 +347,19 @@ def resolve_cache_rate(payload, sums):
     return "n/a"
 
 
+def field_blocks(fields):
+    """Return the seven labelled field blocks in console order."""
+    return [
+        f"effort {fields['effort']}",
+        f"5h {fields['five']}",
+        f"wk {fields['seven']}",
+        f"cache {fields['cache']}",
+        f"in {fields['in_millions']}",
+        f"out {fields['out_millions']}",
+        f"{fields['time']} UTC",
+    ]
+
+
 def render(payload, now, transport, cache_dir):
     """Render the summary line, or the --json fields dict."""
     session_id = payload.get("session_id")
@@ -334,7 +374,7 @@ def render(payload, now, transport, cache_dir):
         "model": (
             payload_mapping(payload, "model").get("display_name") or "n/a"
         )[:MODEL_MAX_CHARS],
-        "effort": payload_effort(payload) or "n/a",
+        "effort": mapped_effort(payload_effort(payload)) or "n/a",
         "five": fmt_pct(five),
         "seven": fmt_pct(seven),
         "cache": cache,
@@ -343,11 +383,7 @@ def render(payload, now, transport, cache_dir):
         "time": datetime.fromtimestamp(now, timezone.utc).strftime("%H:%M"),
         "fault": None,
     }
-    line = (
-        f"{fields['model']} effort {fields['effort']} 5h {fields['five']} "
-        f"wk {fields['seven']} cache {fields['cache']} in {fields['in_millions']} "
-        f"out {fields['out_millions']} {fields['time']} UTC"
-    )
+    line = " | ".join([fields["model"], *field_blocks(fields)])
     return line, fields
 
 
@@ -365,9 +401,8 @@ def degraded_line(now):
         "time": time_text,
         "fault": "unparsable payload",
     }
-    line = (
-        f"statusline: unparsable payload effort n/a 5h n/a wk n/a "
-        f"cache n/a in n/a out n/a {time_text} UTC"
+    line = " | ".join(
+        ["statusline: unparsable payload", *field_blocks(fields)]
     )
     return line, fields
 

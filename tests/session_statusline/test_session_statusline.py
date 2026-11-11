@@ -101,12 +101,113 @@ def test_complete_payload_renders_every_field(tmp_path):
     assert line.endswith("14:05 UTC")
     assert fields["fault"] is None
     assert len(line) < 100
+    # Task 1.7 pin: the standard payload line is exactly 91 characters.
+    assert line == (
+        "GLM-5.3-Flash | effort high | 5h 9% | wk 83% | cache 98% "
+        "| in 0.61M | out 0.21M | 14:05 UTC"
+    )
+    assert len(line) == 91
 
 
 def test_absent_effort_renders_na(tmp_path):
     payload = {key: value for key, value in FULL_PAYLOAD.items() if key != "effort"}
     line, _ = render_line(payload, tmp_path)
     assert "effort n/a" in line
+
+
+@pytest.mark.parametrize(
+    "level,shown",
+    [
+        ("none", "low"),
+        ("minimal", "low"),
+        ("low", "low"),
+        ("medium", "high"),
+        ("high", "high"),
+        ("xhigh", "max"),
+        ("max", "max"),
+    ],
+)
+def test_table_row_maps_to_the_coding_plan_effort(tmp_path, level, shown):
+    payload = {**FULL_PAYLOAD, "effort": {"level": level}}
+    line, fields = render_line(payload, tmp_path)
+    assert fields["effort"] == shown
+    assert f"effort {shown}" in line
+
+
+def test_unknown_level_stays_raw(tmp_path):
+    payload = {**FULL_PAYLOAD, "effort": {"level": "turbo"}}
+    line, fields = render_line(payload, tmp_path)
+    assert fields["effort"] == "turbo"
+    assert "effort turbo" in line
+
+
+def test_mixed_case_level_maps_to_high(tmp_path):
+    payload = {**FULL_PAYLOAD, "effort": {"level": "HIGH"}}
+    line, fields = render_line(payload, tmp_path)
+    assert fields["effort"] == "high"
+    assert "effort high" in line
+
+
+def test_falsy_level_renders_na(tmp_path):
+    payload = {**FULL_PAYLOAD, "effort": {"level": 0}}
+    _, fields = render_line(payload, tmp_path)
+    assert fields["effort"] == "n/a"
+
+
+def test_truthy_non_string_level_stays_raw(tmp_path):
+    payload = {**FULL_PAYLOAD, "effort": {"level": 42}}
+    _, fields = render_line(payload, tmp_path)
+    assert fields["effort"] == 42
+
+
+def test_map_applies_without_a_model_name(tmp_path):
+    payload = {key: value for key, value in FULL_PAYLOAD.items() if key != "model"}
+    payload = {**payload, "effort": {"level": "xhigh"}}
+    line, fields = render_line(payload, tmp_path)
+    assert fields["effort"] == "max"
+    assert "effort max" in line
+
+
+def test_json_effort_carries_the_mapped_value(monkeypatch, capsys, tmp_path):
+    payload = {**FULL_PAYLOAD, "effort": {"level": "xhigh"}}
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
+    assert main(["--json", "--cache-dir", str(tmp_path / "c")]) == 0
+    fields = json.loads(capsys.readouterr().out)
+    assert fields["effort"] == "max"
+
+
+def test_line_joins_blocks_with_the_separator(tmp_path):
+    payload = {**FULL_PAYLOAD, "effort": {"level": "xhigh"}}
+    line, _ = render_line(payload, tmp_path)
+    assert line.count(" | ") == 7
+    assert "GLM-5.3-Flash | effort max |" in line
+
+
+def test_scenario_payload_renders_the_full_then(tmp_path):
+    transcript = write_transcript(
+        tmp_path, [usage_line(606225, 205336)]
+    )
+    payload = {**FULL_PAYLOAD, "effort": {"level": "xhigh"}}
+    payload = {**payload, "transcript_path": transcript}
+    line, _ = render_line(payload, tmp_path)
+    assert line.count(" | ") == 7
+    assert "GLM-5.3-Flash" in line
+    assert "effort max" in line
+    assert "5h 9%" in line
+    assert "wk 83%" in line
+    assert "cache 98%" in line
+    assert "in 0.61M" in line
+    assert "out 0.21M" in line
+    assert line.endswith(" UTC")
+
+
+def test_degraded_line_joins_fields_with_the_separator():
+    line, _ = degraded_line(NOW)
+    assert line.count(" | ") == 7
+    assert line == (
+        "statusline: unparsable payload | effort n/a | 5h n/a | wk n/a "
+        "| cache n/a | in n/a | out n/a | 14:05 UTC"
+    )
 
 
 def test_absent_cache_object_falls_back_to_transcript(tmp_path):
