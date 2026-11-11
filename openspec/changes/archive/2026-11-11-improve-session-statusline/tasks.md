@@ -27,4 +27,4 @@
 
 - [x] 4.1 Run `sec-scan --diff` on the staged diff
 - [x] 4.2 Give the whole diff one adversarial review. Fix the confirmed findings. Re-run the suite and the gates.
-- [ ] 4.3 Open the implementation pull request with the test plan and merge it green
+- [x] 4.3 Open the implementation pull request with the test plan and merge it green
