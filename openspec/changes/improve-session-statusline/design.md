@@ -108,10 +108,11 @@ contract, and one truth beats two.
 The separator adds 14 characters over the seven block junctions. The
 pinned payload keeps the effort token `high`, because the table maps
 `high` to `high`. Its line grows from 77 to 91 characters and stays
-under the pin. A payload with a 24 character model name can reach
-107 characters, and the pin binds the pinned payload only. The test
-keeps the under-100 pin and adds an exact-line assertion, so the
-format has one pinned example.
+under the pin. A payload with a 24 character model name and a mapped
+level can reach 106 characters, and the pin binds the pinned payload
+only. An unknown raw level carries no length bound. The test keeps
+the under-100 pin and adds an exact-line assertion, so the format
+has one pinned example.
 
 Alternative rejected: a relaxed bound. The pinned payload is the
 realistic case, and the pin still holds.
@@ -129,6 +130,10 @@ realistic case, and the pin still holds.
 - [The mapped value hides the requested level] -> The line names the
   applied level. A reader who needs the requested level reads the
   transcript.
+- [The identity table rows are equivalent under mutation] -> The
+  mutator walks function sites, and the table is data. The
+  parametrized row tests hold every row value, so a wrong value dies
+  in the suite.
 
 ## Migration Plan
 
