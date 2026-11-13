@@ -1,0 +1,31 @@
+{
+  "id": "wrong-user",
+  "title": "The server refuses the user name",
+  "phase": "auth",
+  "fault": "The injection restricts the allowed users to practice.",
+  "inject": "environments/inject/wrong-user.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "Permission denied (publickey)",
+  "prompts": [
+    "Which user name does your command carry?",
+    "Which users does the server allow?"
+  ],
+  "hints": [
+    "Compare the user name in your command with the accounts the setup documents.",
+    "The -v output shows the server rejecting the offer before the user check reaches the key."
+  ],
+  "reveal": {
+    "wrong": "The command connects as guest, and the injection restricted the allowed users to practice.",
+    "fix": "Connect as an allowed user, or add the user to the allow list on the server."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "guest",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "pubkey-rejected",
+  "title": "The server rejects your key",
+  "phase": "auth",
+  "fault": "The injection removes the practice key from authorized_keys and disables password authentication.",
+  "inject": "environments/inject/pubkey-rejected.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "Permission denied (publickey)",
+  "prompts": [
+    "Did the server accept your key?",
+    "What identities did your client offer?"
+  ],
+  "hints": [
+    "Run the command with -v, and read the Offering public key lines.",
+    "The server can hold your key type and still refuse your key."
+  ],
+  "reveal": {
+    "wrong": "The injection removed your public key from authorized_keys, so the server rejects the offer.",
+    "fix": "Install the public key on the server again, or offer the key the server knows."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

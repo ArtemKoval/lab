@@ -1,0 +1,11 @@
+{
+  "name": "chaos-ssh",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "appPort": ["127.0.0.1:2222:22", "127.0.0.1:2223:2223"],
+  "runArgs": ["--cap-add=NET_ADMIN"],
+  "remoteUser": "root",
+  "postStartCommand": "/usr/local/bin/chaos-start.sh"
+}

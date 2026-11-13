@@ -265,6 +265,27 @@
           "score": 100.0
         }
       }
+    },
+    "chaos_ssh": {
+      "stamp": "2026-11-13T18:30:45.086897+00:00",
+      "modules": {
+        "devops.chaos.ssh.tutor.chaos_ssh.cli": {
+          "sites": 15,
+          "score": 100.0
+        },
+        "devops.chaos.ssh.tutor.chaos_ssh.catalog": {
+          "sites": 10,
+          "score": 100.0
+        },
+        "devops.chaos.ssh.tutor.chaos_ssh.scratch.Scratch": {
+          "sites": 48,
+          "score": 100.0
+        },
+        "devops.chaos.ssh.tutor.chaos_ssh.env": {
+          "sites": 27,
+          "score": 100.0
+        }
+      }
     }
   }
 }

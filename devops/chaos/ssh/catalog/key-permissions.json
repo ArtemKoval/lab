@@ -1,0 +1,34 @@
+{
+  "id": "key-permissions",
+  "title": "The private key file is too open",
+  "phase": "auth",
+  "fault": "The arm sets the mode of the scratch private key to 0644.",
+  "inject": null,
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "UNPROTECTED PRIVATE KEY FILE",
+  "prompts": [
+    "What does the client say about your key file before it connects?",
+    "Who can read a private key in a safe setup?"
+  ],
+  "hints": [
+    "Read the warning. It names the mode and the path of the key.",
+    "The client refuses to use a key that others can read."
+  ],
+  "reveal": {
+    "wrong": "The arm set the mode of the practice private key to 0644, and the client refuses to use it.",
+    "fix": "Set the key mode back to 0600, and keep key files readable only by their owner."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": {
+      "kind": "key-mode",
+      "mode": "0644"
+    },
+    "agent": false
+  }
+}

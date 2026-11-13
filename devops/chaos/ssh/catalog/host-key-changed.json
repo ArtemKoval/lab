@@ -1,0 +1,31 @@
+{
+  "id": "host-key-changed",
+  "title": "The server host key changed",
+  "phase": "handshake",
+  "fault": "The injection regenerates the practice host key.",
+  "inject": "environments/inject/host-key-changed.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "REMOTE HOST IDENTIFICATION HAS CHANGED",
+  "prompts": [
+    "Why would a host key change on a server you manage?",
+    "What does the client refuse to do, and why?"
+  ],
+  "hints": [
+    "Read the warning text. It names the file and the line that holds the old key.",
+    "A changed key can mean a rebuild, or a machine in the middle."
+  ],
+  "reveal": {
+    "wrong": "The injection regenerated the host key, so the key in your known_hosts file no longer matches.",
+    "fix": "Confirm the change was intended, then remove the old line from the scratch known_hosts file and connect again."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

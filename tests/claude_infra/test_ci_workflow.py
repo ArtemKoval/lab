@@ -80,7 +80,8 @@ def test_workflow_gates_the_dspy_gate_paths():
         "tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,"
         "tools/process_issues,tools/saturation_pass,tools/spec_mining,"
         "tools/session_statusline,tools/session_statusline_setup,"
-        "tools/negative_instruction_audit,tests"
+        "tools/negative_instruction_audit,devops/chaos/ssh/tutor/chaos_ssh,"
+        "tests"
         in text
     )
 
@@ -115,7 +116,7 @@ def test_workflow_whitelists_the_gated_roots():
         "|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup"
         "|peak_hours_gate|process_issues|saturation_pass|spec_mining"
         "|session_statusline|session_statusline_setup"
-        "|negative_instruction_audit)/|tests/)'"
+        "|negative_instruction_audit)/|devops/chaos/ssh/tutor/|tests/)'"
         in text
     )
     # The whitelist is the only exclusion mechanism in the derive step.
@@ -132,7 +133,8 @@ def test_workflow_measures_coverage_over_the_gated_roots():
         "tools/peak_hours_gate,tools/process_issues,"
         "tools/saturation_pass,tools/spec_mining,"
         "tools/session_statusline,tools/session_statusline_setup,"
-        "tools/negative_instruction_audit,tests" in text
+        "tools/negative_instruction_audit,devops/chaos/ssh/tutor/chaos_ssh,"
+        "tests" in text
     )
     assert "coverage lcov" in text
     assert "-o target/coverage/python/lcov.info" in text

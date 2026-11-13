@@ -1,0 +1,32 @@
+{
+  "id": "broken-shell",
+  "title": "The account shell is not runnable",
+  "phase": "session",
+  "fault": "The injection sets the account shell to /bin/false.",
+  "inject": "environments/inject/broken-shell.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "an instant close with exit status 1 and no shell prompt",
+  "prompts": [
+    "Did the failure sit in the auth, or after it?",
+    "What did the client print between the auth and the close?"
+  ],
+  "hints": [
+    "The auth succeeded, so the key and the account are fine.",
+    "The session starts a program and the program dies at once. Ask what the server runs as your session.",
+    "Compare the exit status of this login with the exit status of a working login."
+  ],
+  "reveal": {
+    "wrong": "The injection set the shell of the practice account to /bin/false, so the session runs a program that exits with status 1 the moment it starts.",
+    "fix": "Set the account shell back with the chsh command or usermod -s /bin/bash practice, and log in again."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

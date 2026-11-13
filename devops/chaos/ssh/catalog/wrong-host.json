@@ -1,0 +1,31 @@
+{
+  "id": "wrong-host",
+  "title": "You reached a machine you did not expect",
+  "phase": "resolve",
+  "fault": "The scratch config sends the name practice to the decoy sshd on port 2223.",
+  "inject": null,
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "a login to the wrong machine, or a host key warning",
+  "prompts": [
+    "Which machine did you really reach?",
+    "What do the banner and the host key tell you?"
+  ],
+  "hints": [
+    "Examine the banner text after the login, and compare it with the machine you expected.",
+    "Run ssh -G practice to print the effective config values."
+  ],
+  "reveal": {
+    "wrong": "The scratch config redirected the name practice to the decoy sshd on port 2223 with its own host key.",
+    "fix": "Verify who you reached: read the banner, compare the host key, and run ssh -G before you trust a name."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2223,
+    "identity": true,
+    "hostkeyalias": "decoy",
+    "arm": null,
+    "agent": false
+  }
+}

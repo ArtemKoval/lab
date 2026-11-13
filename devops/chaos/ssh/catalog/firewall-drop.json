@@ -1,0 +1,32 @@
+{
+  "id": "firewall-drop",
+  "title": "A firewall drops the packets",
+  "phase": "transport",
+  "fault": "The injection adds an iptables DROP rule on the forwarded port.",
+  "inject": "environments/inject/firewall-drop.sh",
+  "command": "ssh -o ConnectTimeout=10 -F {scratch}/config {target}",
+  "signature": "Connection timed out during banner exchange",
+  "prompts": [
+    "Is the machine reachable at all?",
+    "What is the difference between a drop and a refusal?"
+  ],
+  "hints": [
+    "A timeout means the packets go somewhere and no answer comes back.",
+    "A refusal means something answered. A timeout means silence.",
+    "Watch the stage of the timeout. A connect timeout and a banner timeout name different stages."
+  ],
+  "reveal": {
+    "wrong": "The injection dropped the packets on the forwarded port, so the client waits until its timeout.",
+    "fix": "Examine the firewall rules on the path, and compare the timeout against the refusal you saw in other scenarios."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}
