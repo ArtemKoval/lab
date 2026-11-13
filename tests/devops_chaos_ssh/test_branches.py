@@ -309,7 +309,60 @@ def test_command_placeholder_validation(tmp_path):
 
     with pytest.raises(CatalogError) as exc:
         load_catalog(tmp_path / "catalog")
-    assert "placeholder" in str(exc.value)
+    assert "invalid" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["ssh -F {scratch", "ssh -F }config", "ssh {scratch[198]}", 5, None],
+)
+def test_malformed_command_templates_raise(tmp_path, command):
+    body = {
+        "id": "bad-command",
+        "title": "t",
+        "phase": "transport",
+        "fault": "f",
+        "inject": None,
+        "command": command,
+        "signature": "s",
+        "prompts": ["p"],
+        "hints": ["h"],
+        "reveal": {"wrong": "w", "fix": "f"},
+        "connection": {
+            "target": "practice",
+            "hostname": "127.0.0.1",
+            "user": "practice",
+            "port": 2222,
+            "identity": True,
+            "hostkeyalias": None,
+            "arm": None,
+            "agent": False,
+        },
+    }
+    (tmp_path / "catalog").mkdir()
+    (tmp_path / "catalog" / "bad-command.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    from chaos_ssh.catalog import CatalogError, load_catalog
+
+    with pytest.raises(CatalogError) as exc:
+        load_catalog(tmp_path / "catalog")
+    assert "bad-command.json" in str(exc.value)
+
+
+def test_bad_arm_mode_exits_2(capsys, catalog_dir, tutor, monkeypatch):
+    original_require = cli._require
+
+    def armed_require(scenario_id, table):
+        scenario = original_require(scenario_id, table)
+        scenario.connection["arm"] = {"kind": "key-mode", "mode": "nope"}
+        return scenario
+
+    monkeypatch.setattr(cli, "_require", armed_require)
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["start", "port-refused"])
+    assert exc.value.code == 2
+    assert "octal" in capsys.readouterr().err
 
 
 def test_inject_path_validation(tmp_path):

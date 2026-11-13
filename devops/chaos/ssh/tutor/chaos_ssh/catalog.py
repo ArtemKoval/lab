@@ -125,11 +125,14 @@ def _validate_lists(name: str, data: dict) -> None:
 
 
 def _validate_command(name: str, data: dict) -> None:
+    command = data["command"]
+    if not isinstance(command, str):
+        raise CatalogError(f"{name}: the command must be a string")
     try:
-        data["command"].format(scratch="", target="")
-    except (KeyError, IndexError) as error:
+        command.format(scratch="", target="")
+    except (KeyError, IndexError, ValueError) as error:
         raise CatalogError(
-            f"{name}: the command carries an unknown placeholder {error}"
+            f"{name}: the command template is invalid: {error}"
         ) from None
 
 

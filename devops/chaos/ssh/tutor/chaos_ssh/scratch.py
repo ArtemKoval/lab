@@ -139,7 +139,15 @@ class Scratch:
             return
         kind = arm.get("kind")
         if kind == "key-mode":
-            mode = int(str(arm.get("mode", "0644")), 8)
+            mode_text = str(arm.get("mode", "0644"))
+            try:
+                mode = int(mode_text, 8)
+            except ValueError:
+                raise env.EnvError(
+                    f"the arm mode {mode_text} is not an octal value",
+                    "examine the catalog file of the scenario, and "
+                    "repair the arm block",
+                ) from None
             os.chmod(self.key, mode)
             return
         raise env.EnvError(
