@@ -65,5 +65,5 @@
 - [x] 7.1 Run `sec-scan --diff` on the staged diff.
 - [x] 7.2 Give the whole diff one adversarial review. Fix the
       confirmed findings. Re-run the suite and the gates.
-- [ ] 7.3 Open the implementation pull request with the test plan and
+- [x] 7.3 Open the implementation pull request with the test plan and
       merge it green.
