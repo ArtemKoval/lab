@@ -39,6 +39,7 @@ def build_scenario(scenario_id="port-refused", **overrides):
         },
         "connection": {
             "target": "practice",
+            "hostname": "127.0.0.1",
             "user": "practice",
             "port": 2222,
             "identity": True,
@@ -127,6 +128,7 @@ def catalog_dir(tmp_path):
             "inject": None,
             "connection": {
                 "target": "dns-does-not-resolve.invalid",
+                "hostname": None,
                 "user": "practice",
                 "port": 2222,
                 "identity": True,
@@ -139,6 +141,7 @@ def catalog_dir(tmp_path):
             "inject": None,
             "connection": {
                 "target": "practice",
+                "hostname": "127.0.0.1",
                 "user": "practice",
                 "port": 2223,
                 "identity": True,
@@ -151,6 +154,7 @@ def catalog_dir(tmp_path):
             "inject": None,
             "connection": {
                 "target": "practice",
+                "hostname": "127.0.0.1",
                 "user": "practice",
                 "port": 2222,
                 "identity": True,
@@ -162,6 +166,7 @@ def catalog_dir(tmp_path):
         "password-disabled": {
             "connection": {
                 "target": "practice",
+                "hostname": "127.0.0.1",
                 "user": "practice",
                 "port": 2222,
                 "identity": False,
@@ -173,6 +178,7 @@ def catalog_dir(tmp_path):
         "no-agent-forwarding": {
             "connection": {
                 "target": "practice",
+                "hostname": "127.0.0.1",
                 "user": "practice",
                 "port": 2222,
                 "identity": True,

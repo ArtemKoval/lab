@@ -76,12 +76,18 @@ class Scratch:
         self,
         *,
         target: str,
+        hostname: str | None,
         port: int,
         user: str,
         identity: bool,
         hostkeyalias: str | None,
     ) -> None:
-        """Render the scratch ssh config with the five bindings."""
+        """Render the scratch ssh config with the five bindings.
+
+        The HostName line appears only when the scenario carries one.
+        The resolve-phase fault needs the client to resolve the target
+        name itself, so its row carries no hostname.
+        """
         lines = [
             "Host *",
             f"    UserKnownHostsFile {self.root / HOSTS_NAME}",
@@ -89,10 +95,15 @@ class Scratch:
             "    IdentitiesOnly yes",
             "    IdentityAgent none",
             f"Host {target}",
-            "    HostName 127.0.0.1",
-            f"    Port {port}",
-            f"    User {user}",
         ]
+        if hostname:
+            lines.append(f"    HostName {hostname}")
+        lines.extend(
+            [
+                f"    Port {port}",
+                f"    User {user}",
+            ]
+        )
         if identity:
             lines.append(f"    IdentityFile {self.key}")
         if hostkeyalias:

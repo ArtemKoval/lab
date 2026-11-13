@@ -20,6 +20,7 @@
   },
   "connection": {
     "target": "practice",
+    "hostname": "127.0.0.1",
     "user": "guest",
     "port": 2222,
     "identity": true,

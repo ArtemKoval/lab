@@ -249,8 +249,8 @@ Python carries no YAML parser in the standard library.
   "phase": "transport",
   "fault": "The injection stops the practice sshd.",
   "inject": "environments/inject/port-refused.sh",
-  "command": "ssh -F {scratch}/config -i {scratch}/id_ed25519 -o UserKnownHostsFile={scratch}/known_hosts -o GlobalKnownHostsFile={scratch}/empty_known_hosts -o IdentitiesOnly=yes -o IdentityAgent=none -p {port} practice@127.0.0.1",
-  "signature": "Connection refused",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "Connection reset by peer",
   "prompts": [
     "What does the client message name as the failure?",
     "Is the server machine reachable at all?"
@@ -260,14 +260,30 @@ Python carries no YAML parser in the standard library.
     "The port forwards into the container. Ask what listens there."
   ],
   "reveal": {
-    "wrong": "The injection stopped the practice sshd, so nothing listens on the forwarded port.",
+    "wrong": "The injection stopped the practice sshd, so nothing answers behind the published port.",
     "fix": "Start the ssh service, or connect to the port that sshd really uses."
+  },
+  "connection": {
+    "target": "practice",
+    "hostname": "127.0.0.1",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
   }
 }
 ```
 
-The `{scratch}` and `{port}` placeholders get their values at print
-time. The catalog files sit under `devops/`, outside the openspec
+The `{scratch}` and `{target}` placeholders get their values at print
+time. The `connection` block holds the arm data of the scenario. The
+five bindings of the safety rule live in the scratch config, and the
+printed command stays short. The `hostname` value fills the
+`HostName` line of that config. The row of `dns-failure` carries
+`null` there, so the config omits the line and the client resolves
+the target name itself. The resolve fault fires only on that path.
+The catalog files sit under `devops/`, outside the openspec
 STE gate, but the tutor strings and the README stay STE by house
 style.
 

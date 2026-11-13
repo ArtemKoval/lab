@@ -51,6 +51,7 @@ def valid_data(scenario_id="port-refused", **overrides):
         },
         "connection": {
             "target": "practice",
+            "hostname": "127.0.0.1",
             "user": "practice",
             "port": 2222,
             "identity": True,

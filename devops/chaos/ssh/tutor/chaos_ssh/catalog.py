@@ -27,6 +27,7 @@ REVEAL_KEYS = ("wrong", "fix")
 
 CONNECTION_KEYS = (
     "target",
+    "hostname",
     "user",
     "port",
     "identity",

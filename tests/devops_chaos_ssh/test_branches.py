@@ -292,6 +292,7 @@ def test_command_placeholder_validation(tmp_path):
         "reveal": {"wrong": "w", "fix": "f"},
         "connection": {
             "target": "practice",
+            "hostname": "127.0.0.1",
             "user": "practice",
             "port": 2222,
             "identity": True,
@@ -325,6 +326,7 @@ def test_inject_path_validation(tmp_path):
         "reveal": {"wrong": "w", "fix": "f"},
         "connection": {
             "target": "practice",
+            "hostname": "127.0.0.1",
             "user": "practice",
             "port": 2222,
             "identity": True,
@@ -407,7 +409,6 @@ def test_keyscan_keeps_three_field_lines_and_names_the_host(
 def test_hint_positions_step_and_hold(capsys, tutor):
     cli.main(["start", "port-refused"])
     position = catalog_dir_path() / ".state" / "port-refused" / "position"
-    codes = []
     written = []
     for _ in range(4):
         cli.main(["hint", "port-refused"])
@@ -455,6 +456,7 @@ def test_require_keys_names_the_section(tmp_path):
         "reveal": {"wrong": "w", "fix": "f"},
         "connection": {
             "target": "practice",
+            "hostname": "127.0.0.1",
             "user": "practice",
             "port": 2222,
             "identity": True,

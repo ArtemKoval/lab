@@ -117,6 +117,7 @@ def _cmd_start(options, scenarios, table) -> int:
     scratch.generate_key()
     scratch.write_config(
         target=scenario.connection["target"],
+        hostname=scenario.connection["hostname"],
         port=scenario.connection["port"],
         user=scenario.connection["user"],
         identity=scenario.connection["identity"],

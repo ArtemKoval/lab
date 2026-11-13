@@ -216,3 +216,22 @@ def test_stop_unknown_id_exits_2(capsys, tutor):
         run_cli(capsys, "stop", "no-such")
     assert exc.value.code == 2
     assert "port-refused" in capsys.readouterr().err
+
+
+def test_start_dns_failure_leaves_the_target_name_intact(capsys, tutor):
+    """The config of the resolve fault carries no HostName line, so
+    the client resolves the target name itself."""
+    run_cli(capsys, "start", "dns-failure")
+    config = (cli.AREA_ROOT / ".state" / "dns-failure" / "config").read_text(
+        encoding="utf-8"
+    )
+    assert "HostName" not in config
+    assert "Host dns-does-not-resolve.invalid" in config
+
+
+def test_start_practice_scenarios_pin_the_loopback_hostname(capsys, tutor):
+    run_cli(capsys, "start", "port-refused")
+    config = (cli.AREA_ROOT / ".state" / "port-refused" / "config").read_text(
+        encoding="utf-8"
+    )
+    assert "HostName 127.0.0.1" in config

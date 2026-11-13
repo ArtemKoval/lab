@@ -40,6 +40,19 @@ def test_dns_failure_targets_an_unresolvable_name(scenarios):
     assert target.endswith(".invalid")
 
 
+def test_dns_failure_carries_no_hostname(scenarios):
+    """The resolve fault fires only when the config leaves the name
+    intact, so the client resolves it and fails."""
+    assert scenarios["dns-failure"].connection["hostname"] is None
+
+
+def test_every_other_scenario_pins_the_loopback_hostname(scenarios):
+    for scenario_id, scenario in scenarios.items():
+        if scenario_id == "dns-failure":
+            continue
+        assert scenario.connection["hostname"] == "127.0.0.1", scenario_id
+
+
 def test_wrong_host_points_at_the_decoy_alias(scenarios):
     connection = scenarios["wrong-host"].connection
     assert connection["port"] == 2223

@@ -21,6 +21,7 @@
   },
   "connection": {
     "target": "practice",
+    "hostname": "127.0.0.1",
     "user": "practice",
     "port": 2222,
     "identity": true,
