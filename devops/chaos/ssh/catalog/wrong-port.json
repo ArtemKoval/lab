@@ -4,7 +4,7 @@
   "phase": "transport",
   "fault": "The command names port 2224, and nothing listens there.",
   "inject": null,
-  "command": "ssh -F {scratch}/config {target}",
+  "command": "ssh -F {scratch}/config -p 2224 {target}",
   "signature": "Connection refused",
   "prompts": [
     "Which port does your command really name?",

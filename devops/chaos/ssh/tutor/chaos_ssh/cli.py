@@ -20,6 +20,8 @@ from chaos_ssh.scratch import Scratch
 AREA_ROOT = Path(__file__).absolute().parents[2]
 
 HOST_PORTS = (2222, 2223)
+PRACTICE_PORT = 2222
+DECOY_PORT = 2223
 
 SETUP_SCRIPT = "environments/inject/_setup/install-practice-key.sh"
 
@@ -68,6 +70,13 @@ def build_parser() -> argparse.ArgumentParser:
     reveal.add_argument("scenario_id")
     stop = subparsers.add_parser("stop", help="stop the scenario")
     stop.add_argument("scenario_id")
+    for subparser in subparsers.choices.values():
+        subparser.add_argument(
+            "--json",
+            action="store_true",
+            default=argparse.SUPPRESS,
+            help="print machine-readable output",
+        )
     return parser
 
 
@@ -96,13 +105,14 @@ def _cmd_start(options, scenarios, table) -> int:
             ".devcontainer/devcontainer.json."
         )
     env.up(AREA_ROOT)
-    if not env.wait_ready(scenario.connection["port"]):
+    if not env.wait_ready(PRACTICE_PORT):
         return _fail(
             "the container did not answer on the forwarded port. "
             "Next action: run the devcontainer up command by hand, "
             "and examine the container logs."
         )
     scratch = Scratch(AREA_ROOT, scenario.id)
+    scratch.reset()
     scratch.ensure()
     scratch.generate_key()
     scratch.write_config(
@@ -113,10 +123,10 @@ def _cmd_start(options, scenarios, table) -> int:
         hostkeyalias=scenario.connection["hostkeyalias"],
     )
     _install_key(scratch)
-    scratch.seed_known_hosts(scenario.connection["port"],
-                             scenario.connection["hostkeyalias"])
+    scratch.seed_known_hosts(PRACTICE_PORT)
     if scenario.connection["hostkeyalias"]:
-        scratch.seed_known_hosts(2223, scenario.connection["hostkeyalias"])
+        scratch.seed_known_hosts(DECOY_PORT,
+                                 scenario.connection["hostkeyalias"])
     if scenario.inject:
         env.exec_in(AREA_ROOT, _container_script(scenario.inject))
     scratch.apply_arm(scenario.connection["arm"])

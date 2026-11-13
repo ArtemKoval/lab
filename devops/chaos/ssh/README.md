@@ -82,7 +82,7 @@ The hermetic suite fakes the container boundary and runs in the root
 suite. The e2e lane boots the real container:
 
 ```bash
-DEVOPS_CHAOS_SSH_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest tests/devops_chaos_ssh/test_e2e.py -q
+DEVOPS_CHAOS_SSH_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest tests/devops_chaos_ssh/test_chaos_e2e.py -q
 ```
 
 The lane needs docker, the docker group, and `npx`.
@@ -91,9 +91,10 @@ The lane needs docker, the docker group, and `npx`.
 
 The area landed through the change `add-devops-chaos-ssh` (issue
 216). The container image is Ubuntu 24.04 with OpenSSH from the
-distribution. The devcontainer CLI version on the build host was
-recorded with `npx --yes @devcontainers/cli --version` at the first
-run; the notebook recipe at `tools/knights_notebook_run/` used
-0.90.0. The kex-mismatch scenario pins a legacy key exchange set;
-if a future OpenSSH build drops it, the catalog row pivots to a
-restricted host key type set, as design.md records.
+distribution. The devcontainer CLI version on this host at the first
+run was 0.90.0 (the same version the notebook recipe at
+`tools/knights_notebook_run/` records). The kex-mismatch scenario
+pins a legacy key exchange set; the apply run confirmed the set
+exists in the built image, and if a future OpenSSH build drops it,
+the catalog row pivots to a restricted host key type set, as the
+change design records.

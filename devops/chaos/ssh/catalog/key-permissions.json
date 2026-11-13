@@ -24,7 +24,10 @@
     "port": 2222,
     "identity": true,
     "hostkeyalias": null,
-    "arm": null,
+    "arm": {
+      "kind": "key-mode",
+      "mode": "0644"
+    },
     "agent": false
   }
 }

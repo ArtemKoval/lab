@@ -19,7 +19,7 @@
     "fix": "Use a name your resolver can answer, and keep practice names inside your own zone."
   },
   "connection": {
-    "target": "practice",
+    "target": "dns-does-not-resolve.invalid",
     "user": "practice",
     "port": 2222,
     "identity": true,

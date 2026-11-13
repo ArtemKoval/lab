@@ -60,6 +60,7 @@ class Scenario:
 
 def load_catalog(catalog_dir: Path) -> list:
     """Load every scenario file of the directory, sorted by id."""
+    area_root = catalog_dir.parent
     paths = sorted(catalog_dir.glob("*.json"))
     if not paths:
         raise CatalogError(
@@ -68,7 +69,7 @@ def load_catalog(catalog_dir: Path) -> list:
         )
     # The id-equals-file-name rule keeps the ids unique by
     # construction, so no duplicate scan runs here.
-    return [_load_one(path) for path in paths]
+    return [_load_one(path, area_root) for path in paths]
 
 
 def index(scenarios: list) -> dict:
@@ -76,7 +77,7 @@ def index(scenarios: list) -> dict:
     return {scenario.id: scenario for scenario in scenarios}
 
 
-def _load_one(path: Path) -> Scenario:
+def _load_one(path: Path, area_root: Path) -> Scenario:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
@@ -85,6 +86,8 @@ def _load_one(path: Path) -> Scenario:
     _require_keys(path.name, "reveal", data, REVEAL_KEYS)
     _require_keys(path.name, "connection", data, CONNECTION_KEYS)
     _validate_lists(path.name, data)
+    _validate_command(path.name, data)
+    _validate_inject(path.name, data, area_root)
     if data["id"] != path.stem:
         raise CatalogError(
             f"{path.name}: the id {data['id']} differs from the file name"
@@ -118,3 +121,20 @@ def _validate_lists(name: str, data: dict) -> None:
     for key in ("prompts", "hints"):
         if not isinstance(data[key], list) or not data[key]:
             raise CatalogError(f"{name}: {key} must be a non-empty list")
+
+
+def _validate_command(name: str, data: dict) -> None:
+    try:
+        data["command"].format(scratch="", target="")
+    except (KeyError, IndexError) as error:
+        raise CatalogError(
+            f"{name}: the command carries an unknown placeholder {error}"
+        ) from None
+
+
+def _validate_inject(name: str, data: dict, area_root: Path) -> None:
+    inject = data["inject"]
+    if inject and not (area_root / inject).exists():
+        raise CatalogError(
+            f"{name}: the inject script {inject} does not exist"
+        )

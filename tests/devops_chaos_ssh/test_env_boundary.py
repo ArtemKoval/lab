@@ -87,11 +87,13 @@ def test_rm_container_failure_raises(fake_run):
 
 
 class FakeBindSocket:
+    setsockopt_calls = []
+
     def __init__(self, fail):
         self.fail = fail
 
     def setsockopt(self, *a, **k):
-        pass
+        FakeBindSocket.setsockopt_calls.append(a)
 
     def bind(self, *a, **k):
         if self.fail:
@@ -102,6 +104,15 @@ class FakeBindSocket:
 
     def __exit__(self, *a):
         return False
+
+
+def test_port_status_sets_the_reuse_flag(monkeypatch):
+    FakeBindSocket.setsockopt_calls = []
+    monkeypatch.setattr(env.socket, "socket", lambda *a: FakeBindSocket(False))
+    assert env.port_status(2222) is True
+    assert FakeBindSocket.setsockopt_calls == [
+        (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    ]
 
 
 def test_port_status_true_when_bind_succeeds(monkeypatch):
@@ -115,7 +126,11 @@ def test_port_status_false_when_bind_fails(monkeypatch):
 
 
 def test_run_returns_the_decoded_result(monkeypatch):
+    seen = {}
+
     def fake_run(argv, stdout=None, stderr=None, check=False):
+        seen["stdout"] = stdout
+        seen["argv"] = argv
         return subprocess.CompletedProcess(
             argv, 0, stdout=b"line\n", stderr=b""
         )
@@ -123,10 +138,24 @@ def test_run_returns_the_decoded_result(monkeypatch):
     monkeypatch.setattr(env.subprocess, "run", fake_run)
     result = env.run(["tool"], capture=True)
     assert result == {"returncode": 0, "stdout": "line\n", "stderr": ""}
+    assert seen["stdout"] == subprocess.PIPE
+    env.run(["quiet"])
+    assert seen["stdout"] == subprocess.DEVNULL
+    assert seen["argv"] == ["quiet"]
+
+
+def test_container_error_names_the_last_stderr_line(fake_run):
+    fake_run.results = [(9, "", "context line\nreal fault")]
+    with pytest.raises(env.EnvError) as exc:
+        env.up(Path("/area"))
+    assert "real fault" in str(exc.value)
+    assert "context line" not in str(exc.value)
 
 
 def test_wait_ready_returns_true_on_first_connect(monkeypatch):
     attempts = []
+    sleeps = []
+    timeouts = []
 
     def fake_connect_ex(self, address):
         attempts.append(address)
@@ -137,7 +166,7 @@ def test_wait_ready_returns_true_on_first_connect(monkeypatch):
             pass
 
         def settimeout(self, t):
-            pass
+            timeouts.append(t)
 
         def connect_ex(self, address):
             return fake_connect_ex(self, address)
@@ -149,9 +178,11 @@ def test_wait_ready_returns_true_on_first_connect(monkeypatch):
             return False
 
     monkeypatch.setattr(env.socket, "socket", lambda *a: FakeSocket())
-    monkeypatch.setattr(env.time, "sleep", lambda s: None)
+    monkeypatch.setattr(env.time, "sleep", lambda s: sleeps.append(s))
     assert env.wait_ready(2222, timeout_s=5) is True
     assert attempts == [("127.0.0.1", 2222)]
+    assert sleeps == []
+    assert timeouts == [1]
 
 
 def test_wait_ready_times_out(monkeypatch):
@@ -173,6 +204,55 @@ def test_wait_ready_times_out(monkeypatch):
 
     monkeypatch.setattr(env.socket, "socket", lambda *a: RefusingSocket())
     clock = {"now": 0.0}
+    slept = []
     monkeypatch.setattr(env.time, "monotonic", lambda: clock["now"])
-    monkeypatch.setattr(env.time, "sleep", lambda s: clock.__setitem__("now", clock["now"] + s))
+    monkeypatch.setattr(
+        env.time,
+        "sleep",
+        lambda s: slept.append(s) or clock.__setitem__("now", clock["now"] + s),
+    )
     assert env.wait_ready(2222, timeout_s=2) is False
+    assert slept and all(s == 0.5 for s in slept)
+    assert clock["now"] >= 2
+
+
+def test_wait_ready_stops_at_the_deadline(monkeypatch):
+    class RefusingSocket:
+        def __init__(self, *a, **k):
+            pass
+
+        def settimeout(self, t):
+            pass
+
+        def connect_ex(self, address):
+            return 111
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(env.socket, "socket", lambda *a: RefusingSocket())
+    checks = []
+    clock = {"now": 0.0, "checks": 0}
+
+    def fake_monotonic():
+        return clock["now"]
+
+    def fake_connect(self, address):
+        clock["checks"] += 1
+        checks.append(clock["now"])
+        return 111
+
+    monkeypatch.setattr(env.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(env.time, "sleep", lambda s: clock.__setitem__("now", clock["now"] + s))
+    monkeypatch.setattr(env.socket, "socket", lambda *a: RefusingSocket())
+    import unittest.mock as mock
+
+    with mock.patch.object(
+        RefusingSocket, "connect_ex", fake_connect
+    ):
+        assert env.wait_ready(2222, timeout_s=1) is False
+    assert checks == [0.0, 0.5]
+    assert clock["now"] >= 1

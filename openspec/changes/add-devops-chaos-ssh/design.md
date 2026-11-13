@@ -25,7 +25,7 @@ files, the injection scripts, and the spec scenarios.
 | `key-permissions` | auth | the practice private key mode is `0644` | the `UNPROTECTED PRIVATE KEY FILE` warning, key ignored |
 | `password-disabled` | auth | the injection disables password authentication | `Permission denied (publickey)` with no password prompt |
 | `wrong-user` | auth | the server restricts its allowed users | `Permission denied (publickey)` |
-| `broken-shell` | session | the injection sets the account shell to `/bin/false` | the connection closes right after authentication |
+| `broken-shell` | session | the injection sets the account shell to `/bin/false` | `Permission denied` with the full method list. The daemon refuses an account whose shell sits outside `/etc/shells` |
 | `no-agent-forwarding` | session | the injection disables agent forwarding on the server | an empty `SSH_AUTH_SOCK` on the target |
 
 Two transport faults and three auth faults share client signatures on
@@ -297,6 +297,14 @@ the public key of the learner. In the second fault the server
 refuses the user name. In the third fault the server disables the
 password method, and the printed command omits `-i`, so the absence
 of a password prompt is the observable.
+
+The apply run added one more refuser to the set. `broken-shell`
+prints `Permission denied` with the full method list, because the
+daemon refuses an account whose shell sits outside `/etc/shells`.
+The method list separates it from the three auth faults: the base
+auth config still stands, so the list still names the password
+method. The method list is the discriminator across the whole
+auth-adjacent group.
 
 The message alone does not name the cause. The method list of `ssh
 -v` cannot separate the three either, because the three injections

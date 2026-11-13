@@ -5,18 +5,18 @@
   "fault": "The injection sets the account shell to /bin/false.",
   "inject": "environments/inject/broken-shell.sh",
   "command": "ssh -F {scratch}/config {target}",
-  "signature": "Connection to 127.0.0.1 closed",
+  "signature": "Permission denied (publickey,password,keyboard-interactive)",
   "prompts": [
-    "Did the authentication succeed?",
-    "What happens right after the server accepts you?"
+    "Why does the server refuse a key it accepted before?",
+    "What does the method list name that the other refusals did not?"
   ],
   "hints": [
-    "Read the message. The connection closed after the auth, not during it.",
-    "Ask what the server tries to start for you after the login."
+    "The method list still names the password method, so the auth config did not change.",
+    "The daemon checks the account shell before it starts a session. Ask what your shell is now."
   ],
   "reveal": {
-    "wrong": "The injection set the shell of the practice account to /bin/false, so the session dies right after the login.",
-    "fix": "Set a runnable shell for the account with chsh or usermod, and log in again."
+    "wrong": "The injection set the shell of the practice account to /bin/false, and the shell is missing from /etc/shells, so the daemon refuses the account outright.",
+    "fix": "Set a shell that the daemon accepts for the account with chsh or usermod, and log in again."
   },
   "connection": {
     "target": "practice",

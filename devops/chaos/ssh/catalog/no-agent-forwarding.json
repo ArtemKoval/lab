@@ -4,7 +4,7 @@
   "phase": "session",
   "fault": "The injection disables agent forwarding on the server.",
   "inject": "environments/inject/no-agent-forwarding.sh",
-  "command": "ssh -F {scratch}/config {target}",
+  "command": "ssh -A -F {scratch}/config {target} 'echo \"$SSH_AUTH_SOCK\"'",
   "signature": "an empty SSH_AUTH_SOCK on the target",
   "prompts": [
     "What does SSH_AUTH_SOCK hold on the target?",
@@ -25,6 +25,6 @@
     "identity": true,
     "hostkeyalias": null,
     "arm": null,
-    "agent": false
+    "agent": true
   }
 }

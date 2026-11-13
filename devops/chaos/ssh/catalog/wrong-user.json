@@ -20,7 +20,7 @@
   },
   "connection": {
     "target": "practice",
-    "user": "practice",
+    "user": "guest",
     "port": 2222,
     "identity": true,
     "hostkeyalias": null,

@@ -21,9 +21,9 @@
   "connection": {
     "target": "practice",
     "user": "practice",
-    "port": 2222,
+    "port": 2223,
     "identity": true,
-    "hostkeyalias": null,
+    "hostkeyalias": "decoy",
     "arm": null,
     "agent": false
   }

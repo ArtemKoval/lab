@@ -112,11 +112,11 @@ def test_agent_start_failure_raises(capsys, catalog_dir, tutor, monkeypatch):
     assert "agent" in capsys.readouterr().err
 
 
-def test_unready_container_exits_2(capsys, catalog_dir, tutor):
+def test_unready_container_exits_2(capsys, catalog_dir, tutor, monkeypatch):
     def not_ready(port, timeout_s=30):
         return False
 
-    cli.env.wait_ready = not_ready
+    monkeypatch.setattr(cli.env, "wait_ready", not_ready)
     with pytest.raises(SystemExit) as exc:
         cli.main(["start", "port-refused"])
     assert exc.value.code == 2
@@ -238,3 +238,255 @@ def test_module_entry_runs_the_cli(monkeypatch):
     assert exc.value.code == 0
     assert calls == [calls[0]]
     assert calls[0][1:] == ["list"]
+
+
+def test_json_flag_after_the_subcommand(capsys, tutor):
+    assert cli.main(["list", "--json"]) == 0
+    rows = json.loads(capsys.readouterr().out)
+    assert rows[0]["id"]
+
+
+def test_read_only_commands_leave_the_boundary_untouched(
+    capsys, catalog_dir, tutor
+):
+    cli.main(["list"])
+    cli.main(["hint", "port-refused"])
+    cli.main(["reveal", "port-refused"])
+    cli.main(["stop", "port-refused"])
+    kinds = [call[0] for call in tutor.calls]
+    assert "up" not in kinds
+    assert "exec" not in kinds
+
+
+def test_start_resets_a_stale_scratch_state(capsys, catalog_dir, tutor):
+    scratch_dir = catalog_dir / ".state" / "port-refused"
+    scratch_dir.mkdir(parents=True)
+    (scratch_dir / "position").write_text("not-a-number", encoding="utf-8")
+    (scratch_dir / "id_ed25519").write_text("stale", encoding="utf-8")
+    assert cli.main(["start", "port-refused"]) == 0
+    assert (scratch_dir / "position").read_text(encoding="utf-8") == "0"
+
+
+def test_corrupt_position_reads_as_the_first_hint(catalog_dir):
+    from chaos_ssh.scratch import Scratch
+
+    scratch = Scratch(catalog_dir, "port-refused")
+    scratch.ensure()
+    (scratch.root / "position").write_text(
+        "not-a-number", encoding="utf-8"
+    )
+    assert scratch.next_hint(["first", "second"]) == "first"
+
+
+def test_command_placeholder_validation(tmp_path):
+    body = {
+        "id": "bad-command",
+        "title": "t",
+        "phase": "transport",
+        "fault": "f",
+        "inject": None,
+        "command": "ssh -p {port}",
+        "signature": "s",
+        "prompts": ["p"],
+        "hints": ["h"],
+        "reveal": {"wrong": "w", "fix": "f"},
+        "connection": {
+            "target": "practice",
+            "user": "practice",
+            "port": 2222,
+            "identity": True,
+            "hostkeyalias": None,
+            "arm": None,
+            "agent": False,
+        },
+    }
+    (tmp_path / "catalog").mkdir()
+    (tmp_path / "catalog" / "bad-command.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    from chaos_ssh.catalog import CatalogError, load_catalog
+
+    with pytest.raises(CatalogError) as exc:
+        load_catalog(tmp_path / "catalog")
+    assert "placeholder" in str(exc.value)
+
+
+def test_inject_path_validation(tmp_path):
+    body = {
+        "id": "missing-script",
+        "title": "t",
+        "phase": "transport",
+        "fault": "f",
+        "inject": "environments/inject/no-such.sh",
+        "command": "ssh -F {scratch}/config {target}",
+        "signature": "s",
+        "prompts": ["p"],
+        "hints": ["h"],
+        "reveal": {"wrong": "w", "fix": "f"},
+        "connection": {
+            "target": "practice",
+            "user": "practice",
+            "port": 2222,
+            "identity": True,
+            "hostkeyalias": None,
+            "arm": None,
+            "agent": False,
+        },
+    }
+    (tmp_path / "catalog").mkdir()
+    (tmp_path / "catalog" / "missing-script.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    (tmp_path / "environments").mkdir()
+    from chaos_ssh.catalog import CatalogError, load_catalog
+
+    with pytest.raises(CatalogError) as exc:
+        load_catalog(tmp_path / "catalog")
+    assert "no-such.sh" in str(exc.value)
+
+
+def test_ensure_is_idempotent(catalog_dir):
+    from chaos_ssh.scratch import Scratch
+
+    scratch = Scratch(catalog_dir, "port-refused")
+    scratch.ensure()
+    scratch.ensure()
+    assert (scratch.root / "global_known_hosts").exists()
+
+
+def test_keyscan_empty_output_raises(capsys, catalog_dir, tutor, monkeypatch):
+    original_run = cli.env.run
+
+    def empty_run(argv, capture=False):
+        argv = list(argv)
+        if argv[:1] == ["ssh-keyscan"]:
+            return {"returncode": 0, "stdout": "", "stderr": ""}
+        return original_run(argv, capture=capture)
+
+    monkeypatch.setattr(cli.env, "run", empty_run)
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["start", "port-refused"])
+    assert exc.value.code == 2
+    assert "scan" in capsys.readouterr().err
+
+
+def test_keyscan_keeps_three_field_lines_and_names_the_host(
+    catalog_dir, tutor, monkeypatch
+):
+    original_run = cli.env.run
+
+    def noisy_run(argv, capture=False):
+        argv = list(argv)
+        if argv[:1] == ["ssh-keyscan"]:
+            return {
+                "returncode": 0,
+                "stdout": (
+                    "# a comment\nshort\n"
+                    "127.0.0.1 ssh-ed25519 AAAAbase\n"
+                    "[127.0.0.1]:2222 ssh-ed25519 AAAA ok\n"
+                    "# a longer comment\n"
+                ),
+                "stderr": "",
+            }
+        return original_run(argv, capture=capture)
+
+    monkeypatch.setattr(cli.env, "run", noisy_run)
+    assert cli.main(["start", "port-refused"]) == 0
+    hosts = (
+        catalog_dir / ".state" / "port-refused" / "known_hosts"
+    ).read_text(encoding="utf-8")
+    assert "# a comment" not in hosts
+    assert "short" not in hosts
+    assert "[127.0.0.1]:2222 ssh-ed25519 AAAA ok" in hosts
+    assert "127.0.0.1 ssh-ed25519 AAAAbase" not in hosts
+    assert "[127.0.0.1]:2222 ssh-ed25519 AAAAbase" in hosts
+    assert "a longer comment" not in hosts
+    assert "#" not in hosts
+
+
+def test_hint_positions_step_and_hold(capsys, tutor):
+    cli.main(["start", "port-refused"])
+    position = catalog_dir_path() / ".state" / "port-refused" / "position"
+    codes = []
+    written = []
+    for _ in range(4):
+        cli.main(["hint", "port-refused"])
+        written.append(position.read_text(encoding="utf-8"))
+    assert written == ["1", "1", "1", "1"]
+
+
+def catalog_dir_path():
+    from chaos_ssh import cli as cli_module
+
+    return cli_module.AREA_ROOT
+
+
+def test_missing_subcommand_exits_2():
+    with pytest.raises(SystemExit) as exc:
+        cli.main([])
+    assert exc.value.code == 2
+
+
+def test_next_hint_walks_three_hints_and_holds(catalog_dir):
+    from chaos_ssh.scratch import Scratch
+
+    scratch = Scratch(catalog_dir, "port-refused")
+    scratch.ensure()
+    hints = ["first", "second", "third"]
+    seen = [scratch.next_hint(hints) for _ in range(4)]
+    assert seen == ["first", "second", "third", "third"]
+    position = (scratch.root / "position").read_text(encoding="utf-8")
+    assert position == "2"
+
+
+def test_require_keys_names_the_section(tmp_path):
+    from chaos_ssh.catalog import CatalogError, load_catalog
+
+    base = {
+        "id": "x",
+        "title": "t",
+        "phase": "transport",
+        "fault": "f",
+        "inject": None,
+        "command": "ssh -F {scratch}/config {target}",
+        "signature": "s",
+        "prompts": ["p"],
+        "hints": ["h"],
+        "reveal": {"wrong": "w", "fix": "f"},
+        "connection": {
+            "target": "practice",
+            "user": "practice",
+            "port": 2222,
+            "identity": True,
+            "hostkeyalias": None,
+            "arm": None,
+            "agent": False,
+        },
+    }
+    (tmp_path / "catalog").mkdir()
+    body = dict(base)
+    del body["signature"]
+    (tmp_path / "catalog" / "x.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError) as exc:
+        load_catalog(tmp_path / "catalog")
+    assert "the file misses" in str(exc.value)
+
+    body = dict(base)
+    body["reveal"] = {"wrong": "w"}
+    (tmp_path / "catalog" / "x.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError) as exc:
+        load_catalog(tmp_path / "catalog")
+    assert "the reveal misses" in str(exc.value)
+
+    body = dict(base)
+    del body["connection"]["port"]
+    (tmp_path / "catalog" / "x.json").write_text(
+        json.dumps(body), encoding="utf-8"
+    )
+    with pytest.raises(CatalogError) as exc:
+        load_catalog(tmp_path / "catalog")
+    assert "the connection misses" in str(exc.value)

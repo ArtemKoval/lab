@@ -208,7 +208,7 @@ def test_table_names_the_nine_owned_tools():
         "plan_exec", "spec_ste_check", "devcontainer_init",
         "handover_telemetry", "handover_telemetry_setup",
         "dspy_gate", "dspy_gate_setup", "peak_hours_gate",
-        "process_issues",
+        "process_issues", "chaos_ssh",
     ]
 
 

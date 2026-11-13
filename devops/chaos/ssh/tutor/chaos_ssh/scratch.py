@@ -146,8 +146,15 @@ class Scratch:
         position_file = self.root / POSITION_NAME
         position = 0
         if position_file.exists():
-            position = int(position_file.read_text(encoding="utf-8") or "0")
-        index = min(position, len(hints) - 1)
+            try:
+                position = int(
+                    position_file.read_text(encoding="utf-8") or "0"
+                )
+            except ValueError:
+                position = 0
+        # The following cap keeps position inside the hint list, so
+        # the index needs no second bound.
+        index = position
         following = min(position + 1, len(hints) - 1)
         self.root.mkdir(parents=True, exist_ok=True)
         position_file.write_text(str(following), encoding="utf-8")
@@ -178,7 +185,11 @@ class Scratch:
         pid = self.agent_pid.read_text(encoding="utf-8").strip()
         if pid:
             env.run(("kill", pid))
-        self.agent_pid.unlink(missing_ok=True)
+        self.agent_pid.unlink()
+
+    def reset(self) -> None:
+        """Remove any stale state before the start flow rebuilds it."""
+        self.cleanup()
 
     def cleanup(self) -> None:
         """Remove the whole scratch state, agent included."""

@@ -200,6 +200,20 @@ def catalog_dir(tmp_path):
         (directory / f"{scenario_id}.json").write_text(
             json.dumps(data), encoding="utf-8"
         )
+    inject_dir = tmp_path / "environments" / "inject" / "_setup"
+    inject_dir.mkdir(parents=True)
+    for script in (
+        "port-refused.sh",
+        "password-disabled.sh",
+        "wrong-user.sh",
+        "no-agent-forwarding.sh",
+    ):
+        (tmp_path / "environments" / "inject" / script).write_text(
+            "#!/bin/bash\n", encoding="utf-8"
+        )
+    (inject_dir / "install-practice-key.sh").write_text(
+        "#!/bin/bash\n", encoding="utf-8"
+    )
     return tmp_path
 
 
