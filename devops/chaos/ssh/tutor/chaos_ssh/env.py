@@ -83,6 +83,10 @@ def rm_container(workspace: Path) -> bool:
         ),
         capture=True,
     )
+    if listing["returncode"] != 0:
+        raise _container_error(
+            "the container listing failed", listing["stderr"]
+        )
     ids = listing["stdout"].split()
     if not ids:
         return False

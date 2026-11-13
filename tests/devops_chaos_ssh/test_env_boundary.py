@@ -80,6 +80,15 @@ def test_rm_container_without_container_returns_false(fake_run):
     assert env.rm_container(Path("/area")) is False
 
 
+def test_rm_container_listing_failure_raises(fake_run):
+    """A dead daemon must not read as no container runs."""
+    fake_run.results = [(1, "", "Cannot connect to the Docker daemon")]
+    with pytest.raises(env.EnvError) as exc:
+        env.rm_container(Path("/area"))
+    assert "listing" in str(exc.value)
+    assert "sg docker" in exc.value.remediation
+
+
 def test_rm_container_failure_raises(fake_run):
     fake_run.results = [(0, "abc\n", ""), (1, "", "denied")]
     with pytest.raises(env.EnvError):
