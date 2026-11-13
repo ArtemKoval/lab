@@ -342,15 +342,17 @@ carries the distinction.
   `no matching host key type found`. The spec stays count-free and
   mechanism-free on this scenario, so the pivot is catalog drift and
   not a spec change.
-- The `appPort` override form. Status: open. The substitution of a
-  host environment variable into `appPort` has no documented form.
-  Next probe: at apply time, probe the `${localEnv:VAR}` support of
-  the pinned CLI version. The fallback pins the two ports in the
-  committed file, and the README documents the edit.
-- The readiness wait bounds. Status: open. The wait must cover a
-  cold image build and a warm start. Next probe: the e2e lane runs
-  once against a cold build and once against a warm container, and
-  the lane reports the observed bounds.
+- The `appPort` override form. Status: observed, one half resolved.
+  The triple form `127.0.0.1:2222:22` published both ports and
+  answered connections on the real stack. The substitution of a
+  host environment variable into `appPort` stays unprobed. Next
+  probe: probe the `${localEnv:VAR}` support of the pinned CLI
+  version. The fallback pins the two ports in the committed file,
+  and the README documents the edit.
+- The readiness wait bounds. Status: observed. The warm e2e run
+  answers in about seven seconds, and the cold build took about one
+  minute on the apply host. The bounded wait covered both, and the
+  lane reports no timeouts.
 - The client output strings across environments. Status: observed
   and resolved for `port-refused`. The apply run found that the
   published port answers a dead daemon with a reset, not a refusal,
