@@ -44,7 +44,7 @@ tie width, and the kex apply risk.
 
 ## Remaining Risks
 
-- The wrong-host lesson rides on a config redirect, and the reveal
+- The wrong-host lesson depends on the config redirect, and the reveal
   must teach the verification probes, or the lesson teaches config
   trust instead of host verification.
 - The apply phase carries the container build risk, the KEX

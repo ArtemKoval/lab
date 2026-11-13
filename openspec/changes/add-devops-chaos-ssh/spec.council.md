@@ -2,7 +2,7 @@
 
 ## Author Summary
 
-The author drafted six requirements with 13 scenarios over the
+The author drafted six requirements with 16 scenarios over the
 host-driven tutor: the list, the arm flow, the hint order, the
 reveal, the stop flow, and the safety rule with five scratch
 bindings. The safety requirement carried the leak reasons in the

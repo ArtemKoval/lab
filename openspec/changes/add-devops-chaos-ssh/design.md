@@ -17,16 +17,16 @@ files, the injection scripts, and the spec scenarios.
 | `dns-failure` | resolve | the practice host name resolves nowhere | `Could not resolve hostname` |
 | `wrong-host` | resolve | the scratch config sends the name `practice` to the decoy sshd. The decoy carries its own host key and banner | a login to the wrong machine, or a host key warning |
 | `firewall-drop` | transport | an iptables DROP rule on the forwarded port | `Connection timed out` |
-| `port-refused` | transport | the practice sshd is stopped | `Connection refused` |
+| `port-refused` | transport | the injection stops the practice sshd | `Connection refused` |
 | `wrong-port` | transport | the command names port `2224`, and nothing listens there | `Connection refused` |
-| `host-key-changed` | handshake | the practice host key was regenerated | the `REMOTE HOST IDENTIFICATION HAS CHANGED` warning |
+| `host-key-changed` | handshake | the injection regenerates the practice host key | the `REMOTE HOST IDENTIFICATION HAS CHANGED` warning |
 | `kex-mismatch` | handshake | the server offers only key exchange algorithms the client refuses | `no matching key exchange method found` |
 | `pubkey-rejected` | auth | `authorized_keys` lacks the practice key | `Permission denied (publickey)` |
 | `key-permissions` | auth | the practice private key mode is `0644` | the `UNPROTECTED PRIVATE KEY FILE` warning, key ignored |
-| `password-disabled` | auth | the server disables password authentication | `Permission denied (publickey)` with no password prompt |
+| `password-disabled` | auth | the injection disables password authentication | `Permission denied (publickey)` with no password prompt |
 | `wrong-user` | auth | the server restricts its allowed users | `Permission denied (publickey)` |
-| `broken-shell` | session | the account shell is `/bin/false` | the connection closes right after authentication |
-| `no-agent-forwarding` | session | agent forwarding is disabled server-side | an empty `SSH_AUTH_SOCK` on the target |
+| `broken-shell` | session | the injection sets the account shell to `/bin/false` | the connection closes right after authentication |
+| `no-agent-forwarding` | session | the injection disables agent forwarding on the server | an empty `SSH_AUTH_SOCK` on the target |
 
 Two transport faults and three auth faults share client signatures on
 purpose. The teaching pairs section gives the groups and the
@@ -35,9 +35,9 @@ disambiguator.
 ## The environment
 
 One devcontainer at `devops/chaos/ssh/` serves every scenario. The
-Dockerfile builds one image with Ubuntu LTS, `openssh-server`,
-`iptables`, and `openssh-client`. The `devcontainer.json` sets the
-build, the run arguments, and the ports. The run arguments carry
+Dockerfile builds one image with Ubuntu LTS, `openssh-server`, and
+`iptables`. The `devcontainer.json` sets the build, the run
+arguments, and the ports. The run arguments carry
 `--cap-add=NET_ADMIN` for the firewall scenario. The `appPort` pins
 publish both ports on the host loopback:
 
@@ -49,16 +49,20 @@ The practice sshd listens on container port 22. The decoy sshd for
 the `wrong-host` scenario listens on container port 2223 with its own
 host key and its own banner. The entrypoint starts both daemons. The
 tutor adds a bounded readiness wait on the forwarded port before any
-injection, so the injection never races the daemon start.
+injection, so the injection starts only after the daemon answers.
 
-The host needs docker with a running daemon, the `docker` group, and
+The host needs docker with a live daemon, the `docker` group, and
 node for `npx`. The devcontainer CLI drives the container with the
-house pattern from `llm_ops/eval` and the notebook recipe: `up`,
-`exec`, and `down`, all with `--workspace-folder devops/chaos/ssh`.
-The first `npx` call fetches the CLI. The README records the CLI
-version in its provenance, as the notebook recipe does. On hosts
-where the shell session lacks the docker group, the `sg docker -c`
-prefix gives the command the group, as the notebook recipe shows.
+house pattern from `llm_ops/eval` and the notebook recipe: `up` and
+`exec`, both with `--workspace-folder devops/chaos/ssh`. The
+`--remove-existing-container` flag of `up` gives the recreate-on-
+start behavior, and the eval README shows the same flag. The tutor
+stops the container with a forced `docker rm` on the container of
+the workspace. The first `npx` call fetches the CLI. The README
+records the CLI version in its provenance, as the notebook recipe
+does. On hosts where the shell session lacks the docker group, the
+`sg docker -c` prefix gives the command the group, as the notebook
+recipe shows.
 
 ```
 learner at a host terminal
@@ -171,14 +175,17 @@ public key into `authorized_keys` of the practice account. The
 
 For `wrong-host` the printed command is
 `ssh -F <scratch>/config practice`. The config maps `Host practice`
-to the decoy port with the scratch identity and host key values. The
-learner connects by name and meets a machine that the learner did not
-expect. The config redirect is the armed fault, and the reveal gives
-`ssh -G practice` as the probe that names the effective values.
+to the decoy port with the scratch identity and host key values, and
+it sets `HostKeyAlias decoy`. The start flow seeds the alias key
+through `ssh-keyscan` of the decoy port before the arm, so the
+learner connects without a first-contact prompt. The learner then
+meets a machine that the learner did not expect, and the lesson is
+the banner and the `ssh -G practice` probe of the reveal. The config
+redirect is the armed fault.
 
 For `no-agent-forwarding` the tutor starts a scratch `ssh-agent` with
 its socket and pid file inside the scratch directory. The printed
-command composes one line:
+command prints one composed command line:
 
 ```
 SSH_AUTH_SOCK=<scratch>/agent.sock ssh -A -F <scratch>/config ... 'echo "$SSH_AUTH_SOCK"'
@@ -186,7 +193,7 @@ SSH_AUTH_SOCK=<scratch>/agent.sock ssh -A -F <scratch>/config ... 'echo "$SSH_AU
 
 The remote echo prints the forwarded socket path when the forwarding
 works, and it prints nothing when the server refuses the forwarding.
-The `start` flow reaps a stale socket and pid file first. The `stop`
+The `start` flow removes a stale socket and pid file first. The `stop`
 flow ends the agent process and removes the state. The stale-agent
 leak stays an open unknown with a probe.
 
@@ -202,28 +209,31 @@ one next action.
 The subcommand flow:
 
 - `list` reads the catalog and prints the rows. No container starts.
-- `start <id>` validates the id, examines the pinned port, brings the
-  environment up, waits for daemon readiness, seeds the scratch host
-  key, runs the injection when the scenario defines one, writes the
-  scratch state, and prints the notice. The `up` step recreates the
-  container on every start, so no fault state survives from a
-  previous scenario. When the tutor container itself holds the
-  pinned port, the recreate path tears it down first, and the port
+- `start <id>` validates the id, examines the pinned ports, starts
+  the environment with the `up` command, waits for daemon readiness,
+  seeds the scratch host key, runs the injection when the scenario
+  defines one, writes the scratch state, and prints the notice. The
+  `up` step carries `--remove-existing-container`, so no fault state
+  survives from a previous scenario. When the tutor container itself
+  holds a pinned port, the flag removes it first, and the port
   refusal fires only for a foreign process.
 - `hint <id>` validates the id, reads the position file, and prints
-  the next hint. The command needs no container.
+  the next hint. The command starts no environment.
 - `reveal <id>` validates the id and prints the catalog texts. The
-  command needs no container.
-- `stop <id>` validates the id, brings the environment down, ends
-  the scratch agent of the id, and deletes the scratch directory of
-  the id. The container teardown is global, because one workspace
-  holds one container. An unknown id exits 2, because the command
-  cannot name the scratch set to remove. The exit 0 of a second stop
-  applies to a known id with no container and no scratch state.
+  command starts no environment.
+- `stop <id>` validates the id, removes the container with a forced
+  `docker rm`, ends the scratch agent of the id, and deletes the
+  scratch directory of the id. The removal is global, because one
+  workspace holds one container. A stop for a different id than the
+  armed one removes the container and cleans only its own scratch
+  set, and the armed scratch stays in place until its own stop. An
+  unknown id exits 2, because the command cannot name the scratch
+  set to remove. The exit 0 of a second stop applies to a known id
+  with no container and no scratch state.
 
 The spec text writes `chaos-ssh` as the shorthand for
 `python -m chaos_ssh` run from the `tutor/` directory. Version one
-ships no launcher script, and the README carries the module command.
+carries no launcher script, and the README carries the module command.
 
 The list rows carry the fields `id`, `phase`, and `title`. The
 `title` is the one-line fault summary of the row.
@@ -263,10 +273,11 @@ style.
 
 The exit contract. Exit 0 on success. Exit 2 on an operational
 failure with one named next action in the message. Examples: an
-unknown id names the valid ids, a port in use names `stop`, and a
-container fault names the devcontainer command. On hosts where the
-session lacks the docker group, the message names the `sg docker -c`
-prefix, as the notebook recipe shows.
+unknown id names the valid ids, a port in use names the holder
+examination or the port override, and a container fault names the
+devcontainer command. On hosts where the session lacks the docker
+group, the message names the `sg docker -c` prefix, as the notebook
+recipe shows.
 
 ## The teaching pairs
 
@@ -283,12 +294,16 @@ refuses the user name. In the third fault the server disables the
 password method, and the printed command omits `-i`, so the absence
 of a password prompt is the observable.
 
-The message alone does not name the cause. The learner needs a cause
-model, and the hints lead from the message to the cause. The
-disambiguator is `ssh -v`: the client prints
-`Authentications that can continue` with the method list of the
-server, and the method list separates the three auth faults. The
-reveal of each scenario carries the distinction.
+The message alone does not name the cause. The method list of `ssh
+-v` cannot separate the three either, because the three injections
+set the same auth config. The real discriminators are the account in
+the command, the offered key, and the omitted `-i`. The command of
+`wrong-user` names `guest`, and the account is the fault. The
+command of `password-disabled` offers no key, so the method list
+shows a dead path. The command of `pubkey-rejected` offers the right
+key that the server rejects. The hints lead from the message through
+the discriminators to the cause, and the reveal of each scenario
+carries the distinction.
 
 ## Out of scope
 
@@ -330,7 +345,7 @@ reveal of each scenario carries the distinction.
   substrings, and the e2e lane asserts on the refusal substring, not
   on the full line.
 - The stale-agent leak. Status: open. A crashed run can leave an
-  agent process. Next probe: `start` reaps a stale socket and pid
+  agent process. Next probe: `start` removes a stale socket and pid
   file, `stop` kills the agent, and the e2e lane asserts that no
   agent process survives `stop`.
 
@@ -347,10 +362,17 @@ gate path, so the apply pull request carries
 
 The opt-in e2e lane runs with `DEVOPS_CHAOS_SSH_E2E=1` and a docker
 daemon on the host. The lane examines ports `2222` and `2223` and
-asserts both free before the run, boots the container, arms
-`port-refused`, runs the printed
-command, examines the refused output substring, stops clean, and
-asserts that no agent process survives the stop.
+asserts both free before the run, starts the container, arms
+`port-refused`, runs the printed command, examines the refused
+output substring, stops clean, and asserts that no agent process
+survives the stop.
+
+The CI gate paths cover `tools/<listed>/` and `tests/` today. The
+package lives under `devops/chaos/ssh/tutor/`, so the apply change
+widens the gated-path regex and the coverage `--source` list of the
+protected workflow, and the dryer and mutator filters gain the new
+prefix. Without the widening, the quality gates skip the package in
+CI while the local run passes.
 
 The strict OpenSpec validate passes on the change directory. The STE
 gate scans the change prose with zero errors. The quality gates

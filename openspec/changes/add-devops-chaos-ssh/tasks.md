@@ -45,7 +45,10 @@
 - [ ] 5.2 Write the opt-in e2e lane behind `DEVOPS_CHAOS_SSH_E2E=1`,
       and run it once against the real stack.
 - [ ] 5.3 Run the full hermetic suite, crapper at 10, dryer at 0.8,
-      and the mutator with no survivors on the new package.
+      and the mutator with no survivors on the new package. Widen the
+      gated-path regex, the coverage `--source` list, and the dryer
+      and mutator filters of the protected workflow to the new
+      prefix, so the gates reach the package in CI.
 - [ ] 5.4 Examine the `kex-mismatch` scenario against the built image,
       and land either the KEX form or the host-key-type pivot from
       design.md.

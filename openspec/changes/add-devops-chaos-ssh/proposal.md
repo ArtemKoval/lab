@@ -109,9 +109,9 @@ None.
   devcontainer config, the injection scripts, the `chaos_ssh`
   package, and the README. All files are new.
 - `tests/devops_chaos_ssh/`: the hermetic suite and the opt-in e2e
-  lane. Both land at apply time.
+  lane. Both arrive at apply time.
 - `CLAUDE.md`: one Projects entry at apply time.
-- `.github/workflows/tests.yml` and the mutation path list: the apply
+- `.github/workflows/tests.yml`: the apply
   change adds the new suite and package paths, and both are protected
   gate paths.
 - The apply pull request carries `gate-integrity: acknowledged`,

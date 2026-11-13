@@ -31,13 +31,12 @@ one JSON array with the fields `id`, `phase`, and `title`. The flag
   row
 
 ### Requirement: The tutor arms a scenario
-`chaos-ssh start <scenario-id>` SHALL validate the id, bring the
-environment up, run the injection script of the scenario when the
-scenario defines one, and print the armed fault notice. The notice
-SHALL carry the connection command template and the first thinking
-prompt. An unknown id SHALL exit 2 with the valid ids in the message.
-The tool SHALL exit 2 when the pinned host port is in use, and the
-message SHALL name `stop` as the next action.
+`chaos-ssh start <scenario-id>` SHALL validate the id, start the
+environment with the `up` command of the devcontainer CLI, run the
+injection script of the scenario when the scenario defines one, and
+print the armed fault notice with the command template and the first
+prompt. An unknown id SHALL exit 2 with the valid ids. A pinned host
+port in use SHALL exit 2 with one named next action.
 
 #### Scenario: A valid id arms the fault
 - **GIVEN** the scenario `port-refused` exists and no container runs
@@ -55,8 +54,8 @@ message SHALL name `stop` as the next action.
 #### Scenario: A port in use exits 2
 - **GIVEN** another process holds the pinned host port `127.0.0.1:2222`
 - **WHEN** the learner runs `chaos-ssh start dns-failure`
-- **THEN** the tool exits 2, and the message names `stop` as the next
-  action
+- **THEN** the tool exits 2, and the message names one next action:
+  examine the holder of the port, or change the port override
 
 #### Scenario: A scenario without an injection arms without one
 - **GIVEN** the scenario `dns-failure` defines no injection script
@@ -70,7 +69,8 @@ scenario in catalog order. After the last hint the command SHALL
 print the last hint again. With no position file the command SHALL
 print hint 1. `chaos-ssh start` SHALL reset the hint position of the
 armed scenario. `chaos-ssh hint` SHALL validate the id, and an
-unknown id SHALL exit 2 with the valid ids in the message.
+unknown id SHALL exit 2 with the valid ids in the message. The hint
+command starts no environment.
 
 #### Scenario: The hints come in order
 - **GIVEN** the learner armed `firewall-drop` and no hint command ran
@@ -98,7 +98,7 @@ unknown id SHALL exit 2 with the valid ids in the message.
 ### Requirement: The tutor reveals the fault
 `chaos-ssh reveal <scenario-id>` SHALL print the fault description,
 the expected client output signature, and the fix. The command reads
-the catalog only, and it needs no running container. The command
+the catalog only, and it needs no live container. The command
 validates the id, and an unknown id SHALL exit 2 with the valid ids
 in the message.
 
@@ -114,19 +114,20 @@ in the message.
 - **THEN** the output carries the catalog texts, and the tool exits 0
 
 ### Requirement: The tutor stops clean
-`chaos-ssh stop <scenario-id>` SHALL bring the environment down and
-SHALL remove the scratch state of the scenario id. The environment is
-one container, so the teardown is global, and the id argument names
-the scratch set to remove. The command validates the id, and an
-unknown id SHALL exit 2, because the command cannot name the scratch
-set to remove. A second `stop` for a known id SHALL exit 0. The
-message of the second stop SHALL say that no container runs.
+`chaos-ssh stop <scenario-id>` SHALL remove the container with a
+forced removal and SHALL remove the scratch state of the scenario
+id. The environment is one container, so the removal is global, and
+the id argument names the scratch set to remove. The command
+validates the id, and an unknown id SHALL exit 2, because the
+command cannot name the scratch set to remove. A second `stop` for a
+known id SHALL exit 0. The message of the second stop SHALL say that
+no container runs.
 
 #### Scenario: The stop removes the container and the scratch state
 - **GIVEN** the learner armed `port-refused` and printed one hint
 - **WHEN** the learner runs `chaos-ssh stop port-refused`
-- **THEN** the tool brings the environment down, removes the scratch
-  state of `port-refused`, and exits 0
+- **THEN** the tool removes the container, removes the scratch state
+  of `port-refused`, and exits 0
 
 #### Scenario: A second stop exits 0
 - **GIVEN** no container runs and the scratch state is absent
@@ -146,9 +147,10 @@ directory with five settings: `-F`, `UserKnownHostsFile`,
 #### Scenario: The printed command carries the scratch bindings
 - **GIVEN** the learner armed `key-permissions`
 - **WHEN** the tutor prints the connection command
-- **THEN** the command carries `-F`, `UserKnownHostsFile`,
-  `GlobalKnownHostsFile`, `IdentitiesOnly`, and `-i`, and every
-  bound path sits inside the scratch directory
+- **THEN** the command or the config file that the command names
+  carries `-F`, `UserKnownHostsFile`, `GlobalKnownHostsFile`,
+  `IdentitiesOnly`, and `-i`, and every bound path sits inside the
+  scratch directory
 
 #### Scenario: The scratch agent state stays in the scratch directory
 - **GIVEN** the learner armed `no-agent-forwarding`
