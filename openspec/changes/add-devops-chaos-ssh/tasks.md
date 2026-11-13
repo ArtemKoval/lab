@@ -13,9 +13,9 @@
 
 - [x] 2.1 Pass the strict validate, the STE gate, and the builder
       review.
-- [ ] 2.2 Commit, push, open the proposal pull request with the
+- [x] 2.2 Commit, push, open the proposal pull request with the
       `Refs #216` line, and merge it.
-- [ ] 2.3 Post the spec references on issue 216 and add the
+- [x] 2.3 Post the spec references on issue 216 and add the
       `waiting-human-approval` label.
 
 ## 3. Environment (apply)
