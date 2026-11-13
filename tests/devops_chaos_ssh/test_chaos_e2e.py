@@ -38,6 +38,37 @@ def _refusal_or_reset(stderr):
     return "Connection refused" in stderr or "Connection reset" in stderr
 
 
+def _control_login():
+    """Return (ok, detail) for one practice login with the scratch key.
+
+    The control login holds the load-bearing baseline live: the
+    container boots, the key install works, the accounts stand
+    unlocked, and the daemon accepts the practice key.
+    """
+    scratch = cli.AREA_ROOT / ".state" / "dns-failure"
+    attempt = subprocess.run(
+        [
+            "ssh",
+            "-F", str(scratch / "config"),
+            "-o", "IdentitiesOnly=yes",
+            "-o", "IdentityAgent=none",
+            "-o", "UserKnownHostsFile=" + str(scratch / "known_hosts"),
+            "-o", "GlobalKnownHostsFile=" + str(scratch / "global_known_hosts"),
+            "-o", "BatchMode=yes",
+            "-i", str(scratch / "id_ed25519"),
+            "-p", "2222",
+            "practice@127.0.0.1",
+            "echo control-ok",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    return attempt.returncode == 0 and "control-ok" in attempt.stdout, (
+        attempt.stderr.strip()
+    )
+
+
 @requires_e2e
 def test_port_refused_end_to_end(capsys):
     """Arm port-refused, connect, see the refusal, and stop clean."""
@@ -59,6 +90,36 @@ def test_port_refused_end_to_end(capsys):
         ["pgrep", "-f", "agent.sock"], capture_output=True, text=True
     )
     assert survivor.returncode != 0
+
+
+@requires_e2e
+def test_control_login_succeeds(capsys):
+    """The unfaulted container accepts the practice key of the scratch
+    state. A locked account fails here before any scenario teaches."""
+    assert _ports_free()
+    assert cli.main(["start", "dns-failure"]) == 0
+    ok, detail = _control_login()
+    assert ok, f"the control login failed: {detail}"
+    assert cli.main(["stop", "dns-failure"]) == 0
+
+
+@requires_e2e
+def test_pubkey_rejected_signature_live(capsys):
+    """The auth fault prints the shared signature of the auth trio."""
+    assert _ports_free()
+    assert cli.main(["start", "pubkey-rejected"]) == 0
+    out = capsys.readouterr().out
+    command = _the_connection_command(out)
+    attempt = subprocess.run(
+        command + " -o BatchMode=yes",
+        shell=True,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert attempt.returncode != 0
+    assert "Permission denied (publickey)" in attempt.stderr
+    assert cli.main(["stop", "pubkey-rejected"]) == 0
 
 
 @requires_e2e

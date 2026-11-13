@@ -55,8 +55,9 @@ The container publishes `127.0.0.1:2222` (the practice sshd) and
 `127.0.0.1:2223` (the decoy sshd of the wrong-host scenario). The
 pins live in `.devcontainer/devcontainer.json`. When another process
 holds a port, `start` exits 2 and names the holder examination. To
-move the ports, edit the `appPort` pins in that file, and read the
-notes in design.md of the change about the override form.
+move the ports, edit the two `appPort` pins in that file, and mirror
+the edit in the `HOST_PORTS` tuple at the top of
+`tutor/chaos_ssh/cli.py`, which the port check reads.
 
 ## The scenarios
 
@@ -95,6 +96,7 @@ distribution. The devcontainer CLI version on this host at the first
 run was 0.90.0 (the same version the notebook recipe at
 `tools/knights_notebook_run/` records). The kex-mismatch scenario
 pins a legacy key exchange set; the apply run confirmed the set
-exists in the built image, and if a future OpenSSH build drops it,
-the catalog row pivots to a restricted host key type set, as the
-change design records.
+exists in the built image and the stock client of the apply host
+refused it, and if a future OpenSSH build drops the set from either
+side, the catalog row pivots to a restricted host key type set, as
+the change design records.

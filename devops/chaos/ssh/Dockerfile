@@ -6,8 +6,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends openssh-server iptables \
     && rm -rf /var/lib/apt/lists/*
 
+# The '*' hash unlocks both accounts for pubkey auth and keeps
+# password logins dead. The locked field of useradd makes sshd
+# deny every auth method, and that hides every injected fault.
 RUN useradd -m -s /bin/bash practice \
     && useradd -m -s /bin/bash guest \
+    && usermod -p '*' practice \
+    && usermod -p '*' guest \
     && mkdir -p /run/sshd /opt/chaos/inject /etc/chaos/sshd_extra.d \
     && mkdir -p /home/practice/.ssh \
     && touch /home/practice/.ssh/authorized_keys \

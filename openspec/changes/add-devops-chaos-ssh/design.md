@@ -16,7 +16,7 @@ files, the injection scripts, and the spec scenarios.
 | --- | --- | --- | --- |
 | `dns-failure` | resolve | the practice host name resolves nowhere | `Could not resolve hostname` |
 | `wrong-host` | resolve | the scratch config sends the name `practice` to the decoy sshd. The decoy carries its own host key and banner | a login to the wrong machine, or a host key warning |
-| `firewall-drop` | transport | an iptables DROP rule on the forwarded port | `Connection timed out` |
+| `firewall-drop` | transport | an iptables DROP rule on the forwarded port | `Connection timed out during banner exchange` behind the published port. The command carries `ConnectTimeout=10`, because the client otherwise waits in silence at the banner read |
 | `port-refused` | transport | the injection stops the practice sshd | `Connection reset by peer` behind the published port. `Connection refused` on an unpublished port |
 | `wrong-port` | transport | the command names port `2224`, and nothing listens there | `Connection refused` |
 | `host-key-changed` | handshake | the injection regenerates the practice host key | the `REMOTE HOST IDENTIFICATION HAS CHANGED` warning |
@@ -25,7 +25,7 @@ files, the injection scripts, and the spec scenarios.
 | `key-permissions` | auth | the practice private key mode is `0644` | the `UNPROTECTED PRIVATE KEY FILE` warning, key ignored |
 | `password-disabled` | auth | the injection disables password authentication | `Permission denied (publickey)` with no password prompt |
 | `wrong-user` | auth | the server restricts its allowed users | `Permission denied (publickey)` |
-| `broken-shell` | session | the injection sets the account shell to `/bin/false` | `Permission denied` with the full method list. The daemon refuses an account whose shell sits outside `/etc/shells` |
+| `broken-shell` | session | the injection sets the account shell to `/bin/false` | an instant close with exit status 1 and no prompt. The session runs `/bin/false`, and the program exits at once |
 | `no-agent-forwarding` | session | the injection disables agent forwarding on the server | an empty `SSH_AUTH_SOCK` on the target |
 
 Two transport faults and three auth faults share client signatures on
@@ -71,7 +71,7 @@ learner at a host terminal
    v
 tutor CLI (chaos_ssh, stdlib python)
    |                                  |
-   | devcontainer up / exec           | devcontainer down
+   | devcontainer up / exec           | forced docker rm
    | (boot, inject)                   | (tear down)
    v                                  v
 +------------------------------------------------------+
@@ -120,11 +120,14 @@ practice public key text, as script arguments on the exec command
 line.
 
 The auth scenarios need a pinned auth config. The image sets
-`PasswordAuthentication yes` as the base. The `pubkey-rejected` and
-`wrong-user` injections set the value to no. The
-`password-disabled` injection sets the value to no as well, and its
-printed command omits `-i`. The method list in the client message is
-then the lesson.
+`PasswordAuthentication yes` as the base, and the client offers the
+`keyboard-interactive` method of the platform by default. The three
+auth injections write one shared snippet with
+`PasswordAuthentication no` and `KbdInteractiveAuthentication no`,
+so the server offers the publickey method alone and the method list
+of the three client messages stays identical. The printed command of
+`password-disabled` omits `-i`, so the absence of a password prompt
+is its lesson.
 
 The `wrong-port` lesson pins its dead port at `2224`. The decoy
 sshd lives on `2223`, so a wrong-port command against `2223` would
@@ -132,7 +135,11 @@ reach a live daemon and print a host key prompt. The pin keeps the
 refusal signature of the pair intact.
 
 The account inventory is part of the image. The practice account is
-`practice`, and the practice key opens it. The second account is
+`practice`, and the practice key opens it. The image sets the `*`
+password hash for both accounts, so the pubkey auth opens them and
+the password logins stay dead. The locked shadow field of a plain
+`useradd` makes sshd deny every auth method, and that would hide
+every injected fault. The second account is
 `guest`, and it exists with no authorized key, so the `wrong-user`
 lesson connects as `guest` while the injection restricts the allowed
 users to `practice`. The decoy sshd accepts the same `practice`
@@ -306,21 +313,36 @@ outright with `Connection refused`. The pair trains the difference
 between a reset and a refusal, and the reveal of `port-refused`
 names it.
 
+The `firewall-drop` fault completes the transport set with silence.
+The dropped packets leave the published connect alive and the banner
+read empty, so the client waits with no output. The command of the
+scenario carries `ConnectTimeout=10`, and the client then prints
+`Connection timed out during banner exchange` after ten seconds.
+The connect timeout of the `wrong-port` pair and the banner timeout
+of this fault name two different stages, and the hints use the
+difference.
+
 Three auth faults share one client signature.
 `pubkey-rejected`, `wrong-user`, and `password-disabled` all print
-`Permission denied (publickey)`. In the first fault the server lacks
+`Permission denied (publickey)`. The three injections set
+`PasswordAuthentication no` and `KbdInteractiveAuthentication no`,
+so the server offers the publickey method alone and the method list
+stays identical. In the first fault the server lacks
 the public key of the learner. In the second fault the server
 refuses the user name. In the third fault the server disables the
 password method, and the printed command omits `-i`, so the absence
 of a password prompt is the observable.
 
-The apply run added one more refuser to the set. `broken-shell`
-prints `Permission denied` with the full method list, because the
-daemon refuses an account whose shell sits outside `/etc/shells`.
-The method list separates it from the three auth faults: the base
-auth config still stands, so the list still names the password
-method. The method list is the discriminator across the whole
-auth-adjacent group.
+The apply run corrected one earlier read of this group. The first
+probe ran against an image whose accounts carried the locked shadow
+field of `useradd`. Sshd denies every method for a locked account,
+so the probe read the lock signature as the shell fault. The
+built image now sets the `*` password hash for both accounts, and a
+control login with the practice key succeeds. `broken-shell` then
+authenticates, and the session dies the moment it starts, because
+`/bin/false` exits with status 1. The instant close separates the
+scenario from the three auth denials, whose refusals arrive before
+any session.
 
 The message alone does not name the cause. The method list of `ssh
 -v` cannot separate the three either, because the three injections
@@ -349,15 +371,18 @@ carries the distinction.
 
 ## Open unknowns
 
-- The legacy key exchange set for `kex-mismatch`. Status: open.
-  Modern Ubuntu builds may drop the legacy family from the `sshd`
-  binary. Next probe: at apply time, run `sshd -T` in the built
-  image and read the `kexalgorithms` line. If the legacy set is
-  absent, the catalog row switches to a restricted host key type
-  set, and the client then prints
-  `no matching host key type found`. The spec stays count-free and
-  mechanism-free on this scenario, so the pivot is catalog drift and
-  not a spec change.
+- The legacy key exchange set for `kex-mismatch`. Status: observed
+  on both sides of the documented host. The `sshd` of the built
+  Ubuntu 24.04 image accepts the restricted set, and the stock
+  client of the apply host refused it: the client printed
+  `no matching key exchange method found` and named
+  `diffie-hellman-group14-sha1` in its offer line. The KEX form
+  stays. A future OpenSSH build that drops the family from the
+  client defaults silences the scenario, and the catalog row then
+  switches to a restricted host key type set, with the client
+  printing `no matching host key type found`. The spec stays
+  count-free and mechanism-free on this scenario, so the pivot is
+  catalog drift and not a spec change.
 - The `appPort` override form. Status: observed, one half resolved.
   The triple form `127.0.0.1:2222:22` published both ports and
   answered connections on the real stack. The substitution of a
@@ -370,12 +395,16 @@ carries the distinction.
   minute on the apply host. The bounded wait covered both, and the
   lane reports no timeouts.
 - The client output strings across environments. Status: observed
-  and resolved for `port-refused`. The apply run found that the
-  published port answers a dead daemon with a reset, not a refusal,
-  because the port publisher listens on the host. The catalog
-  signature now names the reset, the e2e lane accepts both the
-  refusal and the reset, and the remaining scenarios keep substring
-  signatures for the version drift.
+  and resolved on the apply host. The published port answers a dead
+  daemon with a reset, not a refusal, because the port publisher
+  listens on the host, and the catalog signature names the reset.
+  The dropped packets of `firewall-drop` leave the banner read
+  empty, the command carries `ConnectTimeout=10`, and the client
+  prints `Connection timed out during banner exchange`. The three
+  auth faults print `Permission denied (publickey)` on the built
+  image, and the e2e lane asserts one of the three signatures live.
+  The remaining scenarios keep substring signatures for the version
+  drift.
 - The stale-agent leak. Status: open. A crashed run can leave an
   agent process. Next probe: `start` removes a stale socket and pid
   file, `stop` kills the agent, and the e2e lane asserts that no
@@ -397,7 +426,9 @@ daemon on the host. The lane examines ports `2222` and `2223` and
 asserts both free before the run, starts the container, arms
 `port-refused`, runs the printed command, examines the refused
 output substring, stops clean, and asserts that no agent process
-survives the stop.
+survives the stop. A control login with the practice key runs
+against the unfaulted container and asserts a working session. The
+lane arms `pubkey-rejected` and asserts the auth signature live.
 
 The CI gate paths cover `tools/<listed>/` and `tests/` today. The
 package lives under `devops/chaos/ssh/tutor/`, so the apply change

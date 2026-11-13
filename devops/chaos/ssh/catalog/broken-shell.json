@@ -5,18 +5,19 @@
   "fault": "The injection sets the account shell to /bin/false.",
   "inject": "environments/inject/broken-shell.sh",
   "command": "ssh -F {scratch}/config {target}",
-  "signature": "Permission denied (publickey,password,keyboard-interactive)",
+  "signature": "an instant close with exit status 1 and no shell prompt",
   "prompts": [
-    "Why does the server refuse a key it accepted before?",
-    "What does the method list name that the other refusals did not?"
+    "Did the failure sit in the auth, or after it?",
+    "What did the client print between the auth and the close?"
   ],
   "hints": [
-    "The method list still names the password method, so the auth config did not change.",
-    "The daemon checks the account shell before it starts a session. Ask what your shell is now."
+    "The auth succeeded, so the key and the account are fine.",
+    "The session starts a program and the program dies at once. Ask what the server runs as your session.",
+    "Compare the exit status of this login with the exit status of a working login."
   ],
   "reveal": {
-    "wrong": "The injection set the shell of the practice account to /bin/false, and the shell is missing from /etc/shells, so the daemon refuses the account outright.",
-    "fix": "Set a shell that the daemon accepts for the account with chsh or usermod, and log in again."
+    "wrong": "The injection set the shell of the practice account to /bin/false, so the session runs a program that exits with status 1 the moment it starts.",
+    "fix": "Set the account shell back with the chsh command or usermod -s /bin/bash practice, and log in again."
   },
   "connection": {
     "target": "practice",
