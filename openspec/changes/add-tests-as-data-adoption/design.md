@@ -10,12 +10,12 @@ compares each technique with this repository and gives the verdict.
 
 | Article element | This repository today | Verdict |
 | --- | --- | --- |
-| Customer tests in the customer language | No customer-language tests exist. Inline `pytest.mark.parametrize` tables sit in 9 root test files, and the crm suite holds 36 more. The agent writes and owns them all. | Partial. Adopt through scenario tables in data files (candidate 1). The operator reads a table in proposal review, so the table gives the human the nearest seat to a customer test. |
+| Customer tests in the customer language | No customer-language tests exist. Inline `pytest.mark.parametrize` tables sit in 8 root test files, and the crm suite holds 36 more. The agent writes and owns them all. | Partial. Adopt through scenario tables in data files (candidate 1). The operator reads a table in proposal review, so the table gives the human the nearest seat to a customer test. |
 | Black-box tests at system or component boundaries | The owned tools are stdlib CLIs. The CLI boundary is the natural seam. | Adopt inside candidate 1. Table rows drive the tool as a subprocess. |
 | Tests-as-data: input, expected output, side effects, and setup as data | Only inline parametrize tables. No CSV or YAML case files exist. | Adopt. Candidate 1 moves the case data into files. Scalar values go in tables. Setup and side-effect rows defer to a later stage. |
-| Structured GIVEN/WHEN/THEN scenarios for stateful cases | Not present. | Adopt inside candidate 1 as a later stage. The first delivery uses CSV only. YAML waits behind the test dependency policy. |
+| Structured GIVEN/WHEN/THEN scenarios for stateful cases | Not present. | Adopt inside candidate 1 as a later stage. The first delivery uses CSV only. The plan adds structured YAML after the test dependency policy lands. |
 | Ad-hoc test DSLs with AI-generated runners | The dspy-gate bridge compiles governed scenarios into eval cases and generated Tier-A tests. | Partial. The governed lane exists. Candidate 1 gives the same idea a lighter form for the rest of the repo. |
-| External DSL with parser-enforced assertions (Constrained Tests) | The dspy-gate scenario rule enforces assertions on governed scenarios. Parametrized runners make assertions mandatory elsewhere. | Skip. A custom parser per small CLI needs a reviewing customer. Most tools have no daily human reader. |
+| External DSL with parser-enforced assertions (Constrained Tests) | The dspy-gate scenario rule enforces assertions on governed scenarios. Parametrized runners make assertions mandatory elsewhere. Most tools have no daily human reader of test internals. | Skip. A custom parser per small CLI needs a customer who reviews it. |
 | Approval testing, approved logs, approved scenarios | Not present. `crm/port/port.py` diffs upstream file lists. No behavior lane exists. | Adopt for the crm port. Candidate 2 stores upstream outputs as approved data and reviews the diffs. Upstream behavior is the oracle. |
 | Printers and parsers that project UI or state into text | The owned tools print text already. | Covered. The plain text output is the projection. No browser surface exists. |
 | Mutation testing to validate the tests | The vendored mutator gate with the no-survivor bar plus the saturation ratchet (ADR 0014). | Covered. No new work. |
@@ -23,7 +23,7 @@ compares each technique with this repository and gives the verdict.
 | Protecting the test harness (task type vs expected changed files) | `tests/claude_infra/test_gate_integrity.py` protects gate paths behind an acknowledgment line. The spec-gates-protect hook denies GENERATED writes. | Partial. Candidate 3 extends the pattern to tests-as-data files. |
 | Not everything end-to-end. Service-layer and focused component tests | The tools are CLI-shaped, so the CLI boundary is the seam. No service layer exists. | Covered by the tool shape. |
 | Executable specifications | The dspy-gate bridge covers registered capabilities only. Prose deltas stay the source of truth elsewhere. | Partial. No new work beyond candidate 1. The tables become executable. |
-| Property-based testing as a complement | No property tests exist. The mutation bar proves assertion strength on known mutants. | Skip for now. The deferral sits in the open unknowns list. |
+| Property-based testing as a complement | No property tests exist. The mutation bar proves assertion strength on known mutants. | Skip. The plan defers the idea, and the open unknowns list carries the return probe. |
 
 Two article limits need no row. The article names large steps as a
 risk to human understanding. The pipeline already ships small reviewed
@@ -36,8 +36,9 @@ prototype flow in the pipeline.
    scenario tables for the owned tools. The operator is the reader, in
    proposal review and in gate review. The first delivery covers the
    runner plus tables for the pilot tool `spec_ste_check`. The pilot
-   stays fixed. A second tool lands only when the pilot review asks
-   for one. Case data sits in CSV files under the tool test area. A
+   stays fixed. A second tool lands only when the pilot review names
+   the second tool. Case data sits in CSV files under the tool test
+   area. A
    CLI
    row carries the input, the expected stdout and stderr, and the exit
    code. The runner drives the tool as a subprocess. A pure-function
@@ -46,8 +47,8 @@ prototype flow in the pipeline.
    delivery adds new tables only. The inline tables convert later,
    when a change touches the tests of their tool. More tables land
    only after the operator reads a table during a review, and the
-   review thread records the reading. Future change:
-   `add-scenario-tables`.
+   review thread records that the operator read the table. Future
+   change: `add-scenario-tables`.
 2. **The port characterization lane.** An approval-test lane for crm
    ports. The lane stores approved logs of deterministic stdout
    surfaces from an upstream milestone. Scripted inputs drive the
@@ -55,8 +56,8 @@ prototype flow in the pipeline.
    the outputs to the approved logs. The review records each
    deliberate deviation against the openspec change artifacts of the
    port. The determinism probe names the first milestone from the
-   open milestone list of the port before it stores the first
-   approved log. Future change: `add-port-characterization`.
+   milestone order in the archived pilot change before it stores the
+   first approved log. Future change: `add-port-characterization`.
 3. **The test-data guard.** The protected-path pattern extended to
    tests-as-data files. The guard extends
    `tests/claude_infra/test_gate_integrity.py`. A pull request that
@@ -96,7 +97,8 @@ create. The port lane has no dependency.
   first delivery stays small, and the expansion trigger guards the
   format against cost with no return.
 - Table files can drift from the code under test. Candidate 1 puts
-  each table next to its runner in the tool test area.
+  each table next to its runner in the tool test area, and the
+  candidate 3 guard holds the drift down after it lands.
 - An approved log can encode an upstream bug. Candidate 2 names the
   oracle in the review step. The oracle is upstream behavior at the
   pinned milestone. The review records each deliberate deviation.
@@ -116,11 +118,13 @@ create. The port lane has no dependency.
   name one concrete invariant that the mutation bar cannot hold, and
   open a probe change for it.
 - The crm oracle determinism. Status: open. Next probe: candidate 2
-  runs the determinism probe on one upstream milestone before it
-  stores the first approved log.
+  runs the determinism probe on the first milestone from the
+  archived pilot order before it stores the first approved log.
 - The guard read model. Status: open. Next probe: candidate 3 states
   the file set that needs the line, and the rule that separates a
-  silent edit from a reviewed edit, before the guard lands.
+  silent edit from a reviewed edit, and it reconciles the
+  review-thread record of candidate 1 with the body line, before the
+  guard lands.
 
 ## Verification
 

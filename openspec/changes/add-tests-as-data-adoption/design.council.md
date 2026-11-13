@@ -28,10 +28,12 @@ and the property-based testing reason.
 
 ## Resolutions
 
-- Accepted: the recount by the primary agent confirmed 9 root files
-  and 36 crm files, and the row now scopes each count to its tree.
+- Accepted: the recount by the primary agent confirmed 8 root files
+  and 36 crm files under the strict pattern, and the row now scopes
+  each count to its tree.
 - Accepted: one YAML position survives. The first delivery uses CSV
-  only, and structured YAML waits behind the test dependency policy.
+  only, and the plan adds structured YAML after the test dependency
+  policy lands.
 - Accepted: the row cites the observed floci and apfel setups and
   names ADR 0008 with the proposed status.
 - Accepted: candidate 2 now states scripted inputs, deterministic
@@ -41,15 +43,17 @@ and the property-based testing reason.
   stage.
 - Accepted: the open unknowns list carries four items, each with a
   status and a next probe.
-- Accepted: the no-diagram decision folded into Verification as one
-  sentence.
+- Accepted: the primary agent folded the no-diagram decision into
+  Verification as one sentence.
+- Accepted: the plan now orders the candidates, and candidate 3
+  states that it follows `add-scenario-tables`.
 - Accepted: the printers row now carries the covered verdict.
 - Accepted: Verification names the CLI scan and the pytest gate.
 
 ## Remaining Risks
 
 - The customer seat stays thin with one reader. The expansion trigger
-  caps the cost, but the format earns its keep only while the operator
+  caps the cost, but the format returns value only while the operator
   reads tables in reviews.
 - The guard read model stays undefined until candidate 3 lands, and
   the guard can block the operator iterations if the read model is

@@ -30,8 +30,8 @@ The port lane has no dependency.
   covers the pilot tool `spec_ste_check`, and a second tool follows
   only when the pilot review asks for one.
 - `add-port-characterization`: an approved-log characterization lane
-  for crm ports. Scripted inputs drive the ported app. The outputs
-  compare against approved logs from the upstream milestone.
+  for crm ports. Scripted inputs drive the ported app. The runner
+  compares the outputs to approved logs from the upstream milestone.
 - `add-test-data-guard`: the protected-path pattern extended to
   tests-as-data files, with an acknowledgment line in the pull request
   body.
@@ -39,12 +39,13 @@ The port lane has no dependency.
 Each becomes its own future change with its own review. This change
 ships none of them.
 
-### The rejections
+### The rejections and the deferral
 
-Cucumber or Gherkin, a custom external DSL per tool, and property-based
-testing by default stay out. Customer tests for a browser UI and a
-test-data framework per tool also stay out. Each rejection carries its
-reason in design.md.
+Cucumber or Gherkin, a custom external DSL per tool, customer tests
+for a browser UI, and a test-data framework per tool stay out. Each
+rejection carries its reason in design.md. Property-based testing by
+default is a deferral, not a rejection. Design.md carries the
+deferral in the open unknowns list.
 
 ## Capabilities
 

@@ -21,7 +21,7 @@ nothing yet, and each future adoption change carries its own review.
   The quality gates stay the default bar. The plan adds no gate change
   and no mutation change.
 - `adr/0010-adopt-spec-governed-agent-gates.md` - accepted, in force.
-  The dspy-gate scenario rule already plays the Constrained-Tests role
+  The dspy-gate scenario rule enforces the Constrained-Tests pattern
   on governed capabilities. The plan extends nothing there.
 - `adr/0013-grant-the-loop-the-automation-authority-with-a-run-lock.md`
   - accepted, in force. The loop processed this issue under the run
