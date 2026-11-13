@@ -81,7 +81,7 @@ class FakeEnv:
         if argv[:1] == ["ssh-keygen"]:
             key_path = Path(argv[argv.index("-f") + 1])
             key_path.write_text(
-                "-----BEGIN PRIVATE KEY-----\n", encoding="utf-8"
+                "fake key body for the sandbox\n", encoding="utf-8"
             )
             key_path.with_suffix(".pub").write_text(
                 "ssh-ed25519 AAAA fake\n", encoding="utf-8"

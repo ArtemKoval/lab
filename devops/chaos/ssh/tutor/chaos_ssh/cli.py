@@ -21,7 +21,7 @@ AREA_ROOT = Path(__file__).absolute().parents[2]
 
 HOST_PORTS = (2222, 2223)
 
-SETUP_KEY_SCRIPT = "environments/inject/_setup/install-practice-key.sh"
+SETUP_SCRIPT = "environments/inject/_setup/install-practice-key.sh"
 
 
 def main(argv=None) -> int:
@@ -226,7 +226,7 @@ def _install_key(scratch: Scratch) -> None:
     public_key = scratch.key.with_suffix(".pub")
     key_text = public_key.read_text(encoding="utf-8").strip()
     env.exec_in(
-        AREA_ROOT, _container_script(SETUP_KEY_SCRIPT), args=(key_text,)
+        AREA_ROOT, _container_script(SETUP_SCRIPT), args=(key_text,)
     )
 
 
