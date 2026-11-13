@@ -26,7 +26,10 @@ def test_port_refused_end_to_end(capsys):
     """Arm port-refused, connect, see the refusal, and stop clean."""
     assert cli.main(["start", "port-refused"]) == 0
     out = capsys.readouterr().out
-    command = _the_connection_command(out)
+    matches = [
+        line for line in out.splitlines() if line.startswith("ssh -F")
+    ]
+    command = matches[0]
     attempt = subprocess.run(
         command,
         shell=True,
@@ -47,14 +50,3 @@ def test_stop_cleans_the_container(capsys):
     cli.main(["stop", "port-refused"])
     out = capsys.readouterr().out
     assert "no container runs" in out or "Stopped" in out
-
-
-def _the_connection_command(notice: str) -> str:
-    """Extract the ssh command line from the start notice."""
-    lines = notice.splitlines()
-    starts = [
-        i for i, line in enumerate(lines) if line.startswith("ssh -F")
-    ]
-    if not starts:
-        raise AssertionError(f"the notice carries no ssh command: {notice}")
-    return lines[starts[0]]
