@@ -17,7 +17,7 @@ files, the injection scripts, and the spec scenarios.
 | `dns-failure` | resolve | the practice host name resolves nowhere | `Could not resolve hostname` |
 | `wrong-host` | resolve | the scratch config sends the name `practice` to the decoy sshd. The decoy carries its own host key and banner | a login to the wrong machine, or a host key warning |
 | `firewall-drop` | transport | an iptables DROP rule on the forwarded port | `Connection timed out` |
-| `port-refused` | transport | the injection stops the practice sshd | `Connection refused` |
+| `port-refused` | transport | the injection stops the practice sshd | `Connection reset by peer` behind the published port. `Connection refused` on an unpublished port |
 | `wrong-port` | transport | the command names port `2224`, and nothing listens there | `Connection refused` |
 | `host-key-changed` | handshake | the injection regenerates the practice host key | the `REMOTE HOST IDENTIFICATION HAS CHANGED` warning |
 | `kex-mismatch` | handshake | the server offers only key exchange algorithms the client refuses | `no matching key exchange method found` |
@@ -281,10 +281,14 @@ recipe shows.
 
 ## The teaching pairs
 
-Two transport faults share one client signature. `port-refused` and
-`wrong-port` both print `Connection refused`. In the first fault the
-injection stopped the practice daemon. In the second fault the
-command names a port where nothing listens.
+Two transport faults teach one contrast. The apply run observed the
+published port of the container answering a dead daemon with
+`Connection reset by peer`, because the port publisher listens on
+the host while nothing answers behind it. The dead port `2224` of
+`wrong-port` sits outside the publisher, so the host refuses it
+outright with `Connection refused`. The pair trains the difference
+between a reset and a refusal, and the reveal of `port-refused`
+names it.
 
 Three auth faults share one client signature.
 `pubkey-rejected`, `wrong-user`, and `password-disabled` all print
@@ -339,11 +343,13 @@ carries the distinction.
   cold image build and a warm start. Next probe: the e2e lane runs
   once against a cold build and once against a warm container, and
   the lane reports the observed bounds.
-- The client output strings across OpenSSH versions. Status: open.
-  The signatures quote client message text, and the text varies
-  across versions. Next probe: the catalog stores the signatures as
-  substrings, and the e2e lane asserts on the refusal substring, not
-  on the full line.
+- The client output strings across environments. Status: observed
+  and resolved for `port-refused`. The apply run found that the
+  published port answers a dead daemon with a reset, not a refusal,
+  because the port publisher listens on the host. The catalog
+  signature now names the reset, the e2e lane accepts both the
+  refusal and the reset, and the remaining scenarios keep substring
+  signatures for the version drift.
 - The stale-agent leak. Status: open. A crashed run can leave an
   agent process. Next probe: `start` removes a stale socket and pid
   file, `stop` kills the agent, and the e2e lane asserts that no

@@ -1,0 +1,30 @@
+{
+  "id": "kex-mismatch",
+  "title": "The sides share no key exchange method",
+  "phase": "handshake",
+  "fault": "The server offers only key exchange algorithms the client refuses.",
+  "inject": "environments/inject/kex-mismatch.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "no matching key exchange method found",
+  "prompts": [
+    "Which algorithms does each side offer?",
+    "Who is old here: the client or the server?"
+  ],
+  "hints": [
+    "Run the command with -v, and read the negotiation lines from both sides.",
+    "The message names the stage that failed: key exchange."
+  ],
+  "reveal": {
+    "wrong": "The injection restricts the server to a legacy key exchange set, and your client refuses it.",
+    "fix": "Align the algorithm sets: upgrade the old side, or add the algorithm to one side with care."
+  },
+  "connection": {
+    "target": "practice",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

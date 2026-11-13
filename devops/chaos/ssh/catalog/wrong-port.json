@@ -1,0 +1,30 @@
+{
+  "id": "wrong-port",
+  "title": "The command names a dead port",
+  "phase": "transport",
+  "fault": "The command names port 2224, and nothing listens there.",
+  "inject": null,
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "Connection refused",
+  "prompts": [
+    "Which port does your command really name?",
+    "Where does the daemon really listen?"
+  ],
+  "hints": [
+    "Examine the -p value in your command against the port the setup gave you.",
+    "The refusal names the port you chose, not the port of the daemon."
+  ],
+  "reveal": {
+    "wrong": "The command names port 2224, and no process listens there.",
+    "fix": "Correct the port number in the command, or point it at the port the setup documents."
+  },
+  "connection": {
+    "target": "practice",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

@@ -69,10 +69,11 @@ delta.
 
 ### The shared signatures
 
-Two transport faults and three auth faults share client signatures on
-purpose. The same client output hides different causes, and the
-scenarios train differential diagnosis. Design.md gives the groups
-and the disambiguator.
+Three auth faults share one client signature on purpose, and the two
+transport faults teach the contrast between a reset and a refusal.
+The same client output hides different causes, and the scenarios
+train differential diagnosis. Design.md gives the groups and the
+discriminators.
 
 ### Apply-time deliveries
 

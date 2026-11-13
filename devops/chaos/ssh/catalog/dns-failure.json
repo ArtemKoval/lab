@@ -1,0 +1,30 @@
+{
+  "id": "dns-failure",
+  "title": "The host name resolves nowhere",
+  "phase": "resolve",
+  "fault": "The command names a host name that no resolver answers.",
+  "inject": null,
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "Could not resolve hostname",
+  "prompts": [
+    "What does the client say about the name itself?",
+    "Does the name exist in any resolver you control?"
+  ],
+  "hints": [
+    "The name carries the .invalid top-level domain, which no resolver answers.",
+    "Examine the difference between name resolution and reachability."
+  ],
+  "reveal": {
+    "wrong": "The command names a name under .invalid, so no resolver can answer it.",
+    "fix": "Use a name your resolver can answer, and keep practice names inside your own zone."
+  },
+  "connection": {
+    "target": "practice",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

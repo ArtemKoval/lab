@@ -1,0 +1,30 @@
+{
+  "id": "no-agent-forwarding",
+  "title": "The server refuses agent forwarding",
+  "phase": "session",
+  "fault": "The injection disables agent forwarding on the server.",
+  "inject": "environments/inject/no-agent-forwarding.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "an empty SSH_AUTH_SOCK on the target",
+  "prompts": [
+    "What does SSH_AUTH_SOCK hold on the target?",
+    "Who decides whether forwarding happens: the client, the server, or both?"
+  ],
+  "hints": [
+    "The command carries -A, so the client asked. Ask the server what it decided.",
+    "Run echo \"$SSH_AUTH_SOCK\" on the target, and compare an allowed server with this one."
+  ],
+  "reveal": {
+    "wrong": "The injection set AllowAgentForwarding to no, so the server never opens the agent channel.",
+    "fix": "Allow agent forwarding in the server config, or reach the target through a jump host that forwards."
+  },
+  "connection": {
+    "target": "practice",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}

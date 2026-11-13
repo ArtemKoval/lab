@@ -132,7 +132,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           changed=$(git diff --name-only --diff-filter=d "origin/${{ github.base_ref }}...HEAD" -- '*.py' \
-            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|project_setup_setup|dead_export_scan|devcontainer_init|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup|peak_hours_gate|process_issues|saturation_pass|spec_mining|session_statusline|session_statusline_setup|negative_instruction_audit)/|tests/)' || true)
+            | grep -E '^(tools/(plan_exec|spec_ste_check|project_setup|project_setup_setup|dead_export_scan|devcontainer_init|handover_telemetry|handover_telemetry_setup|dspy_gate|dspy_gate_setup|peak_hours_gate|process_issues|saturation_pass|spec_mining|session_statusline|session_statusline_setup|negative_instruction_audit)/|devops/chaos/ssh/tutor/|tests/)' || true)
           echo "GATED_PATHS<<EOF" >> "$GITHUB_ENV"
           echo "$changed" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
@@ -145,7 +145,7 @@ jobs:
           fi
           tools/zai_routing_audit/.venv/bin/python -m coverage run \
             --data-file=target/coverage/python/.coverage \
-            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/project_setup_setup,tools/dead_export_scan,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tools/saturation_pass,tools/spec_mining,tools/session_statusline,tools/session_statusline_setup,tools/negative_instruction_audit,tests \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/project_setup,tools/project_setup_setup,tools/dead_export_scan,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tools/saturation_pass,tools/spec_mining,tools/session_statusline,tools/session_statusline_setup,tools/negative_instruction_audit,devops/chaos/ssh/tutor/chaos_ssh,tests \
             -m pytest -q tests
           tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
             --data-file=target/coverage/python/.coverage \
@@ -160,7 +160,7 @@ jobs:
           echo "Gated paths:"
           printf '%s\n' "$GATED_PATHS"
           tools/crapper/crapper --threshold 10 --use-existing-coverage $GATED_PATHS
-          product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^tools/' || true)
+          product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^(tools/|devops/chaos/ssh/tutor/)' || true)
           if [ -n "$(printf '%s' "$product" | tr -d '[:space:]')" ]; then
             # Test files carry pre-existing structural clones, so the dryer
             # gate covers product paths only.
@@ -170,7 +170,7 @@ jobs:
         if: github.event_name == 'pull_request'
         timeout-minutes: 45
         run: |
-          product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^tools/' || true)
+          product=$(printf '%s\n' "$GATED_PATHS" | grep -E '^(tools/|devops/chaos/ssh/tutor/)' || true)
           if [ -z "$(printf '%s' "$product" | tr -d '[:space:]')" ]; then
             echo "No gated product Python changed."
             exit 0

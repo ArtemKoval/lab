@@ -1,0 +1,31 @@
+{
+  "id": "port-refused",
+  "title": "The ssh daemon is stopped",
+  "phase": "transport",
+  "fault": "The injection stops the practice sshd.",
+  "inject": "environments/inject/port-refused.sh",
+  "command": "ssh -F {scratch}/config {target}",
+  "signature": "Connection reset by peer",
+  "prompts": [
+    "What does the client message name as the failure?",
+    "Is the server machine reachable at all?"
+  ],
+  "hints": [
+    "Examine the port number in your command.",
+    "The port forwards into the container. Ask what listens there.",
+    "A published port answers with a reset when the daemon behind it dies; an unpublished port refuses outright."
+  ],
+  "reveal": {
+    "wrong": "The injection stopped the practice sshd, so the published port answers with a reset instead of a session.",
+    "fix": "Start the ssh service again, and connect to the port that sshd really uses."
+  },
+  "connection": {
+    "target": "practice",
+    "user": "practice",
+    "port": 2222,
+    "identity": true,
+    "hostkeyalias": null,
+    "arm": null,
+    "agent": false
+  }
+}
