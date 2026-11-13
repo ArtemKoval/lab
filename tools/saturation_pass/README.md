@@ -14,10 +14,11 @@ the per-module scores in a committed store, and refuses a drop.
 
 ## The tool table
 
-Nine owned tools, from the CI gate list minus `project_setup` (which
+Ten owned tools, from the CI gate list minus `project_setup` (which
 carries no product Python): `plan_exec`, `spec_ste_check`,
 `devcontainer_init`, `handover_telemetry`, `handover_telemetry_setup`,
-`dspy_gate`, `dspy_gate_setup`, `peak_hours_gate`, `process_issues`.
+`dspy_gate`, `dspy_gate_setup`, `peak_hours_gate`, `process_issues`,
+and `chaos_ssh` at `devops/chaos/ssh/tutor/chaos_ssh`.
 Each entry carries the product path and the area suite path. The
 `handover_telemetry_setup` suite lives under `tests/handover_telemetry`.
 
@@ -29,7 +30,7 @@ The pass reads the gate coverage report first (the mutator discovers
 ```bash
 tools/zai_routing_audit/.venv/bin/python -m coverage run \
   --data-file=target/coverage/python/.coverage \
-  --source=tools/plan_exec,tools/spec_ste_check,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tools/saturation_pass,tests \
+  --source=tools/plan_exec,tools/spec_ste_check,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tools/saturation_pass,devops/chaos/ssh/tutor/chaos_ssh,tests \
   -m pytest -q tests
 tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
   --data-file=target/coverage/python/.coverage \

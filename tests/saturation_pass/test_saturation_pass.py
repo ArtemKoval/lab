@@ -202,7 +202,7 @@ def test_report_write_twice_to_the_same_path_succeeds(tmp_path):
     assert path.is_file()
 
 
-def test_table_names_the_nine_owned_tools():
+def test_table_names_the_ten_owned_tools():
     names = [entry[0] for entry in TOOL_TABLE]
     assert names == [
         "plan_exec", "spec_ste_check", "devcontainer_init",

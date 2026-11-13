@@ -44,7 +44,7 @@ jobs:
         run: |
           tools/zai_routing_audit/.venv/bin/python -m coverage run \
             --data-file=target/coverage/python/.coverage \
-            --source=tools/plan_exec,tools/spec_ste_check,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,tests \
+            --source=tools/plan_exec,tools/spec_ste_check,tools/devcontainer_init,tools/handover_telemetry,tools/handover_telemetry_setup,tools/dspy_gate,tools/dspy_gate_setup,tools/peak_hours_gate,tools/process_issues,devops/chaos/ssh/tutor/chaos_ssh,tests \
             -m pytest -q tests
           tools/zai_routing_audit/.venv/bin/python -m coverage lcov \
             --data-file=target/coverage/python/.coverage \
