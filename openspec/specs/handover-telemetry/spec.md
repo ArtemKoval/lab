@@ -9,17 +9,11 @@ One coding-agent run becomes a redacted telemetry block that a handover issue ca
 The CLI SHALL discover the newest session transcript of the current
 project under the Claude Code projects root. The CLI SHALL accept
 `--project-dir`, `--transcript`, and `--session` to name other
-sources. When the command names a session with no `--project-dir`,
-the CLI SHALL first look for `<session>.jsonl` in the project
-directory of the launch path. When that directory does not hold the
-file, the CLI SHALL search the top-level `.jsonl` files of every
-project directory under the projects root. When several project
-directories hold a match, the CLI SHALL use the newest file by
-modification time, and the path order SHALL break a tie. When the
-command carries `--project-dir` with `--session`, the CLI SHALL
-resolve the session only inside that directory. The CLI SHALL exit 2
-and name the session when a named session has no match in the search
-scope. The named-session path SHALL NOT use the newest transcript.
+sources. The search SHALL look in the launch project directory
+first, then in every project directory. The path order SHALL break
+a tie. The named-session path SHALL NOT use the newest transcript.
+The CLI SHALL exit 2 and name the session when a named session has
+no match in the search scope.
 
 #### Scenario: The default source is the newest transcript
 - **WHEN** the build command runs with no session flags in a project
@@ -49,7 +43,6 @@ scope. The named-session path SHALL NOT use the newest transcript.
 - **GIVEN** no project directory holds the named session file
 - **WHEN** the build command runs with `--session`
 - **THEN** the command exits 2 and names the session
-
 ### Requirement: The parser stays tolerant and counts once
 The parser SHALL skip unknown entry types and SHALL treat missing fields as absent. The parser SHALL count each API usage entry once. The parser SHALL exclude entries that carry the synthetic error marker from token and cost totals. The parser SHALL include the subagent transcript files of the session.
 
