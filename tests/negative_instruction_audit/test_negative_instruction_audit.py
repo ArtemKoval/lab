@@ -185,3 +185,154 @@ def test_main_exits_two_without_a_tests_dir(tmp_path, capsys):
     assert code == 2
     assert "no tests/" in err
     assert "--repo-root" in err
+
+
+def test_iter_harness_files_drops_a_missing_claude_md(tmp_path):
+    (tmp_path / ".claude" / "agents").mkdir(parents=True)
+    (tmp_path / ".claude" / "agents" / "worker.md").write_text(
+        "Never guess.\n", encoding="utf-8"
+    )
+    files = iter_harness_files(tmp_path)
+    assert [path.name for path in files] == ["worker.md"]
+
+
+def test_iter_harness_files_excludes_output_styles(tmp_path):
+    (tmp_path / "CLAUDE.md").write_text("x", encoding="utf-8")
+    styles = tmp_path / ".claude" / "output_styles"
+    styles.mkdir(parents=True)
+    (styles / "asd-ste100.md").write_text("Never guess.\n", encoding="utf-8")
+    files = iter_harness_files(tmp_path)
+    assert [path.name for path in files] == ["CLAUDE.md"]
+
+
+def test_iter_harness_files_puts_the_charter_hook_last(repo):
+    files = iter_harness_files(repo)
+    assert files[-1].name == "harness-charter.sh"
+
+
+def test_is_negative_matches_marker_words_on_word_boundaries():
+    assert not is_negative("I avoided the topic entirely.")
+    assert not is_negative("The north wind blows.")
+    assert is_negative("Avoid the topic.")
+
+
+def test_is_negative_leaves_the_documented_miss_classes_out():
+    assert not is_negative(
+        "Reply in the review thread, not as a top-level comment."
+    )
+    assert not is_negative("Post no progress comment before the result.")
+    assert not is_negative("Stay silent while the work runs.")
+    assert not is_negative(
+        "An accepted ADR changes only through a superseding ADR."
+    )
+    assert not is_negative(
+        "Remove secrets before you put artifacts in the issue."
+    )
+
+
+def test_load_pin_literals_measures_the_floor_before_the_collapse(tmp_path):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    runs = "a" + "\n" * 10 + "b" + "\n" * 10 + "c"
+    assert len(runs) >= 20
+    source = 'RUNS = "' + runs.replace("\n", "\\n") + '"\n'
+    (tests / "test_runs.py").write_text(source, encoding="utf-8")
+    pins = load_pin_literals(tests)
+    assert pins == ["a b c"]
+
+
+def test_is_pinned_collapses_whitespace_on_both_sides(tmp_path):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_pins.py").write_text(
+        'KEY = "alpha\\n\\nbeta\\t\\tgamma delta epsilon"\n',
+        encoding="utf-8",
+    )
+    pins = load_pin_literals(tests)
+    assert is_pinned("alpha\n\nbeta\t\tgamma delta epsilon here.", pins)
+    assert is_pinned("alpha  beta  gamma delta epsilon", pins)
+
+
+def test_is_pinned_matches_a_candidate_inside_a_longer_pin():
+    pins = ["a pin literal long enough to count"]
+    assert is_pinned("pin literal long", pins)
+
+
+def test_scan_file_reports_unpinned_candidates(repo):
+    pins = load_pin_literals(repo / "tests")
+    record = scan_file(repo / ".claude" / "agents" / "worker.md", pins)
+    assert record["pinned"] == 0
+    assert record["candidates"] == [
+        {"sentence": "Never push to main alone.", "pinned": False}
+    ]
+    assert record["findings"] == [
+        {"sentence": "Never push to main alone.", "pinned": False}
+    ]
+
+
+def test_run_totals_carry_all_five_counts(repo):
+    totals = run(repo)["totals"]
+    assert set(totals) == {"files", "sentences", "negative", "pinned", "candidates"}
+    assert totals["sentences"] > 0
+    assert totals["files"] >= 4
+
+
+def test_main_json_payload_carries_the_root(repo, capsys):
+    code = main(["--repo-root", str(repo), "--json"])
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["root"] == str(repo)
+
+
+def test_main_json_carries_a_record_for_a_findings_free_file(repo, capsys):
+    code = main(["--repo-root", str(repo), "--json"])
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    paths = [record["path"] for record in payload["files"]]
+    assert any(path.endswith("reviewer.md") for path in paths)
+    record = next(r for r in payload["files"] if r["path"].endswith("reviewer.md"))
+    assert record["negative"] == 0
+
+
+def test_main_text_skips_a_findings_free_file(repo, capsys):
+    code = main(["--repo-root", str(repo)])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "reviewer.md" not in out
+
+
+def test_main_text_cuts_the_sentence_at_110_characters(repo, capsys):
+    sentence = "Never " + "x" * 150 + "."
+    agents = repo / ".claude" / "agents"
+    (agents / "long.md").write_text(sentence + "\n", encoding="utf-8")
+    code = main(["--repo-root", str(repo)])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert sentence[:110] in out
+    assert sentence[:111] not in out
+
+
+def test_main_leaves_the_tree_read_only(repo, capsys):
+    before = {
+        str(path): path.read_bytes()
+        for path in sorted(repo.rglob("*"))
+        if path.is_file()
+    }
+    assert main(["--repo-root", str(repo)]) == 0
+    assert main(["--repo-root", str(repo), "--json"]) == 0
+    capsys.readouterr()
+    after = {
+        str(path): path.read_bytes()
+        for path in sorted(repo.rglob("*"))
+        if path.is_file()
+    }
+    assert after == before
+
+
+def test_main_defaults_the_root_to_the_working_directory(repo, capsys, monkeypatch):
+    monkeypatch.chdir(repo)
+    code = main([])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "candidates" in out
+
