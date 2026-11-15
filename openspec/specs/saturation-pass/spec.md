@@ -1,7 +1,13 @@
 # saturation-pass Specification
 
 ## Purpose
-TBD - created by archiving change add-saturation-ratchet. Update Purpose after archive.
+
+The saturation pass runs the vendored mutator over the owned tools
+and holds a per-module mutation score ratchet against the committed
+store at `reports/saturation/scores.json`. One weekly workflow
+enforces the ratchet outside pull requests and never writes the
+store. The pass names every owned module that lost mutation score,
+so the operator sees the regression and the fix order.
 
 ## Requirements
 

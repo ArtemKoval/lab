@@ -3,9 +3,11 @@
 import json
 import os
 import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 
-from process_issues import cli, lock
+import pytest
+from process_issues import authors, cli, lock
 
 NOW = 1_700_000_000.0
 YOUNG = datetime.fromtimestamp(NOW, tz=timezone.utc).isoformat()
@@ -594,6 +596,25 @@ def test_scan_refuses_fresh_foreign_and_skips_gh(tmp_path, capsys):
     err = capsys.readouterr().err
     assert code == 2
     assert "loop-live" in err
+    assert fake.index == 0
+
+
+def test_scan_examines_the_lock_before_the_config(tmp_path, capsys,
+                                                  monkeypatch):
+    if sys.platform == "darwin":
+        pytest.skip("the lock freshness rule reads Linux /proc; the "
+                    "refusal path is not reachable on darwin")
+    write_lock(tmp_path / ".process_issues", fresh_rec(holder="loop-live"))
+    broken = tmp_path / "broken-authors.json"
+    broken.write_text("not json {", encoding="utf-8")
+    monkeypatch.setattr(authors, "AUTHORS_PATH", broken)
+    fake = FakeGh([])
+    code = cli.main(["scan"], runner=fake, repo_root=str(tmp_path),
+                    git_runner=lambda args: (1, "", ""))
+    err = capsys.readouterr().err
+    assert code == 2
+    assert "loop-live" in err
+    assert "broken-authors.json" not in err
     assert fake.index == 0
 
 
