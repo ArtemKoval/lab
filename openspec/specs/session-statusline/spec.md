@@ -15,19 +15,13 @@ survives every data fault.
 
 ### Requirement: The status line renders the session summary
 The tool SHALL read one JSON payload on standard input and print one
-summary line. The line SHALL carry the model, the coding plan effort,
-the 5-hour limit percentage, the weekly limit percentage, the
-session cache rate, the input token total in millions, the output
-token total in millions, and the time in UTC in `HH:MM` form. The
-payload fields are the first source for every field the payload
-carries. The line SHALL join neighboring blocks with the ` | `
-separator. The effort field SHALL show the coding plan effort of
-z.ai. The tool SHALL map the payload effort level through the coding
-plan table. The table maps `none`, `minimal`, and `low` to `low`.
-The table maps `medium` and `high` to `high`. The table maps `xhigh`
-and `max` to `max`. The tool SHALL apply the table to every payload.
-An unknown level SHALL stay raw. The `--json` effort field SHALL
-carry the mapped value.
+summary line. The line SHALL carry the session summary fields. The
+line SHALL join neighboring blocks with the ` | ` separator. The
+effort field SHALL show the coding plan effort of z.ai. The tool
+SHALL map the payload effort level through the coding plan table.
+The table maps `none`, `minimal`, and `low` to `low`. The table
+maps `medium` and `high` to `high`. The table maps `xhigh` and
+`max` to `max`.
 
 #### Scenario: A complete payload renders every field
 - **GIVEN** the payload carries `model.display_name` `GLM-5.3-Flash`,
@@ -89,6 +83,25 @@ carry the mapped value.
 - **WHEN** the tool renders the `--json` fields
 - **THEN** the `effort` field of the fields dict reads `max`
 
+#### Scenario: The table maps none to low
+- **GIVEN** the payload carries `effort.level` `none`
+- **WHEN** the tool renders the line
+- **THEN** the effort field reads `low`
+
+#### Scenario: The table maps low to low
+- **GIVEN** the payload carries `effort.level` `low`
+- **WHEN** the tool renders the line
+- **THEN** the effort field reads `low`
+
+#### Scenario: The table maps high to high
+- **GIVEN** the payload carries `effort.level` `high`
+- **WHEN** the tool renders the line
+- **THEN** the effort field reads `high`
+
+#### Scenario: The table maps max to max
+- **GIVEN** the payload carries `effort.level` `max`
+- **WHEN** the tool renders the line
+- **THEN** the effort field reads `max`
 ### Requirement: The transcript backs the session token totals
 The tool SHALL sum the per-message usage from the session transcript
 at `transcript_path` for the input and output token totals, and SHALL

@@ -7,7 +7,12 @@ The process-issues loop scans the open GitHub issues of this repo and runs the f
 ## Requirements
 
 ### Requirement: The scan classifies each open issue into one loop state
-The `scan` subcommand SHALL list the open issues with their author, their labels, their titles, and their open pull requests. The CLI SHALL map each issue to one loop state from five inputs. The inputs are the author admission, the labels, the title, the pull request links, and the artifact presence. The admission SHALL run before the label precedence. An author outside the allowed-author list SHALL map to the state `refused` with the action `none`. A login whose lowercase form ends with `[bot]` SHALL refuse. An absent or null author SHALL refuse. The refusal sits above every label state. The label precedence SHALL be `handover`, then `blocked`, then `answered`, then `human-approved`, then `waiting-human-approval`, then the tech-debt rule, then no label. A title that starts with `tech-debt:` SHALL map to the state `skip` with the action `none` below the gate labels and before the pull-request branches. The `tech-debt` label SHALL map to the same skip. The allowed-author comparison SHALL ignore letter case. The scan order SHALL follow `createdAt` from oldest to newest.
+The scan SHALL map each open issue to one loop state and one
+action. The admission SHALL run before the label precedence. The
+label precedence SHALL order `handover`, `blocked`, `answered`,
+`human-approved`, `waiting-human-approval`, the tech-debt rule, and
+no label. A `tech-debt:` title or label SHALL skip the issue. The
+scan order SHALL follow `createdAt` from oldest to newest.
 
 #### Scenario: A foreign author refuses
 - **GIVEN** issue 30 carries the login `stranger` and the allowed list carries `ArtemKoval`
@@ -217,7 +222,13 @@ When the pipeline needs a decision that the issue has not answered, the loop SHA
 - **AND** the label state of issue 16 stays unchanged
 
 ### Requirement: The scan CLI reports the queue
-The `scan` subcommand SHALL print one line per open issue with its number, state, and pull request links. The `--json` flag SHALL print the same data as JSON, and each entry SHALL carry the author login. The lock examination SHALL run before the first `gh` call, and the authors-config read SHALL run between the lock examination and the first `gh` call. The CLI SHALL exit 0 on success. The CLI SHALL exit 2 on an operational failure. The failures are a failed `gh` call, an unreadable state directory, a fresh foreign lock, or a missing, unparsable, or wrong-shape authors config. A config failure SHALL print one stderr note that names the config path and no queue. A usage error SHALL exit 64.
+The `scan` subcommand SHALL print one line per open issue with its
+number, its state, and its pull request links. The `--json` flag
+SHALL print the same data as JSON, and each entry SHALL carry the
+author login. The CLI SHALL exit 0 on success. The CLI SHALL exit 2
+on an operational failure: a failed `gh` call, an unreadable state
+directory, a fresh foreign lock, or a missing, unparsable, or
+wrong-shape authors config. A usage error SHALL exit 64.
 
 #### Scenario: A scan prints the queue
 - **WHEN** the scan runs with `--json`
@@ -241,6 +252,12 @@ The `scan` subcommand SHALL print one line per open issue with its number, state
 - **WHEN** the scan runs with an unknown flag
 - **THEN** the exit code is 64
 - **AND** stderr carries the parser message
+
+#### Scenario: The lock gates the first fetch
+- **GIVEN** a fresh foreign lock
+- **WHEN** the scan runs
+- **THEN** the refusal comes before the first `gh` call
+- **AND** the authors-config read follows the lock examination
 ### Requirement: The blocked state
 The scan SHALL map an open issue that carries the `blocked` label to the
 state `blocked` and the action `blocked`. The label SHALL sit in the
@@ -424,18 +441,14 @@ file exists.
 - **AND** the run reports the stop
 
 ### Requirement: The status operator rows examine the loop
-
 The `status` subcommand SHALL examine the loop components in a fixed
-order. The first matched row SHALL decide the exit. The operator rows
-SHALL run first: the halt file, the auth probe, the authors config, the
-issue list, the blocked issues. The halt file SHALL sit at `.claude/halt`
-in the working root or the primary checkout root. A failed
-`gh auth token` probe SHALL decide the setup row. No token value SHALL
-reach the output. A missing, unparsable, or wrong-shape authors config
-SHALL decide the config row with exit 2 and the level `config`. The
-blocked detection SHALL reuse the scan classification. The admission
-gate SHALL run before the blocked test, so a refused foreign issue
-with the `blocked` label gives no exit 2 from that issue.
+order. The first matched row SHALL decide the exit. The operator
+rows run first: the halt file, the auth probe, the authors config,
+the issue list, the blocked issues. The halt file SHALL sit at
+`.claude/halt` in the working root or the primary checkout root. A
+failed `gh auth token` probe SHALL decide the setup row. A missing,
+unparsable, or wrong-shape authors config SHALL give the config row
+exit 2 with the level `config`.
 
 #### Scenario: A halt file reports stopped
 
