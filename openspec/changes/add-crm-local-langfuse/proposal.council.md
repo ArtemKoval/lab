@@ -50,7 +50,7 @@ The judge and the Lambda stay untraced. Three capability deltas:
   time. This removed the last asymmetry between the environments and
   keeps no UI step in the rollout.
 - Accepted: the topology, secrets, and subnet reasoning moved to
-  design.md; the proposal keeps the behavior-level inventory and the
+  design.md. The proposal keeps the behavior-level inventory and the
   separate-app-bin contract. The guard wording is now "the Langfuse
   login guards the public endpoint".
 - Verified, kept: `crm/uv.lock` pins `langfuse` 4.16.0 in the runtime
@@ -67,9 +67,10 @@ The judge and the Lambda stay untraced. Three capability deltas:
 
 - The AWS stack shape (ClickHouse on one task, public ALB over HTTP)
   is a design commitment that only a real rollout exercises.
-- The compose smoke needs Docker on the host; the host notes say
+- The compose smoke needs Docker on the host. The host notes say
   Docker Desktop starts by hand.
 - The `openspec validate --strict` command failed once right after
   each file write in the same shell pipeline and passed on the re-run
-  three times in a row. The cause is unexamined; the handover carries
+  three times in a row. The cause is unexamined, and the handover
+  carries
   the observation.
