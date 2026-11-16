@@ -65,13 +65,13 @@
 
 ## 6. Delivery
 
-- [ ] 6.1 Commit `adr/0017-self-hosted-langfuse-tracing.md` with the
+- [x] 6.1 Commit `adr/0017-self-hosted-langfuse-tracing.md` with the
       implementation pull request
-- [ ] 6.2 Commit the implementation in conventional commits with the
+- [x] 6.2 Commit the implementation in conventional commits with the
       attribution trailer, and publish the branch
-- [ ] 6.3 Open the implementation pull request with the summary, the
+- [x] 6.3 Open the implementation pull request with the summary, the
       mechanism, the file list, and the test plan
-- [ ] 6.4 Run the adversarial review of the diff, fix each confirmed
+- [x] 6.4 Run the adversarial review of the diff, fix each confirmed
       finding, and re-run the gates
 - [ ] 6.5 Merge, archive the change on its own archive branch, and merge
       that branch after the implementation merge
