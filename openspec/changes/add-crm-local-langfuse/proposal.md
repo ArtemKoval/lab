@@ -40,7 +40,8 @@ case agent and improver handlers already exist.
   path stays untouched.
 - The stack holds the web and worker services and the Postgres, Redis,
   ClickHouse, and object storage the server needs, behind one public
-  address. The object store is S3 in place of MinIO.
+  address. The object store is S3 in place of MinIO, and the compose
+  profile's object store is the emulator's S3.
 - The Langfuse login guards the public endpoint. The design carries
   the network guard in detail.
 - The operator gives the init values at deploy time, like

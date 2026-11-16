@@ -33,11 +33,21 @@ where the real agent runs.
 From the repository root:
 
 ```bash
-docker compose -f crm/deploy/compose.yaml up -d
+docker compose -f crm/deploy/compose.yaml --profile langfuse up -d
 ```
 
-Gate: `curl -sf http://localhost:4566/_floci/health` prints the services
-JSON. On hosts without the compose plugin, run the container directly:
+The profile starts the emulator and the Langfuse server beside it. Gate:
+`curl -sf http://localhost:4566/_floci/health` prints the services JSON, and
+`curl -sf http://localhost:3000/api/public/health` prints the Langfuse status.
+The server stores its event blobs in the emulator's S3, and the `langfuse`
+bucket must exist before the first trace. Create it after every `up` that
+made a new emulator container:
+
+```bash
+uv run --project crm python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:4566', region_name='us-east-1', aws_access_key_id='test', aws_secret_access_key='test'); names = [b['Name'] for b in s3.list_buckets().get('Buckets', [])]; s3.create_bucket(Bucket='langfuse') if 'langfuse' not in names else print('bucket exists')"
+```
+
+On hosts without the compose plugin, run the container directly:
 
 ```bash
 docker run -d --name crm-floci -p 4566:4566 \
@@ -60,11 +70,17 @@ AWS_DEFAULT_REGION=us-east-1
 AWS_ACCESS_KEY_ID=test
 AWS_SECRET_ACCESS_KEY=test
 CRM_AGENT_RUNTIME=<the ARN the wiring gate prints>
+LANGFUSE_BASE_URL=http://localhost:3000
+LANGFUSE_PUBLIC_KEY=pk-lf-crm-local-aaaaaaaaaaaaaaaa
+LANGFUSE_SECRET_KEY=sk-lf-crm-local-aaaaaaaaaaaaaaaa
 ```
 
 The credentials are dummies: the emulator's IAM soft mode accepts any
 non-empty values. `AWS_ENDPOINT_URL` is read natively by boto3 1.28+, so the
-backend's runtime caller reaches the emulator with no engine change.
+backend's runtime caller reaches the emulator with no engine change. The
+Langfuse values are the seeded dev keys of the compose profile, and the case
+agent, the improver, and the copilot send their traces to
+`http://localhost:3000` while they are set.
 
 ## Run the wiring gate
 
@@ -98,10 +114,15 @@ agent works.
 docker rm -f crm-floci
 ```
 
-And remove `CRM_AGENT_RUNTIME`, `AWS_ENDPOINT_URL`, and the AWS credentials
-from `crm/.env`, so the next `npm run dev` is back on the laptop route. The
-database, the logs, and the registered runtime live only inside the
-container and go with it.
+And remove `CRM_AGENT_RUNTIME`, `AWS_ENDPOINT_URL`, the AWS credentials, and
+the three `LANGFUSE_*` values from `crm/.env`, so the next `npm run dev` is
+back on the laptop route with no tracing. The database, the logs, and the
+registered runtime live only inside the container and go with it. To take
+the Langfuse server down too:
+
+```bash
+docker compose -f crm/deploy/compose.yaml --profile langfuse down
+```
 
 ## Visit after launch
 
@@ -109,6 +130,8 @@ container and go with it.
   the dev password `crm-dev` (insurance: `dana.whitfield@undercover.example`;
   helpdesk: `priya.nair@fastfix.example`).
 - Emulator health: `http://localhost:4566/_floci/health`
+- Langfuse: `http://localhost:3000` (sign in with `dev@crm.local` and
+  `crmdevpass12`)
 - Backend health: `http://localhost:8000/api/health`
 - Auth service: `http://127.0.0.1:8004`
 

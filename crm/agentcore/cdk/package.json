@@ -8,6 +8,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "cdk": "npm run build && cdk",
+    "cdk:langfuse": "npm run build && cdk -a \"node dist/bin/langfuse.js\"",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

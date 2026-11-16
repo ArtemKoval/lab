@@ -87,7 +87,42 @@ uv run --env-file .env -m backend.seed
 Gate: the command prints the seeded counts. The human test in step 6
 fails on missing tables without it.
 
-### 4. Deploy
+### 4. The Langfuse stack
+
+The Langfuse server runs in the account as one CDK app at
+`crm/agentcore/cdk`, beside the AgentCore app. The runtimes send their
+traces to it through the `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, and
+`LANGFUSE_SECRET_KEY` variables of step 6.
+
+1. Install the CDK app's packages once:
+   `npm ci --prefix crm/agentcore/cdk`.
+2. Pick the init values: the user email and password, and the project keys
+   `pk-lf-...` and `sk-lf-...`. The stack seeds its first boot with them,
+   and the same values go to the runtimes in step 6.
+3. Deploy the stack, from `crm/agentcore/cdk`:
+
+   ```bash
+   npm run cdk:langfuse -- deploy --require-approval never \
+     -c langfuse_org=crm -c langfuse_project=crm \
+     -c langfuse_user_email=<email> -c langfuse_user_password=<password> \
+     -c langfuse_public_key=<pk value> -c langfuse_secret_key=<sk value>
+   ```
+
+   Gate: the deploy prints the stack output `LangfuseHost`. Open
+   `http://<LangfuseHost>/api/public/health` and read the status. Deploy
+   once more with `-c langfuse_host=<LangfuseHost>` added, so `NEXTAUTH_URL`
+   points at the public address.
+4. Write `LANGFUSE_BASE_URL=http://<LangfuseHost>`,
+   `LANGFUSE_PUBLIC_KEY=<pk value>`, and
+   `LANGFUSE_SECRET_KEY=<sk value>` into `crm/agentcore/.env.local`. The
+   runtime deploy of step 5 gives them to both runtimes.
+
+**CAUTION:** The Langfuse endpoint is public, and it serves plain HTTP. The
+Langfuse login guards it. It holds the prompts and transcripts of the
+traced runs. Do not point real accounts at it until an ACM certificate and
+a domain stand in front of it.
+
+### 5. Deploy
 
 1. Send the package to the function:
    `aws lambda update-function-code --function-name crm-app --zip-file fileb://target/crm-app.zip`.
@@ -111,7 +146,7 @@ fails on missing tables without it.
    asks for the three credential values of step 2. It prints the
    addresses of the runtimes, the gateway, and the memory.
 
-### 5. The variables
+### 6. The variables
 
 The CDK deploy reads `crm/agentcore/.env.local` and gives the values to
 the runtimes. After the deploy prints the addresses:
@@ -125,9 +160,9 @@ the runtimes. After the deploy prints the addresses:
    `AUTH_URL` and `VITE_AUTH_URL`: the address of the deployed auth
    service.
 
-### 6. Smoke through the real address
+### 7. Smoke through the real address
 
-1. Probe the queue on the function URL of step 4:
+1. Probe the queue on the function URL of step 5:
    `curl -sf "<function-url>/api/health"`. Gate: the command prints a JSON
    answer.
 2. Work one case through the deployed stack, in the dashboard. This is
@@ -142,17 +177,21 @@ the rollout decide the rest.
 The stop rule holds. Delete in the reverse order of Up:
 
 1. Remove the rollout values of the variables from `crm/.env` and
-   `crm/agentcore/.env.local`.
+   `crm/agentcore/.env.local`. The `LANGFUSE_*` values leave with them.
 2. Delete the runtimes, from `crm/`: `uv run agentcore destroy`. The
    command deletes the agent runtime, the copilot runtime, the gateway, and
    the memory that the deploy made. Reinstall with
    `uv pip install --python .venv/bin/python bedrock-agentcore-starter-toolkit`
    if it is gone from the venv.
-3. Delete the function URL:
+3. Destroy the Langfuse stack, from `crm/agentcore/cdk`:
+   `npm run cdk:langfuse -- destroy`. The command deletes the stack's
+   services, its database, its Redis, its ClickHouse volume, and its
+   bucket.
+4. Delete the function URL:
    `aws lambda delete-function-url-config --function-name crm-app`.
-4. Delete the function:
+5. Delete the function:
    `aws lambda delete-function --function-name crm-app`.
-5. Delete the build folder: `rm -rf crm/target`.
+6. Delete the build folder: `rm -rf crm/target`.
 
 Then print this remainder for the human. This skill does not delete it:
 
