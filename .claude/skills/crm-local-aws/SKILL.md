@@ -26,7 +26,10 @@ where the real agent runs.
 2. The floci image is pulled: `docker images floci/floci`. Gate: one row. If
    not: `docker pull floci/floci:latest`.
 3. Port 4566 is free: `curl -sf http://localhost:4566/_floci/health` fails.
-   If it answers, the emulator is already up — skip to step 3 of Start.
+   If it answers, the emulator is already up. Bring the Langfuse services up
+   beside it with the profile command of Start, and continue with the
+   bucket command there. An emulator from an earlier start without the
+   profile leaves `http://localhost:3000` down.
 
 ## Start the emulator
 
@@ -44,8 +47,10 @@ bucket must exist before the first trace. Create it after every `up` that
 made a new emulator container:
 
 ```bash
-uv run --project crm python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:4566', region_name='us-east-1', aws_access_key_id='test', aws_secret_access_key='test'); names = [b['Name'] for b in s3.list_buckets().get('Buckets', [])]; s3.create_bucket(Bucket='langfuse') if 'langfuse' not in names else print('bucket exists')"
+uv run --project crm python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:4566', region_name='us-east-1', aws_access_key_id='test', aws_secret_access_key='test'); names = [b['Name'] for b in s3.list_buckets().get('Buckets', [])]; print('bucket exists') if 'langfuse' in names else print(s3.create_bucket(Bucket='langfuse'))"
 ```
+
+Gate: the command prints `bucket exists` or the create answer.
 
 On hosts without the compose plugin, run the container directly:
 

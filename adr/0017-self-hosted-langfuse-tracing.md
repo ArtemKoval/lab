@@ -48,7 +48,14 @@ deploy, and one destroy command removes the AWS stack.
 Negative: the AWS stack bills each month while it runs, and its
 endpoint serves plain HTTP in the lab. ClickHouse runs on one task, so
 a task replacement can lose trace history. The init seeding fires on
-the first boot only.
+the first boot only. The AWS task definitions hold the database address
+and its generated password in plain environment, composed at synth,
+while the other secrets travel through the platform's secret
+references. The lab accepts the plain posture, and a production
+rollout moves the password behind a secret reference. The AWS Redis
+node takes no password, because an auth token demands TLS on the node.
+The queue traffic stays inside the security groups, and the compose
+target keeps its password.
 
 Follow-up: the operator names the TLS certificate, the domain, and the
 trace retention window at a production rollout.

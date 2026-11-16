@@ -28,14 +28,20 @@ DEV_CREDENTIALS = frozenset(
     }
 )
 
+# The one database address the tracked file may carry, dev password inside.
+DEV_DATABASE_URL = "postgresql://postgres:crmlocaldevpg@langfuse-db:5432/postgres"
+
 
 def compose() -> dict:
     return yaml.safe_load(COMPOSE.read_text())
 
 
 def credentialish(name: str) -> bool:
-    words = ("KEY", "SECRET", "PASSWORD", "PASSWD", "TOKEN")
-    return any(word in name.upper() for word in words)
+    upper = name.upper()
+    if upper.endswith("_URL"):
+        return False
+    words = ("KEY", "SECRET", "PASSWORD", "PASSWD", "TOKEN", "AUTH")
+    return any(word in upper for word in words)
 
 
 def test_the_emulator_stays_unprofiled():
@@ -54,6 +60,12 @@ def test_the_object_store_is_the_emulator():
     for name in ("langfuse-web", "langfuse-worker"):
         env = services[name]["environment"]
         assert env["LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT"] == "http://emulator:4566"
+
+
+def test_the_database_url_is_the_dev_shape():
+    services = compose()["services"]
+    for name in ("langfuse-web", "langfuse-worker"):
+        assert services[name]["environment"]["DATABASE_URL"] == DEV_DATABASE_URL
 
 
 def test_only_dev_credentials_sit_in_the_tracked_file():

@@ -84,15 +84,15 @@ database on deploy. From `crm/`, with `DATABASE_URL` set:
 uv run --env-file .env -m backend.seed
 ```
 
-Gate: the command prints the seeded counts. The human test in step 6
+Gate: the command prints the seeded counts. The human test in step 7
 fails on missing tables without it.
 
 ### 4. The Langfuse stack
 
 The Langfuse server runs in the account as one CDK app at
 `crm/agentcore/cdk`, beside the AgentCore app. The runtimes send their
-traces to it through the `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, and
-`LANGFUSE_SECRET_KEY` variables of step 6.
+traces to it through the three `LANGFUSE_*` values this step writes into
+`crm/agentcore/.env.local`.
 
 1. Install the CDK app's packages once:
    `npm ci --prefix crm/agentcore/cdk`.
@@ -201,7 +201,7 @@ Then print this remainder for the human. This skill does not delete it:
 
 ## Visit after rollout
 
-- The function URL of Up step 4: the backend API (probe `/api/health`).
+- The function URL of Up step 5: the backend API (probe `/api/health`).
 - The dashboard: serve `crm/dashboard` against the function URL, or open the
   URL the CDK deploy printed for the dashboard distribution, if you deployed
   one.

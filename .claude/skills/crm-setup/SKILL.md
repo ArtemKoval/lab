@@ -61,14 +61,14 @@ container and goes with it, so create it after every `up` that made a new
 emulator container:
 
 ```bash
-uv run --project crm python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:4566', region_name='us-east-1', aws_access_key_id='test', aws_secret_access_key='test'); names = [b['Name'] for b in s3.list_buckets().get('Buckets', [])]; s3.create_bucket(Bucket='langfuse') if 'langfuse' not in names else print('bucket exists')"
+uv run --project crm python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:4566', region_name='us-east-1', aws_access_key_id='test', aws_secret_access_key='test'); names = [b['Name'] for b in s3.list_buckets().get('Buckets', [])]; print('bucket exists') if 'langfuse' in names else print(s3.create_bucket(Bucket='langfuse'))"
 ```
 
-Gate: the command prints `make_bucket: langfuse` or `bucket exists`.
+Gate: the command prints `bucket exists` or the create answer.
 
 Write the three trace variables into `crm/.env`:
 
-```bash
+```
 LANGFUSE_BASE_URL=http://localhost:3000
 LANGFUSE_PUBLIC_KEY=pk-lf-crm-local-aaaaaaaaaaaaaaaa
 LANGFUSE_SECRET_KEY=sk-lf-crm-local-aaaaaaaaaaaaaaaa

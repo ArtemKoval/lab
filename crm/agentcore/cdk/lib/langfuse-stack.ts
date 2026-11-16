@@ -67,9 +67,6 @@ export class LangfuseStack extends Stack {
     const clickHousePassword = new secretsmanager.Secret(this, 'ClickHousePassword', {
       generateSecretString: { excludePunctuation: true },
     });
-    const redisAuth = new secretsmanager.Secret(this, 'RedisAuth', {
-      generateSecretString: { excludePunctuation: true },
-    });
 
     const postgres = new rds.DatabaseInstance(this, 'Postgres', {
       engine: rds.DatabaseInstanceEngine.postgres({
@@ -90,7 +87,9 @@ export class LangfuseStack extends Stack {
       description: 'Ingress to the Langfuse Redis node',
     });
     const redisSubnetGroup = new CfnSubnetGroup(this, 'RedisSubnetGroup', {
-      cacheSubnetGroupName: 'langfuse-redis-subnets',
+      // The stack name keeps the name unique beside any other stack in the
+      // region.
+      cacheSubnetGroupName: `langfuse-redis-subnets-${this.stackName}`,
       subnetIds: vpc.publicSubnets.map((subnet) => subnet.subnetId),
       description: 'Subnets for the Langfuse Redis node',
     });
@@ -170,7 +169,6 @@ export class LangfuseStack extends Stack {
       SALT: ecs.Secret.fromSecretsManager(salt),
       ENCRYPTION_KEY: ecs.Secret.fromSecretsManager(encryptionKey),
       CLICKHOUSE_PASSWORD: ecs.Secret.fromSecretsManager(clickHousePassword),
-      REDIS_AUTH: ecs.Secret.fromSecretsManager(redisAuth),
     };
 
     // The web service holds the trace intake and the UI, behind the ALB.
