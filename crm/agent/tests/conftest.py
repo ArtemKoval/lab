@@ -78,10 +78,12 @@ class RecordRoots(BaseCallbackHandler):
 def traces(monkeypatch):
     """Keep Langfuse out of the tests, and record the root runs it would trace."""
     roots: list[dict[str, Any]] = []
-    for module in (harness, improver, turns):
-        monkeypatch.setattr(
-            module, "CallbackHandler", lambda: RecordRoots(roots), raising=False
-        )
+    for module in (harness, improver):
+        monkeypatch.setattr(module, "CallbackHandler", lambda: RecordRoots(roots))
+    # The copilot's import arrives with the change, so it may not be there yet.
+    monkeypatch.setattr(
+        turns, "CallbackHandler", lambda: RecordRoots(roots), raising=False
+    )
     return roots
 
 
