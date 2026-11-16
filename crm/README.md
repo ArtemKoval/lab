@@ -35,6 +35,7 @@ visit and the sign-in to use.
 | `http://127.0.0.1:8006/mcp` | The context server |
 | `http://127.0.0.1:8004` | The dev auth service |
 | `http://localhost:4566/_floci/health` | The emulator (only when floci runs) |
+| `http://localhost:3000` | Langfuse, the trace store (only when the compose profile `langfuse` runs) |
 
 **Sign in** at the dashboard with any worker email of the active pack and the
 dev password `crm-dev` (`AUTH_DEV_PASSWORD`). Insurance: `dana.whitfield@undercover.example`
@@ -53,6 +54,10 @@ cp .env.example .env   # the key is optional
 npm run seed           # build crm.db from the active pack
 npm run dev            # backend on 8000, dashboard on 5173
 ```
+
+With Docker, the compose profile `langfuse` starts the trace store beside
+the emulator, and the `crm-setup` skill carries the steps that seed its
+keys into `.env`. Without it, the engine runs with no tracing.
 
 Work one case with the agent on the command line:
 

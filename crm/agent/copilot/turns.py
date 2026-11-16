@@ -11,6 +11,7 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
+from langfuse.langchain import CallbackHandler
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.types import Command, StateSnapshot
 
@@ -22,6 +23,9 @@ from agent.copilot.tools import CopilotContext
 from agent.openrouter import chat_model
 
 log = logging.getLogger(__name__)
+
+# The turn's one Langfuse trace, in the conversation's session.
+TRACE_NAME = "Copilot turn"
 
 STOPPED_STEP = "This step stopped before it finished"
 NOT_THE_TURN = "Turn {turn_id} isn't the conversation's latest working turn"
@@ -116,7 +120,13 @@ def work(turn: Turn, start: Start, saver: BaseCheckpointSaver[Any]) -> None:
     try:
         store = memory.memory_store()
         graph = copilot_graph(copilot_model(turn.sign_in), saver, store)
-        config = thread_of(turn.conversation_id)
+        config = thread_of(turn.conversation_id) | {
+            "callbacks": [CallbackHandler()],
+            "metadata": {
+                "langfuse_session_id": turn.conversation_id,
+                "langfuse_trace_name": TRACE_NAME,
+            },
+        }
         context = CopilotContext(
             turn.sign_in,
             turn.worker,

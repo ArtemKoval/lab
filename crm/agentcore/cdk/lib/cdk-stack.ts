@@ -13,8 +13,17 @@ export interface AgentCoreStackProps extends StackProps {
 
 // The agent's settings that aren't secrets, from agentcore/.env.local beside the credentials'
 // values, or else from the environment agentcore deploy runs in, so nobody's addresses are
-// written into agentcore.json
-const SETTINGS = ['CRM_API', 'CRM_GATEWAY_URL', 'CRM_MEMORY_ID', 'CRM_COPILOT_MEMORY_ID'];
+// written into agentcore.json. The LANGFUSE_* values are the exception: the project keys
+// are credentials, and they travel here because the trace SDK reads plain variables.
+const SETTINGS = [
+  'CRM_API',
+  'CRM_GATEWAY_URL',
+  'CRM_MEMORY_ID',
+  'CRM_COPILOT_MEMORY_ID',
+  'LANGFUSE_BASE_URL',
+  'LANGFUSE_PUBLIC_KEY',
+  'LANGFUSE_SECRET_KEY',
+];
 
 /**
  * The stack the AgentCore CLI deploys. Everything declared in agentcore/agentcore.json is

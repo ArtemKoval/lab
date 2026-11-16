@@ -37,7 +37,44 @@ cp crm/.env.example crm/.env
 ```
 
 The file works with no model key. Put `OPENROUTER_API_KEY` in the file only
-when you want live agent runs.
+when you want live agent runs. A live run also needs `DATABASE_URL`, the
+Postgres address the agent's checkpoints save to.
+
+## Start the trace store
+
+Docker is optional. Start the Langfuse server when you want the model-call
+traces.
+
+```bash
+docker compose -f crm/deploy/compose.yaml --profile langfuse up -d
+```
+
+The profile starts the emulator and the Langfuse server. The server seeds its
+first boot with the dev organization `CRM Local`, the project `crm`, the user
+`dev@crm.local` with the password `crmdevpass12`, and the project keys
+`pk-lf-crm-local-aaaaaaaaaaaaaaaa` and `sk-lf-crm-local-aaaaaaaaaaaaaaaa`.
+The values are local-only dev credentials for a loopback-bound server.
+
+The server stores its event blobs in the emulator's S3, and the `langfuse`
+bucket must exist before the first trace. The bucket lives inside the emulator
+container and goes with it, so create it after every `up` that made a new
+emulator container:
+
+```bash
+uv run --project crm python -c "import boto3; s3 = boto3.client('s3', endpoint_url='http://localhost:4566', region_name='us-east-1', aws_access_key_id='test', aws_secret_access_key='test'); names = [b['Name'] for b in s3.list_buckets().get('Buckets', [])]; print('bucket exists') if 'langfuse' in names else print(s3.create_bucket(Bucket='langfuse'))"
+```
+
+Gate: the command prints `bucket exists` or the create answer.
+
+Write the three trace variables into `crm/.env`:
+
+```
+LANGFUSE_BASE_URL=http://localhost:3000
+LANGFUSE_PUBLIC_KEY=pk-lf-crm-local-aaaaaaaaaaaaaaaa
+LANGFUSE_SECRET_KEY=sk-lf-crm-local-aaaaaaaaaaaaaaaa
+```
+
+Absent values keep the disabled client, so the app works with no tracing.
 
 ## Seed the database
 
@@ -92,3 +129,5 @@ wiring pointed at the local floci emulator.
 - Context server: `http://127.0.0.1:8006/mcp`
 - Auth service: `http://127.0.0.1:8004` (accepts any pack worker email with
   `AUTH_DEV_PASSWORD`, default `crm-dev`)
+- Trace store: `http://localhost:3000` (only when the langfuse profile runs;
+  sign in with `dev@crm.local` and `crmdevpass12`)

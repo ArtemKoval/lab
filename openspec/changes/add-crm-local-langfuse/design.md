@@ -121,9 +121,10 @@ Bullets:
    Redis, and ClickHouse, and from nothing else. ClickHouse runs as
    one Fargate task with one EBS volume. Postgres runs on one RDS
    instance of the smallest general purpose class, single AZ. Redis
-   runs on one ElastiCache node of the smallest class. The object
-   store is one S3 bucket with encryption on and public access
-   blocked. Alternative rejected: MinIO on Fargate. Real S3 removes
+   runs on one ElastiCache node of the smallest class. ClickHouse
+   stores on the task's own 24 GiB storage, since a service-managed
+   volume resets with the task the same way. The object store is one
+   S3 bucket with encryption on and public access blocked. Alternative rejected: MinIO on Fargate. Real S3 removes
    one service, one set of keys, and one failure mode.
 7. **The secrets split two ways.** The stack generates
    `NEXTAUTH_SECRET`, `SALT`, `ENCRYPTION_KEY`, the ClickHouse
@@ -142,8 +143,7 @@ Bullets:
 
 ## Risks / Trade-offs
 
-- [ClickHouse on one task with one volume] -> a task replacement can
-  lose trace history. Traces are diagnostic records, and retention is
+- [ClickHouse on one task] -> a task replacement can lose trace history. Traces are diagnostic records, and retention is
   a non-goal. The stack re-seeds a fresh ClickHouse on boot.
 - [A public ALB address holds prompts and transcripts] -> the Langfuse
   login guards the endpoint, the security groups admit the ALB alone

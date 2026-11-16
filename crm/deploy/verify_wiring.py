@@ -16,12 +16,15 @@ the agent's behavior.
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import boto3  # noqa: E402 — the path insert above must come first
+
+from backend.runtime_calls import Wording, invoke  # noqa: E402
 
 RUNTIME_NAME = "crm_agent"
 REGION = "us-east-1"
@@ -47,8 +50,6 @@ def main() -> int:
     env = _aws_env()
     for key, value in env.items():
         os.environ[key] = value
-
-    import boto3
 
     # Step 1: the emulator answers the control plane. The control-plane
     # operations live in the bedrock-agentcore-control client.
@@ -83,15 +84,18 @@ def main() -> int:
     # Step 3: the backend's own runtime caller invokes it, and reads the
     # acceptance the emulator is configured to answer with.
     os.environ["CRM_AGENT_RUNTIME"] = arn
-    from backend.runtime_calls import Wording, invoke
-
     wording = Wording(
         not_running="the runtime wasn't reached",
         couldnt_take="the runtime refused: {reason}",
         no_answer="the runtime didn't answer in time",
     )
     try:
-        invoke(arn, "wiring-gate-session-00000000-0000-0000", {"operation": "wiring"}, wording)
+        invoke(
+            arn,
+            "wiring-gate-session-00000000-0000-0000",
+            {"operation": "wiring"},
+            wording,
+        )
     except Exception as error:  # noqa: BLE001
         return fail("invoke through the backend's runtime caller", str(error))
 
