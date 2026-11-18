@@ -56,3 +56,28 @@ Write messages, reports, code comments, commit messages, and documentation in AS
 - `tools/saturation_pass`: a stdlib CLI that runs the vendored mutator over the owned tools and holds the per-module saturation ratchet against the committed store at `reports/saturation/scores.json`. A weekly workflow enforces outside pull requests and never writes the store. The README at `tools/saturation_pass/README.md` and the `saturation-run` skill give the commands.
 - `notebooks`: standalone teaching notebooks. Tests in `tests/notebooks/` read each notebook as JSON and run its cells against stubs. They use the standard library only. Notebooks that go to a public course repo must pass that repo's checklist: cleared outputs, no secrets, no emojis.
 - `devops/chaos/ssh`: an ssh failure teaching area with one devcontainer that arms one fault at a time and a stdlib tutor CLI (`python3 -m chaos_ssh` from `devops/chaos/ssh/tutor/`). The README at `devops/chaos/ssh/README.md` gives the commands, the safety rules, and the ports. The e2e lane runs only with `DEVOPS_CHAOS_SSH_E2E=1` and a docker daemon. Its gates run with the shared zai venv interpreter.
+## Agent Memory
+
+The `agent-memory` skill (`.claude/skills/agent-memory/SKILL.md`) owns
+cross-session, cross-repo memory over GitHub Issues. At session start, check
+the connection once:
+
+- If `~/.config/memory-kit.conf` holds a valid `MEMORY_REPO`, treat memory as
+  connected. Recheck repo access with one cheap read only when a memory
+  operation is about to run.
+- If the file is missing or ambiguous, propose connecting — trigger the
+  skill's setup / first-run procedure once, then continue the session.
+
+Read-only memory requests never start the write cycle (see the skill).
+The SessionStart hook `.claude/hooks/agent-memory-session-start.sh`
+auto-injects the cached slice at startup (startup/resume/clear/compact) and
+nudges regeneration when the cache is older than 12 hours; without a valid
+config it stays silent. The SessionEnd hook
+`.claude/hooks/agent-memory-session-end.sh` drops a pending marker when a
+session dies without a memory summary; the next session start lists it, and
+that agent distills the transcript into its thread and deletes the marker.
+The PostToolUse hook `.claude/hooks/agent-memory-task-complete.sh` fires on
+merge commands and nudges the agent to close the loop itself (Mode 3:
+summary, lessons, cache) at every task completion — the operator never
+types memory updates by hand.
+
