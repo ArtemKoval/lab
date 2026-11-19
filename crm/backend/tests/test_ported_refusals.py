@@ -139,6 +139,33 @@ def test_an_effect_refuses_an_outcome_it_does_not_run(client, agent_key):
     assert "does not run" in response.json()["detail"]
 
 
+def test_an_approval_with_an_unknown_benefit_is_refused(client, agent_key):
+    body = approve_body()
+    body["benefit"] = "unicorn_benefit"
+    response = post_decision(client, body)
+    assert response.status_code == 422, response.json()
+    assert "unicorn_benefit" in response.json()["detail"]
+
+
+def test_a_resolution_with_an_unknown_benefit_is_refused(client, agent_key):
+    post_decision(client, refer_body())
+    body = loan_body()
+    body["benefit"] = "unicorn_benefit"
+    response = post_resolution(client, body)
+    assert response.status_code == 422, response.json()
+    assert "unicorn_benefit" in response.json()["detail"]
+
+
+def test_an_evaluation_copy_refuses_the_desk(client, agent_key):
+    sql(
+        "UPDATE cases SET evaluation_id = 'EV-9' WHERE case_id = :c",
+        c="CLM-1001",
+    )
+    response = post_decision(client, approve_body())
+    assert response.status_code == 409, response.json()
+    assert "copy" in response.json()["detail"]
+
+
 def decline_body():
     return {
         "decision": "decline",
