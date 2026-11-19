@@ -191,29 +191,44 @@ def check_vocabulary(name: str, manifest: dict[str, Any]) -> None:
     vocabulary = manifest.get("vocabulary")
     if not vocabulary:
         return
+    _check_award_format(name, vocabulary)
+    _check_contract(name, vocabulary)
+
+
+def _check_award_format(name: str, vocabulary: dict[str, Any]) -> None:
+    """Refuse an award format the renderer cannot draw."""
     award = vocabulary.get("award_format")
     if award is not None and award not in AWARD_FORMATS:
         raise PackError(
             f"pack {name!r} vocabulary names the unknown award_format {award!r}"
         )
+
+
+def _check_contract(name: str, vocabulary: dict[str, Any]) -> None:
+    """Refuse a contract presentation with no title or a shapeless row."""
     contract = vocabulary.get("contract", {})
     if contract and not contract.get("title"):
         raise PackError(f"pack {name!r} vocabulary contract carries no title")
     rows = contract.get("rows", [])
     for row in rows:
-        if not row.get("template") and not row.get("field"):
+        _check_row(name, row)
+
+
+def _check_row(name: str, row: dict[str, Any]) -> None:
+    """Refuse one contract row that names no source or an unknown format."""
+    if not row.get("template") and not row.get("field"):
+        raise PackError(
+            f"pack {name!r} vocabulary row {row.get('label')!r} names "
+            "neither a field nor a template"
+        )
+    named = (
+        [row["format"]]
+        if "format" in row
+        else list(row.get("formats", {}).values())
+    )
+    for key in named:
+        if key not in ROW_FORMATS:
             raise PackError(
                 f"pack {name!r} vocabulary row {row.get('label')!r} names "
-                "neither a field nor a template"
+                f"the unknown format {key!r}"
             )
-        named = (
-            [row["format"]]
-            if "format" in row
-            else list(row.get("formats", {}).values())
-        )
-        for key in named:
-            if key not in ROW_FORMATS:
-                raise PackError(
-                    f"pack {name!r} vocabulary row {row.get('label')!r} names "
-                    f"the unknown format {key!r}"
-                )

@@ -51,6 +51,7 @@ def run_git(args: list[str], cwd: Path | None = None) -> str:
         cwd=str(cwd) if cwd else None,
         capture_output=True,
         text=True,
+        check=False,
     )
     if proc.returncode != 0:
         raise GitError(args, proc.returncode, proc.stdout + proc.stderr)

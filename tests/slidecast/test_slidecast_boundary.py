@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from slidecast import build, cli, deck, render
+from slidecast import build, cli, deck, render, scenes
 
 
 def write_deck(tmp_path: Path, slides) -> Path:
@@ -208,3 +208,150 @@ def test_exhausted_retries_name_the_slide(monkeypatch):
             the_deck, Path("W9"), Path("o9.mp4"), "V", retries=1,
             probe=lambda p: 1.0,
         )
+
+
+def one_slide():
+    return deck.Deck(title="T", subtitle="S",
+                     slides=[deck.Slide("H", ["b"], "L.")])
+
+
+def an_element_deck(tmp_path: Path, element: dict) -> Path:
+    slide = {**a_slide(0), "elements": [element]}
+    return write_deck(tmp_path, [slide, a_slide(1), a_slide(2)])
+
+
+def a_box(col: int, row: int) -> dict:
+    return {"kind": "box", "at": 1.0, "col": col, "row": row, "label": "B"}
+
+
+@pytest.mark.parametrize("share", [0, 1, 0.5])
+def test_a_bar_share_at_the_boundaries_loads(tmp_path, share):
+    element = {"kind": "bar", "at": 1.0, "col": 1, "row": 1,
+               "label": "L", "share": share}
+    loaded = deck.load(an_element_deck(tmp_path, element))
+    assert loaded.slides[0].elements[0]["share"] == share
+
+
+@pytest.mark.parametrize("share", [-0.1, 1.1, "x"])
+def test_a_bar_share_outside_the_range_is_refused(tmp_path, share):
+    element = {"kind": "bar", "at": 1.0, "col": 1, "row": 1,
+               "label": "L", "share": share}
+    with pytest.raises(deck.DeckError, match="share outside 0 to 1"):
+        deck.load(an_element_deck(tmp_path, element))
+
+
+def test_an_element_at_zero_loads_and_a_negative_time_is_refused(tmp_path):
+    loaded = deck.load(an_element_deck(
+        tmp_path, {"kind": "box", "at": 0, "col": 1, "row": 1, "label": "B"}))
+    assert loaded.slides[0].elements[0]["at"] == 0
+    other = tmp_path / "s"
+    other.mkdir()
+    with pytest.raises(deck.DeckError, match="without a time"):
+        deck.load(an_element_deck(
+            other, {"kind": "box", "at": -0.5, "col": 1, "row": 1,
+                    "label": "B"}))
+
+
+@pytest.mark.parametrize("col", [1, scenes.COLS])
+def test_a_box_on_the_first_and_last_column_loads(tmp_path, col):
+    loaded = deck.load(an_element_deck(tmp_path, a_box(col, 1)))
+    assert loaded.slides[0].elements[0]["col"] == col
+
+
+@pytest.mark.parametrize("row", [1, scenes.ROWS])
+def test_a_box_on_the_first_and_last_row_loads(tmp_path, row):
+    loaded = deck.load(an_element_deck(tmp_path, a_box(1, row)))
+    assert loaded.slides[0].elements[0]["row"] == row
+
+
+@pytest.mark.parametrize("cell", [(0, 1), (13, 1)])
+def test_a_box_column_outside_the_grid_is_refused(tmp_path, cell):
+    with pytest.raises(deck.DeckError, match="outside the grid"):
+        deck.load(an_element_deck(tmp_path, a_box(*cell)))
+
+
+@pytest.mark.parametrize("cell", [(1, 0), (1, 7)])
+def test_a_box_row_outside_the_grid_is_refused(tmp_path, cell):
+    with pytest.raises(deck.DeckError, match="outside the grid"):
+        deck.load(an_element_deck(tmp_path, a_box(*cell)))
+
+
+def test_a_same_cell_row_arrow_points_left(tmp_path):
+    element = {"kind": "arrow", "at": 3.0, "from": [2, 2], "to": [2, 2]}
+    loaded = deck.load(an_element_deck(tmp_path, element))
+    filter_text = scenes.arrow_filter(dict(loaded.slides[0].elements[0]))
+    assert "◄" in filter_text
+    assert "►" not in filter_text
+    # The head of a same-cell arrow sits past the shared column, not behind
+    # it: x2 + 10, never x2 - 34.
+    head_x = scenes.cell_x(2) + 135
+    assert str(head_x + 10) in filter_text
+    assert str(head_x - 34) not in filter_text
+
+
+def test_the_slide_bullets_space_down_the_slide():
+    filters = scenes.slide_filters("H", ["first", "second"], [])
+    # The second bullet sits at 330 + 90; the minus mutant would put it at
+    # 240 and drop it above the heading's baseline.
+    assert "420" in filters[2]
+    assert "240" not in filters[2]
+
+
+def test_an_empty_audio_file_is_refused_and_a_one_byte_audio_passes(
+    tmp_path,
+):
+    def empty_run(step):
+        if step.name.startswith("speak"):
+            Path(step.command[-1]).write_bytes(b"")
+
+    with pytest.raises(render.RenderError, match="wrote no audio"):
+        build.orchestrate(
+            one_slide(), tmp_path / "We", tmp_path / "oe.mp4", "V",
+            run=empty_run, probe=lambda p: 1.0, retries=1,
+        )
+
+    seen = []
+
+    def tiny_run(step):
+        seen.append(step)
+        if step.name.startswith("speak"):
+            Path(step.command[-1]).write_bytes(b"a")
+
+    timings = build.orchestrate(
+        one_slide(), tmp_path / "Wt", tmp_path / "ot.mp4", "V",
+        run=tiny_run, probe=lambda p: 1.0, retries=1,
+    )
+    speak_steps = [s for s in seen if s.name.startswith("speak")]
+    assert len(speak_steps) == 1
+    assert timings[0].seconds == 1.8
+
+
+def test_the_retry_exhaustion_names_the_exact_run_count(tmp_path):
+    def silent_run(step):
+        pass
+
+    with pytest.raises(render.RenderError, match="after 3 runs"):
+        build.orchestrate(
+            one_slide(), tmp_path / "Wx", tmp_path / "ox.mp4", "V",
+            run=silent_run, probe=lambda p: 1.0, retries=2,
+        )
+
+
+def test_the_build_creates_missing_output_parents_and_reruns_in_place(
+    tmp_path,
+):
+    def fake_run(step):
+        if step.name.startswith("speak"):
+            Path(step.command[-1]).write_bytes(b"audio")
+
+    # The work tree sits deeper than the output's parent, so both mkdir
+    # calls meet a missing parent on the first run.
+    out = tmp_path / "shallow" / "out.mp4"
+    work = tmp_path / "deep" / "nested" / "work"
+    for _ in range(2):
+        build.orchestrate(
+            one_slide(), work, out, "V",
+            run=fake_run, probe=lambda p: 1.0, retries=0,
+        )
+    assert out.parent.is_dir()
+    assert work.is_dir()

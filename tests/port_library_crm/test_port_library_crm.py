@@ -33,6 +33,27 @@ class TestParseMergeTreeOutput:
         assert tree == "abc123"
         assert conflicted == []
 
+    def test_parse_skips_lines_whose_stage_is_not_a_conflict_stage(self):
+        out = (
+            "abc123\n"
+            "100644 aa11 1\tCLAUDE.md\n"
+            "100644 bb22 2\tCLAUDE.md\n"
+            "100644 cc33 3\tCLAUDE.md\n"
+            "100644 dd44 9\tstray.txt\n"
+        )
+        _, conflicted = plc.parse_merge_tree_output(out)
+        assert conflicted == ["CLAUDE.md"]
+
+    def test_parse_treats_only_the_first_line_as_the_tree(self):
+        out = (
+            "100644 zz99 2\tCLAUDE.md\n"
+            "abc123\n"
+            "100644 aa11 1\t.coveragerc\n"
+        )
+        tree, conflicted = plc.parse_merge_tree_output(out)
+        assert tree == "100644 zz99 2\tCLAUDE.md"
+        assert conflicted == [".coveragerc"]
+
 
 class TestClassifyChangedFiles:
     NAME_STATUS = (
@@ -106,6 +127,18 @@ class TestBuildReport:
         text = plc.render_markdown(report)
         assert "deletions: 1" in text
         assert "gone.py" in text
+
+    def test_total_counts_deletions_when_the_set_is_not_empty(self):
+        report = plc.build_report(
+            copied=["a.py", "a2.py"],
+            transferred=["b.py"],
+            deletions=["gone.py"],
+            conflicted=[],
+            excluded=[],
+            base="base",
+            child_head="head",
+        )
+        assert report["total"] == 4
 
     def test_markdown_names_the_conflict_files(self):
         report = plc.build_report(
@@ -241,6 +274,21 @@ class TestApplyPort:
         assert (report_dir / "report.json").exists()
         assert (report_dir / "report.md").exists()
 
+    def test_apply_creates_missing_report_parents_and_reruns_in_place(
+        self, tmp_path, monkeypatch
+    ):
+        report_dir = tmp_path / "deeply" / "nested" / "reports"
+        for _ in range(2):
+            plc.apply_port(
+                runner=FakeRunner(self._outputs("tree1")),
+                repo_root=tmp_path,
+                child_source="/tmp/child",
+                child_ref="head",
+                base="base",
+                report_dir=report_dir,
+            )
+        assert (report_dir / "report.md").exists()
+
     def test_apply_exits_2_with_remediation_when_fetch_fails(
         self, tmp_path, monkeypatch
     ):
@@ -347,4 +395,28 @@ class TestCli:
         )
         payload = json.loads(capsys.readouterr().out)
         assert code == 2
+        assert payload["ok"] is False
         assert "fetch" in payload["remediation"].lower()
+
+    def test_cli_plain_output_names_the_report_path(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        outputs = [
+            ("", 0),
+            ("fedcba9876543210fedcba9876543210fedcba98", 0),
+            ("tree1\n", 0),
+            ("A\tcrm/domains/library/rules.py\n", 0),
+            ("", 0),
+        ]
+        write_scripted_runner(monkeypatch, outputs)
+        report_dir = tmp_path / "reports"
+        code = plc.main(
+            [
+                "--repo-root", str(tmp_path),
+                "--child-source", "/tmp/child",
+                "--report-dir", str(report_dir),
+            ]
+        )
+        out = capsys.readouterr().out
+        assert code == 0
+        assert f"report: {report_dir / 'report.md'}" in out
