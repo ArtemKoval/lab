@@ -6,7 +6,7 @@ import { api } from "./api";
 import { useLoad } from "./useLoad";
 import { PackWordsContext } from "./vocabulary";
 
-export function PackWords({ children }: { children: ReactNode }) {
+export function PackWords({ children }: Readonly<{ children: ReactNode }>) {
   const { data } = useLoad(api.getPack);
   return (
     <PackWordsContext.Provider value={{ vocabulary: data?.vocabulary ?? null }}>

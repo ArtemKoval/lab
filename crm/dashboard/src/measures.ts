@@ -1,5 +1,5 @@
 import type { Measures } from "./api";
-import { duration, grade, modelCost, money, percent } from "./format";
+import { duration, grade, modelCost, percent } from "./format";
 import { awardText } from "./vocabulary";
 
 // A run that's running or stopped has no run time.

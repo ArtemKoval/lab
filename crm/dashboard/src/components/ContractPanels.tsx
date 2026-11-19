@@ -23,7 +23,7 @@ export function ContractPanel({
       <h2 id="contract-title">{presentation?.title ?? "Contract"}</h2>
       {contract === undefined && <StateMessage error={error} />}
       {contract && !presentation && <LegacyContract contract={contract} />}
-      {contract && presentation?.rows?.length && (
+      {contract && presentation?.rows.length && (
         <dl className="facts">
           {presentation.rows.map((row) => (
             <Row key={row.label} row={row} contract={contract} />

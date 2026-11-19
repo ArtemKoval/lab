@@ -47,7 +47,6 @@ function lastChange(settings: Settings): string {
 
 export function SettingsPage() {
   const word = useLabel();
-  const format = useAwardFormat();
   // Loaded once, so a refresh never overwrites what a worker is typing. A
   // save returns the settings as they now stand.
   const { data, error } = useLoad(api.getSettings);

@@ -103,7 +103,7 @@ export function settingFields(
     field.id === "approval_limit"
       ? {
           ...field,
-          unit: (awardFormat === "days" ? "days" : "dollars") as Unit,
+          unit: awardFormat === "days" ? "days" : "dollars",
         }
       : field,
   );

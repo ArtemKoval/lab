@@ -22,7 +22,7 @@ import {
 import { MEASURES } from "../measures";
 import { evaluationPage } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
-import { awardText, useAwardFormat, useLabel } from "../vocabulary";
+import { useAwardFormat, useLabel } from "../vocabulary";
 
 export function ScoreboardPage() {
   const word = useLabel();

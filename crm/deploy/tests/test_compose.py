@@ -88,7 +88,9 @@ OVERRIDE = Path(__file__).resolve().parents[1] / "compose.demo.yaml"
 
 
 def override_compose() -> dict:
-    return yaml.load(OVERRIDE.read_text(), Loader=ComposeLoader)
+    # ComposeLoader extends SafeLoader, so the load stays safe; the ruff S506
+    # finding is about yaml.load with an unknown loader in general.
+    return yaml.load(OVERRIDE.read_text(), Loader=ComposeLoader)  # noqa: S506
 
 
 def test_the_demo_db_binds_the_loopback_in_the_base():

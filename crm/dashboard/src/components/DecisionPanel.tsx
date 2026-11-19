@@ -1,5 +1,4 @@
 import type { Case, Decision } from "../api";
-import { time } from "../format";
 import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 import { useWorker } from "../worker";
 import { DecisionDetails } from "./DecisionDetails";
@@ -7,14 +6,6 @@ import { NotAllowed } from "./NotAllowed";
 import { ResolutionForm } from "./ResolutionForm";
 import { SendBackForm } from "./SendBackForm";
 import { SignOffForm } from "./SignOffForm";
-
-type SignOff = Pick<Decision, "signed_off_by" | "signed_off_at">;
-
-function whoAndWhen({ signed_off_by, signed_off_at }: SignOff): string | null {
-  return signed_off_by && signed_off_at
-    ? `${signed_off_by} at ${time(signed_off_at)}`
-    : null;
-}
 
 function progress(entry: Case): string {
   if (entry.status === "in_progress")
@@ -53,15 +44,28 @@ export function DecisionPanel({
           onAnswered={onAnswered}
         />
       )}
-      {decision?.decision === "refer" &&
-        entry.status === "decided" &&
-        !entry.effect &&
-        !entry.evaluation_id &&
-        !entry.copy_of && (
-          <ResolutionForm entry={entry} onResolved={onAnswered} />
-        )}
+      <ResolutionSlot entry={entry} onAnswered={onAnswered} />
     </section>
   );
+}
+
+// The one spot that lets a lead resolve a referred request: a decided
+// referral with no effect, evaluation, or duplicate behind it.
+function ResolutionSlot({
+  entry,
+  onAnswered,
+}: Readonly<{ entry: Case; onAnswered: () => void }>) {
+  const { decision, effect } = entry;
+  if (
+    decision?.decision === "refer" &&
+    entry.status === "decided" &&
+    !effect &&
+    !entry.evaluation_id &&
+    !entry.copy_of
+  ) {
+    return <ResolutionForm entry={entry} onResolved={onAnswered} />;
+  }
+  return null;
 }
 
 // Why a payment waits for a worker's sign-off: it's over the approval limit,

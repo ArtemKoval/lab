@@ -63,7 +63,7 @@ export function useContractPresentation(): Vocabulary["contract"] | undefined {
 // A value in the pack's award unit: money as money, days as a number of
 // days. The number drops its trailing zero, so 14.0 reads `14 days`.
 export function awardText(value: number, format: "money" | "days"): string {
-  if (format === "days") return `${Number(value)} days`;
+  if (format === "days") return `${String(value)} days`;
   return money(value);
 }
 
@@ -85,11 +85,11 @@ export function fieldText(
   if (value === null || value === undefined || value === "") return "";
   switch (format) {
     case "date":
-      return date(String(value));
+      return typeof value === "string" ? date(value) : "";
     case "money":
       return money(Number(value));
     case "days":
-      return `${Number(value)} days`;
+      return String(Number(value)) + " days";
     case "list":
       return (value as unknown[])
         .map((item) =>
@@ -99,6 +99,8 @@ export function fieldText(
         )
         .join(", ");
     default:
-      return label(String(value));
+      return typeof value === "string" || typeof value === "number"
+        ? label(String(value))
+        : "";
   }
 }

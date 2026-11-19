@@ -14,7 +14,6 @@ import type {
   ConfirmationAnswer,
   CopilotTurn,
 } from "../conversation";
-import { money } from "../format";
 import { CaseLink } from "./CaseLink";
 import { FormError } from "./FormError";
 

@@ -56,7 +56,7 @@ const record = {
 };
 
 // A panel that reads the pack's words, the way the pages do.
-function Probe({ text, award }: { text?: string; award?: number }) {
+function Probe({ text, award }: Readonly<{ text?: string; award?: number }>) {
   const label = useLabel();
   const format = useAwardFormat();
   return (
@@ -120,8 +120,9 @@ it("fills a template row from several fields", () => {
 });
 
 it("fills the refusal templates' slots", () => {
-  const word = library.labels!["not_allowed.text"];
-  const sentence = word
+  const word = library.labels?.["not_allowed.text"];
+  expect(word).toBeTruthy();
+  const sentence = (word ?? "")
     .replaceAll("{limit}", awardText(14, "days"))
     .replaceAll("{action}", "start a round")
     .replaceAll("{worker}", "Iris Bonnell");

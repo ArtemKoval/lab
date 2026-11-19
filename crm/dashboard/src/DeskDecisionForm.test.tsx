@@ -34,7 +34,7 @@ it("shows the desk its three actions", () => {
 
 it("approves and issues with the term in days", async () => {
   const posted = vi.fn();
-  const fetchMock = vi.fn((_path: string, init?: RequestInit) =>
+  const fetchMock = vi.fn(() =>
     Promise.resolve(new Response(JSON.stringify(waiting), { status: 200 })),
   );
   vi.stubGlobal("fetch", fetchMock);
@@ -58,7 +58,7 @@ it("approves and issues with the term in days", async () => {
 
 it("refers to the lead librarian", async () => {
   const posted = vi.fn();
-  const fetchMock = vi.fn((_path: string, init?: RequestInit) =>
+  const fetchMock = vi.fn(() =>
     Promise.resolve(new Response(JSON.stringify(waiting), { status: 200 })),
   );
   vi.stubGlobal("fetch", fetchMock);

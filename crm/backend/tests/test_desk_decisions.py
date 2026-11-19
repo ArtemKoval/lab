@@ -54,7 +54,7 @@ def test_the_desk_approves_at_the_base_term(client, agent_key):
 
 
 def test_the_desk_approval_over_the_limit_holds_for_the_lead(client, agent_key):
-    """CLM-1011's baggage claim resolves to 1500, over the 1000 limit, so
+    """CLM-1011's request resolves to 1500, over the 1000 limit, so
     the desk's approval holds for the lead's sign-off and no effect has
     run."""
     body = approve_body(14)

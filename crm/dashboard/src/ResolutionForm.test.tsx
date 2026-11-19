@@ -63,7 +63,7 @@ it("shows nothing to a worker who cannot sign off over the limit", () => {
 
 it("issues the loan with the term in days", async () => {
   const posted = vi.fn();
-  const fetchMock = vi.fn((_path: string, init?: RequestInit) =>
+  const fetchMock = vi.fn(() =>
     Promise.resolve(new Response(JSON.stringify(referred), { status: 200 })),
   );
   vi.stubGlobal("fetch", fetchMock);
@@ -82,7 +82,7 @@ it("issues the loan with the term in days", async () => {
 
 it("declines with the lead's reason", async () => {
   const posted = vi.fn();
-  const fetchMock = vi.fn((_path: string, init?: RequestInit) =>
+  const fetchMock = vi.fn(() =>
     Promise.resolve(new Response(JSON.stringify(referred), { status: 200 })),
   );
   vi.stubGlobal("fetch", fetchMock);

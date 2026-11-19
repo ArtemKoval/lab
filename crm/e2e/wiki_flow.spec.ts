@@ -12,13 +12,24 @@ const OUT = process.env.WIKI_SHOTS_DIR;
 // its own gate until that environment issue is fixed.
 const FULL = process.env.WIKI_FLOW_FULL === "1";
 
+// The lane is opt-in by design: the screenshots land only when the output
+// folder is named, exactly like the tour lane's CRM_TOUR gate.
+// eslint-disable-next-line playwright/no-skipped-test
 test.skip(!OUT, "the flow screenshots run only with WIKI_SHOTS_DIR set");
 
-async function shot(page: import("@playwright/test").Page, name: string) {
-  mkdirSync(OUT!, { recursive: true });
-  await page.screenshot({ path: join(OUT!, `${name}.png`), fullPage: true });
+function outDir(): string {
+  // The module-level skip guarantees OUT at test time.
+  if (!OUT) throw new Error("WIKI_SHOTS_DIR is unset");
+  return OUT;
 }
 
+async function shot(page: import("@playwright/test").Page, name: string) {
+  const dir = outDir();
+  mkdirSync(dir, { recursive: true });
+  await page.screenshot({ path: join(dir, `${name}.png`), fullPage: true });
+}
+
+// eslint-disable-next-line playwright/no-skipped-test
 test.skip(!FULL, "the sign-in capture runs with the dispatch walk");
 
 test("the sign-in page greets the worker", async ({ browser }) => {
@@ -40,6 +51,9 @@ test("the queue waits for the dispatch", async ({ page }) => {
   await shot(page, "02-queue");
 });
 
+// The dispatch walk fails on this host on the clean tree, so it stays
+// behind its own gate until that environment issue is fixed.
+// eslint-disable-next-line playwright/no-skipped-test
 test.skip(!FULL, "the dispatch walk runs only with WIKI_FLOW_FULL=1");
 
 test("the dispatch works cases to decisions and a held sign-off", async ({

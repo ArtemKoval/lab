@@ -2,7 +2,6 @@ import { useState } from "react";
 import { api, type Case } from "../api";
 import { useWorker } from "../worker";
 import { useAwardFormat, useBenefit, useLabel } from "../vocabulary";
-import { StateMessage } from "./StateMessage";
 
 // The lead's in-person decision on a referred request: issue the loan for
 // the term in days, or decline it with a reason. Only a worker who can sign
@@ -56,7 +55,9 @@ export function ResolutionForm({
             type="number"
             min={1}
             value={days}
-            onChange={(event) => setDays(event.target.value)}
+            onChange={(event) => {
+              setDays(event.target.value);
+            }}
           />
         </div>
         <div>
@@ -66,7 +67,9 @@ export function ResolutionForm({
           <input
             id="resolution-reason"
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value);
+            }}
           />
         </div>
       </div>

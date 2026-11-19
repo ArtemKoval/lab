@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { api, type Case } from "../api";
-import { useWorker } from "../worker";
 import { useAwardFormat, useBenefit, useLabel } from "../vocabulary";
 
 // The desk's decisions on a waiting request: approve and issue with a term,
@@ -11,7 +10,6 @@ export function DeskDecisionForm({
   onDecided,
 }: Readonly<{ entry: Case; onDecided: () => void }>) {
   const word = useLabel();
-  const worker = useWorker();
   const benefit = useBenefit();
   const format = useAwardFormat();
   const [days, setDays] = useState("14");
@@ -57,7 +55,9 @@ export function DeskDecisionForm({
             type="number"
             min={1}
             value={days}
-            onChange={(event) => setDays(event.target.value)}
+            onChange={(event) => {
+              setDays(event.target.value);
+            }}
           />
         </div>
         <div>
@@ -67,7 +67,9 @@ export function DeskDecisionForm({
           <input
             id="desk-sections"
             value={sections}
-            onChange={(event) => setSections(event.target.value)}
+            onChange={(event) => {
+              setSections(event.target.value);
+            }}
           />
         </div>
         <div>
@@ -77,7 +79,9 @@ export function DeskDecisionForm({
           <input
             id="desk-reason"
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value);
+            }}
           />
         </div>
       </div>
