@@ -2,6 +2,7 @@
 
 import json
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -173,3 +174,23 @@ def test_the_pack_rules_module_matches_the_contract():
     assert list(work.parameters) == ["contract", "plans", "request", "approval_limit"]
     sign_off = inspect.signature(rules.needs_sign_off)
     assert list(sign_off.parameters) == ["award", "approval_limit"]
+
+
+def test_the_days_award_text_drops_the_trailing_zero():
+    pack = loader.Pack(
+        name="days",
+        root=Path("."),
+        manifest={"vocabulary": {"award_format": "days"}},
+    )
+    assert pack.award_text(14.5) == "14.5 days"
+    assert pack.award_text(14) == "14 days"
+
+
+def test_the_money_award_text_keeps_the_cents():
+    pack = loader.Pack(name="money", root=Path("."), manifest={})
+    assert pack.award_text(1500) == "$1,500.00"
+
+
+def test_a_contract_without_a_title_is_refused():
+    with pytest.raises(loader.PackError, match="carries no title"):
+        loader.check_vocabulary("p", {"vocabulary": {"contract": {"rows": []}}})

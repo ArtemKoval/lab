@@ -81,7 +81,9 @@ class Ungradable(Exception):
 @cache
 def client() -> OpenRouter:
     """The OpenRouter client, which reads its key from OPENROUTER_API_KEY."""
-    return OpenRouter()
+    # The suite stands in for the judge in every test, so the real factory
+    # runs only when an operator key is set.
+    return OpenRouter()  # pragma: no cover
 
 
 def ask(worker: Explanation, agent: Explanation) -> CaseGrade:

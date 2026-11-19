@@ -621,7 +621,11 @@ def seed(db: Engine) -> dict[str, int]:
     case_rows = queue_records("cases.json")
     with db.begin() as connection:
         if on_postgres(db.url):
-            connection.execute(CreateSchema(SCHEMA, if_not_exists=True))
+            # The schema step is postgres-only; the hermetic suite runs
+            # SQLite, so the line stays out of the coverage bar.
+            connection.execute(
+                CreateSchema(SCHEMA, if_not_exists=True)
+            )  # pragma: no cover
         for name in RETIRED:
             Table(name, MetaData()).drop(connection, checkfirst=True)
         metadata.drop_all(connection)

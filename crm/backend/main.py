@@ -135,11 +135,6 @@ ResolvesReferral = Annotated[Worker, Depends(senior("resolve a referred request"
 SendsBack = Annotated[Worker, Depends(senior("send this back"))]
 
 
-def rules():
-    """Return the active pack's deterministic rules module."""
-    return loader.pack().rules_module()
-
-
 def protocol():
     """Return the active pack's protocol module, with its four verbs."""
     return loader.pack().protocol_module()

@@ -10,7 +10,7 @@ import logging
 from langchain_core.messages import AIMessage, ToolMessage
 
 from agent import connection
-from agent.copilot import app_api, turns
+from agent.copilot import app_api, cards, graph, turns
 from agent.copilot.graph import CASE_CHANGED, ONE_A_TURN, ONE_STEP
 from agent.tests.copilot_driver import Copilot
 from agent.tests.records import effects_of
@@ -286,3 +286,34 @@ def test_an_answer_with_no_sign_off_waiting_fails_the_turn(copilot: Copilot):
         "NotThisTurn: No sign-off is waiting for an answer in this conversation",
     )
     assert copilot.model.prompts == []
+
+
+def test_a_failed_sign_off_marks_the_card_failed(
+    client, copilot: Copilot, monkeypatch
+):
+    """A non-refusal failure marks the action card failed, and the error
+    travels to the caller."""
+    conversation_id = paused_on(client, copilot)
+
+    def boom(*args, **kwargs):
+        raise ValueError("the app broke")
+
+    monkeypatch.setattr(graph, "signed_off", boom)
+    failed = []
+    real_failed = cards.failed
+
+    def spy_failed(*args, **kwargs):
+        failed.append(args)
+        return real_failed(*args, **kwargs)
+
+    monkeypatch.setattr(cards, "failed", spy_failed)
+    copilot.answer(conversation_id, "sign_off")
+    assert failed
+    [turn] = copilot.read(conversation_id)["turns"]
+    assert turn["status"] == "failed"
+    [card] = turn["steps"]
+    assert (card["tool"], card["kind"], card["status"]) == (
+        "sign_off_case",
+        "action",
+        "failed",
+    )
