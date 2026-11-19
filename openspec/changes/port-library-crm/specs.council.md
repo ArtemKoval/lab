@@ -25,6 +25,13 @@ GIVEN/WHEN/THEN steps, no duplicate requirement names.
   before `## ADDED Requirements`, in the house delta shape.
 - Accepted: the blank lines are normalized to one.
 - No change: the two modified-capability deltas were already exact.
+- Accepted late: the dspy-gate lint in CI rejected the change, because the
+  scenario id `the-lead-declines-the-request` appeared twice. The two
+  scenarios were byte-identical under two requirements, a defect the
+  child's own gates never caught. The second scenario is renamed to
+  `the-posted-decline-becomes-the-decision`. This rename is the one
+  deliberate text deviation from byte fidelity, and the bridge regen
+  refreshed the eval manifest entry for the change.
 
 ## Remaining Risks
 

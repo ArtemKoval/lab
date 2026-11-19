@@ -34,7 +34,7 @@ decline as the case's decision, with the worker as who decided it and the
 worker's reason as the reason. A case whose effect has run SHALL refuse
 every resolution.
 
-#### Scenario: The lead declines the request
+#### Scenario: The posted decline becomes the decision
 - **GIVEN** a decided case whose decision is a referral
 - **WHEN** the lead posts a `decline` resolution with a reason
 - **THEN** the case's decision reads a decline, with the lead as who
