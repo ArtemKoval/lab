@@ -1,5 +1,5 @@
 import { Monitor, Moon, Save, Sun, type LucideIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   api,
   type ModelAllowed,
@@ -97,6 +97,22 @@ function SettingsForm({
   const format = useAwardFormat();
   const fields = settingFields(format);
   const [inputs, setInputs] = useState(() => inputsOf(current, fields));
+  const [touched, setTouched] = useState<ReadonlySet<string>>(new Set());
+  // The pack's award format can land after the settings do. Re-derive the
+  // untouched inputs, so a days pack never inherits a dollars rendering.
+  const renderedFormat = useRef(format);
+  useEffect(() => {
+    if (renderedFormat.current === format) return;
+    renderedFormat.current = format;
+    const fresh = inputsOf(current, settingFields(format));
+    setInputs((prev) => {
+      const next = { ...prev };
+      for (const id of Object.keys(fresh)) {
+        if (!touched.has(id)) next[id] = fresh[id];
+      }
+      return next;
+    });
+  }, [format, current, touched]);
   const [confirming, setConfirming] = useState(false);
   const proposed = valuesOf(current, inputs, fields);
   const changes = changesBetween(current, proposed, fields);
@@ -143,6 +159,7 @@ function SettingsForm({
                   value={inputs[field.id] ?? ""}
                   onChange={(value) => {
                     setInputs({ ...inputs, [field.id]: value });
+                    setTouched(new Set([...touched, field.id]));
                   }}
                 />
               ))}
