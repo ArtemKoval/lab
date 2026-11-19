@@ -124,6 +124,6 @@ test("the settings page carries the pack limit", async ({ page }) => {
   await page.goto("/settings");
   await expect(
     page.getByRole("spinbutton", { name: "Approval limit" }),
-  ).toHaveValue("14.00");
+  ).toHaveValue("14");
   await shot(page, "09-settings");
 });

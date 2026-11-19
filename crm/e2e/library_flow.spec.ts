@@ -29,6 +29,22 @@ test("a loan request opens with the pack words", async ({ page }) => {
     page.getByRole("heading", { name: /Checkout of The Lighthouse Keeper/ }),
   ).toBeVisible();
   await expect(page.getByText("Marta Voss's checkout request")).toBeVisible();
+  // The queue and the case page speak the loan desk: the queue column reads
+  // Replacement price, the incident line reads Received at, and the
+  // membership card carries the pack's rows.
+  await page.goto("/");
+  await expect(
+    page.getByRole("columnheader", { name: "Replacement price" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "LN-5001" }).click();
+  await expect(page.getByText("Received at")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Membership" })).toBeVisible();
+  await expect(page.getByText("Members on the card")).toBeVisible();
+  await expect(
+    page.getByText("Northgate Public Library, Central branch", {
+      exact: true,
+    }),
+  ).toBeVisible();
 });
 
 test("the settings page names the pack's approval limit", async ({ page }) => {
@@ -36,4 +52,5 @@ test("the settings page names the pack's approval limit", async ({ page }) => {
   await expect(
     page.getByRole("spinbutton", { name: "Approval limit" }),
   ).toHaveValue("14");
+  await expect(page.getByText("days", { exact: true })).toBeVisible();
 });

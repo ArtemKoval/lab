@@ -166,6 +166,72 @@ def test_an_evaluation_copy_refuses_the_desk(client, agent_key):
     assert "copy" in response.json()["detail"]
 
 
+def a_pack_without_effects():
+    """Build the replacement from the real pack BEFORE any patch lands."""
+    from dataclasses import replace
+
+    from domains import loader
+
+    pack = loader.pack()
+    return replace(pack, manifest={**pack.manifest, "effects": {}})
+
+
+def test_an_approval_for_a_pack_with_no_effect_skips_the_effect(
+    client, agent_key, monkeypatch
+):
+    """A pack may ship an outcome with no effect declared, and the desk's
+    approval then decides without running one."""
+    from domains import loader
+
+    pack = a_pack_without_effects()
+    monkeypatch.setattr(loader, "pack", lambda: pack)
+    decided = post_decision(client, approve_body())
+    assert decided.status_code == 200, decided.json()
+    case = decided.json()
+    assert case["status"] == "decided"
+    assert case["effect"] is None
+
+
+def test_a_resolution_for_a_pack_with_no_effect_skips_the_effect(
+    client, agent_key, monkeypatch
+):
+    from domains import loader
+
+    pack = a_pack_without_effects()
+    monkeypatch.setattr(loader, "pack", lambda: pack)
+    post_decision(client, refer_body())
+    response = post_resolution(client, loan_body())
+    assert response.status_code == 200, response.json()
+    assert response.json()["effect"] is None
+
+
+def test_an_effect_run_for_a_pack_with_no_effect_refuses(
+    client, agent_key, monkeypatch
+):
+    from domains import loader
+
+    pack = a_pack_without_effects()
+    monkeypatch.setattr(loader, "pack", lambda: pack)
+    decided = post_decision(client, approve_body())
+    assert decided.status_code == 200, decided.json()
+    response = pay(client, "CLM-1001")
+    assert response.status_code == 404, response.json()
+
+
+def test_a_sign_off_for_a_pack_with_no_effect_skips_the_effect(
+    client, agent_key, monkeypatch
+):
+    from backend.tests.case_requests import held, sign_off
+    from domains import loader
+
+    held(client, "CLM-1001", 1500.0)
+    pack = a_pack_without_effects()
+    monkeypatch.setattr(loader, "pack", lambda: pack)
+    response = sign_off(client, "CLM-1001")
+    assert response.status_code == 200, response.json()
+    assert response.json()["effect"] is None
+
+
 def decline_body():
     return {
         "decision": "decline",

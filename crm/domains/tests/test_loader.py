@@ -194,3 +194,24 @@ def test_the_money_award_text_keeps_the_cents():
 def test_a_contract_without_a_title_is_refused():
     with pytest.raises(loader.PackError, match="carries no title"):
         loader.check_vocabulary("p", {"vocabulary": {"contract": {"rows": []}}})
+
+
+def test_a_malformed_contract_shape_is_refused_with_a_pack_error():
+    with pytest.raises(loader.PackError, match="not an object"):
+        loader.check_vocabulary("p", {"vocabulary": {"contract": "cards"}})
+    with pytest.raises(loader.PackError, match="not a list"):
+        loader.check_vocabulary(
+            "p", {"vocabulary": {"contract": {"title": "T", "rows": "many"}}}
+        )
+    with pytest.raises(loader.PackError, match="not an object"):
+        loader.check_vocabulary(
+            "p",
+            {"vocabulary": {"contract": {"title": "T", "rows": ["plain"]}}},
+        )
+
+
+def test_a_null_contract_and_null_rows_load_with_no_words():
+    loader.check_vocabulary("p", {"vocabulary": {"contract": None}})
+    loader.check_vocabulary(
+        "p", {"vocabulary": {"contract": {"title": "T", "rows": None}}}
+    )

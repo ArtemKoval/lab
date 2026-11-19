@@ -155,20 +155,6 @@ def render_markdown(report: dict) -> str:
     return "\n".join(lines)
 
 
-def verify_expected(
-    applied: set[str], expected: set[str], deletions: list[str]
-) -> list[str]:
-    """Compare the applied set against the expected set."""
-    violations: list[str] = []
-    for path in sorted(applied - expected):
-        violations.append(f"unexpected applied path: {path}")
-    for path in sorted(expected - applied):
-        violations.append(f"missing expected path: {path}")
-    for path in sorted(deletions):
-        violations.append(f"unexpected deletion: {path}")
-    return violations
-
-
 def _restore_excluded(
     runner, excluded_status: list[tuple[str, str]], repo_root: Path
 ) -> None:
@@ -192,7 +178,6 @@ def apply_port(
     base: str,
     report_dir: Path,
 ) -> dict:
-    """Run the whole port flow and return the report."""
     """Run the whole port flow and return the report."""
     try:
         runner(["fetch", child_source, child_ref], cwd=repo_root)

@@ -266,12 +266,12 @@ export interface CaseGrade {
 export interface ScoredCase extends RunCase {
   copy_of: string;
   reason: string | null;
-  // The number the pack's metric reads from the outcome payload. A
-  // decline carries no award, so the type stays nullable like the backend's.
-  award: number | null;
+  // The number the pack's metric reads from the outcome payload. The
+  // backend holds a float and scores a missing payload as 0.
+  award: number;
   grade: CaseGrade | null;
   worker_decision: DecisionKind;
-  worker_award: number | null;
+  worker_award: number;
   right: boolean;
   mistake_cost: number;
 }

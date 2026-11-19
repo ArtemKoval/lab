@@ -104,7 +104,12 @@ lab repository
   new-capability deltas carry the child Purpose sections verbatim, which
   the archive flow copies into the live specs. The capabilities stay
   outside the governed registry, so the surface-tag retrofit waits for a
-  promoting change. Alternative rejected: retag 62 scenarios now, which
+  promoting change. Two deliberate divergences sit beside the verbatim
+  rule: one duplicate scenario heading in the crm-engine delta is renamed,
+  because the lab's id-uniqueness lint refuses the child's copy-paste
+  pair, and the crm README's demo paragraph names the `--emulator` flag
+  the ported script actually takes, because the child text names a flag
+  that does not exist. Alternative rejected: retag 62 scenarios now, which
   churns ported text with no governed consumer.
 - **The child's five archived change folders copy into the lab archive as
   provenance.** They are inert to the openspec tooling and carry the design
@@ -143,10 +148,11 @@ lab repository
   `demo_down.sh` closes it. The base compose binds the demo database to the
   loopback, and a compose test pins that contract.
 - [The merged diff touches one gate-protected pattern] -> the inventory
-  against the protected set names exactly one hit,
-  `tests/slidecast/conftest.py`, a new file that adds tests and weakens no
-  gate. The pull request body carries the `gate-integrity: acknowledged`
-  line at creation, and the operator merge acknowledges it.
+  against the protected set names two hits,
+  `tests/slidecast/conftest.py` and `tests/port_library_crm/conftest.py`,
+  both new files that add tests and weaken no gate. The pull request body
+  carries the `gate-integrity: acknowledged` line at creation, and the
+  operator merge acknowledges it.
 - [4.9 MB of video binaries enter the repository] -> the size grows once,
   with the screenshots precedent. The decks and `build_all.sh` allow a
   rebuild, so the binaries can regenerate.

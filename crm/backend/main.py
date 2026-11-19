@@ -795,7 +795,7 @@ def record_worker_decision(
         .values(status=Status.IN_PROGRESS)
     )
     if claimed.rowcount == 0:  # pragma: no cover
-        # The claim loses only to a concurrent writer, which a serial test
+        # The update loses only to a concurrent writer, which a serial test
         # cannot arrange.
         raise HTTPException(409, ONLY_A_WAITING_REQUEST)
     outcome = next(iter(loader.pack().outcomes))

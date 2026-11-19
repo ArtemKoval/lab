@@ -75,6 +75,7 @@ function SettingsPanels({
   onSaved,
 }: Readonly<{ page: SettingsData; onSaved: (page: SettingsData) => void }>) {
   const worker = useWorker();
+  const format = useAwardFormat();
   return (
     <div className="column">
       {worker.can_approve_over_limit ? (
@@ -82,7 +83,7 @@ function SettingsPanels({
       ) : (
         <ReadOnlySettings current={page.current} />
       )}
-      <Changes changes={page.changes} />
+      <Changes changes={page.changes} format={format} />
       <ModelsAllowed models={page.models_allowed} />
       <AppearanceChoice />
     </div>
@@ -263,7 +264,10 @@ function ReadOnlySettings({ current }: Readonly<{ current: Settings }>) {
   );
 }
 
-function Changes({ changes }: Readonly<{ changes: Settings[] }>) {
+function Changes({
+  changes,
+  format,
+}: Readonly<{ changes: Settings[]; format: "money" | "days" }>) {
   return (
     <section className="panel" aria-labelledby="changes-title">
       <h2 id="changes-title">Changes</h2>
@@ -285,7 +289,11 @@ function Changes({ changes }: Readonly<{ changes: Settings[] }>) {
                   <td>{change.changed_by ?? "The platform's set-up"}</td>
                   <td>
                     {before
-                      ? changesBetween(before, change).join("; ")
+                      ? changesBetween(
+                          before,
+                          change,
+                          settingFields(format),
+                        ).join("; ")
                       : "The starting settings"}
                   </td>
                 </tr>

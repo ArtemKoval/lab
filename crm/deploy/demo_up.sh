@@ -44,9 +44,9 @@ done
 
 [ -f "$CRM_DIR/.env" ] || die "crm/.env is missing: copy .env.example to .env first"
 [ -x "$CRM_DIR/.venv/bin/python" ] || die "crm/.venv is missing: run uv sync first"
-CRM_AGENT_KEY_VALUE="$(openssl rand -hex 16 2>/dev/null || echo "")"
-if [ -z "$CRM_AGENT_KEY_VALUE" ]; then
-  CRM_AGENT_KEY_VALUE="$("$CRM_DIR/.venv/bin/python" -c 'import secrets; print(secrets.token_hex(16))')"
+AGENT_KEY="$(openssl rand -hex 16 2>/dev/null || echo "")"
+if [ -z "$AGENT_KEY" ]; then
+  AGENT_KEY="$("$CRM_DIR/.venv/bin/python" -c 'import secrets; print(secrets.token_hex(16))')"
 fi
 if [ "$LIVE_AGENT" -eq 1 ] && ! grep -q '^OPENROUTER_API_KEY=..*' "$CRM_DIR/.env"; then
   die "the live route needs a model key in OPENROUTER_API_KEY in crm/.env"
@@ -144,7 +144,7 @@ RUNTIME_ARN="$(sed -n 's/^runtime: //p' "$LOG_DIR/wiring.log")"
 
 echo "== seed the library pack into the demo database"
 export DATABASE_URL="postgresql://crm:crm@127.0.0.1:5433/crm"
-export CRM_AGENT_KEY="$CRM_AGENT_KEY_VALUE"
+export CRM_AGENT_KEY="$AGENT_KEY"
 CRM_DOMAIN=library npm run seed
 
 echo "== start the app with the demo variables"

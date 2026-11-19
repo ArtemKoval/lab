@@ -65,14 +65,12 @@ export function RightChip({ right }: Readonly<{ right: boolean }>) {
 export function DecisionAward({
   decision,
   award,
-}: Readonly<{ decision: DecisionKind; award: number | null }>) {
+}: Readonly<{ decision: DecisionKind; award: number }>) {
   const format = useAwardFormat();
   return (
     <>
       <DecisionChip decision={decision} />{" "}
-      {award !== null && (
-        <span className="mono">{awardText(award, format)}</span>
-      )}
+      <span className="mono">{awardText(award, format)}</span>
     </>
   );
 }

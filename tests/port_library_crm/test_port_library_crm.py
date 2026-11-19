@@ -148,36 +148,6 @@ class TestBuildReport:
         assert "CLAUDE.md" in plc.render_markdown(report)
 
 
-class TestVerifyExpected:
-    def test_no_violations_when_the_applied_set_matches(self):
-        violations = plc.verify_expected(
-            applied={"a.py", "b.py"},
-            expected={"a.py", "b.py"},
-            deletions=[],
-        )
-        assert violations == []
-
-    def test_an_unexpected_applied_path_is_a_violation(self):
-        violations = plc.verify_expected(
-            applied={"a.py", "surprise.py"},
-            expected={"a.py"},
-            deletions=[],
-        )
-        assert any("surprise.py" in v for v in violations)
-
-    def test_a_missing_expected_path_is_a_violation(self):
-        violations = plc.verify_expected(
-            applied={"a.py"},
-            expected={"a.py", "missing.py"},
-            deletions=[],
-        )
-        assert any("missing.py" in v for v in violations)
-
-    def test_a_deletion_is_always_a_violation_for_this_port(self):
-        violations = plc.verify_expected(applied=set(), expected=set(), deletions=["x.py"])
-        assert len(violations) == 1
-
-
 class FakeRunner:
     """Stands in for run_git with scripted outputs and a call log."""
 

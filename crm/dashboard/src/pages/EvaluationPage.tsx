@@ -148,7 +148,7 @@ function ScoredCases({ cases }: Readonly<{ cases: ScoredCase[] }>) {
                   />
                 </td>
                 <td className="nowrap">
-                  {entry.decision && entry.award !== null ? (
+                  {entry.decision ? (
                     <DecisionAward
                       decision={entry.decision}
                       award={entry.award}

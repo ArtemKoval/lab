@@ -206,16 +206,30 @@ def _check_award_format(name: str, vocabulary: dict[str, Any]) -> None:
 
 def _check_contract(name: str, vocabulary: dict[str, Any]) -> None:
     """Refuse a contract presentation with no title or a shapeless row."""
-    contract = vocabulary.get("contract", {})
+    contract = vocabulary.get("contract")
+    if contract is None:
+        return
+    if not isinstance(contract, dict):
+        raise PackError(
+            f"pack {name!r} vocabulary contract is not an object"
+        )
     if contract and not contract.get("title"):
         raise PackError(f"pack {name!r} vocabulary contract carries no title")
-    rows = contract.get("rows", [])
+    rows = contract.get("rows")
+    if rows is None:
+        return
+    if not isinstance(rows, list):
+        raise PackError(f"pack {name!r} vocabulary contract rows is not a list")
     for row in rows:
         _check_row(name, row)
 
 
 def _check_row(name: str, row: dict[str, Any]) -> None:
     """Refuse one contract row that names no source or an unknown format."""
+    if not isinstance(row, dict):
+        raise PackError(
+            f"pack {name!r} vocabulary contract row {row!r} is not an object"
+        )
     if not row.get("template") and not row.get("field"):
         raise PackError(
             f"pack {name!r} vocabulary row {row.get('label')!r} names "
