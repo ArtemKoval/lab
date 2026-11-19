@@ -72,9 +72,7 @@ def test_an_in_progress_request_refuses_the_desk(client, agent_key):
     assert "waiting" in response.json()["detail"]
 
 
-def test_a_left_for_worker_request_with_a_decision_refuses_the_desk(
-    client, agent_key
-):
+def test_a_left_for_worker_request_with_a_decision_refuses_the_desk(client, agent_key):
     post_decision(client, decline_body(), case_id="CLM-1003")
     sql(
         "UPDATE cases SET status = 'left_for_worker' WHERE case_id = :c",

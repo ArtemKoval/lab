@@ -5,6 +5,7 @@ and only the documented dev credentials sit in the tracked file."""
 from pathlib import Path
 
 import yaml
+from yaml.nodes import SequenceNode
 
 COMPOSE = Path(__file__).resolve().parents[1] / "compose.yaml"
 
@@ -80,9 +81,12 @@ class ComposeLoader(yaml.SafeLoader):
     """The safe loader with compose's !override tag registered."""
 
 
-ComposeLoader.add_constructor(
-    "!override", lambda loader, node: loader.construct_sequence(node)
-)
+def _override_sequence(loader: ComposeLoader, node: SequenceNode) -> list:
+    """Build the override ports list from the !override sequence."""
+    return loader.construct_sequence(node)
+
+
+ComposeLoader.add_constructor("!override", _override_sequence)
 
 OVERRIDE = Path(__file__).resolve().parents[1] / "compose.demo.yaml"
 

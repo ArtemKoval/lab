@@ -288,9 +288,7 @@ def test_an_answer_with_no_sign_off_waiting_fails_the_turn(copilot: Copilot):
     assert copilot.model.prompts == []
 
 
-def test_a_failed_sign_off_marks_the_card_failed(
-    client, copilot: Copilot, monkeypatch
-):
+def test_a_failed_sign_off_marks_the_card_failed(client, copilot: Copilot, monkeypatch):
     """A non-refusal failure marks the action card failed, and the error
     travels to the caller."""
     conversation_id = paused_on(client, copilot)

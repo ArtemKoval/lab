@@ -816,7 +816,7 @@ def record_worker_decision(
         )
     )
     if request.decision == "approve":
-        if gated(db, payload, limit):
+        if gated(db, payload or {}, limit):
             set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
         else:
             set_status(db, case_id, Status.DECIDED)
