@@ -1,5 +1,12 @@
-## ADDED Requirements
+## Purpose
 
+The pack owns every domain word the product shows. The manifest carries a
+vocabulary section, the pack endpoint serves it, and the dashboard renders
+domain words from it. The contract panel reads no domain-specific field of a record on its
+own, and the labels carry the pack's domain words. An award renders in the
+pack's unit: money or days.
+
+## ADDED Requirements
 
 ### Requirement: The vocabulary section of the manifest
 The manifest MAY carry a `vocabulary` object with four keys. The vocabulary

@@ -1,5 +1,14 @@
-## ADDED Requirements
+## Purpose
 
+
+The library pack runs the loan desk of Northgate Public Library on the crm
+engine. Librarians work loan requests against the membership rules, the loan
+term in days is the pack's numeric outcome, and a term over 14 days needs the
+lead librarian's sign-off. The pack carries the words, the rules, the seed
+data, the instructions, and the evals of the domain, and the engine reads it
+through the one loader with no engine edit.
+
+## ADDED Requirements
 
 ### Requirement: The manifest of the pack
 The pack at `crm/domains/library/` SHALL carry a manifest with all twelve

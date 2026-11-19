@@ -1,5 +1,12 @@
-## ADDED Requirements
+## Purpose
 
+
+The scene layer turns the static slides of slidecast into infographics that
+build up: numbers fade in, diagram boxes and arrows draw a flow, and bars
+fill, all while the narration reads. The layer uses the two drawing filters
+the tool already carries, with the frame time in their expressions.
+
+## ADDED Requirements
 
 ### Requirement: The element kinds
 A slide of a deck SHALL carry an optional `elements` list. Each element
