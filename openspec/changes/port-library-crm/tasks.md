@@ -7,24 +7,24 @@
   --write-tree` with base `05c3ddd`, apply the merged files to the branch,
   stage the conflict list, and write the report with a deletions row to
   `reports/port_library_crm/`.
-- [ ] 1.2 Run the port script with `openspec/specs/` excluded from the
+- [x] 1.2 Run the port script with `openspec/specs/` excluded from the
   applied set. Verify the counts: 154 copied files, 71 transferred files,
   6 conflicts, an empty deletion set, and no path outside the expected set.
   Stop on any unexpected path or deletion.
-- [ ] 1.3 Resolve the 5 union conflicts: `CLAUDE.md`, `.coveragerc`,
+- [x] 1.3 Resolve the 5 union conflicts: `CLAUDE.md`, `.coveragerc`,
   `.gitignore`, `crm/README.md`, and the `crm-local-aws` skill. The sixth
   conflict, the `crm-engine` live spec, stays unapplied through the
   exclusion. Union order: the lab lines first, the child lines appended,
   exact duplicate lines deduplicated.
-- [ ] 1.4 Resolve `crm/deploy/compose.yaml`: keep the Langfuse services,
+- [x] 1.4 Resolve `crm/deploy/compose.yaml`: keep the Langfuse services,
   add the demo `db` service bound to `127.0.0.1:5433`, add
   `crm/deploy/compose.demo.yaml` with the public binding, point
   `demo_up.sh` at both compose files, and pin the contract in the compose
   test.
-- [ ] 1.5 Remove the skip set from the merged tree: the stale
+- [x] 1.5 Remove the skip set from the merged tree: the stale
   `add-sec-scan` change, `.claude/tests/`, and the scratch files `W`, `W3`,
   and the two concat files under `tests/slidecast/`.
-- [ ] 1.6 Run the STE gate over every ported file under `openspec/`. Fix any
+- [x] 1.6 Run the STE gate over every ported file under `openspec/`. Fix any
   drift the gate reports.
 
 ## 2. Integration proof on the merged tree
