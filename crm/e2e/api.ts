@@ -180,7 +180,11 @@ async function startRun(
   const before = (await started(request)).length;
   const response = await request.post(path, {
     data,
-    headers: await signedInAs(request, WORKERS.dana),
+    headers: await signedInAs(
+      request,
+      (WORKERS.dana as { email: string } | undefined) ??
+        Object.values(WORKERS)[0],
+    ),
   });
   await expect(response).toBeOK();
   const { run_id } = await nextStarted(request, before);
@@ -216,7 +220,11 @@ export const finishRun = (request: Request, runId: string) =>
 export async function startRound(request: Request): Promise<string> {
   const before = (await started(request)).length;
   const response = await request.post("/api/improvement/rounds", {
-    headers: await signedInAs(request, WORKERS.dana),
+    headers: await signedInAs(
+      request,
+      (WORKERS.dana as { email: string } | undefined) ??
+        Object.values(WORKERS)[0],
+    ),
   });
   await expect(response).toBeOK();
   return String((await nextStarted(request, before)).round_id);

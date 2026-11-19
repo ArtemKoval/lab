@@ -16,6 +16,7 @@ import {
   money,
 } from "../format";
 import { MEASURES } from "../measures";
+import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 import { SCOREBOARD } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
 
@@ -56,6 +57,8 @@ export function EvaluationPage() {
 function MeasuresPanel({
   evaluation,
 }: Readonly<{ evaluation: ScoredEvaluation }>) {
+  const word = useLabel();
+  const format = useAwardFormat();
   return (
     <section className="panel" aria-labelledby="measures-title">
       <h2 id="measures-title">Measures</h2>
@@ -76,7 +79,10 @@ function MeasuresPanel({
         <p className="stopped">{evaluation.stopped_because}</p>
       )}
       <dl className="facts measures">
-        {MEASURES.map(({ label, show }) => (
+        {MEASURES(
+          format,
+          word("measure.straight_through", "Straight-through"),
+        ).map(({ label, show }) => (
           <div key={label}>
             <dt>{label}</dt>
             <dd className="mono">{show(evaluation.measures)}</dd>
@@ -88,6 +94,8 @@ function MeasuresPanel({
 }
 
 function ScoredCases({ cases }: Readonly<{ cases: ScoredCase[] }>) {
+  const word = useLabel();
+  const format = useAwardFormat();
   return (
     <section className="panel" aria-labelledby="cases-title">
       <h2 id="cases-title">Cases</h2>
@@ -115,11 +123,11 @@ function ScoredCases({ cases }: Readonly<{ cases: ScoredCase[] }>) {
             <tr>
               <th>Copy</th>
               <th>Of</th>
-              <th>Worker</th>
+              <th>{word("case.worker_col", "Worker")}</th>
               <th>Agent</th>
               <th>Score</th>
               <th>Grade</th>
-              <th>Same grounds</th>
+              <th>{word("case.same_grounds_col", "Same grounds")}</th>
               <th>Same section</th>
               <th className="num">Mistake cost</th>
               <th className="num">Model cost</th>
@@ -162,7 +170,9 @@ function ScoredCases({ cases }: Readonly<{ cases: ScoredCase[] }>) {
                 <td>
                   {entry.grade && <Check chance={entry.grade.same_section} />}
                 </td>
-                <td className="num mono">{money(entry.mistake_cost)}</td>
+                <td className="num mono">
+                  {awardText(entry.mistake_cost, format)}
+                </td>
                 <td className="num mono">{modelCost(entry.model_cost)}</td>
                 <td className="num mono">{duration(entry.seconds)}</td>
                 <td className="small">

@@ -23,11 +23,16 @@ READ_ONLY = ToolAnnotations(readOnlyHint=True)
 ON_LAMBDA = TransportSecuritySettings(enable_dns_rebinding_protection=False)
 
 
-def build_server(security: TransportSecuritySettings | None = None) -> FastMCP:
-    """Make the server with its seven tools, on the laptop's port, with FastMCP's
-    protection for a local host unless the security given says otherwise."""
+def build_server(
+    security: TransportSecuritySettings | None = None,
+    host: str = "127.0.0.1",
+) -> FastMCP:
+    """Make the server with its seven tools, on the laptop's port and the host
+    given, with FastMCP's protection for a local host unless the security
+    given says otherwise."""
     server = FastMCP(
         NAME,
+        host=host,
         port=PORT,
         stateless_http=True,
         json_response=True,

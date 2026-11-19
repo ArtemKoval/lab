@@ -1,0 +1,50 @@
+[
+  {
+    "case_id": "LN-5101",
+    "contract_id": "MEM-5003",
+    "customer_id": "CUS-5003",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-21",
+    "incident_date": "2026-10-22",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Checkout of Salt and Cedar for the base term on a research card",
+    "story": "Sana Iqbal asks for Salt and Cedar for a new reading list. The catalog holds three copies, and none is on loan, so a copy is free. Her card is a research membership in good standing, she holds one loan, and no title on her card is overdue. She asks for the usual term.",
+    "items": [
+      {
+        "description": "Salt and Cedar",
+        "category": "checkout",
+        "amount": 42.5,
+        "isbn": "978-0-30-744444-9",
+        "copies_total": 3,
+        "copies_on_loan": 0
+      }
+    ],
+    "amount_claimed": 42.5,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5102",
+    "contract_id": "MEM-5005",
+    "customer_id": "CUS-5005",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-21",
+    "incident_date": "2026-10-22",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Checkout of The Lighthouse Keeper while the borrower holds three loans",
+    "story": "June Alvarez asks for The Lighthouse Keeper. The catalog holds four copies, and two are on loan, so a copy is free. Her card is a standard membership in good standing, but she holds three loans today, which is the most a borrower may hold.",
+    "items": [
+      {
+        "description": "The Lighthouse Keeper",
+        "category": "checkout",
+        "amount": 24.0,
+        "isbn": "978-0-14-311111-1",
+        "copies_total": 4,
+        "copies_on_loan": 2
+      }
+    ],
+    "amount_claimed": 24.0,
+    "documents": [],
+    "status": "waiting"
+  }
+]

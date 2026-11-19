@@ -7,7 +7,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { type Outcome, outcomeOf } from "../copilot";
+import { type Outcome, MAY_HAVE_PAID, outcomeOf } from "../copilot";
+import { useLabel } from "../vocabulary";
 import type {
   Confirmation,
   ConfirmationAnswer,
@@ -43,6 +44,7 @@ export function ConfirmationCard({
   error?: string;
 }>) {
   const waiting = turn.status === "waiting_for_confirmation";
+  const word = useLabel();
   const outcome = waiting ? undefined : outcomeOf(turn);
   return (
     <section
@@ -51,7 +53,9 @@ export function ConfirmationCard({
     >
       <p className="confirmation-title">
         <ShieldCheck aria-hidden />
-        {waiting ? "Sign off this award?" : "Sign-off"}
+        {waiting
+          ? word("confirm.title.waiting", "Sign off this award?")
+          : "Sign-off"}
       </p>
       <dl className="confirmation-facts">
         <div>
@@ -82,7 +86,7 @@ export function ConfirmationCard({
               onAnswer(turn.turn_id, "sign_off");
             }}
           >
-            Sign off and pay
+            {word("confirm.sign_off_pay", "Sign off and pay")}
           </button>
           <button
             type="button"
@@ -101,8 +105,19 @@ export function ConfirmationCard({
         <p className={`confirmation-outcome ${outcome.tone}`} role="status">
           {ICONS[outcome.tone]}
           <span>
-            <strong>{outcome.text}</strong>
-            {outcome.reason && <span className="muted"> {outcome.reason}</span>}
+            <strong>
+              {outcome.tone === "paid"
+                ? word("outcome.paid", outcome.text)
+                : outcome.text}
+            </strong>
+            {outcome.reason && (
+              <span className="muted">
+                {" "}
+                {outcome.tone === "unknown" && outcome.reason === MAY_HAVE_PAID
+                  ? word("outcome.may_have_paid", MAY_HAVE_PAID)
+                  : outcome.reason}
+              </span>
+            )}
           </span>
         </p>
       )}

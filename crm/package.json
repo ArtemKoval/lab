@@ -7,12 +7,12 @@
   },
   "scripts": {
     "prepare": "lefthook install && playwright install chromium",
-    "dev": "concurrently -k -n backend,agent,copilot,context,dashboard npm:dev:backend npm:dev:agent npm:dev:copilot npm:dev:context npm:dev:dashboard",
-    "dev:backend": "uv run --env-file .env -m uvicorn backend.main:app --reload --reload-dir backend",
-    "dev:agent": "uv run --env-file .env -m uvicorn agent.entrypoint:app --port 8080 --reload --reload-dir agent",
-    "dev:copilot": "uv run --env-file .env -m uvicorn agent.copilot.entrypoint:app --host 127.0.0.1 --port 8081 --reload --reload-dir agent",
+    "dev": "concurrently -k -n backend,agent,copilot,context,dashboard npm:dev:backend npm:dev:agent npm:dev:copilot npm:dev:context npm:dev:auth npm:dev:dashboard",
+    "dev:backend": "uv run --env-file .env -m uvicorn backend.main:app --host 0.0.0.0 --reload --reload-dir backend",
+    "dev:agent": "uv run --env-file .env -m uvicorn agent.entrypoint:app --host \"${CRM_DEV_HOST:-127.0.0.1}\" --port 8080 --reload --reload-dir agent",
+    "dev:copilot": "uv run --env-file .env -m uvicorn agent.copilot.entrypoint:app --host \"${CRM_DEV_HOST:-127.0.0.1}\" --port 8081 --reload --reload-dir agent",
     "dev:context": "uv run -m context",
-    "dev:dashboard": "vite dashboard",
+    "dev:dashboard": "vite dashboard --host 0.0.0.0",
     "build": "vite build dashboard",
     "seed": "uv run --env-file .env -m backend.seed",
     "format": "uv run ruff format && prettier --write -u dashboard e2e *.config.*",
@@ -22,7 +22,8 @@
     "check:context": "uv run --isolated --only-group context python -c \"import context.server\"",
     "check:runtime": "uv run --isolated --only-group runtime python -c \"import runtime.main, runtime.copilot\"",
     "check:ts": "prettier --check -u dashboard e2e *.config.* && eslint dashboard e2e *.config.* && tsc && vitest run --root dashboard --coverage",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "dev:auth": "node auth/server.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

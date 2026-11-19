@@ -212,8 +212,9 @@ outcomes = Table(
     Column("case_id", Text, ForeignKey("cases.case_id"), primary_key=True),
     Column("outcome", Text, primary_key=True),
     # The attempt's thread the resolve ran in; an approval on a later attempt
-    # needs a resolve of its own.
-    Column("thread_id", Text, nullable=False),
+    # needs a resolve of its own. The desk's own resolution runs with no
+    # thread at all, so the column carries null there.
+    Column("thread_id", Text, nullable=True),
     Column("payload", JSON, nullable=False),
     Column("resolved_at", Text, nullable=False),
 )
@@ -534,7 +535,7 @@ def database_url() -> URL:
     if url := os.getenv("DATABASE_URL"):
         postgres = make_url(url).set(drivername="postgresql+psycopg")
         return postgres.update_query_dict({"options": f"-c search_path={SCHEMA}"})
-    path = os.getenv("CRM_DB", str(ROOT / "crm.db"))
+    path = os.getenv("CRM_DB") or str(ROOT / "crm.db")
     return URL.create("sqlite", database=path)
 
 

@@ -1,0 +1,54 @@
+# The rules the desk applies to every loan request, with the numbers they
+# use and the sections of the rules and the manual they come from.
+
+source:
+  system: Desk operations
+  owner: Head librarian
+  reviewed: "2026-10-01"
+
+rules:
+  - rule: loan_cap
+    name: Concurrent loan cap
+    loans: 3
+    applies: A borrower holds at most 3 loans at the same time, on both tiers.
+    sections: [Loan rules 5, Librarian manual 4]
+
+  - rule: availability
+    name: Copy availability
+    copies_needed: 1
+    applies: >-
+      A checkout is possible only while one copy of the title is not on loan.
+      The desk compares the copy counts on the request.
+    sections: [Loan rules 3, Librarian manual 4]
+
+  - rule: base_term
+    name: Base loan term
+    days: 14
+    applies: Every loan runs 14 days from the day the desk issues it.
+    sections: [Loan rules 2, Librarian manual 6]
+
+  - rule: research_renewal_cap
+    name: Research term cap
+    days: 28
+    applies: A research renewal runs past the base term up to 28 days in total.
+    sections: [Loan rules 4, Librarian manual 4]
+
+  - rule: sign_off_threshold
+    name: Sign-off threshold
+    days: 14
+    applies: A loan term over 14 days needs the lead librarian's sign-off.
+    sections: [Loan rules 2, Librarian manual 2]
+
+  - rule: overdue_block
+    name: Overdue block
+    loans: 0
+    applies: A borrower with an overdue title holds no new loan until the title comes back.
+    sections: [Loan rules 5, Librarian manual 4]
+
+  - rule: special_collection
+    name: Special collection referral
+    price_from: 200.00
+    applies: >-
+      A title on the special collection shelves, or a title whose list price
+      is $200 or more, goes to the lead librarian.
+    sections: [Loan rules 7, Librarian manual 5]

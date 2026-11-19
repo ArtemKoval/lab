@@ -20,7 +20,10 @@ from backend.models import CaseGrade, Letter
 
 JEV = "typesafe/jev-1.13"
 # The client ignores an address set on it, so each call passes this one.
-JUDGE_URL = os.getenv("JUDGE_URL", "https://openrouter.ai")
+def judge_url() -> str:
+    """The judge's OpenRouter address. The template .env leaves JUDGE_URL
+    empty, and an empty address would send every grade to a blank URL."""
+    return os.getenv("JUDGE_URL") or "https://openrouter.ai"
 TIMEOUT_MS = 10_000
 # No retries: a case the judge can't grade at once is left ungraded.
 NO_RETRIES = RetryConfig("none", BackoffStrategy(0, 0, 0, 0), False)
@@ -99,7 +102,7 @@ def ask(worker: Explanation, agent: Explanation) -> CaseGrade:
         model=JEV,
         state=state,
         questions=QUESTIONS,
-        server_url=JUDGE_URL,
+        server_url=judge_url(),
         timeout_ms=TIMEOUT_MS,
         retries=NO_RETRIES,
     )

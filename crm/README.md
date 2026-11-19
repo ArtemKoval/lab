@@ -2,10 +2,13 @@
 
 A CRM engine with domain packs. The engine runs a backoffice queue. AI case
 workers read each case and decide it against the policy documents. A human
-signs off large awards, and then the engine pays them. One domain pack,
-`domains/insurance/`, holds the words, the rules, and the seed data of the
-first domain, a fictional travel insurer. A later change adds the skill
-that onboards a new domain from a free-form description.
+signs off large awards, and then the engine pays them. The packs under
+`crm/domains/` hold the words, the rules, and the seed data of each domain:
+`insurance/` (a fictional travel insurer), `helpdesk/` (FastFix IT support),
+`opsdemo/` (Nimbus OpsDesk), and `library/` (Northgate Public Library, whose
+loan desk works loan requests against the membership rules). The
+`crm-onboard-domain` skill onboards a new domain from a free-form
+description. `CRM_DOMAIN` names the active pack; the default is insurance.
 
 The project ports the week one milestones of `github.com/ed-donner/undercover`.
 The engine carries generic names: case, contract, award, worker, decision.
@@ -41,8 +44,9 @@ visit and the sign-in to use.
 dev password `crm-dev` (`AUTH_DEV_PASSWORD`). Insurance: `dana.whitfield@undercover.example`
 can approve over the limit; `marcus.oyelaran@undercover.example` cannot.
 Helpdesk: `priya.nair@fastfix.example` (lead), `marcus.bell@fastfix.example`
-(agent). The e2e suite signs in by itself with its own password and needs no
-manual login.
+(agent). Library: `rosa.meridian@northgate.example` (lead),
+`iris.bonnell@northgate.example` (desk). The e2e suite signs in by itself
+with its own password and needs no manual login.
 
 ## Run it
 
@@ -58,6 +62,14 @@ npm run dev            # backend on 8000, dashboard on 5173
 With Docker, the compose profile `langfuse` starts the trace store beside
 the emulator, and the `crm-setup` skill carries the steps that seed its
 keys into `.env`. Without it, the engine runs with no tracing.
+### Demo on the public address
+
+`crm/deploy/demo_up.sh` runs the whole stack for a demo: the floci emulator,
+the wiring gate, the library pack, and every port bound for the web. It takes
+`--host ADDR` and `--emulator`. `crm/deploy/demo_down.sh` tears it down and
+closes the ports. `crm/docs/demo_runbook.md` is the demo script, with the
+click path and the code tour.
+
 
 Work one case with the agent on the command line:
 
@@ -73,6 +85,9 @@ decision. Put a key in `.env` to work real cases.
 
 ```bash
 npm run check   # ruff, pyright, pytest, prettier, eslint, tsc, vitest, e2e
+CRM_DOMAIN=library npx playwright test   # the loan desk flow on the library pack
+uv run python validate.py library        # the pack validator, from crm/
+uv run python smoke.py library           # the pack smoke run, from crm/
 ```
 
 The Python suite is hermetic: a stub model stands in for OpenRouter, and
@@ -89,6 +104,7 @@ API, so they need no model either.
 | `dashboard/` | The React queue and case pages |
 | `e2e/` | The Playwright specs and helpers |
 | `domains/insurance/` | The first domain pack |
+| `domains/library/` | The Northgate Public Library loan desk pack |
 | `domains/loader.py` | The one seam between the engine and the packs |
 | `docs/` | The product documents |
 | `port/` | The upstream port tool |

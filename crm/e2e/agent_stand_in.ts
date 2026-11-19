@@ -73,4 +73,4 @@ createServer((request, response) => {
   } else {
     reply(response, 404, { error: "Not found" });
   }
-}).listen(Number(process.env.PORT), "127.0.0.1");
+}).listen(Number(process.env.PORT), process.env.HOST ?? "127.0.0.1");

@@ -76,6 +76,22 @@ WORKER_OPERATIONS = {
         {"evaluation_set": "held_out", "tiny": True, "agents": 5},
     ),
     "sign_off_case": ("POST", "/api/cases/CLM-1002/sign-off", None),
+    "record_worker_decision": (
+        "POST",
+        "/api/cases/CLM-1002/worker-decision",
+        {
+            "decision": "approve",
+            "days": 14,
+            "reason": "A copy is free.",
+            "section": "Loan rules 2, 3 and 5",
+            "benefit": "award",
+        },
+    ),
+    "resolve_referral": (
+        "POST",
+        "/api/cases/CLM-1002/resolution",
+        {"resolution": "loan", "days": 14, "reason": "In person.", "benefit": "loan"},
+    ),
     "send_back_case": (
         "POST",
         "/api/cases/CLM-1002/send-back",

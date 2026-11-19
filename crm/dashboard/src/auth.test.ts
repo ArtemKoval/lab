@@ -37,6 +37,22 @@ it("gives the friendly reason for a wrong password", async () => {
   ).rejects.toThrow(WRONG_PASSWORD);
 });
 
+it("signs in at the laptop service when VITE_AUTH_URL is empty", async () => {
+  // The template .env leaves VITE_AUTH_URL empty, and an empty address must
+  // fall back to the laptop service, or the sign-in posts to a path the
+  // dashboard origin doesn't serve.
+  vi.stubEnv("VITE_AUTH_URL", "");
+  vi.resetModules();
+  const { signIn: freshSignIn } = await import("./auth");
+  fetchMock.mockResolvedValue(reply({ access_token: "token-3" }, 200));
+  await freshSignIn("dana.whitfield@undercover.example", "crm-dev");
+  expect(fetchMock).toHaveBeenLastCalledWith(
+    "http://127.0.0.1:8004/signin",
+    expect.anything(),
+  );
+  vi.unstubAllEnvs();
+});
+
 it("signs out and follows the session", async () => {
   localStorage.clear();
   fetchMock.mockResolvedValue(reply({ access_token: "token-2" }, 200));

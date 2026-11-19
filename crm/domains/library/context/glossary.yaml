@@ -1,0 +1,42 @@
+# The terms the loan rules define, each in the rules' own words, with the
+# section it comes from.
+
+source:
+  system: The Northgate loan rules, version 2026.2
+  owner: Head librarian
+  reviewed: "2026-10-01"
+
+terms:
+  - term: Loan
+    definition: A copy of one title that the desk issues to a borrower, for a term in days.
+    sections: [2, 6]
+
+  - term: Loan request
+    definition: >-
+      A request at the desk for one copy of one title, with the copy counts
+      and the borrower's membership beside it.
+    sections: [3, 5]
+
+  - term: Loan term
+    definition: How many days the loan runs. Every loan starts at 14 days, and the research tier renews to 28.
+    sections: [2, 4]
+
+  - term: Copy
+    definition: One physical unit of a title. The catalog records how many copies each title holds and how many are on loan.
+    sections: [3, 6]
+
+  - term: Membership
+    definition: The library card of a borrower, with its tier and the members it covers.
+    sections: [1]
+
+  - term: Borrower
+    definition: A member who borrows copies at the desk, and who holds at most 3 loans at the same time.
+    sections: [5]
+
+  - term: Renewal
+    definition: Days past the base term on a research membership, up to 28 days in total.
+    sections: [4]
+
+  - term: Special collection
+    definition: A title that does not leave the building, and whose request goes to the lead librarian.
+    sections: [7]

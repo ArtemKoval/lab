@@ -1,8 +1,10 @@
 import type { Case, Decision } from "../api";
-import { money, time } from "../format";
+import { time } from "../format";
+import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 import { useWorker } from "../worker";
 import { DecisionDetails } from "./DecisionDetails";
 import { NotAllowed } from "./NotAllowed";
+import { ResolutionForm } from "./ResolutionForm";
 import { SendBackForm } from "./SendBackForm";
 import { SignOffForm } from "./SignOffForm";
 
@@ -51,6 +53,13 @@ export function DecisionPanel({
           onAnswered={onAnswered}
         />
       )}
+      {decision?.decision === "refer" &&
+        entry.status === "decided" &&
+        !entry.effect &&
+        !entry.evaluation_id &&
+        !entry.copy_of && (
+          <ResolutionForm entry={entry} onResolved={onAnswered} />
+        )}
     </section>
   );
 }
@@ -58,22 +67,36 @@ export function DecisionPanel({
 // Why a payment waits for a worker's sign-off: it's over the approval limit,
 // or the Gateway refused it.
 function WhyHeld({ decision }: Readonly<{ decision: Decision }>) {
-  const amount = <span className="mono">{money(decision.payload?.award ?? 0)}</span>;
+  const word = useLabel();
+  const format = useAwardFormat();
+  const award = (
+    <span className="mono">
+      {awardText(decision.payload?.award ?? 0, format)}
+    </span>
+  );
+  const held = (key: string, fallback: string) => {
+    const [before, after] = word(key, fallback).split("{award}");
+    return (
+      <p>
+        {before}
+        {award}
+        {after}
+      </p>
+    );
+  };
   if (decision.gateway_refusal)
     return (
       <>
-        <p>
-          The Gateway refused the payment of {amount}, so it waits for a
-          worker's sign-off.
-        </p>
+        {held(
+          "hold.gateway_refused",
+          "The Gateway refused the payment of {award}, so it waits for a worker's sign-off.",
+        )}
         <p className="small muted">{decision.gateway_refusal}</p>
       </>
     );
-  return (
-    <p>
-      The payment of {amount} is over the approval limit and waits for a
-      worker's sign-off.
-    </p>
+  return held(
+    "hold.over_limit",
+    "The payment of {award} is over the approval limit and waits for a worker's sign-off.",
   );
 }
 

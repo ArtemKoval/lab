@@ -24,7 +24,7 @@ export class Refusal {
   ) {}
 }
 
-const dana: Worker = {
+export const dana: Worker = {
   worker_id: "HND-01",
   name: "Dana Whitfield",
   role: "Senior Cases Worker",

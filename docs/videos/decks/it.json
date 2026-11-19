@@ -1,0 +1,140 @@
+{
+  "title": "The library desk, from the IT side",
+  "subtitle": "One clone, one command, one stack",
+  "slides": [
+    {
+      "heading": "The stack",
+      "bullets": [],
+      "narration": "This is the IT view of the library desk. One minute covers the stack, the install, the run, and where the data lives."
+    },
+    {
+      "heading": "Four parts, one pack",
+      "bullets": [],
+      "narration": "The stack has four parts: a FastAPI backend over SQLite, a LangGraph agent harness, a React dashboard, and the library pack that carries every domain word.",
+      "elements": [
+        {
+          "kind": "box",
+          "at": 1.0,
+          "col": 1,
+          "row": 2,
+          "label": "Dashboard"
+        },
+        {
+          "kind": "arrow",
+          "at": 1.6,
+          "from": [
+            1,
+            2
+          ],
+          "to": [
+            3,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 2.2,
+          "col": 3,
+          "row": 2,
+          "label": "FastAPI"
+        },
+        {
+          "kind": "arrow",
+          "at": 2.8,
+          "from": [
+            3,
+            2
+          ],
+          "to": [
+            5,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 3.4,
+          "col": 5,
+          "row": 2,
+          "label": "Agent"
+        },
+        {
+          "kind": "arrow",
+          "at": 4.0,
+          "from": [
+            5,
+            2
+          ],
+          "to": [
+            7,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 4.6,
+          "col": 7,
+          "row": 2,
+          "label": "Pack + SQLite"
+        }
+      ]
+    },
+    {
+      "heading": "Install once",
+      "bullets": [],
+      "narration": "Install runs twice and seeds once. uv sync fills the Python environment, npm install fills the dashboard set, and npm run seed builds the loan desk queue from the pack.",
+      "elements": [
+        {
+          "kind": "stat",
+          "at": 1.0,
+          "col": 1,
+          "row": 2,
+          "value": "4",
+          "label": "parts in the stack"
+        },
+        {
+          "kind": "stat",
+          "at": 1.8,
+          "col": 4,
+          "row": 2,
+          "value": "2",
+          "label": "commands to install"
+        },
+        {
+          "kind": "stat",
+          "at": 2.6,
+          "col": 7,
+          "row": 2,
+          "value": "1",
+          "label": "command to run"
+        }
+      ]
+    },
+    {
+      "heading": "Run with one command",
+      "bullets": [
+        "npm run dev starts everything",
+        "The dashboard sits on 5173",
+        "The backend answers on 8000"
+      ],
+      "narration": "One command starts the whole desk. npm run dev brings up the backend, the agent, the copilot, and the dashboard. The desk lives on port 5173, the API on 8000."
+    },
+    {
+      "heading": "Switching domains",
+      "bullets": [
+        "CRM_DOMAIN names the pack",
+        "Library, insurance, helpdesk, opsdemo",
+        "The engine stays the same"
+      ],
+      "narration": "The engine carries no domain words. CRM_DOMAIN names the active pack, and the same binary runs the library desk or any other domain with no code change."
+    },
+    {
+      "heading": "The checks that guard it",
+      "bullets": [
+        "One npm run check for the suite",
+        "The validator examines the pack",
+        "The devcontainer and floci run the same"
+      ],
+      "narration": "The checks run everywhere. One npm run check drives the whole suite, the validator examines the pack, and the devcontainer and the floci emulator run the same commands."
+    }
+  ]
+}

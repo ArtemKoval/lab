@@ -10,7 +10,7 @@ import httpx
 
 from agent.refusals import REFUSED
 
-BACKEND_URL = os.getenv("CRM_API", "http://127.0.0.1:8000")
+BACKEND_URL = os.getenv("CRM_API") or "http://127.0.0.1:8000"
 API_KEY_HEADER = "X-API-Key"
 MISSING_KEY = "CRM_AGENT_KEY is missing. Add it to .env"
 # The backend's status for an effect that already ran on the case.

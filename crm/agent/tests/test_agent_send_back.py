@@ -147,9 +147,7 @@ def test_the_case_as_the_agent_reads_it_holds_no_note(client):
     assert "sent_back_decisions" not in case_as_read(case)
 
     api.take_case("CLM-1003", None)
-    model = stub(
-        call("get_case"), calculate("CLM-1003", 890.0), record("approve")
-    )
+    model = stub(call("get_case"), calculate("CLM-1003", 890.0), record("approve"))
     harness.resume("CLM-1003", agent_on(model, saver))
     read = model.prompts[1][-1]
     assert isinstance(read, ToolMessage)

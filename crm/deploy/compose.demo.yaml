@@ -1,0 +1,13 @@
+# The demo override for the crm stack. It publishes the demo Postgres past
+# the loopback for a demo audience, with the trivial crm/crm credentials and
+# the fictional demo data behind them. Start it only through the demo
+# scripts, which bind every port for the web:
+#   crm/deploy/demo_up.sh
+# crm/deploy/demo_down.sh removes the container and closes the port when the
+# demo ends. The !override tag replaces the base binding instead of merging
+# with it, so the demo never carries a second, quieter copy of the same
+# port.
+services:
+  db:
+    ports: !override
+      - "5433:5432"

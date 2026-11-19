@@ -2372,3 +2372,31 @@ fieldset.panel legend + * {
     transition: none;
   }
 }
+
+/* The lead's resolution form on a referred request. */
+.resolution {
+  margin-top: 16px;
+}
+
+.resolution label {
+  display: block;
+  font-size: 0.87rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.resolution input {
+  font: inherit;
+  font-family: var(--mono);
+  max-width: 200px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--inset);
+  color: var(--ink);
+}
+
+.resolution .actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}

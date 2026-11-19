@@ -22,13 +22,18 @@ import {
 import { MEASURES } from "../measures";
 import { evaluationPage } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
+import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 
 export function ScoreboardPage() {
+  const word = useLabel();
   return (
     <>
       <PageHeader
         title="Scoreboard"
-        lead="How the case agent scores against our workers' decisions."
+        lead={word(
+          "scoreboard.lead",
+          "How the case agent scores against our workers' decisions.",
+        )}
       />
       <div className="column">
         <StartEvaluation />
@@ -90,6 +95,8 @@ function StartEvaluation() {
 }
 
 function Evaluations() {
+  const word = useLabel();
+  const format = useAwardFormat();
   const { data: evaluations, error } = useLoad(api.listEvaluations, REFRESH_MS);
 
   return (
@@ -106,7 +113,10 @@ function Evaluations() {
               <tr>
                 <th>Evaluation</th>
                 <th>Status</th>
-                {MEASURES.map(({ label }) => (
+                {MEASURES(
+                  format,
+                  word("measure.straight_through", "Straight-through"),
+                ).map(({ label }) => (
                   <th className="num" key={label}>
                     {label}
                   </th>
@@ -129,6 +139,7 @@ function Evaluations() {
 }
 
 function EvaluationRow({ evaluation }: Readonly<{ evaluation: Evaluation }>) {
+  const format = useAwardFormat();
   return (
     <tr>
       <td>
@@ -151,7 +162,7 @@ function EvaluationRow({ evaluation }: Readonly<{ evaluation: Evaluation }>) {
       <td>
         <RunChip status={evaluation.status} />
       </td>
-      {MEASURES.map(({ label, show }) => (
+      {MEASURES(format).map(({ label, show }) => (
         <td className="num mono" key={label}>
           {show(evaluation.measures)}
         </td>

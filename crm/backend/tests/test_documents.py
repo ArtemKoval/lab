@@ -1,4 +1,3 @@
-
 import pytest
 from sqlalchemy import select
 
@@ -43,7 +42,6 @@ def test_both_documents_are_seeded_from_the_context_layer_with_their_versions():
         assert row["text"] == labs
         assert context.startswith("---\nsource:\n")
         assert context.endswith(f"---\n\n{labs}")
-
 
 
 def test_the_case_agent_reads_the_contents_of_both_documents(client):

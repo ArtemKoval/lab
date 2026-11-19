@@ -19,8 +19,11 @@ interface Worker {
   email: string;
 }
 
+// The active pack follows CRM_DOMAIN, so a library run signs its own
+// librarians in, and the default run keeps the insurance workers.
+const pack = process.env.CRM_DOMAIN ?? "insurance";
 const workers = JSON.parse(
-  readFileSync("domains/insurance/data/workers.json", "utf8"),
+  readFileSync(`domains/${pack}/data/workers.json`, "utf8"),
 ) as Worker[];
 const password = process.env.WORKER_PASSWORD;
 // The dashboard, the one origin the browser may call this from.
@@ -105,6 +108,7 @@ const server = createServer((request, response) => {
   });
 });
 const port = Number(process.env.PORT ?? 8004);
-server.listen(port, "127.0.0.1", () => {
-  console.log(`auth stand-in on http://127.0.0.1:${String(port)}`);
+const host = process.env.HOST ?? "127.0.0.1";
+server.listen(port, host, () => {
+  console.log(`auth stand-in on http://${host}:${String(port)}`);
 });

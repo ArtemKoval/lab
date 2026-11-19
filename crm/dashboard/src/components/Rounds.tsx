@@ -1,4 +1,5 @@
 import type { Measures, RoundReview, RoundSummary } from "../api";
+import { useLabel } from "../vocabulary";
 import {
   dateTime,
   grade,
@@ -28,11 +29,17 @@ const HEADINGS: [string, string][] = [
 // improver's reason and who approved or rejected what and when on a line of
 // its own beneath.
 export function Rounds({ rounds }: Readonly<{ rounds: RoundSummary[] }>) {
+  const word = useLabel();
   return (
     <section className="panel" aria-labelledby="rounds-title">
       <h2 id="rounds-title">Rounds</h2>
       {rounds.length === 0 ? (
-        <StateMessage empty="No rounds yet. Starting a round has the improver read the latest results and propose a change to the case agent for a worker to approve." />
+        <StateMessage
+          empty={word(
+            "improvement.rounds_empty",
+            "No rounds yet. Starting a round has the improver read the latest results and propose a change to the case agent for a worker to approve.",
+          )}
+        />
       ) : (
         <div className="table-scroll">
           <table className="table rounds">

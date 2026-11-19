@@ -46,6 +46,7 @@ from backend.dependencies import (
     SignedInWorker,
     WorkerOrAgent,
     senior,
+    signed_in_worker,
 )
 from backend.documents import manual_version
 from backend.improvement import router as improvement
@@ -69,12 +70,14 @@ from backend.models import (
     EffectRun,
     FailureRequest,
     HoldRequest,
+    Line,
     ModelCall,
     ModelCallRequest,
     NewStep,
     PackView,
     Plans,
     PreviousCase,
+    ReferralResolution,
     SendBackRequest,
     SignOffs,
     StartRequest,
@@ -83,10 +86,10 @@ from backend.models import (
     StepRequest,
     TakeRequest,
     Worker,
+    WorkerDecision,
     WorkTime,
     WorkTimeRequest,
 )
-from backend.money import dollars
 from backend.records import NOTHING_RESOLVED, check_request, falls_short
 from backend.round_state import round_row, why_no_case_starts
 from backend.runs import router as runs
@@ -101,6 +104,11 @@ NOT_STARTED = "Case {case_id} has not been started"
 NOT_IN_PROGRESS = "Case {case_id} is not in progress"
 ALREADY_RAN = "Case {case_id} already ran the effect {effect!r}"
 ALREADY_DECIDED = "Case {case_id} has already been decided"
+ONLY_A_REFERRAL = "Only a referred request resolves this way"
+ONLY_A_WAITING_REQUEST = "Only a waiting request takes the desk's decision"
+NO_SECTIONS = "The decision names no rule sections"
+NO_REASON_GIVEN = "The decision carries no reason"
+NOTHING_TO_LOAN = "The request carries no items to loan"
 NOT_WAITING = "Case {case_id} is not waiting"
 NOT_SENT_BACK = "Case {case_id} isn't sent back"
 
@@ -123,6 +131,7 @@ app.include_router(copilot)
 app.include_router(customers_router)
 
 SignsOffOverTheLimit = Annotated[Worker, Depends(senior("sign this off"))]
+ResolvesReferral = Annotated[Worker, Depends(senior("resolve a referred request"))]
 SendsBack = Annotated[Worker, Depends(senior("send this back"))]
 
 
@@ -168,12 +177,16 @@ def plans() -> Plans:
 
 def case_in_full(db: Connection, case_id: str) -> Case:
     """Return one case in full, as the API shows it, or raise a 404."""
-    run = db.execute(
-        select(effect_runs)
-        .where(effect_runs.c.case_id == case_id)
-        .order_by(effect_runs.c.effect_run_id.desc())
-        .limit(1)
-    ).mappings().first()
+    run = (
+        db.execute(
+            select(effect_runs)
+            .where(effect_runs.c.case_id == case_id)
+            .order_by(effect_runs.c.effect_run_id.desc())
+            .limit(1)
+        )
+        .mappings()
+        .first()
+    )
     effect = EffectRun(**run) if run is not None else None
     return to_case(find_case(db, case_id), sent_back_of(db, case_id), effect)
 
@@ -183,18 +196,24 @@ def find_contract(db: Connection, contract_id: str) -> Contract:
     query = select(contracts.c.record).where(contracts.c.contract_id == contract_id)
     record = db.execute(query).scalar_one_or_none()
     if record is None:
-        raise HTTPException(404, f"Contract {contract_id} not found")
+        words = loader.pack().message(
+            "contract_not_found", "Contract {contract_id} not found"
+        )
+        raise HTTPException(404, words.replace("{contract_id}", contract_id))
     return Contract(**record)
 
 
 def over_the_limit(limit: float) -> str:
-    """Say that a award over a limit needs a worker's sign-off."""
-    return f"An award over {dollars(limit)} needs a worker's sign-off"
+    """Say that an award over the limit needs a worker's sign-off, in the
+    pack's words and unit."""
+    return (
+        loader.pack()
+        .message("over_limit", "An award over {limit} needs a worker's sign-off")
+        .replace("{limit}", loader.pack().award_text(limit))
+    )
 
 
-def keep_outcome(
-    db: Connection, case: RowMapping, outcome: str, payload: dict
-) -> None:
+def keep_outcome(db: Connection, case: RowMapping, outcome: str, payload: dict) -> None:
     """Store one resolved outcome's payload for the attempt in flight, over
     any earlier one."""
     db.execute(
@@ -213,9 +232,7 @@ def keep_outcome(
     )
 
 
-def stored_payload(
-    db: Connection, case: RowMapping, outcome: str
-) -> dict | None:
+def stored_payload(db: Connection, case: RowMapping, outcome: str) -> dict | None:
     """Return the outcome payload resolved on the case's current attempt, or
     nothing. The engine moves it opaque, and never reads inside it."""
     return db.execute(
@@ -364,7 +381,12 @@ def list_cases(db: Database) -> list[CaseSummary]:
     return [to_summary(row) for row in rows]
 
 
-@app.get("/api/pack", operation_id="get_pack", dependencies=[WorkerOrAgent])
+@app.get(
+    "/api/pack",
+    operation_id="get_pack",
+    dependencies=[WorkerOrAgent],
+    response_model_exclude_none=True,
+)
 def get_pack() -> PackView:
     """Serve the active pack's declarations for the tools and the dashboard."""
     declared = loader.pack()
@@ -375,6 +397,7 @@ def get_pack() -> PackView:
         outcomes=declared.outcomes,
         config=declared.config,
         effects=declared.effects,
+        vocabulary=declared.manifest.get("vocabulary"),
     )
 
 
@@ -594,9 +617,7 @@ def resolve_outcome(
     if case.status != Status.IN_PROGRESS:
         raise HTTPException(409, NOT_IN_PROGRESS.format(case_id=case_id))
     if outcome not in loader.pack().outcomes:
-        raise HTTPException(
-            404, f"The pack resolves no outcome called {outcome!r}"
-        )
+        raise HTTPException(404, f"The pack resolves no outcome called {outcome!r}")
     contract = find_contract(db, case.contract_id)
     config = {"plans": plans(), "approval_limit": approval_limit(db)}
     try:
@@ -605,6 +626,213 @@ def resolve_outcome(
         raise HTTPException(422, str(error)) from error
     keep_outcome(db, find_case(db, case_id), outcome, resolved.model_dump())
     return resolved
+
+
+@app.post(
+    "/api/cases/{case_id}/resolution",
+    operation_id="resolve_referral",
+)
+def resolve_referral(
+    case_id: str,
+    request: ReferralResolution,
+    worker: ResolvesReferral,
+    db: Database,
+) -> Case:
+    """Record the lead's in-person decision on a referred request."""
+    full = case_in_full(db, case_id)
+    referred = (
+        full.status == Status.DECIDED
+        and full.decision is not None
+        and full.decision.decision == DecisionKind.REFER
+    )
+    if not referred:
+        raise HTTPException(409, ONLY_A_REFERRAL)
+    effect = effect_for(next(iter(loader.pack().outcomes)))
+    prior = db.execute(
+        select(effect_runs).where(
+            effect_runs.c.case_id == case_id, effect_runs.c.effect == effect
+        )
+    ).first()
+    if prior is not None:
+        raise HTTPException(409, ALREADY_RAN.format(case_id=case_id, effect=effect))
+    if full.evaluation_id is not None:
+        raise HTTPException(409, A_COPY.format(case_id=case_id, answered="resolved"))
+    if request.resolution == "loan":
+        issue_the_loan(full, request, db)
+    else:
+        decline_the_request(full, request, worker, db)
+    db.commit()
+    return case_in_full(db, case_id)
+
+
+def issue_the_loan(full: Case, request: ReferralResolution, db: Connection) -> None:
+    """Resolve the pack's outcome for the lead's term, record it, and run
+    the case's effect once."""
+    items = full.items
+    outcome = next(iter(loader.pack().outcomes))
+    if not items:
+        raise HTTPException(422, NOTHING_TO_LOAN)
+    award_request = AwardRequest(
+        benefit=request.benefit or outcome,
+        lines=[
+            Line(
+                description=items[0].description,
+                amount=items[0].amount,
+                quantity=1,
+                kind="item",
+                nights=request.days,
+                hours=0,
+            )
+        ],
+        paid_by_others=0,
+    )
+    config = {"plans": plans(), "approval_limit": approval_limit(db)}
+    try:
+        resolved = protocol().resolve(
+            {"contract": find_contract(db, full.contract_id)},
+            config,
+            award_request,
+        )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    effect = effect_for(outcome)
+    kept = find_case(db, full.case_id)
+    keep_outcome(db, kept, outcome, resolved.model_dump())
+    payload = stored_payload(db, kept, outcome)
+    db.execute(
+        update(decisions)
+        .where(decisions.c.case_id == full.case_id)
+        .values(payload=payload, outcome=outcome)
+    )
+    kept = find_case(db, full.case_id)
+    if effect is not None:
+        run_the_effect(db, kept, effect)
+
+
+def decline_the_request(
+    full: Case, request: ReferralResolution, worker: Worker, db: Connection
+) -> None:
+    """Replace the referral with the lead's decline, in the lead's words."""
+    db.execute(
+        update(decisions)
+        .where(decisions.c.case_id == full.case_id)
+        .values(
+            decision=DecisionKind.DECLINE,
+            reason=request.reason,
+            decided_by=worker.name,
+            decided_at=now(),
+        )
+    )
+
+
+def refuse_unless_decidable(case: RowMapping, request: WorkerDecision) -> None:
+    """Refuse a desk decision on a case the desk cannot decide: one in
+    progress or already decided, or a body without its words."""
+    if case["status"] not in (Status.WAITING, Status.LEFT_FOR_WORKER):
+        raise HTTPException(409, ONLY_A_WAITING_REQUEST)
+    if case["decision"] is not None:
+        raise HTTPException(409, ALREADY_DECIDED.format(case_id=case["case_id"]))
+    if not request.section.strip():
+        raise HTTPException(422, NO_SECTIONS)
+    if not request.reason.strip():
+        raise HTTPException(422, NO_REASON_GIVEN)
+
+
+def approve_waiting_request(
+    case_id: str, request: WorkerDecision, db: Database
+) -> dict:
+    """Resolve the pack's outcome for the desk's approval, from the case's
+    items, with the desk's term as the nights. The payload lands on the
+    decision the route records."""
+    full = case_in_full(db, case_id)
+    if not full.items:
+        raise HTTPException(422, NOTHING_TO_LOAN)
+    outcome = next(iter(loader.pack().outcomes))
+    lines = [
+        Line(
+            description=item.description,
+            amount=item.amount,
+            quantity=1,
+            kind="item",
+            nights=request.days if index == 0 else 0,
+            hours=0,
+        )
+        for index, item in enumerate(full.items)
+    ]
+    award_request = AwardRequest(
+        benefit=request.benefit or outcome, lines=lines, paid_by_others=0
+    )
+    config = {"plans": plans(), "approval_limit": approval_limit(db)}
+    try:
+        resolved = protocol().resolve(
+            {"contract": find_contract(db, full.contract_id)},
+            config,
+            award_request,
+        )
+    except ValueError as error:
+        raise HTTPException(422, str(error)) from error
+    return resolved.model_dump()
+
+
+@app.post(
+    "/api/cases/{case_id}/worker-decision",
+    operation_id="record_worker_decision",
+    dependencies=[SignedInWorker],
+)
+def record_worker_decision(
+    case_id: str,
+    request: WorkerDecision,
+    worker: Annotated[Worker, Depends(signed_in_worker)],
+    db: Database,
+) -> Case:
+    """Record the desk's decision on a waiting request."""
+    case = find_case(db, case_id)
+    refuse_unless_decidable(case, request)
+    full = case_in_full(db, case_id)
+    if full.evaluation_id is not None or full.copy_of:
+        raise HTTPException(409, A_COPY.format(case_id=case_id, answered="decided"))
+    claimed = db.execute(
+        update(cases)
+        .where(
+            cases.c.case_id == case_id,
+            cases.c.status.in_([Status.WAITING, Status.LEFT_FOR_WORKER]),
+        )
+        .values(status=Status.IN_PROGRESS)
+    )
+    if claimed.rowcount == 0:
+        raise HTTPException(409, ONLY_A_WAITING_REQUEST)
+    outcome = next(iter(loader.pack().outcomes))
+    payload = None
+    if request.decision == "approve":
+        payload = approve_waiting_request(case_id, request, db)
+    limit = approval_limit(db)
+    db.execute(
+        insert(decisions).values(
+            case_id=case_id,
+            decision=request.decision,
+            section=request.section,
+            reason=request.reason,
+            decided_by=worker.name,
+            decided_at=now(),
+            manual_version=manual_version(db),
+            approval_limit=limit,
+            outcome=outcome if request.decision == "approve" else None,
+            payload=payload,
+        )
+    )
+    if request.decision == "approve":
+        if gated(db, payload, limit):
+            set_status(db, case_id, Status.WAITING_FOR_SIGN_OFF)
+        else:
+            set_status(db, case_id, Status.DECIDED)
+            kept = find_case(db, case_id)
+            effect = effect_for(outcome)
+            if effect is not None:
+                run_the_effect(db, kept, effect)
+    else:
+        set_status(db, case_id, Status.DECIDED)
+    db.commit()
+    return case_in_full(db, case_id)
 
 
 @app.post(
@@ -627,8 +855,9 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
             f"the effect {effect!r} does not run",
         )
     prior = db.execute(
-        select(effect_runs)
-        .where(effect_runs.c.case_id == case_id, effect_runs.c.effect == effect)
+        select(effect_runs).where(
+            effect_runs.c.case_id == case_id, effect_runs.c.effect == effect
+        )
     ).first()
     if prior is not None:
         raise HTTPException(409, ALREADY_RAN.format(case_id=case_id, effect=effect))
@@ -649,9 +878,10 @@ def hold_payment(case_id: str, request: HoldRequest, db: Database) -> Case:
     case = find_case(db, case_id)
     if case["decision"] != DecisionKind.APPROVE:
         raise HTTPException(409, NOT_APPROVED.format(case_id=case_id))
-    if db.execute(
-        select(effect_runs).where(effect_runs.c.case_id == case_id)
-    ).first() is not None:
+    if (
+        db.execute(select(effect_runs).where(effect_runs.c.case_id == case_id)).first()
+        is not None
+    ):
         effect = case["outcome"] or outcome_kind()
         raise HTTPException(409, ALREADY_RAN.format(case_id=case_id, effect=effect))
     if case["status"] == Status.WAITING_FOR_SIGN_OFF:

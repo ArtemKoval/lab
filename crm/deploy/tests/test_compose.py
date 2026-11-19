@@ -74,3 +74,32 @@ def test_only_dev_credentials_sit_in_the_tracked_file():
         for key, value in (service.get("environment") or {}).items():
             if credentialish(str(key)) and len(str(value)) >= 16:
                 assert str(value) in DEV_CREDENTIALS, f"{name}.{key}"
+
+
+class ComposeLoader(yaml.SafeLoader):
+    """The safe loader with compose's !override tag registered."""
+
+
+ComposeLoader.add_constructor(
+    "!override", lambda loader, node: loader.construct_sequence(node)
+)
+
+OVERRIDE = Path(__file__).resolve().parents[1] / "compose.demo.yaml"
+
+
+def override_compose() -> dict:
+    return yaml.load(OVERRIDE.read_text(), Loader=ComposeLoader)
+
+
+def test_the_demo_db_binds_the_loopback_in_the_base():
+    ports = compose()["services"]["db"]["ports"]
+    assert ports == ["127.0.0.1:5433:5432"]
+
+
+def test_the_demo_override_publishes_the_db():
+    ports = override_compose()["services"]["db"]["ports"]
+    assert ports == ["5433:5432"]
+
+
+def test_the_db_service_stays_unprofiled():
+    assert "profiles" not in compose()["services"]["db"]

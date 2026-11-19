@@ -1,0 +1,165 @@
+{
+  "title": "The library desk, from the business side",
+  "subtitle": "Northgate Public Library on the crm engine",
+  "slides": [
+    {
+      "heading": "The library desk",
+      "bullets": [],
+      "narration": "This is the business view of the library domain. One minute shows how a loan request becomes a decision, a sign-off, and a loan on the shelf."
+    },
+    {
+      "heading": "What the desk receives",
+      "bullets": [],
+      "narration": "The desk works a queue of loan requests. Each request names one title, the copy counts, and the price. The borrower's membership and its loan count sit beside it.",
+      "elements": [
+        {
+          "kind": "box",
+          "at": 1.0,
+          "col": 1,
+          "row": 2,
+          "label": "Request"
+        },
+        {
+          "kind": "arrow",
+          "at": 1.6,
+          "from": [
+            1,
+            2
+          ],
+          "to": [
+            3,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 2.2,
+          "col": 3,
+          "row": 2,
+          "label": "Agent"
+        },
+        {
+          "kind": "arrow",
+          "at": 2.8,
+          "from": [
+            3,
+            2
+          ],
+          "to": [
+            5,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 3.4,
+          "col": 5,
+          "row": 2,
+          "label": "Decision"
+        },
+        {
+          "kind": "arrow",
+          "at": 4.0,
+          "from": [
+            5,
+            2
+          ],
+          "to": [
+            7,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 4.6,
+          "col": 7,
+          "row": 2,
+          "label": "Sign-off"
+        },
+        {
+          "kind": "arrow",
+          "at": 5.2,
+          "from": [
+            7,
+            2
+          ],
+          "to": [
+            9,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 5.8,
+          "col": 9,
+          "row": 2,
+          "label": "Loan"
+        }
+      ]
+    },
+    {
+      "heading": "The rules that decide",
+      "bullets": [],
+      "narration": "Three rules carry the business. A checkout needs one free copy. Every loan runs fourteen days. A borrower holds at most three loans at the same time, on both membership tiers.",
+      "elements": [
+        {
+          "kind": "stat",
+          "at": 1.0,
+          "col": 1,
+          "row": 2,
+          "value": "14",
+          "label": "days per loan"
+        },
+        {
+          "kind": "stat",
+          "at": 1.8,
+          "col": 4,
+          "row": 2,
+          "value": "3",
+          "label": "loans at most"
+        },
+        {
+          "kind": "stat",
+          "at": 2.6,
+          "col": 7,
+          "row": 2,
+          "value": "1",
+          "label": "free copy needed"
+        }
+      ]
+    },
+    {
+      "heading": "The agent at the desk",
+      "bullets": [],
+      "narration": "The case agent works each request the way a librarian would. It reads the loan rules and the manual, and approves, declines, or refers. The scoreboard scores every run against the workers' own decisions.",
+      "elements": [
+        {
+          "kind": "bar",
+          "at": 1.5,
+          "col": 2,
+          "row": 2,
+          "label": "run score against the workers",
+          "share": 0.8
+        }
+      ]
+    },
+    {
+      "heading": "The lead's sign-off",
+      "bullets": [
+        "A term over fourteen days waits",
+        "The lead librarian signs it off",
+        "Then the system issues the loan"
+      ],
+      "narration": "Longer terms never issue themselves. A loan over fourteen days waits for the lead librarian's sign-off, and the system issues the loan only after it."
+    },
+    {
+      "heading": "What the business sees",
+      "bullets": [
+        "A queue that clears itself",
+        "Decisions with their reasons",
+        "A score that only improves"
+      ],
+      "narration": "The business gets a queue that clears itself, a decision with its reason on every request, and a score that the improvement loop keeps raising."
+    }
+  ]
+}

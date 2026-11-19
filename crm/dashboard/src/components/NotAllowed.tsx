@@ -1,5 +1,5 @@
 import { api } from "../api";
-import { money } from "../format";
+import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 import { useWorker } from "../worker";
 import { useLoad } from "../useLoad";
 
@@ -8,13 +8,22 @@ import { useLoad } from "../useLoad";
 export function NotAllowed({ action }: Readonly<{ action: string }>) {
   const worker = useWorker();
   const { data: settings } = useLoad(api.getSettings);
+  const word = useLabel();
+  const format = useAwardFormat();
   return (
     <p className="not-allowed">
       {settings && (
         <>
-          Only a worker who can sign off awards over{" "}
-          <span className="mono">{money(settings.current.approval_limit)}</span>{" "}
-          can {action}. {worker.name} can't.
+          {word(
+            "not_allowed.text",
+            "Only a worker who can sign off awards over {limit} can {action}. {worker} can't.",
+          )
+            .replaceAll(
+              "{limit}",
+              awardText(settings.current.approval_limit, format),
+            )
+            .replaceAll("{action}", action)
+            .replaceAll("{worker}", worker.name)}
         </>
       )}
     </p>

@@ -72,6 +72,23 @@ def test_the_laptop_route_is_at_crm_agent(client, agent_answers, monkeypatch):
     assert sent == ["http://agent.example.com:9000/invocations"]
 
 
+def test_an_empty_agent_service_url_names_the_laptop_agent(
+    client, monkeypatch, agent_answers, agent_key
+):
+    """The template .env leaves CRM_AGENT_SERVICE empty, so an empty value
+    must fall back to the laptop agent, or every dispatch reads a blank URL."""
+    sent = []
+
+    def accept(request):
+        sent.append(str(request.url))
+        return httpx.Response(200, json={"accepted": True})
+
+    monkeypatch.setenv("CRM_AGENT_SERVICE", "")
+    agent_answers(accept)
+    assert start_dispatch(client).status_code == 202
+    assert sent == ["http://127.0.0.1:8080/invocations"]
+
+
 def test_the_runtime_route_sends_the_payload_to_the_runtime_with_no_key(
     client, runtime, agent_calls
 ):

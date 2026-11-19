@@ -79,7 +79,7 @@ test("a case declined by the agent", async ({ page, request }) => {
   await startCase(request, caseId, "tour-2");
   await decide(request, caseId, {
     decision: "decline",
-        section: "9. General exclusions",
+    section: "9. General exclusions",
     reason: "The illness was pre-existing, inside the look-back window.",
   });
   await page.goto(`/cases/${caseId}`);

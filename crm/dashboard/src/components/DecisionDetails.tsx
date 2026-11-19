@@ -1,5 +1,6 @@
 import type { DecisionRecord } from "../api";
-import { money, time } from "../format";
+import { time } from "../format";
+import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 import { DecisionChip } from "./Chips";
 
 // A decision's whole record, as cases manual section 14 asks for it: the
@@ -8,13 +9,17 @@ import { DecisionChip } from "./Chips";
 export function DecisionDetails({
   decision,
 }: Readonly<{ decision: DecisionRecord }>) {
+  const word = useLabel();
+  const format = useAwardFormat();
   const calculation = decision.payload?.calculation;
   return (
     <>
       <div className="decision-line">
         <DecisionChip decision={decision.decision} />
         {decision.payload?.award !== undefined && (
-          <span className="award mono">{money(decision.payload.award)}</span>
+          <span className="award mono">
+            {awardText(decision.payload.award, format)}
+          </span>
         )}
       </div>
       {calculation && (
@@ -29,7 +34,10 @@ export function DecisionDetails({
         Decided by {decision.decided_by} at {time(decision.decided_at)}
       </p>
       <p className="small muted">
-        Cases manual version {decision.manual_version}
+        {word(
+          "decision.manual_version",
+          "Cases manual version {version}",
+        ).replaceAll("{version}", decision.manual_version)}
       </p>
     </>
   );
@@ -45,23 +53,29 @@ function CalculationTable({
   >;
   award: number;
 }>) {
+  const word = useLabel();
+  const format = useAwardFormat();
+  const caption = word(
+    "decision.calculation_caption",
+    "How the award was worked out",
+  );
   return (
     <div className="table-scroll calculation">
       <table className="table">
-        <caption className="small muted">How the award was worked out</caption>
+        <caption className="small muted">{caption}</caption>
         <tbody>
           {calculation.map((line, index) => (
             // Two lines can read alike, so each is known by its place too.
             <tr key={`${String(index)} ${line.step}`}>
               <td>{line.step}</td>
-              <td className="num mono">{money(line.amount)}</td>
+              <td className="num mono">{awardText(line.amount, format)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr>
-            <th scope="row">Award</th>
-            <td className="num mono">{money(award)}</td>
+            <th scope="row">{word("decision.award_label", "Award")}</th>
+            <td className="num mono">{awardText(award, format)}</td>
           </tr>
         </tfoot>
       </table>

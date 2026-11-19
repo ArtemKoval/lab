@@ -1,0 +1,194 @@
+[
+  {
+    "case_id": "LN-5001",
+    "contract_id": "MEM-5001",
+    "customer_id": "CUS-5001",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Checkout of The Lighthouse Keeper for the standard 14-day term",
+    "story": "Marta Voss asks at the desk for The Lighthouse Keeper. The catalog holds four copies of the title, and two are on loan, so a copy is free. Her card is a standard membership in good standing, she holds two loans today, and no title on her card is overdue. She asks for the usual term.",
+    "items": [
+      {
+        "description": "The Lighthouse Keeper",
+        "category": "checkout",
+        "amount": 24.0,
+        "isbn": "978-0-14-311111-1",
+        "copies_total": 4,
+        "copies_on_loan": 2
+      }
+    ],
+    "amount_claimed": 24.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5002",
+    "contract_id": "MEM-5002",
+    "customer_id": "CUS-5002",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Mill Lane front desk",
+    "summary": "Checkout of Gardens of the Coast while both copies are on loan",
+    "story": "Dev Okafor asks for Gardens of the Coast. The catalog holds two copies of the title, and both are on loan today, so no copy is free. He asks the desk to set the request aside until a copy comes back. His card is a standard membership, he holds one loan, and no title on his card is overdue.",
+    "items": [
+      {
+        "description": "Gardens of the Coast",
+        "category": "checkout",
+        "amount": 31.0,
+        "isbn": "978-0-57-132222-8",
+        "copies_total": 2,
+        "copies_on_loan": 2
+      }
+    ],
+    "amount_claimed": 31.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5003",
+    "contract_id": "MEM-5003",
+    "customer_id": "CUS-5003",
+    "case_type": "renewal",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Renewal of The Mapmaker's Daughter to 21 days in total",
+    "story": "Sana Iqbal holds one loan today, The Mapmaker's Daughter, issued on October 7 for the base term of 14 days. Her study project runs longer, and she asks the desk to renew the loan to 21 days in total from the first issue. Her card is a research membership in good standing, and no title on her card is overdue. The catalog holds five copies of the title, and one is on loan, hers.",
+    "items": [
+      {
+        "description": "The Mapmaker's Daughter",
+        "category": "renewal",
+        "amount": 18.0,
+        "isbn": "978-0-06-233333-4",
+        "copies_total": 5,
+        "copies_on_loan": 1
+      }
+    ],
+    "amount_claimed": 18.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5004",
+    "contract_id": "MEM-5004",
+    "customer_id": "CUS-5004",
+    "case_type": "renewal",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Mill Lane front desk",
+    "summary": "Standard renewal of Gardens of the Coast to 21 days in total",
+    "story": "Owen Kelly holds Gardens of the Coast on a standard membership, issued on October 7 for 14 days. He asks the desk to renew the loan to 21 days in total, because his move to a new address takes longer than planned. His card is standard, which carries no renewals past the base term. He holds two loans today, and no title on his card is overdue.",
+    "items": [
+      {
+        "description": "Gardens of the Coast",
+        "category": "renewal",
+        "amount": 31.0,
+        "isbn": "978-0-57-132222-8",
+        "copies_total": 2,
+        "copies_on_loan": 2
+      }
+    ],
+    "amount_claimed": 31.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5005",
+    "contract_id": "MEM-5005",
+    "customer_id": "CUS-5005",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Checkout of The Mapmaker's Daughter while the borrower holds three loans",
+    "story": "June Alvarez asks for The Mapmaker's Daughter. The catalog holds five copies, and one is on loan, so a copy is free. Her card is a standard membership in good standing, but she already holds three loans today, which is the most a borrower may hold. No title on her card is overdue.",
+    "items": [
+      {
+        "description": "The Mapmaker's Daughter",
+        "category": "checkout",
+        "amount": 18.0,
+        "isbn": "978-0-06-233333-4",
+        "copies_total": 5,
+        "copies_on_loan": 1
+      }
+    ],
+    "amount_claimed": 18.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5006",
+    "contract_id": "MEM-5006",
+    "customer_id": "CUS-5006",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Checkout of The Northgate Annals from the special collection shelves",
+    "story": "Farid Nasser asks for The Northgate Annals 1901-1950 for his local history project. The catalog holds one copy, and it is not on loan. The title sits on the special collection shelves, and its list price is $240.00. His card is a research membership in good standing, he holds no loans today, and no title on his card is overdue.",
+    "items": [
+      {
+        "description": "The Northgate Annals 1901-1950",
+        "category": "checkout",
+        "amount": 240.0,
+        "isbn": "978-0-55-366666-7",
+        "copies_total": 1,
+        "copies_on_loan": 0
+      }
+    ],
+    "amount_claimed": 240.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5007",
+    "contract_id": "MEM-5002",
+    "customer_id": "CUS-5002",
+    "case_type": "checkout",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Mill Lane front desk",
+    "summary": "Checkout of Salt and Cedar while an overdue title sits on the card",
+    "story": "Dev Okafor also asks for Salt and Cedar. The catalog holds three copies, and none is on loan, so a copy is free. His card is a standard membership, and he holds one loan today. That loan, A Field Guide to Mosses, went past its due date on October 12 and is still out, so an overdue title sits on his card.",
+    "items": [
+      {
+        "description": "Salt and Cedar",
+        "category": "checkout",
+        "amount": 42.5,
+        "isbn": "978-0-30-744444-9",
+        "copies_total": 3,
+        "copies_on_loan": 0
+      }
+    ],
+    "amount_claimed": 42.5,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "LN-5008",
+    "contract_id": "MEM-5001",
+    "customer_id": "CUS-5001",
+    "case_type": "bulk",
+    "submitted_on": "2026-10-20",
+    "incident_date": "2026-10-21",
+    "incident_location": "Northgate Public Library, Central branch front desk",
+    "summary": "Bulk request of five copies of A Field Guide to Mosses for a class",
+    "story": "Marta Voss teaches a weekend nature class and asks for five copies of A Field Guide to Mosses at once. The catalog holds two copies of the title, and one is on loan, so the copies are not there. Her card is a standard membership, she holds two loans today, and a bulk request counts as one loan per copy at the desk.",
+    "items": [
+      {
+        "description": "A Field Guide to Mosses",
+        "category": "bulk",
+        "amount": 55.0,
+        "isbn": "978-0-19-955555-2",
+        "copies_total": 2,
+        "copies_on_loan": 1
+      }
+    ],
+    "amount_claimed": 55.0,
+    "documents": [],
+    "status": "waiting"
+  }
+]

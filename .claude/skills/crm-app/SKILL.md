@@ -70,6 +70,17 @@ gateway, and memory variables at it, and proves the invoke path with a
 wiring gate. The laptop route (the agent on 8080) stays the default;
 `CRM_AGENT_RUNTIME` moves the backend to the emulator.
 
+## Run the public demo
+
+`crm/deploy/demo_up.sh` starts the whole demo stack on the library pack: the
+floci emulator, the wiring gate, and the app with every port bound for the
+web. It prints the URL block with the address to use. Flags: `--host ADDR`
+names the address, `--live-agent` keeps the laptop route so the real agent
+works cases. `crm/deploy/demo_down.sh` stops the stack and closes the ports,
+and exits 2 when a port still answers. The demo script lives at
+`crm/docs/demo_runbook.md`. The e2e suite and the demo stack share port
+8004, so run one at a time.
+
 ## Gates
 
 The repository adds three gates on the changed Python of `crm/`. Run them

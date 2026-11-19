@@ -102,7 +102,7 @@ def supabase_keys(monkeypatch):
 def judge_answers(monkeypatch):
     """Answer the judge's calls with a worker of the test's own, in place of
     OpenRouter's Decisions endpoint, at the tests' own address."""
-    monkeypatch.setattr(judge, "JUDGE_URL", JUDGE_URL)
+    monkeypatch.setattr(judge, "judge_url", lambda: JUDGE_URL)
 
     def answer_with(worker):
         transport = httpx.MockTransport(worker)

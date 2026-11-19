@@ -21,9 +21,10 @@ class OutOfReach(Exception):
 
 @cache
 def public_keys() -> jwt.PyJWKClient:
-    """The auth service's public keys, at AUTH_URL. The client keeps the key set it
-    fetches for five minutes, and fetches it again for a key it hasn't seen."""
-    auth_url = os.environ.get("AUTH_URL", "http://127.0.0.1:8004")
+    """The auth service's public keys, at AUTH_URL, or at the laptop service
+    when AUTH_URL is unset or empty. The client keeps the key set it fetches
+    for five minutes, and fetches it again for a key it hasn't seen."""
+    auth_url = os.environ.get("AUTH_URL") or "http://127.0.0.1:8004"
     return jwt.PyJWKClient(f"{auth_url}/jwks.json")
 
 

@@ -15,7 +15,7 @@ import { dateTime, label, money } from "../format";
 import { useWorker } from "../worker";
 import {
   GROUPS,
-  SETTING_FIELDS,
+  settingFields,
   type SettingField,
   UNITS,
   changesBetween,
@@ -27,6 +27,7 @@ import {
 import { type Appearance, chooseAppearance, savedAppearance } from "../theme";
 import { useAction } from "../useAction";
 import { useLoad } from "../useLoad";
+import { useAwardFormat, useLabel } from "../vocabulary";
 
 const APPEARANCES: {
   appearance: Appearance;
@@ -45,6 +46,8 @@ function lastChange(settings: Settings): string {
 }
 
 export function SettingsPage() {
+  const word = useLabel();
+  const format = useAwardFormat();
   // Loaded once, so a refresh never overwrites what a worker is typing. A
   // save returns the settings as they now stand.
   const { data, error } = useLoad(api.getSettings);
@@ -54,7 +57,10 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        lead="The approval limit and the rules for improving the case agent."
+        lead={word(
+          "settings.lead",
+          "The approval limit and the rules for improving the case agent.",
+        )}
       />
       {page ? (
         <SettingsPanels page={page} onSaved={setSaved} />
@@ -88,10 +94,13 @@ function SettingsForm({
   current,
   onSaved,
 }: Readonly<{ current: Settings; onSaved: (page: SettingsData) => void }>) {
-  const [inputs, setInputs] = useState(() => inputsOf(current));
+  const word = useLabel();
+  const format = useAwardFormat();
+  const fields = settingFields(format);
+  const [inputs, setInputs] = useState(() => inputsOf(current, fields));
   const [confirming, setConfirming] = useState(false);
-  const proposed = valuesOf(current, inputs);
-  const changes = changesBetween(current, proposed);
+  const proposed = valuesOf(current, inputs, fields);
+  const changes = changesBetween(current, proposed, fields);
   const save = useAction(() => api.changeSettings(proposed).then(onSaved));
 
   return (
@@ -117,10 +126,18 @@ function SettingsForm({
       {settingGroups.map((group) => (
         <fieldset className="panel" key={group}>
           <legend>{GROUPS[group].title}</legend>
-          <p className="muted small">{GROUPS[group].lead}</p>
+          <p className="muted small">
+            {group === "approval"
+              ? word(
+                  "settings.group_approval_lead",
+                  "Awards over the limit wait for a senior worker's sign-off. A new limit applies to later decisions only.",
+                )
+              : GROUPS[group].lead}
+          </p>
           <div className="setting-fields">
-            {SETTING_FIELDS.filter((field) => field.group === group).map(
-              (field) => (
+            {settingFields(format)
+              .filter((field) => field.group === group)
+              .map((field) => (
                 <SettingInput
                   key={field.id}
                   field={field}
@@ -129,8 +146,7 @@ function SettingsForm({
                     setInputs({ ...inputs, [field.id]: value });
                   }}
                 />
-              ),
-            )}
+              ))}
           </div>
         </fieldset>
       ))}
@@ -199,6 +215,7 @@ function SettingInput({
 }
 
 function ReadOnlySettings({ current }: Readonly<{ current: Settings }>) {
+  const format = useAwardFormat();
   return (
     <>
       <div className="settings-bar">
@@ -213,16 +230,16 @@ function ReadOnlySettings({ current }: Readonly<{ current: Settings }>) {
         >
           <h2 id={`${group}-title`}>{GROUPS[group].title}</h2>
           <dl className="facts">
-            {SETTING_FIELDS.filter((field) => field.group === group).map(
-              (field) => (
+            {settingFields(format)
+              .filter((field) => field.group === group)
+              .map((field) => (
                 <div key={field.id}>
                   <dt>{field.label}</dt>
                   <dd className="mono">
                     {shown(field.unit, field.get(current))}
                   </dd>
                 </div>
-              ),
-            )}
+              ))}
           </dl>
         </section>
       ))}

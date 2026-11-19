@@ -144,9 +144,7 @@ def test_two_decisions_in_one_reply_are_recorded_and_paid_once(client):
 
 
 def test_a_refused_decision_goes_back_to_the_model(client):
-    model = stub(
-        record("approve"), calculate("CLM-1001", 420.0), record("approve")
-    )
+    model = stub(record("approve"), calculate("CLM-1001", 420.0), record("approve"))
     assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"
     refusal = model.prompts[1][-1]
     assert isinstance(refusal, ToolMessage)
@@ -222,11 +220,11 @@ def test_working_out_the_award(client):
     ]
     model = stub(
         call(
-                "resolve_outcome",
-                benefit="trip_delay",
-                lines=lines,
-                paid_by_others=0,
-            ),
+            "resolve_outcome",
+            benefit="trip_delay",
+            lines=lines,
+            paid_by_others=0,
+        ),
         record("approve"),
     )
     assert work("CLM-1001", model) == "CLM-1001  approve  420.00 awarded"

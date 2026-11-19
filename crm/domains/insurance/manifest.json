@@ -34,5 +34,108 @@
     "contracts": "contracts.json",
     "workers": "workers.json",
     "company": "company.json"
+  },
+  "vocabulary": {
+    "labels": {
+      "queue.col.claimed": "Claimed",
+      "dispatch.col.award": "Award",
+      "case.lead.entry": "{customer_name}'s {case_type} entry",
+      "case.incident": "Incident",
+      "case.amount_claimed": "Amount claimed",
+      "items.title": "Items claimed",
+      "history.filed": "filed",
+      "history.paid": "paid",
+      "hold.gateway_refused": "The Gateway refused the payment of {award}, so it waits for a worker's sign-off.",
+      "hold.over_limit": "The payment of {award} is over the approval limit and waits for a worker's sign-off.",
+      "decision.calculation_caption": "How the award was worked out",
+      "decision.award_label": "Award",
+      "decision.manual_version": "Cases manual version {version}",
+      "not_allowed.text": "Only a worker who can sign off awards over {limit} can {action}. {worker} can't.",
+      "steps.sent_back_note": "Worker's note",
+      "decision.approve": "Approved",
+      "measure.straight_through": "Straight-through",
+      "case.worker_col": "Worker",
+      "case.same_grounds_col": "Same grounds",
+      "scoreboard.lead": "How the case agent scores against our workers' decisions.",
+      "settings.lead": "The approval limit and the rules for improving the case agent.",
+      "settings.group_approval_lead": "Awards over the limit wait for a senior worker's sign-off. A new limit applies to later decisions only.",
+      "improvement.rounds_empty": "No rounds yet. Starting a round has the improver read the latest results and propose a change to the case agent for a worker to approve.",
+      "card.kind.customers": "Customers and contracts",
+      "copilot.suggest.wording": "What does the contract wording say about baggage delays?",
+      "outcome.paid": "Signed off and paid",
+      "outcome.may_have_paid": "The Copilot stopped while signing off, so its page says whether it was paid.",
+      "copilot.greeting.lead": "Ask me about the queue, a entry or the contract wording, or have me do the work. I work as you, so I can see and do what you can.",
+      "confirm.title.waiting": "Sign off this award?",
+      "confirm.sign_off_pay": "Sign off and pay",
+      "resolution.issue": "Pay the award",
+      "resolution.decline": "Decline the request",
+      "resolution.days": "Days",
+      "resolution.amount": "Amount",
+      "resolution.reason": "Why the lead decides so",
+      "desk.approve": "Pay the award",
+      "desk.decline": "Decline the request",
+      "desk.refer": "Refer to the lead",
+      "desk.reason": "Why the desk decides so",
+      "desk.sections": "The rule sections relied on",
+      "desk.sections.default": "Section 3, Trip Delay"
+    },
+    "contract": {
+      "title": "Contract",
+      "rows": [
+        {
+          "label": "Contract",
+          "field": "contract_id",
+          "format": "text"
+        },
+        {
+          "label": "Plan",
+          "field": "plan",
+          "format": "text"
+        },
+        {
+          "label": "Add-ons",
+          "field": "add_ons",
+          "format": "list",
+          "empty": "None"
+        },
+        {
+          "label": "Purchased",
+          "field": "purchased_on",
+          "format": "date"
+        },
+        {
+          "label": "Sold through",
+          "field": "sold_through",
+          "format": "text"
+        },
+        {
+          "label": "Trip",
+          "template": "{trip.destination}, {trip.departs_on} to {trip.returns_on}",
+          "formats": {
+            "trip.destination": "text",
+            "trip.departs_on": "date",
+            "trip.returns_on": "date"
+          }
+        },
+        {
+          "label": "Trip cost",
+          "field": "trip.trip_cost",
+          "format": "money"
+        },
+        {
+          "label": "Travelers",
+          "field": "travelers",
+          "format": "list"
+        }
+      ]
+    },
+    "award_format": "money",
+    "messages": {
+      "over_limit": "An award over {limit} needs a worker's sign-off",
+      "contract_not_found": "Contract {contract_id} not found",
+      "senior": "Only a worker who can sign off awards over {limit} can {action}. {worker} can't.",
+      "cant_sign_off": "{name} can't sign off awards over the approval limit of {limit}"
+    },
+    "benefit": "emergency_medical"
   }
 }

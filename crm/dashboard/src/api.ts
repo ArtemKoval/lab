@@ -6,6 +6,7 @@ import type {
   ConversationSummary,
 } from "./conversation";
 import type { Source } from "./sources";
+import type { Vocabulary } from "./vocabulary";
 
 export const statuses = [
   "waiting",
@@ -506,6 +507,21 @@ const conversationPath = (conversationId: string) =>
 const PACK = "/api/pack";
 
 // The active pack's declarations, which the pages render.
+export interface WorkerDecisionBody {
+  decision: "approve" | "decline" | "refer";
+  days: number;
+  reason: string;
+  section: string;
+  benefit: string;
+}
+
+export interface ResolutionBody {
+  resolution: "loan" | "decline";
+  days?: number;
+  reason?: string;
+  benefit?: string;
+}
+
 export interface PackView {
   name: string;
   display_name: string;
@@ -513,6 +529,7 @@ export interface PackView {
   outcomes: Record<string, string>;
   config: Record<string, string>;
   effects: Record<string, Record<string, unknown>>;
+  vocabulary?: Vocabulary | null;
 }
 
 export const api = {
@@ -574,6 +591,20 @@ export const api = {
     askTheCopilot(CONVERSATIONS, { message }),
   sendMessage: (conversationId: string, message: string) =>
     askTheCopilot(`${conversationPath(conversationId)}/messages`, { message }),
+  resolveReferral: (caseId: string, resolution: ResolutionBody) =>
+    send<Case>(
+      "POST",
+      `${casePath(caseId)}/resolution`,
+      resolution,
+      freshAccessToken,
+    ),
+  workerDecision: (caseId: string, decision: WorkerDecisionBody) =>
+    send<Case>(
+      "POST",
+      `${casePath(caseId)}/worker-decision`,
+      decision,
+      freshAccessToken,
+    ),
   answerConfirmation: (
     conversationId: string,
     turnId: string,

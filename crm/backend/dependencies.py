@@ -14,7 +14,7 @@ from backend import api_key, auth
 from backend.database import engine, workers
 from backend.lookups import current_settings
 from backend.models import Worker
-from backend.money import dollars
+from domains import loader
 
 SIGN_IN_OUT_OF_REACH = "Sign-in can't be checked: the auth service is out of reach"
 NOT_SIGNED_IN = "The sign-in isn't valid. Please sign in again."
@@ -142,9 +142,16 @@ def refuse_unless_senior(db: Connection, worker: Worker, action: str) -> None:
     """Raise a 403 that names the action and says why, unless the worker can sign
     off awards over the limit."""
     if not worker.can_approve_over_limit:
-        limit = dollars(current_settings(db).approval_limit)
+        pack = loader.pack()
+        limit = pack.award_text(current_settings(db).approval_limit)
+        template = pack.message(
+            "senior",
+            "Only a worker who can sign off awards over {limit} can {action}. "
+            "{worker} can't.",
+        )
         raise HTTPException(
             403,
-            f"Only a worker who can sign off awards over {limit} can {action}. "
-            f"{worker.name} can't.",
+            template.replace("{limit}", limit)
+            .replace("{action}", action)
+            .replace("{worker}", worker.name),
         )
