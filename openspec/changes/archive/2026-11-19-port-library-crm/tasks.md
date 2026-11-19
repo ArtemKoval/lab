@@ -2,7 +2,7 @@
 
 - [x] 1.0 Port the two child ADRs as 0018 and 0019. Landed with the
   proposal branch.
-- [ ] 1.1 Write the port script at `tools/port_library_crm/` with unit
+- [x] 1.1 Write the port script at `tools/port_library_crm/` with unit
   tests: fetch the child head `210247d`, compute `git merge-tree
   --write-tree` with base `05c3ddd`, apply the merged files to the branch,
   stage the conflict list, and write the report with a deletions row to
@@ -48,7 +48,7 @@
   or less, and split any function above 10 in this change.
 - [x] 2.8 Run crapper and dryer over the ported Python surface. Hold CRAP at
   10 or less and no duplication pair at or above 0.8.
-- [ ] 2.9 Run the mutator over every ported Python module in an out-of-tree
+- [x] 2.9 Run the mutator over every ported Python module in an out-of-tree
   copy that mirrors the repository layout, because the slidecast conftest
   switches its import root on `MUTANT_UNDER_TEST`. Drive every survivor to
   death with a test.
@@ -72,16 +72,16 @@
 
 - [x] 4.1 Run the adversarial review over the whole diff, verify each
   finding against the code, and fix every confirmed finding.
-- [ ] 4.2 Re-run the suite and the gates after the fixes, including the
+- [x] 4.2 Re-run the suite and the gates after the fixes, including the
   former survivors.
-- [ ] 4.3 Open the implementation pull request with the summary, the
+- [x] 4.3 Open the implementation pull request with the summary, the
   mechanism, the test plan with observed results, the skipped lanes, the
   `gate-integrity: acknowledged` line for the two protected conftest paths
   (`tests/slidecast/conftest.py` and `tests/port_library_crm/conftest.py`,
   both additions), and the attribution line.
-- [ ] 4.4 Merge by squash, delete the branch, resync `main`, and run the
+- [x] 4.4 Merge by squash, delete the branch, resync `main`, and run the
   residue scan.
-- [ ] 4.5 Run `openspec validate port-library-crm --type change --strict`,
+- [x] 4.5 Run `openspec validate port-library-crm --type change --strict`,
   archive the change on its own branch, and merge the archive pull request.
   The archive applies the deltas to the live specs.
 - [ ] 4.6 Open the handover issue with the handover-telemetry block and the
