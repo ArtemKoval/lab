@@ -93,9 +93,9 @@ Out of scope, recorded here so the cut is explicit:
   the Langfuse services and gains the loopback-bound demo `db` service and
   the override file beside it.
 - `tools/slidecast/` and `tests/slidecast/` are new. The tests run in the
-  root suite with the standard library only. The new test conftest touches
-  one gate-protected path pattern, so the implementation pull request body
-  carries the `gate-integrity: acknowledged` line.
+  root suite with the standard library only. The two new test conftests
+  touch a gate-protected path pattern, so the implementation pull request
+  body carries the `gate-integrity: acknowledged` line.
 - Docs and records: `README.md`, `CLAUDE.md`, `HARNESS.md`, `SCALE.md`,
   `docs/wiki/`, `docs/videos/`, `crm/docs/`, `glossary/business.md`,
   `adr/0018`, `adr/0019`.

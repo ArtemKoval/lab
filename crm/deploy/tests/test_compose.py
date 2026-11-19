@@ -5,6 +5,7 @@ and only the documented dev credentials sit in the tracked file."""
 from pathlib import Path
 
 import yaml
+from yaml.nodes import SequenceNode
 
 COMPOSE = Path(__file__).resolve().parents[1] / "compose.yaml"
 
@@ -74,3 +75,37 @@ def test_only_dev_credentials_sit_in_the_tracked_file():
         for key, value in (service.get("environment") or {}).items():
             if credentialish(str(key)) and len(str(value)) >= 16:
                 assert str(value) in DEV_CREDENTIALS, f"{name}.{key}"
+
+
+class ComposeLoader(yaml.SafeLoader):
+    """The safe loader with compose's !override tag registered."""
+
+
+def _override_sequence(loader: ComposeLoader, node: SequenceNode) -> list:
+    """Build the override ports list from the !override sequence."""
+    return loader.construct_sequence(node)
+
+
+ComposeLoader.add_constructor("!override", _override_sequence)
+
+OVERRIDE = Path(__file__).resolve().parents[1] / "compose.demo.yaml"
+
+
+def override_compose() -> dict:
+    # ComposeLoader extends SafeLoader, so the load stays safe; the ruff S506
+    # finding is about yaml.load with an unknown loader in general.
+    return yaml.load(OVERRIDE.read_text(), Loader=ComposeLoader)  # noqa: S506
+
+
+def test_the_demo_db_binds_the_loopback_in_the_base():
+    ports = compose()["services"]["db"]["ports"]
+    assert ports == ["127.0.0.1:5433:5432"]
+
+
+def test_the_demo_override_publishes_the_db():
+    ports = override_compose()["services"]["db"]["ports"]
+    assert ports == ["5433:5432"]
+
+
+def test_the_db_service_stays_unprofiled():
+    assert "profiles" not in compose()["services"]["db"]

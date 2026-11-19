@@ -1,0 +1,18 @@
+{
+  "name": "Northgate Public Library",
+  "currency": "USD",
+  "award_approval_limit": 14.0,
+  "base_loan_days": 14,
+  "loan_cap": 3,
+  "loan_pickup_window_days": 3,
+  "repeat_request_review": {
+    "requests": 3,
+    "within_months": 6
+  },
+  "overdue_fine": {
+    "amount": 0.25,
+    "per": "day past the due date, per title"
+  },
+  "wording_version": "2026.2",
+  "manual_version": "2026.2"
+}

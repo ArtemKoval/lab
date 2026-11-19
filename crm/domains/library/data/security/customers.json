@@ -1,0 +1,42 @@
+[
+  {
+    "customer_id": "CUS-5901",
+    "name": "Vera Lindqvist",
+    "email": "vera.lindqvist@northgate.example",
+    "phone": "+1 503 555 0901",
+    "date_of_birth": "1991-06-21",
+    "address": {
+      "street": "14 NW 12th Avenue",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97209"
+    },
+    "customer_since": "2026-01-30",
+    "previous_cases": []
+  },
+  {
+    "customer_id": "CUS-5902",
+    "name": "Hugo Barbosa",
+    "email": "hugo.barbosa@northgate.example",
+    "phone": "+1 503 555 0902",
+    "date_of_birth": "1985-11-11",
+    "address": {
+      "street": "23 SE Division Street",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97202"
+    },
+    "customer_since": "2024-04-04",
+    "previous_cases": [
+      {
+        "case_id": "LN-5900",
+        "filed_on": "2026-09-01",
+        "incident_date": "2026-09-02",
+        "case_type": "checkout",
+        "summary": "Checkout of Gardens of the Coast",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      }
+    ]
+  }
+]

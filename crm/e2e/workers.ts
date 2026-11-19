@@ -4,12 +4,15 @@ import { expect } from "@playwright/test";
 // signs every worker in with, and where each one's signed-in browser storage
 // is kept for the tests.
 import { readFileSync } from "node:fs";
+// The Auth stand-in's address comes from the one place every e2e URL comes
+// from, so an external run reaches the same stand-in the config starts.
+import { AUTH_STAND_IN } from "./servers";
 
 export const TEST_PASSWORD = "e2e-worker-password";
 
-// The address of the Auth stand-in the playwright config starts.
-export const AUTH_STAND_IN =
-  process.env.AUTH_STAND_IN_URL ?? "http://127.0.0.1:8004";
+// The address of the Auth stand-in the playwright config starts, with the
+// environment's say still first.
+export const AUTH_STAND_IN_URL = process.env.AUTH_STAND_IN_URL ?? AUTH_STAND_IN;
 
 interface PackWorker {
   worker_id: string;
@@ -17,8 +20,12 @@ interface PackWorker {
   email: string;
 }
 
+// The active pack follows CRM_DOMAIN, so a library run signs in the
+// library's own librarians, and the default run keeps the insurance pack.
+export const PACK = process.env.CRM_DOMAIN ?? "insurance";
+
 const pack_workers = JSON.parse(
-  readFileSync("domains/insurance/data/workers.json", "utf8"),
+  readFileSync(`domains/${PACK}/data/workers.json`, "utf8"),
 ) as PackWorker[];
 
 const STORAGE: Record<string, string> = {
@@ -49,7 +56,7 @@ export async function signedInAs(
   request: import("@playwright/test").APIRequestContext,
   worker: { email: string },
 ) {
-  const response = await request.post(`${AUTH_STAND_IN}/signin`, {
+  const response = await request.post(`${AUTH_STAND_IN_URL}/signin`, {
     data: { email: worker.email, password: TEST_PASSWORD },
   });
   await expect(response).toBeOK();

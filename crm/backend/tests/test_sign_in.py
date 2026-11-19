@@ -101,3 +101,14 @@ def test_the_public_keys_are_fetched_from_the_auth_service():
     keys = auth.public_keys()
     assert keys.uri == f"{AUTH_URL}/jwks.json"
     assert auth.public_keys() is keys
+
+
+def test_an_empty_auth_url_names_the_laptop_service(monkeypatch):
+    """The template .env leaves AUTH_URL empty, so an empty address must fall
+    back to the laptop service, or every sign-in breaks."""
+    monkeypatch.setenv("AUTH_URL", "")
+    auth.public_keys.cache_clear()
+    try:
+        assert auth.public_keys().uri == "http://127.0.0.1:8004/jwks.json"
+    finally:
+        auth.public_keys.cache_clear()

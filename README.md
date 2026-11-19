@@ -1,55 +1,124 @@
-# lab
+# library_crm
 
-A personal lab of Art Koval. The repository holds small projects, tools, and the Claude Code harness that builds them.
+A CRM engine with domain packs, and the agentic harness that builds it. The
+engine runs a backoffice queue: AI case workers read each case, decide it
+against the pack's policy documents, and a human signs off the large
+outcomes. Every domain word lives in a pack, so one engine runs a travel
+insurer, an IT helpdesk, an operations desk, and a public library.
 
-`CLAUDE.md` is the source of truth for conventions. Each project has its own README with the exact commands.
+`CLAUDE.md` is the source of truth for conventions. Each project has its own
+README with the exact commands.
 
-## Repository layout
+## The engine
 
-| Path | Contents |
+| Pack | Domain | The desk it runs |
+| --- | --- | --- |
+| `insurance` | A fictional travel insurer | Claims, service credits, lead sign-off over $1,000 |
+| `helpdesk` | FastFix IT support | Outage and response credits on support plans |
+| `opsdemo` | Nimbus OpsDesk | Escalation effort in engineer-hours, no money |
+| `library` | Northgate Public Library | Loan requests, 14-day terms, the three loan cap |
+
+`CRM_DOMAIN` names the active pack, and the engine carries no domain word of
+its own. The full behavior specs live under `openspec/specs/`.
+
+## Run the engine
+
+You need Python 3.12 or newer, Node 22 or newer, and uv. From `crm/`:
+
+```bash
+uv sync && npm install
+cp .env.example .env   # the model key is optional
+npm run seed           # build crm.db from the active pack
+npm run dev            # backend on 8000, dashboard on 5173
+```
+
+The dashboard lives on `http://localhost:5173`. Sign in with a worker email
+of the active pack and the dev password `crm-dev`; the emails sit in
+`crm/README.md`. The suite and the e2e need no model key.
+
+```bash
+npm run check --prefix crm     # ruff, pyright, pytest, prettier, eslint, tsc, vitest, e2e
+uv run python validate.py insurance   # examine a pack, from crm/
+```
+
+The devcontainer and the floci emulator run the same commands in a
+container and against the local AWS emulator; the `crm-setup`,
+`crm-local-aws`, and `crm-aws-rollout` skills own the three ways to run.
+
+## One command: everything, in the devcontainer, on floci
+
+The script installs and runs the whole solution locally: the devcontainer
+with all services, the AWS targets on the floci emulator, the pack
+validated and seeded, and the stack left running. In Claude Code the same
+path is the `crm-local-aws` skill.
+
+```bash
+crm/local-up.sh library   # any pack name; then open http://localhost:5173
+```
+
+Stop with `docker rm -f crm-floci` and `docker rm -f crm-dev`.
+
+## The assignment around it
+
+The library domain landed as one assignment
+([issue 1](https://github.com/ArtemKoval/library_crm/issues/1)), and its
+records stay in the repository:
+
+| Record | Where |
 | --- | --- |
-| `adr/` | Architectural decision records. An accepted ADR changes only through a superseding ADR. |
-| `apple/fm/` | Experiments with the Apple Foundation Model. |
-| `configs/` | Machine configs, for example WezTerm. |
-| `fde/` | A desktop chat app for OpenRouter. |
-| `glossary/` | Domain and technical terms for the specs. |
-| `llm_ops/` | LLM operations experiments. |
-| `notebooks/` | Standalone teaching notebooks. |
-| `openspec/` | Behavior specs and the OpenSpec change workflow. |
-| `tests/` | The root test suite. |
-| `tools/` | Standalone command line tools. |
-| `.claude/` | The Claude Code harness: skills, agents, hooks, and the output style. |
+| The setup around the agents | [HARNESS.md](HARNESS.md) |
+| The team-scale plan | [SCALE.md](SCALE.md) |
+| The wiki pages, with screenshots | [docs/wiki/](docs/wiki/Home.md) |
+| Four narrated videos | [docs/videos/](docs/videos/) |
 
-## Projects
+## The rest of the lab
 
 | Project | What it is | Documentation |
 | --- | --- | --- |
 | `fde` | A desktop chat app for OpenRouter. The user interface is Electron. An embedded Python backend talks to OpenRouter. | `fde/README.md`, the `fde-app` skill |
 | `llm_ops/eval` | A DeepEval script that uses a local apfel server as the judge. It runs in a devcontainer. | `llm_ops/eval/README.md`, the `apfel-eval` skill |
-| `crm` | A CRM engine with domain packs, ported from the UnderCover course project one milestone at a time. The insurance domain is the first pack. | `crm/README.md`, the `crm-app` skill |
-| `tools/zai_routing_audit` | A stdlib CLI that audits the model routing of z.ai behind Claude Code. Its venv interpreter runs the root test suite. | `tools/zai_routing_audit/README.md`, the `zai-routing-audit` skill |
-| `tools/devcontainer_init` | A stdlib CLI that scaffolds a devcontainer with an Ubuntu LTS base, git, node, and uv. | `tools/devcontainer_init/README.md`, the `devcontainer-init` skill |
-| `tools/plan_exec` | A stdlib CLI that extracts task briefs, packages review diffs, and keeps append-only execution ledgers. | `tools/plan_exec/README.md`, the `openspec-apply-change` skill |
-| `tools/spec_ste_check` | A stdlib CLI that enforces the mechanical ASD-STE100 rules on spec text. | `tools/spec_ste_check/README.md`, the `spec-ste-check` skill |
-| `tools/crapper`, `tools/dryer`, `tools/mutator` | Vendored gate tools from `unclebob` (0BSD, pinned commits). They are the default quality gates for new Python changes: CRAP, duplication, and mutation. | the vendored READMEs, the `ub-mode` skill |
+| `tools/zai_routing_audit` | A stdlib CLI that audits the model routing behind Claude Code. Its venv interpreter runs the root test suite. | the README, the `zai-routing-audit` skill |
+| `tools/devcontainer_init` | A stdlib CLI that scaffolds a devcontainer with an Ubuntu LTS base, git, node, and uv. | the README, the `devcontainer-init` skill |
+| `tools/plan_exec` | Task briefs, review diffs, and append-only execution ledgers. | the README, the `openspec-apply-change` skill |
+| `tools/spec_ste_check` | The mechanical ASD-STE100 gate for spec text. | the README, the `spec-ste-check` skill |
+| `tools/slidecast` | One narrated video from one JSON deck. | the README |
+| `tools/crapper`, `tools/dryer`, `tools/mutator` | The vendored quality gates: CRAP, duplication, and mutation. | the vendored READMEs, the `ub-mode` skill |
+| `notebooks` | Standalone teaching notebooks. | `tests/notebooks/` |
 
-The devcontainer for the UnderCover contribution lives in `fde/.devcontainer/`. The root suite guards it in `tests/undercover_devcontainer/`.
+The devcontainer for the UnderCover contribution lives in `fde/.devcontainer/`.
+The root suite guards it in `tests/undercover_devcontainer/`.
+
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `crm/` | The CRM engine, its dashboard, its e2e suite, and the domain packs. |
+| `adr/` | Architectural decision records. An accepted ADR changes only through a superseding ADR. |
+| `docs/` | The wiki pages and the videos of the assignment. |
+| `glossary/` | Domain and technical terms for the specs. |
+| `openspec/` | Behavior specs and the OpenSpec change workflow. |
+| `tests/` | The root test suite. |
+| `tools/` | Standalone command line tools. |
+| `.claude/` | The Claude Code harness: skills, agents, hooks, and the output style. |
 
 ## Setup for a clean clone
 
-1. Read `tools/project_setup/registry.json`. It names the units that a clean clone must have.
-2. In Claude Code, use the `project-setup` skill. The skill examines each unit. After you give permission, it installs the units that the clone does not have.
-3. If you do not use Claude Code, run the `install` command of each unit.
+Read `tools/project_setup/registry.json`, and use the `project-setup` skill
+in Claude Code. It examines each unit, and installs the units the clone
+lacks after you give permission.
 
 ## Common commands
 
-Run the root test suite from the repository root. By default, it opens no network connection and uses no daemon.
+Run the root test suite from the repository root. By default, it opens no
+network connection and uses no daemon.
 
 ```bash
 tools/zai_routing_audit/.venv/bin/python -m pytest
 ```
 
-The e2e tests run only with their gate variables. The zai and devcontainer tests need a network or a Docker daemon. The gate-tool smoke needs only the three built tool venvs.
+The e2e tests run only with their gate variables. The zai and devcontainer
+tests need a network or a Docker daemon. The gate-tool smoke needs only the
+three built tool venvs.
 
 ```bash
 ZAI_ROUTING_AUDIT_E2E=1 tools/zai_routing_audit/.venv/bin/python -m pytest -m e2e
@@ -63,61 +132,4 @@ Develop `fde`:
 cd fde
 npm ci
 npm run py:setup
-npm run dev
 ```
-
-Run the `fde` suites:
-
-```bash
-npm test                    # JS suite
-.venv/bin/python -m pytest  # backend suite
-```
-
-The `llm_ops/eval` commands run in a devcontainer. See `llm_ops/eval/README.md` and the `apfel-eval` skill.
-
-## Specs and decisions
-
-The repository uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) with the `intent-driven` schema (`openspec/schemas/intent-driven/`).
-
-- Behavior specs live in `openspec/specs/`. They are the source of truth.
-- In-flight changes live in `openspec/changes/`.
-- To propose a change, run `/opsx:propose` in Claude Code. To build it, run `/opsx:apply`. To archive it, run `/opsx:archive`.
-- The proposal PR merges to `main` before implementation starts. The implementation PR merges before the archive PR. The `openspec-git-discipline` skill owns these gates.
-
-Durable decisions live in `adr/`:
-
-- [0001 - Adopt the intent-driven harness](adr/0001-add-intent-driven-harness.md)
-- [0002 - Claude Code is the single harness](adr/0002-claude-code-single-harness.md)
-- [0003 - Adopt the superpowers execution mechanics](adr/0003-adopt-superpowers-execution-mechanics.md)
-- [0004 - Enforce ASD-STE100 in specs](adr/0004-enforce-ste-in-specs.md)
-
-The glossary files `glossary/business.md` and `glossary/technical.md` define the domain and technical terms.
-
-## The harness
-
-The harness surfaces live under `.claude/`:
-
-- Skills in `.claude/skills/`, agents in `.claude/agents/`, and commands in `.claude/commands/`.
-- The `feature-pipeline` skill owns the delivery flow for every repository change.
-- Two hooks in `.claude/hooks/`, wired in `.claude/settings.json`: the `SessionStart` charter hook and the `PreToolUse` spec STE gate on `Write` and `Edit`.
-- The output style `.claude/output_styles/asd-ste100.md`. All repository prose is in ASD-STE100 Simplified Technical English. Vendored upstream files are exempt.
-- The MCP config `.mcp.json` starts the `zai-routing-audit` server.
-
-## Adopt the harness in a new repository
-
-1. Copy `openspec/schemas/intent-driven/` into the new repository.
-2. Set `schema: intent-driven` in `openspec/config.yaml`.
-3. Port the skills and agents from the template at `github.com/intent-driven-dev/intent-driven-template`, commit `b5bda460a2180a55fc508fdedc4ef058d95355db`.
-4. Create `adr/0001`.
-5. Read `openspec/schemas/intent-driven/README.md`.
-
-## CI
-
-GitHub Actions runs two workflows in `.github/workflows/`:
-
-- `tests.yml` runs the root suite on pull requests and on `main`. It ignores changes under `fde/` and `llm_ops/`. It measures coverage on `plan_exec` and `spec_ste_check` and runs ruff.
-- `build.yml` packages `fde` on `fde` pull requests and on version tags.
-
-## License
-
-MIT. See `LICENSE`.

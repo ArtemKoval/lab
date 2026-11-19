@@ -34,6 +34,7 @@ TOOL_TABLE = (
      "tests/process_issues"),
     ("chaos_ssh", "devops/chaos/ssh/tutor/chaos_ssh",
      "tests/devops_chaos_ssh"),
+    ("slidecast", "tools/slidecast/slidecast", "tests/slidecast"),
 )
 
 COVERAGE_PATH = "target/coverage/python/lcov.info"

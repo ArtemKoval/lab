@@ -5,7 +5,7 @@ from sqlalchemy import Column, MetaData, Table, Text, inspect, select, update
 from sqlalchemy.pool import QueuePool
 
 from backend import dependencies
-from backend.database import RETIRED, cases, engine, location, seed
+from backend.database import RETIRED, ROOT, cases, database_url, engine, location, seed
 from backend.main import app
 from backend.tests.dashboard_reads import read
 
@@ -39,6 +39,14 @@ def test_sqlite_is_used_otherwise(database):
     assert location(db) == "crm.db"
 
 
+def test_an_empty_crm_db_names_the_file_at_the_root(monkeypatch):
+    """The template .env leaves CRM_DB empty, so an empty value must fall back
+    to crm.db at the root, or the seed and the app each read a database of
+    their own."""
+    monkeypatch.setenv("CRM_DB", "")
+    assert database_url().database == str(ROOT / "crm.db")
+
+
 @pytest.mark.parametrize("empty", [False, True])
 def test_startup_seeds_a_missing_or_empty_database(database, empty):
     database.unlink()
@@ -57,6 +65,13 @@ def test_seeding_drops_the_tables_of_earlier_versions():
     tables = set(inspect(engine()).get_table_names())
     assert not tables & set(RETIRED)
     assert {"runs", "run_cases", "model_calls", "work_times"} <= tables
+
+
+def test_seeding_puts_every_case_in_the_queue_never_started(database):
+    with engine().connect() as db:
+        rows = db.execute(select(cases.c.attempts, cases.c.thread_id)).all()
+    assert rows
+    assert {tuple(row) for row in rows} == {(0, None)}
 
 
 def status_of(case_id):

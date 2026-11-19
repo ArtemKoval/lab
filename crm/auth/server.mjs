@@ -120,6 +120,6 @@ const server = createServer((request, response) => {
   answer(response, 404, {});
 });
 
-server.listen(PORT, "127.0.0.1", () => {
+server.listen(PORT, process.env.HOST ?? "127.0.0.1", () => {
   console.log(`auth service on http://127.0.0.1:${PORT}`);
 });

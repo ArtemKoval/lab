@@ -25,7 +25,11 @@ export default defineConfig(({ mode }) => ({
     rolldownOptions: { output: { codeSplitting: { groups: LIBRARIES } } },
   },
   server: {
-    proxy: { "/api": process.env.CRM_API ?? "http://127.0.0.1:8000" },
+    proxy: {
+      // An empty CRM_API must fall back too, so the proxy target is never "".
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- the empty string is the case this fallback exists for
+      "/api": process.env.CRM_API || "http://127.0.0.1:8000",
+    },
   },
   test: {
     environment: "jsdom",

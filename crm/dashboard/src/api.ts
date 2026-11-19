@@ -6,6 +6,7 @@ import type {
   ConversationSummary,
 } from "./conversation";
 import type { Source } from "./sources";
+import type { Vocabulary } from "./vocabulary";
 
 export const statuses = [
   "waiting",
@@ -265,7 +266,8 @@ export interface CaseGrade {
 export interface ScoredCase extends RunCase {
   copy_of: string;
   reason: string | null;
-  // The number the pack's metric reads from the outcome payload.
+  // The number the pack's metric reads from the outcome payload. The
+  // backend holds a float and scores a missing payload as 0.
   award: number;
   grade: CaseGrade | null;
   worker_decision: DecisionKind;
@@ -382,108 +384,6 @@ export interface SettingsPage {
   models_allowed: ModelAllowed[];
 }
 
-export type RoundStatus = "open" | "finished" | "stopped";
-export type RoundStage =
-  | "first_evaluations"
-  | "improving"
-  | "change_waiting"
-  | "evaluating"
-  | "verdict"
-  | "recipe_waiting";
-export type ProposalKind = "change" | "recipe";
-export type Review = "approved" | "rejected";
-
-// Who approved or rejected one of the improver's proposals, and when.
-export interface RoundReview {
-  kind: ProposalKind;
-  review: Review;
-  reviewed_by: string;
-  reviewed_at: string;
-  rejection_reason: string | null;
-}
-
-// The proposal waiting for a worker, with what it would change. A recipe has
-// no model.
-export interface WaitingProposal {
-  proposal_id: string;
-  kind: ProposalKind;
-  reason: string;
-  proposed_at: string;
-  diff: Diff;
-  model_before: string | null;
-  reasoning_effort_before: string | null;
-  model_after: string | null;
-  reasoning_effort_after: string | null;
-}
-
-export interface RoundSummary {
-  round_id: string;
-  number: number;
-  status: RoundStatus;
-  // Where an open round has got to, and how far, such as "2 of 3".
-  stage: RoundStage | null;
-  progress: string | null;
-  started_by: string;
-  started_at: string;
-  finished_at: string | null;
-  stopped_by: string | null;
-  stopped_because: string | null;
-  recipe: number;
-  settings: number;
-  spending_limit: number;
-  cost: number;
-  // The version the round tried, if any, and its verdict.
-  version: number | null;
-  model: string | null;
-  reasoning_effort: string | null;
-  reason: string | null;
-  verdict: Verdict | null;
-  verdict_reason: string | null;
-  held_out_before: Measures | null;
-  held_out_after: Measures | null;
-  reviews: RoundReview[];
-}
-
-export interface RoundView extends RoundSummary {
-  waiting: WaitingProposal | null;
-  evaluations: Evaluation[];
-}
-
-// A version's held-out accuracy and grade, for the chart.
-export interface VersionPoint {
-  number: number;
-  verdict: Verdict | null;
-  accuracy: number | null;
-  grade: number | null;
-}
-
-export interface RecipeSummary {
-  number: number;
-  current: boolean;
-  reason: string;
-  proposed_by: string;
-  round_id: string | null;
-  approved_by: string | null;
-  approved_at: string | null;
-  created_at: string;
-  lines_added: number;
-  lines_removed: number;
-}
-
-export interface RecipeDetails extends RecipeSummary {
-  recipe: string;
-  diff: Diff | null;
-}
-
-export interface Improvement {
-  // The open round, or the newest.
-  round: RoundView | null;
-  rounds: RoundSummary[];
-  first_version: VersionPoint;
-  versions_tried: VersionPoint[];
-  recipes: RecipeSummary[];
-}
-
 // What the Copilot is asked to work on, with a sign-in that won't run out first.
 const askTheCopilot = (path: string, body: object) =>
   send<Conversation>("POST", path, body, freshAccessToken);
@@ -506,6 +406,21 @@ const conversationPath = (conversationId: string) =>
 const PACK = "/api/pack";
 
 // The active pack's declarations, which the pages render.
+export interface WorkerDecisionBody {
+  decision: "approve" | "decline" | "refer";
+  days: number;
+  reason: string;
+  section: string;
+  benefit: string;
+}
+
+export interface ResolutionBody {
+  resolution: "loan" | "decline";
+  days?: number;
+  reason?: string;
+  benefit?: string;
+}
+
 export interface PackView {
   name: string;
   display_name: string;
@@ -513,6 +428,7 @@ export interface PackView {
   outcomes: Record<string, string>;
   config: Record<string, string>;
   effects: Record<string, Record<string, unknown>>;
+  vocabulary?: Vocabulary | null;
 }
 
 export const api = {
@@ -574,6 +490,20 @@ export const api = {
     askTheCopilot(CONVERSATIONS, { message }),
   sendMessage: (conversationId: string, message: string) =>
     askTheCopilot(`${conversationPath(conversationId)}/messages`, { message }),
+  resolveReferral: (caseId: string, resolution: ResolutionBody) =>
+    send<Case>(
+      "POST",
+      `${casePath(caseId)}/resolution`,
+      resolution,
+      freshAccessToken,
+    ),
+  workerDecision: (caseId: string, decision: WorkerDecisionBody) =>
+    send<Case>(
+      "POST",
+      `${casePath(caseId)}/worker-decision`,
+      decision,
+      freshAccessToken,
+    ),
   answerConfirmation: (
     conversationId: string,
     turnId: string,
@@ -584,3 +514,23 @@ export const api = {
       answer,
     }),
 };
+import type {
+  Improvement,
+  RecipeDetails,
+  RoundSummary,
+} from "./apiImprovement";
+
+export type {
+  RoundStatus,
+  RoundStage,
+  ProposalKind,
+  Review,
+  RoundReview,
+  WaitingProposal,
+  RoundSummary,
+  RoundView,
+  VersionPoint,
+  RecipeSummary,
+  RecipeDetails,
+  Improvement,
+} from "./apiImprovement";

@@ -6,11 +6,11 @@ import {
   dateTime,
   duration,
   modelCost,
-  money,
   stoppedBecause,
   time,
 } from "../format";
 import { REFRESH_MS, useLoad } from "../useLoad";
+import { useLabel } from "../vocabulary";
 import { DecisionChip, RunChip, StatusChip } from "./Chips";
 import { CaseLink } from "./CaseLink";
 import { StateMessage } from "./StateMessage";
@@ -77,6 +77,7 @@ function DispatchDetails({ dispatch }: Readonly<{ dispatch: Run }>) {
 }
 
 function RunCases({ cases }: Readonly<{ cases: RunCase[] }>) {
+  const word = useLabel();
   return (
     <div className="table-scroll">
       <table className="table">
@@ -86,7 +87,7 @@ function RunCases({ cases }: Readonly<{ cases: RunCase[] }>) {
             <th>Customer</th>
             <th>State</th>
             <th>Decision</th>
-            <th>Award</th>
+            <th>{word("dispatch.col.award", "Award")}</th>
             <th>Started</th>
             <th className="num">Time</th>
             <th className="num">Model cost</th>

@@ -24,4 +24,4 @@ createServer((request, response) => {
     reply(response, 200, ANSWER);
   else if (request.url === "/health") reply(response, 200, { status: "ok" });
   else reply(response, 404, { detail: "Not found" });
-}).listen(Number(process.env.PORT), "127.0.0.1");
+}).listen(Number(process.env.PORT), process.env.HOST ?? "127.0.0.1");

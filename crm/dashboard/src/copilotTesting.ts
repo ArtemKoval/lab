@@ -1,6 +1,5 @@
 import { screen, within } from "@testing-library/react";
 import { saveConversation } from "./copilot";
-import type { Confirmation } from "./conversation";
 import type { Conversation, CopilotStep, CopilotTurn } from "./conversation";
 import { renderAt, stubApi } from "./testing";
 

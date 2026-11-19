@@ -147,7 +147,6 @@ Agents = Annotated[
 ]
 
 
-
 class Item(BaseModel):
     description: str
     category: str
@@ -198,7 +197,8 @@ class EffectRun(BaseModel):
 
 
 class PackView(BaseModel):
-    """The active pack's declarations, which the tools and the dashboard render."""
+    """The active pack's declarations and its vocabulary, which the tools and
+    the dashboard render. The vocabulary is absent when the pack names none."""
 
     name: str
     display_name: str
@@ -206,6 +206,7 @@ class PackView(BaseModel):
     outcomes: dict[str, str]
     config: dict[str, str]
     effects: dict[str, dict]
+    vocabulary: dict | None = None
 
 
 class SentBackDecision(DecisionRecord):
@@ -449,12 +450,6 @@ class StartDispatchRequest(BaseModel):
 
 class RunCasesRequest(BaseModel):
     case_ids: list[str] = Field(description="The cases a dispatch works, in order")
-
-
-
-
-
-
 
 
 class HeldAward(BaseModel):
@@ -1048,3 +1043,24 @@ class RunStarted(Accepted):
 
     run_id: str
     number: int
+
+
+class WorkerDecision(BaseModel):
+    """The desk's decision on a waiting request: approve the loan for the
+    term in days, decline it, or refer it to the lead."""
+
+    decision: Literal["approve", "decline", "refer"]
+    days: int = Field(ge=1, le=90, description="The term an approval asks for")
+    reason: str = Field(description="Why the desk decides so")
+    section: str = Field(description="The rule sections the desk relied on")
+    benefit: str = Field(description="The pack's benefit line an approval resolves")
+
+
+class ReferralResolution(BaseModel):
+    """The lead's in-person decision on a referred request: issue the loan
+    for the term in days, or decline it with a reason."""
+
+    resolution: Literal["loan", "decline"]
+    days: int = Field(ge=1, le=90)
+    reason: str
+    benefit: str

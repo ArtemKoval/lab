@@ -197,7 +197,11 @@ it("shows an effect's summary of the outcome", async () => {
   showCase({
     ...held,
     status: "decided",
-    decision: { ...approval, payload: { ...approval.payload, award: 1350 }, ...signOff },
+    decision: {
+      ...approval,
+      payload: { ...approval.payload, award: 1350 },
+      ...signOff,
+    },
     effect: {
       case_id: "CLM-1002",
       effect: "award",
@@ -274,7 +278,11 @@ it("lets a worker sign off a held payment as themselves, which pays it", async (
   const signed: Case = {
     ...held,
     status: "decided",
-    decision: { ...approval, payload: { ...approval.payload, award: 1350 }, ...signOff },
+    decision: {
+      ...approval,
+      payload: { ...approval.payload, award: 1350 },
+      ...signOff,
+    },
     effect: {
       case_id: "CLM-1002",
       effect: "award",
@@ -297,7 +305,11 @@ it("says when the Gateway refused a payment, with its reason", async () => {
   const refused = "Tool Execution Denied: the Contract forbids it";
   showCase({
     ...held,
-    decision: { ...approval, payload: { ...approval.payload, award: 1500 }, gateway_refusal: refused },
+    decision: {
+      ...approval,
+      payload: { ...approval.payload, award: 1500 },
+      gateway_refusal: refused,
+    },
   });
   const panel = await decisionPanel();
   expect(

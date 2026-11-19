@@ -1,0 +1,46 @@
+# Facts from outside the desk that requests often turn on: the book catalog
+# with its copy counts and list prices, and the shelves each title sits on.
+
+source:
+  system: The Northgate catalog
+  owner: Collections
+  reviewed: "2026-10-01"
+
+topics:
+  - topic: catalog
+    description: The titles the library holds, with their ISBNs, copy counts, list prices, and shelves
+    facts:
+      - >-
+        The Lighthouse Keeper, ISBN 978-0-14-311111-1: four copies, list price
+        $24.00, general shelves. Two copies were on loan on October 20, 2026.
+      - >-
+        Gardens of the Coast, ISBN 978-0-57-132222-8: two copies, list price
+        $31.00, general shelves. Both copies were on loan on October 20, 2026.
+      - >-
+        The Mapmaker's Daughter, ISBN 978-0-06-233333-4: five copies, list
+        price $18.00, general shelves. One copy was on loan on October 20, 2026.
+      - >-
+        Salt and Cedar, ISBN 978-0-30-744444-9: three copies, list price
+        $42.50, general shelves. No copy was on loan on October 20, 2026.
+      - >-
+        A Field Guide to Mosses, ISBN 978-0-19-955555-2: two copies, list
+        price $55.00, general shelves. One copy was on loan on October 20, 2026.
+      - >-
+        The Northgate Annals 1901-1950, ISBN 978-0-55-366666-7: one copy, list
+        price $240.00, special collection shelves. The copy never leaves the
+        building.
+      - >-
+        Atlas of the Inland Seas, ISBN 978-0-22-477777-3: one copy, list price
+        $310.00, special collection shelves. The copy never leaves the
+        building.
+
+  - topic: branches
+    description: The branches of Northgate Public Library and their desks
+    facts:
+      - >-
+        The Central branch at 40 Beacon Square holds the special collection
+        shelves and the research desk. Requests name it as
+        "Northgate Public Library, Central branch front desk".
+      - >-
+        The Mill Lane branch holds the general shelves and the weekend desk.
+        Requests name it as "Northgate Public Library, Mill Lane front desk".

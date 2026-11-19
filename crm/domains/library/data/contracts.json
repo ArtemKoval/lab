@@ -1,0 +1,116 @@
+[
+  {
+    "contract_id": "MEM-5001",
+    "customer_id": "CUS-5001",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2024-02-10",
+    "sold_through": "Northgate front desk",
+    "trip": {
+      "destination": "Northgate Public Library, Central branch",
+      "departs_on": "2026-02-10",
+      "returns_on": "2027-02-10",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Marta Voss"
+    ],
+    "status": "active",
+    "active_loans": 2
+  },
+  {
+    "contract_id": "MEM-5002",
+    "customer_id": "CUS-5002",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2023-11-20",
+    "sold_through": "Northgate front desk",
+    "trip": {
+      "destination": "Northgate Public Library, Mill Lane branch",
+      "departs_on": "2026-11-20",
+      "returns_on": "2027-11-20",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Dev Okafor"
+    ],
+    "status": "active",
+    "active_loans": 1
+  },
+  {
+    "contract_id": "MEM-5003",
+    "customer_id": "CUS-5003",
+    "plan": "research",
+    "add_ons": [],
+    "purchased_on": "2025-06-15",
+    "sold_through": "Northgate research desk",
+    "trip": {
+      "destination": "Northgate Public Library, Central branch",
+      "departs_on": "2026-06-15",
+      "returns_on": "2027-06-15",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Sana Iqbal"
+    ],
+    "status": "active",
+    "active_loans": 1
+  },
+  {
+    "contract_id": "MEM-5004",
+    "customer_id": "CUS-5004",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2024-09-01",
+    "sold_through": "Northgate front desk",
+    "trip": {
+      "destination": "Northgate Public Library, Mill Lane branch",
+      "departs_on": "2026-09-01",
+      "returns_on": "2027-09-01",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Owen Kelly"
+    ],
+    "status": "active",
+    "active_loans": 2
+  },
+  {
+    "contract_id": "MEM-5005",
+    "customer_id": "CUS-5005",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2025-01-12",
+    "sold_through": "Northgate front desk",
+    "trip": {
+      "destination": "Northgate Public Library, Central branch",
+      "departs_on": "2026-01-12",
+      "returns_on": "2027-01-12",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "June Alvarez"
+    ],
+    "status": "active",
+    "active_loans": 3
+  },
+  {
+    "contract_id": "MEM-5006",
+    "customer_id": "CUS-5006",
+    "plan": "research",
+    "add_ons": [],
+    "purchased_on": "2022-10-05",
+    "sold_through": "Northgate research desk",
+    "trip": {
+      "destination": "Northgate Public Library, Central branch",
+      "departs_on": "2026-10-05",
+      "returns_on": "2027-10-05",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Farid Nasser"
+    ],
+    "status": "active",
+    "active_loans": 0
+  }
+]

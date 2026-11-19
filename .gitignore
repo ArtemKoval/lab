@@ -168,3 +168,9 @@ target/
 
 # durable harness cron state
 .claude/scheduled_tasks.json
+
+W/
+W3/
+
+# A tool-local uv lock, regenerated whenever uv runs inside the tool.
+tools/spec_ste_check/uv.lock

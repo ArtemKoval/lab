@@ -2,7 +2,11 @@
 // and the browser keeps the access token for the session. The AWS rollout
 // later points VITE_AUTH_URL at Cognito's token endpoint, on the same shape.
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL ?? "http://127.0.0.1:8004";
+// An empty VITE_AUTH_URL must fall back too: the template .env leaves it
+// empty, and an empty address would post the sign-in to a path this origin
+// doesn't serve.
+// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- the empty string is the case this fallback exists for
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || "http://127.0.0.1:8004";
 const TOKEN = "crm-access-token";
 
 export const WRONG_PASSWORD = "The email or password is wrong.";

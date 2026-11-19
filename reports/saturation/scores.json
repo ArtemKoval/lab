@@ -286,6 +286,31 @@
           "score": 100.0
         }
       }
+    },
+    "slidecast": {
+      "stamp": "2026-11-19T11:24:33.130021+00:00",
+      "modules": {
+        "tools.slidecast.slidecast.render": {
+          "sites": 8,
+          "score": 100.0
+        },
+        "tools.slidecast.slidecast.scenes": {
+          "sites": 53,
+          "score": 93.8
+        },
+        "tools.slidecast.slidecast.deck": {
+          "sites": 38,
+          "score": 78.4
+        },
+        "tools.slidecast.slidecast.build": {
+          "sites": 30,
+          "score": 78.6
+        },
+        "tools.slidecast.slidecast.cli": {
+          "sites": 10,
+          "score": 100.0
+        }
+      }
     }
   }
 }

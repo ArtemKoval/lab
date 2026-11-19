@@ -70,6 +70,18 @@ gateway, and memory variables at it, and proves the invoke path with a
 wiring gate. The laptop route (the agent on 8080) stays the default;
 `CRM_AGENT_RUNTIME` moves the backend to the emulator.
 
+## Run the public demo
+
+`crm/deploy/demo_up.sh` starts the whole demo stack on the library pack: the
+floci emulator, the wiring gate, and the app with every port bound for the
+web. It prints the URL block with the address to use. Flags: `--host ADDR`
+names the address, `--emulator` moves the agent route to the floci emulator
+with canned answers, and the default keeps the laptop route so the real agent
+works cases. `crm/deploy/demo_down.sh` stops the stack and closes the ports,
+and exits 2 when a port still answers. The demo script lives at
+`crm/docs/demo_runbook.md`. The e2e suite and the demo stack share port
+8004, so run one at a time.
+
 ## Gates
 
 The repository adds three gates on the changed Python of `crm/`. Run them
@@ -124,7 +136,9 @@ itself, and needs no model key. A browser window opens; close nothing.
 - Dashboard: `http://localhost:5173` — sign in with a pack worker email
   (insurance: `dana.whitfield@undercover.example`, senior, or
   `marcus.oyelaran@undercover.example`, not senior; helpdesk:
-  `priya.nair@fastfix.example`, lead) and the dev password `crm-dev`
+  `priya.nair@fastfix.example`, lead; library:
+  `rosa.meridian@northgate.example`, senior, or
+  `iris.bonnell@northgate.example`, not senior) and the dev password `crm-dev`
   (`AUTH_DEV_PASSWORD`).
 - Backend health: `http://localhost:8000/api/health`
 - Agent service: `http://127.0.0.1:8080`

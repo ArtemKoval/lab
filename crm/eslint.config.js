@@ -20,7 +20,11 @@ export default defineConfig(
     linterOptions: { reportUnusedDisableDirectives: "error" },
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        projectService: {
+          // The screenshot capture script is plain JavaScript beside the
+          // typed e2e specs, so the default project carries it.
+          allowDefaultProject: ["e2e/capture_real.mjs"],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -39,7 +43,7 @@ export default defineConfig(
     },
   },
   {
-    files: ["**/*.js"],
+    files: ["**/*.{js,mjs}"],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: globals.node },
   },

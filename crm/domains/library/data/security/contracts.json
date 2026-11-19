@@ -1,0 +1,40 @@
+[
+  {
+    "contract_id": "MEM-5901",
+    "customer_id": "CUS-5901",
+    "plan": "research",
+    "add_ons": [],
+    "purchased_on": "2026-01-30",
+    "sold_through": "Northgate research desk",
+    "trip": {
+      "destination": "Northgate Public Library, Central branch",
+      "departs_on": "2026-01-30",
+      "returns_on": "2027-01-30",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Vera Lindqvist"
+    ],
+    "status": "active",
+    "active_loans": 0
+  },
+  {
+    "contract_id": "MEM-5902",
+    "customer_id": "CUS-5902",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2024-04-04",
+    "sold_through": "Northgate front desk",
+    "trip": {
+      "destination": "Northgate Public Library, Mill Lane branch",
+      "departs_on": "2026-04-04",
+      "returns_on": "2027-04-04",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Hugo Barbosa"
+    ],
+    "status": "active",
+    "active_loans": 1
+  }
+]

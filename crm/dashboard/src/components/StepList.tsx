@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 import type { Step } from "../api";
 import { sourceOf, time } from "../format";
+import { useLabel } from "../vocabulary";
 import { StateMessage } from "./StateMessage";
 
 const SUMMARY_LENGTH = 90;
@@ -60,6 +61,7 @@ function Marked({
 }
 
 function StepBody({ step }: Readonly<{ step: Step }>) {
+  const word = useLabel();
   if (step.kind === "screening")
     return (
       <Marked icon={Shield} label="Security check">
@@ -119,7 +121,10 @@ function StepBody({ step }: Readonly<{ step: Step }>) {
     );
   if (step.kind === "sent_back")
     return (
-      <Marked icon={Undo2} label="Worker's note">
+      <Marked
+        icon={Undo2}
+        label={word("steps.sent_back_note", "Worker's note")}
+      >
         <span className="step-text">{step.content}</span>
       </Marked>
     );

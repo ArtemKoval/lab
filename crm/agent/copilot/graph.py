@@ -54,6 +54,7 @@ from agent.json_text import as_json
 from agent.openrouter import usage_of
 from agent.refusals import REFUSED
 from agent.routes import GatewayRefused
+from domains import loader
 
 log = logging.getLogger(__name__)
 
@@ -284,7 +285,9 @@ def why_not(context: CopilotContext, case_id: str) -> str | None:
     worker = context.worker
     if not worker["can_approve_over_limit"]:
         limit = app_api.get_settings(context.sign_in)["current"]["approval_limit"]
-        return CANT_SIGN_OFF.format(name=worker["name"], limit=f"${limit:,.2f}")
+        pack = loader.pack()
+        words = pack.message("cant_sign_off", CANT_SIGN_OFF)
+        return words.format(name=worker["name"], limit=pack.award_text(limit))
     try:
         case = app_api.get_case(context.sign_in, case_id)
     except app_api.Refused as refused:

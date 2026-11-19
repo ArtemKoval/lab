@@ -1,0 +1,142 @@
+{
+  "name": "library",
+  "display_name": "Northgate Public Library",
+  "engine_api": 2,
+  "rules": "rules",
+  "protocol": "protocol",
+  "settings": {
+    "award_approval_limit": 14.0
+  },
+  "resolutions": [
+    "approve",
+    "decline",
+    "refer"
+  ],
+  "outcomes": {
+    "loan": "resolve"
+  },
+  "config": {
+    "award_approval_limit": "The longest loan term in days issued without the lead librarian's sign-off"
+  },
+  "effects": {
+    "loan": {
+      "outcome": "loan",
+      "gated": true
+    }
+  },
+  "documents": [
+    "wording",
+    "manual"
+  ],
+  "seed": {
+    "cases": "cases.json",
+    "customers": "customers.json",
+    "contracts": "contracts.json",
+    "workers": "workers.json",
+    "company": "company.json"
+  },
+  "vocabulary": {
+    "labels": {
+      "queue.col.claimed": "Replacement price",
+      "dispatch.col.award": "Loan",
+      "case.lead.entry": "{customer_name}'s {case_type} request",
+      "case.incident": "Received at",
+      "case.amount_claimed": "Replacement price",
+      "items.title": "Copies requested",
+      "history.filed": "requested",
+      "history.paid": "paid",
+      "hold.gateway_refused": "The loan of {award} was refused at issue, so it waits for the lead librarian's sign-off.",
+      "hold.over_limit": "The loan term of {award} is over the approval limit and waits for the lead librarian's sign-off.",
+      "decision.calculation_caption": "How the loan term was worked out",
+      "decision.award_label": "Loan term",
+      "decision.manual_version": "Loan rules version {version}",
+      "not_allowed.text": "Only a worker who can sign off loan terms over {limit} can {action}. {worker} can't.",
+      "steps.sent_back_note": "Librarian's note",
+      "decision.approve": "Issued",
+      "measure.straight_through": "Without sign-off",
+      "case.worker_col": "Librarian",
+      "case.same_grounds_col": "Same rule",
+      "scoreboard.lead": "How the case agent scores against the librarians' decisions.",
+      "settings.lead": "The loan term sign-off limit and the rules for improving the case agent.",
+      "settings.group_approval_lead": "Loan terms over the limit wait for the lead librarian's sign-off. A new limit applies to later decisions only.",
+      "improvement.rounds_empty": "No rounds yet. Starting a round has the improver read the latest results and propose a change to the case agent for a librarian to approve.",
+      "card.kind.customers": "Borrowers and memberships",
+      "copilot.suggest.wording": "What do the loan rules say about overdue titles?",
+      "outcome.paid": "Signed off and issued",
+      "outcome.may_have_paid": "The Copilot stopped while signing off, so its page says whether the loan was issued.",
+      "copilot.greeting.lead": "Ask me about the queue, a request or the loan rules, or have me do the work. I work as you, so I can see and do what you can.",
+      "confirm.title.waiting": "Sign off this loan?",
+      "confirm.sign_off_pay": "Sign off and issue",
+      "resolution.issue": "Issue the loan",
+      "resolution.decline": "Decline the request",
+      "resolution.days": "Days",
+      "resolution.amount": "Amount",
+      "resolution.reason": "The lead's reason",
+      "desk.approve": "Approve and issue",
+      "desk.decline": "Decline the request",
+      "desk.refer": "Refer to the lead librarian",
+      "desk.days": "Days",
+      "desk.reason": "Why the desk decides so",
+      "desk.sections": "The rule sections relied on",
+      "desk.sections.default": "Loan rules 2, 3 and 5"
+    },
+    "contract": {
+      "title": "Membership",
+      "rows": [
+        {
+          "label": "Card",
+          "field": "contract_id",
+          "format": "text"
+        },
+        {
+          "label": "Tier",
+          "field": "plan",
+          "format": "text"
+        },
+        {
+          "label": "Members on the card",
+          "field": "travelers",
+          "format": "list"
+        },
+        {
+          "label": "Valid from",
+          "field": "trip.departs_on",
+          "format": "date"
+        },
+        {
+          "label": "Valid to",
+          "field": "trip.returns_on",
+          "format": "date"
+        },
+        {
+          "label": "Home branch",
+          "field": "trip.destination",
+          "format": "text"
+        },
+        {
+          "label": "Member since",
+          "field": "purchased_on",
+          "format": "date"
+        },
+        {
+          "label": "Issued at",
+          "field": "sold_through",
+          "format": "text"
+        },
+        {
+          "label": "Loans held today",
+          "field": "active_loans",
+          "format": "text"
+        }
+      ]
+    },
+    "award_format": "days",
+    "messages": {
+      "over_limit": "A loan term over {limit} needs the lead librarian's sign-off",
+      "contract_not_found": "Membership {contract_id} not found",
+      "senior": "Only a worker who can sign off loan terms over {limit} can {action}.",
+      "cant_sign_off": "{name} can't sign off loan terms over the approval limit of {limit}"
+    },
+    "benefit": "loan"
+  }
+}

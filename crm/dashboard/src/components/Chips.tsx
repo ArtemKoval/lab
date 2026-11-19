@@ -8,13 +8,13 @@ import type {
 } from "../api";
 import {
   decisionLabels,
-  money,
   roundLabels,
   runLabels,
   statusLabels,
   verdictLabels,
   versionLabels,
 } from "../format";
+import { awardText, useAwardFormat, useLabel } from "../vocabulary";
 
 export function StatusChip({ status }: Readonly<{ status: Status }>) {
   return (
@@ -25,11 +25,12 @@ export function StatusChip({ status }: Readonly<{ status: Status }>) {
 export function DecisionChip({
   decision,
 }: Readonly<{ decision: DecisionKind }>) {
-  return (
-    <span className={`chip decision-${decision}`}>
-      {decisionLabels[decision]}
-    </span>
-  );
+  const word = useLabel();
+  const text =
+    decision === "approve"
+      ? word("decision.approve", decisionLabels.approve)
+      : decisionLabels[decision];
+  return <span className={`chip decision-${decision}`}>{text}</span>;
 }
 
 export function RunChip({ status }: Readonly<{ status: RunStatus }>) {
@@ -65,10 +66,11 @@ export function DecisionAward({
   decision,
   award,
 }: Readonly<{ decision: DecisionKind; award: number }>) {
+  const format = useAwardFormat();
   return (
     <>
       <DecisionChip decision={decision} />{" "}
-      <span className="mono">{money(award)}</span>
+      <span className="mono">{awardText(award, format)}</span>
     </>
   );
 }

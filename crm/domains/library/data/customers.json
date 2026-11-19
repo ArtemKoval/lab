@@ -1,0 +1,161 @@
+[
+  {
+    "customer_id": "CUS-5001",
+    "name": "Marta Voss",
+    "email": "marta.voss@northgate.example",
+    "phone": "+1 503 555 0151",
+    "date_of_birth": "1990-04-12",
+    "address": {
+      "street": "88 Beacon Square",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97204"
+    },
+    "customer_since": "2024-02-10",
+    "previous_cases": [
+      {
+        "case_id": "LN-4821",
+        "filed_on": "2026-05-14",
+        "incident_date": "2026-05-15",
+        "case_type": "checkout",
+        "summary": "Checkout of The Lighthouse Keeper",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      },
+      {
+        "case_id": "LN-4903",
+        "filed_on": "2026-08-02",
+        "incident_date": "2026-08-03",
+        "case_type": "checkout",
+        "summary": "Checkout of Salt and Cedar",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-5002",
+    "name": "Dev Okafor",
+    "email": "dev.okafor@northgate.example",
+    "phone": "+1 503 555 0152",
+    "date_of_birth": "1987-09-30",
+    "address": {
+      "street": "12 Mill Lane",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97210"
+    },
+    "customer_since": "2023-11-20",
+    "previous_cases": [
+      {
+        "case_id": "LN-4777",
+        "filed_on": "2026-04-01",
+        "incident_date": "2026-04-02",
+        "case_type": "checkout",
+        "summary": "Checkout of A Field Guide to Mosses",
+        "outcome": "approved",
+        "amount_paid": 3.5
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-5003",
+    "name": "Sana Iqbal",
+    "email": "sana.iqbal@northgate.example",
+    "phone": "+1 503 555 0153",
+    "date_of_birth": "1995-01-25",
+    "address": {
+      "street": "540 NW Everett Street",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97209"
+    },
+    "customer_since": "2025-06-15",
+    "previous_cases": [
+      {
+        "case_id": "LN-4950",
+        "filed_on": "2026-09-10",
+        "incident_date": "2026-09-11",
+        "case_type": "renewal",
+        "summary": "Renewal of The Mapmaker's Daughter to 21 days",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-5004",
+    "name": "Owen Kelly",
+    "email": "owen.kelly@northgate.example",
+    "phone": "+1 503 555 0154",
+    "date_of_birth": "1982-07-08",
+    "address": {
+      "street": "301 SE Grand Avenue",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97214"
+    },
+    "customer_since": "2024-09-01",
+    "previous_cases": [
+      {
+        "case_id": "LN-4890",
+        "filed_on": "2026-07-19",
+        "incident_date": "2026-07-20",
+        "case_type": "checkout",
+        "summary": "Checkout of Gardens of the Coast",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-5005",
+    "name": "June Alvarez",
+    "email": "june.alvarez@northgate.example",
+    "phone": "+1 503 555 0155",
+    "date_of_birth": "1993-12-02",
+    "address": {
+      "street": "77 NW Davis Street",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97209"
+    },
+    "customer_since": "2025-01-12",
+    "previous_cases": [
+      {
+        "case_id": "LN-4862",
+        "filed_on": "2026-06-03",
+        "incident_date": "2026-06-04",
+        "case_type": "checkout",
+        "summary": "Checkout of The Lighthouse Keeper",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-5006",
+    "name": "Farid Nasser",
+    "email": "farid.nasser@northgate.example",
+    "phone": "+1 503 555 0156",
+    "date_of_birth": "1978-03-17",
+    "address": {
+      "street": "9 NE Fremont Street",
+      "city": "Portland",
+      "state": "OR",
+      "zip": "97212"
+    },
+    "customer_since": "2022-10-05",
+    "previous_cases": [
+      {
+        "case_id": "LN-4922",
+        "filed_on": "2026-08-28",
+        "incident_date": "2026-08-29",
+        "case_type": "checkout",
+        "summary": "Checkout of Salt and Cedar",
+        "outcome": "approved",
+        "amount_paid": 0.0
+      }
+    ]
+  }
+]

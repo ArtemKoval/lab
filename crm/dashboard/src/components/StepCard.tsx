@@ -1,6 +1,7 @@
 import { Check, ChevronDown, LoaderCircle } from "lucide-react";
 import { useId, useState } from "react";
 import { CARD_KINDS } from "../copilot";
+import { useLabel } from "../vocabulary";
 import type { CopilotStep } from "../conversation";
 import { briefly, sourceOf } from "../format";
 
@@ -44,7 +45,12 @@ function CardState({ step }: Readonly<{ step: CopilotStep }>) {
 export function StepCard({ step }: Readonly<{ step: CopilotStep }>) {
   const [open, setOpen] = useState(false);
   const details = useId();
-  const { icon: Icon, label } = CARD_KINDS[step.kind];
+  const { icon: Icon, label: fallbackLabel } = CARD_KINDS[step.kind];
+  const word = useLabel();
+  const label =
+    step.kind === "customers"
+      ? word("card.kind.customers", fallbackLabel)
+      : fallbackLabel;
   return (
     <li className={`card card-${step.kind}`}>
       <button

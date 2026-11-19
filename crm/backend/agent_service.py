@@ -35,7 +35,7 @@ def ask(payload: Payload) -> None:
     if arn := os.getenv(RUNTIME):
         runtime_calls.invoke(arn, str(uuid.uuid4()), payload, WORDING)
     else:
-        url = os.getenv(AGENT, LOCAL_AGENT)
+        url = os.getenv(AGENT) or LOCAL_AGENT
         headers = {"Authorization": f"Bearer {the_agents_key()}"}
         runtime_calls.post(agent, url, payload, headers, WORDING)
 

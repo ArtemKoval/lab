@@ -1,5 +1,5 @@
 import { Monitor, Moon, Save, Sun, type LucideIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   api,
   type ModelAllowed,
@@ -15,7 +15,7 @@ import { dateTime, label, money } from "../format";
 import { useWorker } from "../worker";
 import {
   GROUPS,
-  SETTING_FIELDS,
+  settingFields,
   type SettingField,
   UNITS,
   changesBetween,
@@ -27,6 +27,7 @@ import {
 import { type Appearance, chooseAppearance, savedAppearance } from "../theme";
 import { useAction } from "../useAction";
 import { useLoad } from "../useLoad";
+import { useAwardFormat, useLabel } from "../vocabulary";
 
 const APPEARANCES: {
   appearance: Appearance;
@@ -45,6 +46,7 @@ function lastChange(settings: Settings): string {
 }
 
 export function SettingsPage() {
+  const word = useLabel();
   // Loaded once, so a refresh never overwrites what a worker is typing. A
   // save returns the settings as they now stand.
   const { data, error } = useLoad(api.getSettings);
@@ -54,7 +56,10 @@ export function SettingsPage() {
     <>
       <PageHeader
         title="Settings"
-        lead="The approval limit and the rules for improving the case agent."
+        lead={word(
+          "settings.lead",
+          "The approval limit and the rules for improving the case agent.",
+        )}
       />
       {page ? (
         <SettingsPanels page={page} onSaved={setSaved} />
@@ -70,6 +75,7 @@ function SettingsPanels({
   onSaved,
 }: Readonly<{ page: SettingsData; onSaved: (page: SettingsData) => void }>) {
   const worker = useWorker();
+  const format = useAwardFormat();
   return (
     <div className="column">
       {worker.can_approve_over_limit ? (
@@ -77,7 +83,7 @@ function SettingsPanels({
       ) : (
         <ReadOnlySettings current={page.current} />
       )}
-      <Changes changes={page.changes} />
+      <Changes changes={page.changes} format={format} />
       <ModelsAllowed models={page.models_allowed} />
       <AppearanceChoice />
     </div>
@@ -88,10 +94,29 @@ function SettingsForm({
   current,
   onSaved,
 }: Readonly<{ current: Settings; onSaved: (page: SettingsData) => void }>) {
-  const [inputs, setInputs] = useState(() => inputsOf(current));
+  const word = useLabel();
+  const format = useAwardFormat();
+  const fields = settingFields(format);
+  const [inputs, setInputs] = useState(() => inputsOf(current, fields));
+  const [touched, setTouched] = useState<ReadonlySet<string>>(new Set());
+  // The pack's award format can land after the settings do. Re-derive the
+  // untouched inputs, so a days pack never inherits a dollars rendering.
+  const renderedFormat = useRef(format);
+  useEffect(() => {
+    if (renderedFormat.current === format) return;
+    renderedFormat.current = format;
+    const fresh = inputsOf(current, settingFields(format));
+    setInputs((prev) => {
+      const next = { ...prev };
+      for (const id of Object.keys(fresh)) {
+        if (!touched.has(id)) next[id] = fresh[id];
+      }
+      return next;
+    });
+  }, [format, current, touched]);
   const [confirming, setConfirming] = useState(false);
-  const proposed = valuesOf(current, inputs);
-  const changes = changesBetween(current, proposed);
+  const proposed = valuesOf(current, inputs, fields);
+  const changes = changesBetween(current, proposed, fields);
   const save = useAction(() => api.changeSettings(proposed).then(onSaved));
 
   return (
@@ -117,20 +142,28 @@ function SettingsForm({
       {settingGroups.map((group) => (
         <fieldset className="panel" key={group}>
           <legend>{GROUPS[group].title}</legend>
-          <p className="muted small">{GROUPS[group].lead}</p>
+          <p className="muted small">
+            {group === "approval"
+              ? word(
+                  "settings.group_approval_lead",
+                  "Awards over the limit wait for a senior worker's sign-off. A new limit applies to later decisions only.",
+                )
+              : GROUPS[group].lead}
+          </p>
           <div className="setting-fields">
-            {SETTING_FIELDS.filter((field) => field.group === group).map(
-              (field) => (
+            {settingFields(format)
+              .filter((field) => field.group === group)
+              .map((field) => (
                 <SettingInput
                   key={field.id}
                   field={field}
                   value={inputs[field.id] ?? ""}
                   onChange={(value) => {
                     setInputs({ ...inputs, [field.id]: value });
+                    setTouched(new Set([...touched, field.id]));
                   }}
                 />
-              ),
-            )}
+              ))}
           </div>
         </fieldset>
       ))}
@@ -199,6 +232,7 @@ function SettingInput({
 }
 
 function ReadOnlySettings({ current }: Readonly<{ current: Settings }>) {
+  const format = useAwardFormat();
   return (
     <>
       <div className="settings-bar">
@@ -213,16 +247,16 @@ function ReadOnlySettings({ current }: Readonly<{ current: Settings }>) {
         >
           <h2 id={`${group}-title`}>{GROUPS[group].title}</h2>
           <dl className="facts">
-            {SETTING_FIELDS.filter((field) => field.group === group).map(
-              (field) => (
+            {settingFields(format)
+              .filter((field) => field.group === group)
+              .map((field) => (
                 <div key={field.id}>
                   <dt>{field.label}</dt>
                   <dd className="mono">
                     {shown(field.unit, field.get(current))}
                   </dd>
                 </div>
-              ),
-            )}
+              ))}
           </dl>
         </section>
       ))}
@@ -230,7 +264,10 @@ function ReadOnlySettings({ current }: Readonly<{ current: Settings }>) {
   );
 }
 
-function Changes({ changes }: Readonly<{ changes: Settings[] }>) {
+function Changes({
+  changes,
+  format,
+}: Readonly<{ changes: Settings[]; format: "money" | "days" }>) {
   return (
     <section className="panel" aria-labelledby="changes-title">
       <h2 id="changes-title">Changes</h2>
@@ -252,7 +289,11 @@ function Changes({ changes }: Readonly<{ changes: Settings[] }>) {
                   <td>{change.changed_by ?? "The platform's set-up"}</td>
                   <td>
                     {before
-                      ? changesBetween(before, change).join("; ")
+                      ? changesBetween(
+                          before,
+                          change,
+                          settingFields(format),
+                        ).join("; ")
                       : "The starting settings"}
                   </td>
                 </tr>

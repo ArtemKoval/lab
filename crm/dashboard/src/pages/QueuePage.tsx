@@ -15,6 +15,7 @@ import { DispatchPanel } from "../components/DispatchPanel";
 import { PageHeader } from "../components/PageHeader";
 import { date, label, money, statusLabels } from "../format";
 import { REFRESH_MS, useLoad } from "../useLoad";
+import { useLabel } from "../vocabulary";
 
 // Each state's icon on its tile.
 const STATUS_ICONS: Record<Status, LucideIcon> = {
@@ -29,9 +30,12 @@ const STATUS_ICONS: Record<Status, LucideIcon> = {
 export function QueuePage() {
   const { data: cases, error } = useLoad(api.listCases, REFRESH_MS);
   const { data: pack } = useLoad(api.getPack, REFRESH_MS);
+  const word = useLabel();
   // The money column carries the outcome the pack declares, and "Award"
   // until the declarations arrive.
-  const outcomeName = label(Object.keys(pack?.outcomes ?? { award: "" })[0] ?? "award");
+  const outcomeName = label(
+    Object.keys(pack?.outcomes ?? { award: "" })[0] ?? "award",
+  );
   const header = <PageHeader title="Cases queue" />;
   if (!cases)
     return (
@@ -75,7 +79,7 @@ export function QueuePage() {
                 <th>Customer</th>
                 <th>Type</th>
                 <th>Summary</th>
-                <th className="num">Claimed</th>
+                <th className="num">{word("queue.col.claimed", "Claimed")}</th>
                 <th>Submitted</th>
                 <th>State</th>
                 <th>Decision</th>

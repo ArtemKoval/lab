@@ -5,7 +5,7 @@ import { grade, money } from "./format";
 // How the Settings page shows each setting: its group, its label, its unit and
 // its limits. Accuracy and the fractions of cost and time are kept from 0 to 1
 // and typed as percentages.
-export type Unit = "dollars" | "percent" | "grade" | "agents";
+export type Unit = "dollars" | "percent" | "grade" | "agents" | "days";
 
 export interface SettingField {
   id: string;
@@ -27,6 +27,7 @@ export const UNITS: Record<
   { prefix?: string; suffix?: string; min: number; step: number }
 > = {
   dollars: { prefix: "$", min: 0.01, step: 0.01 },
+  days: { suffix: "days", min: 1, step: 1 },
   percent: { suffix: "%", min: 0, step: 0.1 },
   grade: { suffix: "of 3", min: 0, step: 0.01 },
   agents: { min: 1, step: 1 },
@@ -93,6 +94,21 @@ function measureFields(group: "noise" | "tolerance"): SettingField[] {
   }));
 }
 
+// The fields with the approval limit's unit from the pack's award format:
+// money keeps the dollars input, days reads the number with no sign.
+export function settingFields(
+  awardFormat: "money" | "days" = "money",
+): SettingField[] {
+  return SETTING_FIELDS.map((field) =>
+    field.id === "approval_limit"
+      ? {
+          ...field,
+          unit: awardFormat === "days" ? "days" : "dollars",
+        }
+      : field,
+  );
+}
+
 export const SETTING_FIELDS: SettingField[] = [
   {
     id: "approval_limit",
@@ -155,6 +171,7 @@ export const SETTING_FIELDS: SettingField[] = [
 // A setting as a worker types it: dollars to the cent, grades as they are,
 // and shares as percentages to a tenth.
 export function toInput(unit: Unit, value: number): string {
+  if (unit === "days") return String(Math.round(value));
   if (unit === "dollars") return value.toFixed(2);
   if (unit === "percent") return String(Math.round(value * 1000) / 10);
   return String(value);
@@ -163,6 +180,7 @@ export function toInput(unit: Unit, value: number): string {
 // A setting as typed, rounded to what the page shows.
 export function fromInput(unit: Unit, input: string): number {
   const value = Number(input);
+  if (unit === "days") return Math.round(value);
   if (unit === "dollars") return Math.round(value * 100) / 100;
   if (unit === "percent") return Math.round(value * 10) / 1000;
   if (unit === "grade") return Math.round(value * 100) / 100;
@@ -171,6 +189,7 @@ export function fromInput(unit: Unit, input: string): number {
 
 // A setting as the page shows it, with its unit.
 export function shown(unit: Unit, value: number): string {
+  if (unit === "days") return `${String(Math.round(value))} days`;
   if (unit === "dollars") return money(value);
   if (unit === "percent") return `${toInput(unit, value)}%`;
   if (unit === "grade") return `${grade(value)} of 3`;
@@ -179,12 +198,12 @@ export function shown(unit: Unit, value: number): string {
 
 export type Inputs = Record<string, string>;
 
-export function inputsOf(values: SettingsValues): Inputs {
+export function inputsOf(
+  values: SettingsValues,
+  fields: SettingField[] = SETTING_FIELDS,
+): Inputs {
   return Object.fromEntries(
-    SETTING_FIELDS.map((field) => [
-      field.id,
-      toInput(field.unit, field.get(values)),
-    ]),
+    fields.map((field) => [field.id, toInput(field.unit, field.get(values))]),
   );
 }
 
@@ -202,8 +221,12 @@ function valuesOnly(settings: Settings): SettingsValues {
 
 // The settings as typed: a setting whose input wasn't touched keeps its value
 // exactly, so saving never changes what a worker didn't.
-export function valuesOf(current: Settings, inputs: Inputs): SettingsValues {
-  return SETTING_FIELDS.reduce((values, field) => {
+export function valuesOf(
+  current: Settings,
+  inputs: Inputs,
+  fields: SettingField[] = SETTING_FIELDS,
+): SettingsValues {
+  return fields.reduce((values, field) => {
     const input = inputs[field.id] ?? "";
     return input === toInput(field.unit, field.get(current))
       ? values
@@ -216,11 +239,12 @@ export function valuesOf(current: Settings, inputs: Inputs): SettingsValues {
 export function changesBetween(
   before: SettingsValues,
   after: SettingsValues,
+  fields: SettingField[] = SETTING_FIELDS,
 ): string[] {
-  return SETTING_FIELDS.filter(
-    (field) => field.get(before) !== field.get(after),
-  ).map(
-    (field) =>
-      `${field.name}: ${shown(field.unit, field.get(before))} to ${shown(field.unit, field.get(after))}`,
-  );
+  return fields
+    .filter((field) => field.get(before) !== field.get(after))
+    .map(
+      (field) =>
+        `${field.name}: ${shown(field.unit, field.get(before))} to ${shown(field.unit, field.get(after))}`,
+    );
 }

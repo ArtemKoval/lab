@@ -4,6 +4,7 @@ import { api, type Case } from "../api";
 import { StatusChip } from "../components/Chips";
 import { ContextUsed } from "../components/ContextUsed";
 import { DecisionPanel } from "../components/DecisionPanel";
+import { DeskDecisionForm } from "../components/DeskDecisionForm";
 import { StateMessage } from "../components/StateMessage";
 import { PageHeader } from "../components/PageHeader";
 import { HistoryPanel, ContractPanel } from "../components/ContractPanels";
@@ -12,8 +13,10 @@ import { StepList } from "../components/StepList";
 import { date, label, money } from "../format";
 import { evaluationPage, QUEUE } from "../paths";
 import { REFRESH_MS, useLoad } from "../useLoad";
+import { useLabel } from "../vocabulary";
 
 export function CasePage() {
+  const word = useLabel();
   const { caseId = "" } = useParams();
   const load = useCallback(() => api.getCase(caseId), [caseId]);
   const { data: entry, error, reload } = useLoad(load, REFRESH_MS);
@@ -53,7 +56,9 @@ export function CasePage() {
               <Link to={evaluationPage(entry.evaluation_id)}>evaluation</Link>
             </>
           ) : (
-            `${entry.customer_name}'s ${label(entry.case_type).toLowerCase()} entry`
+            word("case.lead.entry", "{customer_name}'s {case_type} entry")
+              .replaceAll("{customer_name}", entry.customer_name)
+              .replaceAll("{case_type}", label(entry.case_type).toLowerCase())
           )
         }
       />
@@ -62,6 +67,10 @@ export function CasePage() {
           page refreshes. */}
       <div className="case-layout">
         <div className="column">
+          {(entry.status === "waiting" ||
+            entry.status === "left_for_worker") && (
+            <DeskDecisionForm entry={entry} onDecided={reload} />
+          )}
           <CaseDetails entry={entry} />
           <ItemsPanel entry={entry} />
           <DocumentsPanel entry={entry} />
@@ -80,6 +89,7 @@ export function CasePage() {
 }
 
 function CaseDetails({ entry }: Readonly<{ entry: Case }>) {
+  const word = useLabel();
   return (
     <section className="panel" aria-labelledby="case-title">
       <h2 id="case-title">Case</h2>
@@ -93,7 +103,7 @@ function CaseDetails({ entry }: Readonly<{ entry: Case }>) {
           <dd>{label(entry.case_type)}</dd>
         </div>
         <div>
-          <dt>Incident</dt>
+          <dt>{word("case.incident", "Incident")}</dt>
           <dd>
             {date(entry.incident_date)}, {entry.incident_location}
           </dd>
@@ -103,7 +113,7 @@ function CaseDetails({ entry }: Readonly<{ entry: Case }>) {
           <dd>{date(entry.submitted_on)}</dd>
         </div>
         <div>
-          <dt>Amount claimed</dt>
+          <dt>{word("case.amount_claimed", "Amount claimed")}</dt>
           <dd className="mono">{money(entry.amount_claimed)}</dd>
         </div>
       </dl>
@@ -114,10 +124,11 @@ function CaseDetails({ entry }: Readonly<{ entry: Case }>) {
 }
 
 function ItemsPanel({ entry }: Readonly<{ entry: Case }>) {
+  const word = useLabel();
   const total = entry.items.reduce((sum, item) => sum + item.amount, 0);
   return (
     <section className="panel" aria-labelledby="items-title">
-      <h2 id="items-title">Items claimed</h2>
+      <h2 id="items-title">{word("items.title", "Items claimed")}</h2>
       <div className="table-scroll">
         <table className="table">
           <thead>

@@ -1,0 +1,16 @@
+[
+  {
+    "worker_id": "LIB-01",
+    "name": "Rosa Meridian",
+    "role": "Library Lead",
+    "email": "rosa.meridian@northgate.example",
+    "can_approve_over_limit": true
+  },
+  {
+    "worker_id": "LIB-02",
+    "name": "Iris Bonnell",
+    "role": "Desk Librarian",
+    "email": "iris.bonnell@northgate.example",
+    "can_approve_over_limit": false
+  }
+]

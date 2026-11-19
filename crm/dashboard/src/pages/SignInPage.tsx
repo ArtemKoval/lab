@@ -26,7 +26,7 @@ export function SignInPage() {
       <section className="panel sign-in-panel">
         <PageHeader
           title="Sign in"
-          lead="For CRM cases workers. Ask your manager for an account."
+          lead="Sign in to work the queue. Ask your manager for an account."
         />
         <ActionForm
           label="Sign in"

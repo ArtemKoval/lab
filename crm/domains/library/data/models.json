@@ -1,0 +1,32 @@
+[
+  {
+    "model": "openai/gpt-6-luna",
+    "reasoning_efforts": [
+      "none",
+      "low",
+      "medium"
+    ],
+    "input_price": 0.1,
+    "output_price": 0.5
+  },
+  {
+    "model": "google/gemini-3.5-flash-lite",
+    "reasoning_efforts": [
+      "none",
+      "low",
+      "medium"
+    ],
+    "input_price": 0.04,
+    "output_price": 0.16
+  },
+  {
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reasoning_efforts": [
+      "none",
+      "low",
+      "medium"
+    ],
+    "input_price": 0.02,
+    "output_price": 0.09
+  }
+]

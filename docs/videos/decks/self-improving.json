@@ -1,0 +1,143 @@
+{
+  "title": "The self-improving domain agent",
+  "subtitle": "The loop that raises the score",
+  "slides": [
+    {
+      "heading": "The loop",
+      "bullets": [],
+      "narration": "The desk agent improves itself under supervision. One minute shows the loop: the held-out set, the judge, the improver, and the lead who decides what ships."
+    },
+    {
+      "heading": "The held-out set",
+      "bullets": [],
+      "narration": "The loop starts with a held-out set: loan requests the agent never saw, with the librarians' own decisions pinned beside them. The set never enters the queue.",
+      "elements": [
+        {
+          "kind": "box",
+          "at": 1.0,
+          "col": 1,
+          "row": 2,
+          "label": "Held-out"
+        },
+        {
+          "kind": "arrow",
+          "at": 1.6,
+          "from": [
+            1,
+            2
+          ],
+          "to": [
+            3,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 2.2,
+          "col": 3,
+          "row": 2,
+          "label": "Run"
+        },
+        {
+          "kind": "arrow",
+          "at": 2.8,
+          "from": [
+            3,
+            2
+          ],
+          "to": [
+            5,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 3.4,
+          "col": 5,
+          "row": 2,
+          "label": "Judge"
+        },
+        {
+          "kind": "arrow",
+          "at": 4.0,
+          "from": [
+            5,
+            3
+          ],
+          "to": [
+            7,
+            3
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 4.6,
+          "col": 7,
+          "row": 3,
+          "label": "Improver"
+        },
+        {
+          "kind": "arrow",
+          "at": 5.2,
+          "from": [
+            7,
+            3
+          ],
+          "to": [
+            9,
+            3
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 5.8,
+          "col": 9,
+          "row": 3,
+          "label": "Lead"
+        }
+      ]
+    },
+    {
+      "heading": "The evaluation run",
+      "bullets": [],
+      "narration": "An evaluation run sets the agent on the held-out set. A judge grades every answer against the pinned decisions, and the scoreboard keeps the score of every version.",
+      "elements": [
+        {
+          "kind": "bar",
+          "at": 1.5,
+          "col": 2,
+          "row": 2,
+          "label": "accuracy the loop must keep",
+          "share": 0.8
+        }
+      ]
+    },
+    {
+      "heading": "The improver reads its mistakes",
+      "bullets": [
+        "It reads what the agent got wrong",
+        "It adds one rule per mistake",
+        "It proposes a new version"
+      ],
+      "narration": "The improver reads the mistakes, adds one rule to the instructions for each kind, and proposes a new version with its reason. It follows the round's recipe exactly."
+    },
+    {
+      "heading": "The lead decides",
+      "bullets": [
+        "A new version needs the objectives",
+        "The lead approves what ships",
+        "The rules and limits never change"
+      ],
+      "narration": "Nothing ships by itself. A version keeps only when it beats the objectives on the held-out set, the lead approves it, and the loan rules and the approval limit never move."
+    },
+    {
+      "heading": "Why the loop is safe",
+      "bullets": [
+        "The eval set is the contract",
+        "Every round leaves a record",
+        "The score only tells the truth"
+      ],
+      "narration": "The loop stays safe because the eval set is the contract, every round leaves its record, and the scoreboard tells the truth about whether the desk got better."
+    }
+  ]
+}

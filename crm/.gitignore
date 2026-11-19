@@ -76,3 +76,5 @@ labs/*_desk/
 Thumbs.db
 auth/dev-key.json
 screenshots/
+!docs/screenshots/
+!docs/screenshots/**

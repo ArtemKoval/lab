@@ -5,6 +5,9 @@
 #   docker compose -f crm/deploy/compose.yaml --profile langfuse up -d
 # The runtime, gateway, and memory targets resolve from the variables in
 # crm/.env.example; the rollout change points the same variables at AWS.
+# The demo database serves the demo scripts, and the compose.demo.yaml
+# override publishes it past the loopback. Start the demo with:
+#   crm/deploy/demo_up.sh
 #
 # The runtime invoke answers with the acceptance the backend's runtime caller
 # reads (crm/backend/runtime_calls.py), so the wiring gate can prove the whole
@@ -20,6 +23,11 @@
 # emulator container and goes with it. The AWS rollout runs the same server
 # line through the CDK app at crm/agentcore/cdk, with the operator's values
 # in place of these literals.
+# The demo database binds to the loopback only. The trivial crm/crm
+# credentials hold the fictional demo data, and crm/deploy/compose.demo.yaml
+# is the one file that publishes the port past the loopback for a demo.
+# crm/deploy/demo_down.sh removes the container and closes the port when
+# the demo ends.
 services:
   emulator:
     image: floci/floci:latest
@@ -150,6 +158,20 @@ services:
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
 
+  db:
+    image: postgres:17-alpine
+    container_name: crm-demo-db
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: crm
+      POSTGRES_PASSWORD: crm
+      POSTGRES_DB: crm
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crm -d crm"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 volumes:
   langfuse_postgres_data:
     driver: local

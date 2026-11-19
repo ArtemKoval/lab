@@ -1,0 +1,25 @@
+# Northgate's two membership tiers: each tier's base loan term and its
+# longest loan term in days. Seeding loads this file into the app's award
+# rules, so the term check and the agent read the same plans.
+
+source:
+  system: Membership administration
+  owner: Head librarian
+  reviewed: "2026-10-01"
+
+plans:
+  - plan: standard
+    name: Northgate Standard
+    base_loan_days: 14
+    max_loan_days: 14
+
+  - plan: research
+    name: Northgate Research
+    base_loan_days: 14
+    max_loan_days: 28
+
+# Neither tier carries a deductible in version 2026.2.
+deductible_applies_to: []
+
+# Northgate sells no add-ons in version 2026.2.
+add_ons: []

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from "react-router";
 import { PageFrame } from "./components/PageFrame";
+import { PackWords } from "./PackWords";
 import { RequireWorker } from "./components/RequireWorker";
 import { StateMessage } from "./components/StateMessage";
 import { CasePage } from "./pages/CasePage";
@@ -33,9 +34,11 @@ export function App() {
       <Route
         element={
           <RequireWorker>
-            <PageFrame>
-              <Outlet />
-            </PageFrame>
+            <PackWords>
+              <PageFrame>
+                <Outlet />
+              </PageFrame>
+            </PackWords>
           </RequireWorker>
         }
       >

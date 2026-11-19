@@ -143,9 +143,7 @@ def test_the_check_reads_what_get_case_gives_on_the_gateway(client, gateway):
 def test_a_decision_the_app_refuses_is_a_refusal_on_each_route(
     client, route_name, route
 ):
-    model = stub(
-        record("approve"), calculate("CLM-1001", 420.0), record("approve")
-    )
+    model = stub(record("approve"), calculate("CLM-1001", 420.0), record("approve"))
     report = harness.work_case("CLM-1001", None, agent_on(model, route=route))
     assert report == "CLM-1001  approve  420.00 awarded"
     refusal = model.prompts[1][-1]

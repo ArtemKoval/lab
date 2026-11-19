@@ -122,12 +122,18 @@ docker rm -f crm-floci
 And remove `CRM_AGENT_RUNTIME`, `AWS_ENDPOINT_URL`, the AWS credentials, and
 the three `LANGFUSE_*` values from `crm/.env`, so the next `npm run dev` is
 back on the laptop route with no tracing. The database, the logs, and the
-registered runtime live only inside the container and go with it. To take
+registered runtime live only inside the container and go with it. The
+app's own database at `crm/crm.db` stays on the host. To take
 the Langfuse server down too:
 
 ```bash
 docker compose -f crm/deploy/compose.yaml --profile langfuse down
 ```
+
+For a public demo, `crm/deploy/demo_up.sh` scripts this whole flow, binds
+every port for the web, and `crm/deploy/demo_down.sh` tears it down. The
+runbook at `crm/docs/demo_runbook.md` drives the demo itself.
+
 
 ## Visit after launch
 

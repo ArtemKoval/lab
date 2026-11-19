@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from api_rules import rule_breaks
-from context.server import worker
+from context.server import build_server, worker
 from context.tests.function_url import Context, mcp_request
 
 TOOLS = {
@@ -44,6 +44,16 @@ def as_operations(tools: list[dict[str, Any]]) -> dict[str, Any]:
         }
         models[name] = tool["inputSchema"]
     return {"paths": paths, "components": {"schemas": models}}
+
+
+def test_the_server_binds_the_loopback_by_default_and_the_host_given():
+    """The laptop run binds the loopback as always; CRM_CONTEXT_HOST moves the
+    bind to another interface, for a run whose port the web reaches."""
+    assert build_server().settings.host == "127.0.0.1"
+    assert (
+        build_server(host="0.0.0.0").settings.host == "0.0.0.0"  # noqa: S104
+        # the test names the bind the demo uses, and binds nothing itself
+    )
 
 
 def test_the_worker_lists_the_tools_then_calls_one():

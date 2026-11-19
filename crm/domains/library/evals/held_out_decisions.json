@@ -1,0 +1,38 @@
+[
+  {
+    "case_id": "LN-5101",
+    "decision": "approve",
+    "award": 14.0,
+    "tiny": true,
+    "over_approval_limit": false,
+    "worker_id": "LIB-02",
+    "decided_on": "2026-10-21",
+    "reference": "Loan rules, sections 2 and 3",
+    "reason": "A copy of Salt and Cedar is free and the membership is in good standing, so the desk issues the base term of 14 days. The research tier changes nothing on a checkout of the base term.",
+    "calculation": [
+      {"step": "Base term of the research plan, 14 days", "amount": 14.0}
+    ],
+    "difficulty": "easy",
+    "failure_class": "term",
+    "needs": [],
+    "tests": ["a checkout of the base term is the same on both tiers"],
+    "tone": "plain"
+  },
+  {
+    "case_id": "LN-5102",
+    "decision": "decline",
+    "award": 0.0,
+    "tiny": true,
+    "over_approval_limit": false,
+    "worker_id": "LIB-02",
+    "decided_on": "2026-10-21",
+    "reference": "Loan rules, section 5",
+    "reason": "The borrower holds three loans, which is the most a borrower may hold, so the desk declines the checkout until a title comes back.",
+    "calculation": [],
+    "difficulty": "easy",
+    "failure_class": "cap",
+    "needs": [],
+    "tests": ["the cap holds on a held-out case"],
+    "tone": "plain"
+  }
+]

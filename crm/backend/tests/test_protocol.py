@@ -92,9 +92,7 @@ def test_the_loader_refuses_a_protocol_that_lacks_a_verb(monkeypatch, verb, tmp_
 
 def test_the_loader_refuses_a_verb_that_is_not_callable(monkeypatch, tmp_path):
     with pytest.raises(PackError) as error:
-        a_pack(
-            monkeypatch, GOOD + "\n\nresolve = None\n", tmp_path
-        ).protocol_module()
+        a_pack(monkeypatch, GOOD + "\n\nresolve = None\n", tmp_path).protocol_module()
     assert "lacks resolve" in str(error.value)
 
 
@@ -196,9 +194,13 @@ def test_a_calculated_award_is_stored_as_one_outcome_payload(client):
     work_out_award(client, "CLM-1001", "trip_delay", TRIP_DELAY)
     work_out_award(client, "CLM-1001", "trip_delay", TRIP_DELAY)
     with engine().connect() as db:
-        rows = db.execute(
-            select(outcomes.c.case_id, outcomes.c.outcome, outcomes.c.payload)
-        ).mappings().all()
+        rows = (
+            db.execute(
+                select(outcomes.c.case_id, outcomes.c.outcome, outcomes.c.payload)
+            )
+            .mappings()
+            .all()
+        )
     assert len(rows) == 1
     assert (rows[0]["case_id"], rows[0]["outcome"]) == ("CLM-1001", "award")
     assert rows[0]["payload"]["award"] == 420.0
@@ -252,6 +254,24 @@ def test_the_pack_serves_its_declarations(client):
     assert declared["outcomes"] == {"award": "resolve"}
     assert declared["effects"] == {"award": {"outcome": "award", "gated": True}}
     assert "award_approval_limit" in declared["config"]
+
+
+def test_the_pack_serves_its_vocabulary(client):
+    declared = client.get("/api/pack").json()
+    vocabulary = declared["vocabulary"]
+    assert vocabulary["award_format"] == "money"
+    assert vocabulary["contract"]["rows"]
+    assert vocabulary["labels"]
+    assert vocabulary["messages"]["over_limit"]
+
+
+def test_the_library_pack_serves_its_vocabulary(client, monkeypatch):
+    monkeypatch.setenv("CRM_DOMAIN", "library")
+    declared = client.get("/api/pack").json()
+    vocabulary = declared["vocabulary"]
+    assert vocabulary["award_format"] == "days"
+    assert vocabulary["contract"]["title"] == "Membership"
+    assert vocabulary["messages"]["over_limit"]
 
 
 def test_an_effect_under_another_outcome_name_runs_through_the_declarations(

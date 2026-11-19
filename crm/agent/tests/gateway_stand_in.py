@@ -167,9 +167,7 @@ class GatewayStandIn:
         limit, which its contract holds whatever the app's settings say."""
         if case_id is None:
             return False
-        answer, _ = self.send(
-            f"{Target.APP}{SEPARATOR}get_case", {"case_id": case_id}
-        )
+        answer, _ = self.send(f"{Target.APP}{SEPARATOR}get_case", {"case_id": case_id})
         decision = json.loads(answer).get("decision") or {}
         return (decision.get("payload") or {}).get("award", 0.0) > LIMIT
 

@@ -1,0 +1,122 @@
+# What each field means in the records the case agent reads: a loan request,
+# its membership and the borrower's earlier requests. Personal fields fall
+# under the librarian manual section 3.
+
+source:
+  system: The data catalog
+  owner: Desk operations
+  reviewed: "2026-10-01"
+
+records:
+  - record: case
+    description: A loan request as the desk holds it, from the request slip and the work on it.
+    source_system: Desk intake
+    fields:
+      - field: case_id
+        meaning: The request's reference, such as LN-5001. A copy worked in an evaluation adds a suffix, such as LN-5001-E2.
+        personal: false
+      - field: contract_id
+        meaning: The membership the request is made under, such as MEM-5001.
+        personal: false
+      - field: customer_id
+        meaning: The borrower who asks, such as CUS-5001.
+        personal: false
+      - field: customer_name
+        meaning: The borrower's full name.
+        personal: true
+        source_system: Member records
+      - field: case_type
+        meaning: >-
+          What the desk takes in: checkout for a first loan of a title, renewal
+          for days past the base term, and bulk for several copies of one title.
+        personal: false
+      - field: submitted_on
+        meaning: The day the borrower handed in the request.
+        personal: false
+      - field: incident_date
+        meaning: The day the borrower wants the copy, usually the day after the hand-in.
+        personal: false
+      - field: incident_location
+        meaning: The desk that took the request.
+        personal: false
+      - field: summary
+        meaning: One line on what the borrower asks.
+        personal: false
+      - field: story
+        meaning: >-
+          What the borrower says, with the facts the desk examines: the copy
+          counts of the title, the borrower's active loans, and any overdue
+          title.
+        personal: true
+      - field: items
+        meaning: The requested copies, one line per copy, with the price beside each.
+        personal: false
+      - field: amount_claimed
+        meaning: The replacement price of the requested title or titles.
+        personal: false
+      - field: documents
+        meaning: The desk papers of the request, usually empty.
+        personal: false
+
+  - record: item
+    description: One requested copy inside a loan request.
+    source_system: Desk intake
+    fields:
+      - field: description
+        meaning: The title the borrower asks for, exactly as the catalog spells it.
+        personal: false
+      - field: category
+        meaning: >-
+          What the desk takes in: checkout for a first loan of a title,
+          renewal for days past the base term, and bulk for several copies
+          of one title.
+        personal: false
+      - field: amount
+        meaning: The list price of the title, which drives the special collection referral.
+        personal: false
+      - field: isbn
+        meaning: The ISBN of the title in the catalog.
+        personal: false
+      - field: copies_total
+        meaning: How many copies of the title the library holds.
+        personal: false
+      - field: copies_on_loan
+        meaning: How many copies of the title are on loan right now.
+        personal: false
+
+  - record: contract
+    description: A membership, as the membership administration holds it.
+    source_system: Membership administration
+    fields:
+      - field: contract_id
+        meaning: The membership's reference, such as MEM-5001.
+        personal: false
+      - field: plan
+        meaning: The tier of the card, standard or research.
+        personal: false
+      - field: active_loans
+        meaning: How many loans the borrower holds right now, at intake time.
+        personal: false
+      - field: trip
+        meaning: The card's home branch, with the dates of the card term. The engine carries this record under its travel name.
+        personal: false
+      - field: travelers
+        meaning: The members the card covers. The engine carries this list under its travel name.
+        personal: false
+
+  - record: line
+    description: What the desk judges covered on an approved request, one line per copy.
+    source_system: The case agent
+    fields:
+      - field: nights
+        meaning: The requested loan term in days. A checkout asks the base term of the plan, and a renewal asks the total days wanted.
+        personal: false
+      - field: hours
+        meaning: Always zero on a loan request.
+        personal: false
+      - field: kind
+        meaning: Always item on a loan request.
+        personal: false
+      - field: amount
+        meaning: The list price of the title on the line.
+        personal: false

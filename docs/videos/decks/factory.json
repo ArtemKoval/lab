@@ -1,0 +1,151 @@
+{
+  "title": "The software factory around the agents",
+  "subtitle": "How the harness builds a domain",
+  "slides": [
+    {
+      "heading": "The factory",
+      "bullets": [],
+      "narration": "This is the harness that builds the product. One minute walks one unit of work from an intent to merged code, with no human in the loop."
+    },
+    {
+      "heading": "Inception: intent to units",
+      "bullets": [],
+      "narration": "Inception turns an intent into units of work. One OpenSpec change holds the proposal, the design, and the spec delta, and its task list is the work, one unit per line.",
+      "elements": [
+        {
+          "kind": "box",
+          "at": 1.0,
+          "col": 1,
+          "row": 2,
+          "label": "Intent"
+        },
+        {
+          "kind": "arrow",
+          "at": 1.6,
+          "from": [
+            1,
+            2
+          ],
+          "to": [
+            3,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 2.2,
+          "col": 3,
+          "row": 2,
+          "label": "Units"
+        },
+        {
+          "kind": "arrow",
+          "at": 2.8,
+          "from": [
+            3,
+            2
+          ],
+          "to": [
+            5,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 3.4,
+          "col": 5,
+          "row": 2,
+          "label": "TDD"
+        },
+        {
+          "kind": "arrow",
+          "at": 4.0,
+          "from": [
+            5,
+            2
+          ],
+          "to": [
+            7,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 4.6,
+          "col": 7,
+          "row": 2,
+          "label": "Gates"
+        },
+        {
+          "kind": "arrow",
+          "at": 5.2,
+          "from": [
+            7,
+            2
+          ],
+          "to": [
+            9,
+            2
+          ]
+        },
+        {
+          "kind": "box",
+          "at": 5.8,
+          "col": 9,
+          "row": 2,
+          "label": "Commit"
+        }
+      ]
+    },
+    {
+      "heading": "The proposal gates the code",
+      "bullets": [],
+      "narration": "The proposal merges to main before any code. Review agents attack it, and the strict validator holds the spec text to one rule set. Only then does implementation start.",
+      "elements": [
+        {
+          "kind": "bar",
+          "at": 1.5,
+          "col": 2,
+          "row": 2,
+          "label": "mutation score on the new code",
+          "share": 0.96
+        },
+        {
+          "kind": "bar",
+          "at": 2.5,
+          "col": 2,
+          "row": 4,
+          "label": "coverage of the new lines",
+          "share": 1.0
+        }
+      ]
+    },
+    {
+      "heading": "Construction: one unit flow",
+      "bullets": [
+        "A brief, a test first, the code",
+        "Gates: coverage, complexity, mutation",
+        "One atomic commit per unit"
+      ],
+      "narration": "Construction runs one flow per unit. The agent extracts a brief, writes the test first, writes the smallest code, and passes the gates: coverage, complexity, and mutation. One atomic commit lands per unit."
+    },
+    {
+      "heading": "The review before the merge",
+      "bullets": [
+        "A reviewer agent reads the whole diff",
+        "Every finding gets a verification",
+        "The fixes land before the merge"
+      ],
+      "narration": "Before a merge, a reviewer agent reads the whole diff and attacks it. Each finding gets a verification against the code, and the fixes land on the branch first."
+    },
+    {
+      "heading": "Observability: the run explains itself",
+      "bullets": [
+        "The log hook records every call",
+        "A ledger keeps each unit's proof",
+        "A handover issue carries the telemetry"
+      ],
+      "narration": "The run explains itself. A hook logs every tool call, a ledger keeps each unit's proof, and every handover issue carries the redacted telemetry of the run."
+    }
+  ]
+}

@@ -13,6 +13,16 @@ WORKER = judge.Explanation(
     "approve", "The delay was over six hours.", "Contract wording, section 3"
 )
 AGENT = judge.Explanation("approve", "A long delay is covered.", "Section 3")
+# The real address reader, kept aside before any fixture patches the module.
+REAL_JUDGE_URL = judge.judge_url
+
+
+def test_an_empty_judge_url_names_openrouter(monkeypatch):
+    """The template .env leaves JUDGE_URL empty, so an empty value must fall
+    back to OpenRouter's cloud address, or every grade dies on a blank URL."""
+    monkeypatch.setattr(judge, "judge_url", REAL_JUDGE_URL)
+    monkeypatch.setenv("JUDGE_URL", "")
+    assert judge.judge_url() == "https://openrouter.ai"
 
 
 def test_the_request(judge_answers):
