@@ -1,0 +1,38 @@
+[
+  {
+    "contract_id": "AGR-1901",
+    "customer_id": "CUS-1901",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2024-01-10",
+    "sold_through": "North London Auto Centre",
+    "trip": {
+      "destination": "Volkswagen",
+      "departs_on": "2015-05-05",
+      "returns_on": "2026-11-05",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Volkswagen Passat 2015, plate RX01 PSS"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1902",
+    "customer_id": "CUS-1902",
+    "plan": "ev",
+    "add_ons": [],
+    "purchased_on": "2025-02-20",
+    "sold_through": "Kirkstall EV Garage",
+    "trip": {
+      "destination": "Renault",
+      "departs_on": "2022-03-03",
+      "returns_on": "2027-03-02",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Renault Zoe 2022, plate RX02 ZOE"
+    ],
+    "status": "active"
+  }
+]

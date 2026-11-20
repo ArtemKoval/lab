@@ -1,0 +1,12 @@
+{
+  "name": "AutoFix Vehicle Repair",
+  "currency": "GBP",
+  "award_approval_limit": 600.0,
+  "base_excess_standard": 25.0,
+  "per_repair_cap_standard": 500.0,
+  "per_repair_cap_ev": 400.0,
+  "per_repair_cap_fleet": 900.0,
+  "served_cities": ["London", "Reading", "Leeds", "Manchester", "Birmingham"],
+  "wording_version": "2026.1",
+  "manual_version": "2026.1"
+}

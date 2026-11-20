@@ -1,0 +1,29 @@
+source:
+  system: AutoFix service operations
+  owner: Head of Service Operations
+  reviewed: "2026-11-19"
+
+rules:
+  - rule: The estimate comes from the fault lines
+    detail: >
+      Each fault line carries its own estimate. The job's repair estimate is
+      the total of the fault lines. The desk reads the fault lines before it
+      decides.
+  - rule: An expired agreement pays nothing
+    detail: >
+      When the agreement's status reads expired, the desk declines the job,
+      whatever the fault and the estimate say.
+  - rule: A fault outside the tier's classes pays nothing
+    detail: >
+      When a fault line's class sits outside the agreement tier's fault
+      classes, the desk declines the job. The exclusion is whole: the desk
+      does not authorize the covered lines of an uncovered job.
+  - rule: The desk names the garage
+    detail: >
+      The decision reason names the chosen garage and the routing facts: the
+      brand match, the specialisms, the city, and the free slots.
+  - rule: The EV gate comes before the routing
+    detail: >
+      For an EV vehicle, only garages with the certified EV mark stay in the
+      candidate set. When the caller's city holds no certified garage, the
+      desk refers the job.

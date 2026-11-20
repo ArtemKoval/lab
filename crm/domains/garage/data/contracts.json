@@ -1,0 +1,128 @@
+[
+  {
+    "contract_id": "AGR-1001",
+    "customer_id": "CUS-1001",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2024-06-01",
+    "sold_through": "North London Auto Centre",
+    "trip": {
+      "destination": "Volkswagen",
+      "departs_on": "2016-04-11",
+      "returns_on": "2026-12-15",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Volkswagen Golf 2016, plate NJ54 TWO"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1002",
+    "customer_id": "CUS-1002",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2025-01-15",
+    "sold_through": "Hackney Motors",
+    "trip": {
+      "destination": "Ford",
+      "departs_on": "2018-09-03",
+      "returns_on": "2026-11-30",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Ford Focus 2018, plate LK18 WRV"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1003",
+    "customer_id": "CUS-1003",
+    "plan": "ev",
+    "add_ons": [],
+    "purchased_on": "2024-10-20",
+    "sold_through": "Kirkstall EV Garage",
+    "trip": {
+      "destination": "Nissan",
+      "departs_on": "2021-02-22",
+      "returns_on": "2027-02-21",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Nissan Leaf 2021, plate MO21 LEF"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1004",
+    "customer_id": "CUS-1004",
+    "plan": "ev",
+    "add_ons": [],
+    "purchased_on": "2023-12-05",
+    "sold_through": "Salford EV Centre",
+    "trip": {
+      "destination": "Tesla",
+      "departs_on": "2022-06-14",
+      "returns_on": "2026-12-01",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Tesla Model 3 2022, plate PN22 TSL"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1005",
+    "customer_id": "CUS-1005",
+    "plan": "fleet",
+    "add_ons": [],
+    "purchased_on": "2022-05-11",
+    "sold_through": "Jewellery Quarter Motors",
+    "trip": {
+      "destination": "BMW",
+      "departs_on": "2019-03-19",
+      "returns_on": "2027-03-18",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "BMW 320d 2019, plate MW19 BMW"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1006",
+    "customer_id": "CUS-1006",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2025-03-02",
+    "sold_through": "Reading Motor House",
+    "trip": {
+      "destination": "Seat",
+      "departs_on": "2017-08-08",
+      "returns_on": "2026-11-25",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Seat Leon 2017, plate ED17 SEA"
+    ],
+    "status": "active"
+  },
+  {
+    "contract_id": "AGR-1007",
+    "customer_id": "CUS-1006",
+    "plan": "standard",
+    "add_ons": [],
+    "purchased_on": "2021-01-10",
+    "sold_through": "Reading Motor House",
+    "trip": {
+      "destination": "Seat",
+      "departs_on": "2017-08-08",
+      "returns_on": "2026-10-10",
+      "trip_cost": 0.0
+    },
+    "travelers": [
+      "Seat Leon 2017, plate ED17 SEA"
+    ],
+    "status": "expired"
+  }
+]

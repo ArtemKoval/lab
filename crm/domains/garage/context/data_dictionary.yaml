@@ -1,0 +1,51 @@
+source:
+  system: AutoFix service operations
+  owner: Head of Service Operations
+  reviewed: "2026-11-19"
+
+fields:
+  - field: case_id
+    where: cases
+    meaning: The job's id, at JOB-1001 and up.
+  - field: case_type
+    where: cases
+    meaning: One of repair, service, or diagnostics.
+  - field: incident_date
+    where: cases
+    meaning: The day the customer called.
+  - field: incident_location
+    where: cases
+    meaning: The caller's city.
+  - field: summary
+    where: cases
+    meaning: One line on the vehicle, the fault, and the city.
+  - field: story
+    where: cases
+    meaning: The call story, with the fault report and the routing facts.
+  - field: items
+    where: cases
+    meaning: The fault lines, each with its description, its fault class, its estimate, and its quantity.
+  - field: amount_claimed
+    where: cases
+    meaning: The total estimate of the fault lines.
+  - field: plan
+    where: contracts
+    meaning: The agreement tier, one of standard, ev, or fleet.
+  - field: status
+    where: contracts
+    meaning: active or expired. An expired agreement pays nothing.
+  - field: travelers
+    where: contracts
+    meaning: The covered vehicle entries.
+  - field: trip.destination
+    where: contracts
+    meaning: The vehicle make.
+  - field: trip.departs_on
+    where: contracts
+    meaning: The first registration date of the vehicle.
+  - field: trip.returns_on
+    where: contracts
+    meaning: The service due date of the vehicle.
+  - field: can_approve_over_limit
+    where: workers
+    meaning: True on the service manager, who signs off authorizations over the limit.

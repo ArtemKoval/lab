@@ -1,0 +1,38 @@
+source:
+  system: AutoFix service operations
+  owner: Head of Service Operations
+  reviewed: "2026-11-19"
+
+terms:
+  - term: job
+    definition: >
+      One repair request from one customer call. The engine calls it a case.
+  - term: agreement
+    definition: >
+      The service agreement between AutoFix and one vehicle owner. The engine
+      calls it a contract.
+  - term: authorization
+    definition: >
+      The amount AutoFix pays for the covered fault lines of one job, after
+      the base excess and the per-repair cap. The engine calls it an award.
+  - term: garage
+    definition: >
+      One repair shop of the AutoFix network, with its city, its brands, its
+      specialisms, its certified EV mark, and its free slots.
+  - term: routing
+    definition: >
+      The desk's choice of the garage for one job: brand first, then
+      specialisms, then location, then queue capacity, with the certified EV
+      gate before all of them.
+  - term: desk worker
+    definition: >
+      The AutoFix employee who takes the call and decides the job. The
+      engine calls this person a worker.
+  - term: service manager
+    definition: >
+      The desk worker who signs off authorizations over the limit and
+      resolves referred jobs.
+  - term: certified EV mark
+    definition: >
+      The mark a garage carries when it may take EV jobs. An EV job never
+      goes to a garage without it.

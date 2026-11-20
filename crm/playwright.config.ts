@@ -15,11 +15,19 @@ import { WORKERS, TEST_PASSWORD } from "./e2e/workers";
 // library flow spec pins the library pack's. A run on one pack leaves the
 // other pack's specs out. The default run stays on insurance.
 const LIBRARY = process.env.CRM_DOMAIN === "library";
+const GARAGE = process.env.CRM_DOMAIN === "garage";
 const INSURANCE_SPECS =
   /e2e\/(agent|configuration|copilot|improvement|pages|run|scoreboard|send_back|settings|starts|tour)\.spec\.ts/;
-const testIgnore = LIBRARY
-  ? INSURANCE_SPECS
-  : /e2e\/(library_flow|wiki_flow)\.spec\.ts/;
+const OTHER_PACK_SPECS = /e2e\/(library_flow|wiki_flow|garage_flow)\.spec\.ts/;
+function packSpecIgnore(): RegExp {
+  if (LIBRARY) return INSURANCE_SPECS;
+  if (GARAGE) return INSURANCE_SPECS;
+  return OTHER_PACK_SPECS;
+}
+const testIgnore = packSpecIgnore();
+const PACK_ENV: Record<string, string> = {};
+if (LIBRARY) PACK_ENV.CRM_DOMAIN = "library";
+if (GARAGE) PACK_ENV.CRM_DOMAIN = "garage";
 
 // The tests run their own backend and dashboard, on their own ports and
 // database, so they never touch the servers started by `npm run dev`. Every
@@ -55,11 +63,11 @@ export default defineConfig({
       // Empty DATABASE_URL, MODEL_NAME, CRM_AGENT_RUNTIME and
       // CRM_COPILOT_RUNTIME keep the tests on SQLite, the default model and
       // the stand-ins for the agent and the Copilot, whatever the shell has.
-      // CRM_DOMAIN passes through only when the run names the library pack,
-      // because an empty value would not fall back to the default pack.
+      // CRM_DOMAIN passes through only when the run names a non-default
+      // pack, because an empty value would not fall back to the default pack.
       env: {
         CRM_DB: "e2e/crm.db",
-        ...(LIBRARY ? { CRM_DOMAIN: "library" } : {}),
+        ...PACK_ENV,
         DATABASE_URL: "",
         MODEL_NAME: "",
         CRM_AGENT_SERVICE: AGENT_STAND_IN,
@@ -105,7 +113,7 @@ export default defineConfig({
         HOST: BIND_HOST,
         WORKER_PASSWORD: TEST_PASSWORD,
         DASHBOARD,
-        ...(LIBRARY ? { CRM_DOMAIN: "library" } : {}),
+        ...PACK_ENV,
       },
     },
     {

@@ -1,0 +1,16 @@
+[
+  {
+    "worker_id": "OPS-01",
+    "name": "Tara Ellison",
+    "role": "Desk Worker",
+    "email": "tara.ellison@autofix.example",
+    "can_approve_over_limit": false
+  },
+  {
+    "worker_id": "OPS-02",
+    "name": "Gordon Vale",
+    "role": "Service Manager",
+    "email": "gordon.vale@autofix.example",
+    "can_approve_over_limit": true
+  }
+]

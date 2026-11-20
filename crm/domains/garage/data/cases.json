@@ -1,0 +1,196 @@
+[
+  {
+    "case_id": "JOB-1001",
+    "contract_id": "AGR-1001",
+    "customer_id": "CUS-1001",
+    "case_type": "repair",
+    "submitted_on": "2026-11-14",
+    "incident_date": "2026-11-14",
+    "incident_location": "London",
+    "summary": "Volkswagen Golf 2016, grinding brakes and dead aircon; the customer has moved to Reading",
+    "story": "Jenny Doyle calls about her Volkswagen Golf 2016. The brakes grind when she slows down, and the aircon blows warm. She first says she is in London, then corrects herself: the customer has moved to Reading, so the job anchors on Reading. The car needs front brake pads and discs and an aircon compressor. Her agreement is a standard Care tier in good standing.",
+    "items": [
+      {
+        "description": "Front brake pads and discs",
+        "category": "brakes",
+        "amount": 180.0,
+        "quantity": 1
+      },
+      {
+        "description": "Aircon compressor and regas",
+        "category": "hvac",
+        "amount": 120.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 300.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1002",
+    "contract_id": "AGR-1002",
+    "customer_id": "CUS-1002",
+    "case_type": "diagnostics",
+    "submitted_on": "2026-11-14",
+    "incident_date": "2026-11-14",
+    "incident_location": "London",
+    "summary": "Ford Focus 2018 will not start after the cold night; starter turns but no fire",
+    "story": "Julia Hart calls about her Ford Focus 2018. The car will not start after the cold night. The starter turns, but there is no fire. The workshop plan is a starter and ignition electrical line plus a diagnostics session. Her agreement is a standard Care tier in good standing.",
+    "items": [
+      {
+        "description": "Starter and ignition electrical diagnosis",
+        "category": "electrical",
+        "amount": 220.0,
+        "quantity": 1
+      },
+      {
+        "description": "Full diagnostics session",
+        "category": "diagnostics",
+        "amount": 40.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 260.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1003",
+    "contract_id": "AGR-1003",
+    "customer_id": "CUS-1003",
+    "case_type": "repair",
+    "submitted_on": "2026-11-15",
+    "incident_date": "2026-11-15",
+    "incident_location": "Leeds",
+    "summary": "Nissan Leaf 2021 no-start, urgent; battery pack fault suspected",
+    "story": "Omar Haddad calls about his Nissan Leaf 2021, an EV. The car will not start, and the dash shows a battery fault. The job is urgent. The plan is a battery pack diagnosis and a cell module replacement. The Leaf only goes to a garage with the certified EV mark, and Kirkstall EV Garage in Leeds holds the mark. His agreement is an EV Care tier in good standing.",
+    "items": [
+      {
+        "description": "Battery pack diagnosis",
+        "category": "battery",
+        "amount": 180.0,
+        "quantity": 1
+      },
+      {
+        "description": "Battery cell module replacement",
+        "category": "battery",
+        "amount": 160.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 340.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1004",
+    "contract_id": "AGR-1004",
+    "customer_id": "CUS-1004",
+    "case_type": "repair",
+    "submitted_on": "2026-11-15",
+    "incident_date": "2026-11-15",
+    "incident_location": "Manchester",
+    "summary": "Tesla Model 3 2022 charging fault at home and public chargers",
+    "story": "Priya Nair calls about her Tesla Model 3 2022, an EV. The car charges at neither the home wallbox nor a public charger. The plan is an onboard charger replacement. The Model 3 only goes to a garage with the certified EV mark, and Salford EV Centre in Manchester holds the mark and services Tesla. Her agreement is an EV Care tier in good standing.",
+    "items": [
+      {
+        "description": "Onboard charger replacement",
+        "category": "charging",
+        "amount": 520.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 520.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1005",
+    "contract_id": "AGR-1005",
+    "customer_id": "CUS-1005",
+    "case_type": "repair",
+    "submitted_on": "2026-11-16",
+    "incident_date": "2026-11-16",
+    "incident_location": "Birmingham",
+    "summary": "BMW 320d 2019 gearbox jerks when shifting into second",
+    "story": "Marcus Webb calls about his BMW 320d 2019 on a fleet Care agreement. The gearbox jerks when it shifts into second, and the fault has grown over two weeks. The plan is a mechatronic unit replacement at a gearbox specialist. His agreement is a fleet Care tier in good standing.",
+    "items": [
+      {
+        "description": "Gearbox mechatronic unit replacement",
+        "category": "gearbox",
+        "amount": 720.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 720.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1006",
+    "contract_id": "AGR-1006",
+    "customer_id": "CUS-1006",
+    "case_type": "repair",
+    "submitted_on": "2026-11-16",
+    "incident_date": "2026-11-16",
+    "incident_location": "Reading",
+    "summary": "Seat Leon 2017 clutch slips at high revs",
+    "story": "Elena Duarte calls about her Seat Leon 2017. The clutch slips at high revs, and the car needs a clutch replacement at about 380 pounds. Her agreement is a standard Care tier in good standing, and the standard tier carries no clutch cover.",
+    "items": [
+      {
+        "description": "Clutch replacement",
+        "category": "clutch",
+        "amount": 380.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 380.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1007",
+    "contract_id": "AGR-1007",
+    "customer_id": "CUS-1006",
+    "case_type": "service",
+    "submitted_on": "2026-11-17",
+    "incident_date": "2026-11-17",
+    "incident_location": "Reading",
+    "summary": "Annual service on the Seat Leon under the old agreement",
+    "story": "Elena Duarte calls to book the annual service on her Seat Leon 2017 and names the agreement she bought in 2021. That agreement expired on 2026-10-10, and AutoFix pays nothing under an expired agreement. The service estimate is 195 pounds.",
+    "items": [
+      {
+        "description": "Annual service and oil change",
+        "category": "engine_management",
+        "amount": 195.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 195.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1008",
+    "contract_id": "AGR-1004",
+    "customer_id": "CUS-1004",
+    "case_type": "diagnostics",
+    "submitted_on": "2026-11-17",
+    "incident_date": "2026-11-17",
+    "incident_location": "Birmingham",
+    "summary": "Tesla Model 3 2022 coolant warning during a trip in Birmingham",
+    "story": "Priya Nair calls from Birmingham, where she is on a trip, about her Tesla Model 3 2022, an EV. The dash shows a coolant warning, and the car needs an EV drivetrain diagnosis. The network directory holds no garage with the certified EV mark in Birmingham, so the EV gate has no candidate in the caller's city. Her agreement is an EV Care tier in good standing.",
+    "items": [
+      {
+        "description": "EV drivetrain and coolant diagnosis",
+        "category": "ev_drivetrain",
+        "amount": 150.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 150.0,
+    "documents": [],
+    "status": "waiting"
+  }
+]

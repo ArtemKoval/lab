@@ -1,0 +1,32 @@
+[
+  {
+    "customer_id": "CUS-1901",
+    "name": "Redacted Customer One",
+    "email": "customer.1901@autofix.example",
+    "phone": "+44 7700 901901",
+    "date_of_birth": "1983-02-11",
+    "address": {
+      "street": "1 Redacted Street",
+      "city": "London",
+      "state": "",
+      "zip": "E1 1AA"
+    },
+    "customer_since": "2024-01-10",
+    "previous_cases": []
+  },
+  {
+    "customer_id": "CUS-1902",
+    "name": "Redacted Customer Two",
+    "email": "customer.1902@autofix.example",
+    "phone": "+44 7700 901902",
+    "date_of_birth": "1991-06-06",
+    "address": {
+      "street": "2 Redacted Street",
+      "city": "Leeds",
+      "state": "",
+      "zip": "LS1 1BB"
+    },
+    "customer_since": "2025-02-20",
+    "previous_cases": []
+  }
+]
