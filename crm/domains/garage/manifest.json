@@ -45,8 +45,8 @@
       "items.title": "Fault lines",
       "history.filed": "called in",
       "history.paid": "authorized",
-      "hold.gateway_refused": "The gateway refused the authorization, so it waits for a service manager's sign-off.",
-      "hold.over_limit": "The authorization is over the approval limit and waits for a service manager's sign-off.",
+      "hold.gateway_refused": "The gateway refused the payment of {award}, so it waits for a service manager's sign-off.",
+      "hold.over_limit": "The authorization of {award} is over the approval limit and waits for a service manager's sign-off.",
       "decision.calculation_caption": "How the authorization was worked out",
       "decision.award_label": "Authorization",
       "decision.manual_version": "Repair rules version {version}",
@@ -74,7 +74,6 @@
       "desk.approve": "Authorize the repair",
       "desk.decline": "Decline the job",
       "desk.refer": "Refer to the service manager",
-      "desk.amount": "Authorization",
       "desk.reason": "Why the desk decides so",
       "desk.sections": "The rule sections relied on",
       "desk.sections.default": "Repair rules 2, 4 and 5"
@@ -91,12 +90,6 @@
           "label": "Tier",
           "field": "plan",
           "format": "text"
-        },
-        {
-          "label": "Add-ons",
-          "field": "add_ons",
-          "format": "list",
-          "empty": "None"
         },
         {
           "label": "Covered vehicle",

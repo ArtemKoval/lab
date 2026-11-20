@@ -11,18 +11,29 @@ import {
 } from "./e2e/servers";
 import { WORKERS, TEST_PASSWORD } from "./e2e/workers";
 
-// The insurance specs pin the insurance pack's workers and cases, and the
-// library flow spec pins the library pack's. A run on one pack leaves the
-// other pack's specs out. The default run stays on insurance.
+// The insurance specs pin the insurance pack's workers and cases, and each
+// pack's flow spec pins that pack's. A run on one pack leaves every other
+// pack's specs out. The default run stays on insurance.
 const LIBRARY = process.env.CRM_DOMAIN === "library";
 const GARAGE = process.env.CRM_DOMAIN === "garage";
 const INSURANCE_SPECS =
   /e2e\/(agent|configuration|copilot|improvement|pages|run|scoreboard|send_back|settings|starts|tour)\.spec\.ts/;
-const OTHER_PACK_SPECS = /e2e\/(library_flow|wiki_flow|garage_flow)\.spec\.ts/;
+const FLOW_SPECS: Record<string, RegExp> = {
+  library: /e2e\/(library_flow|wiki_flow)\.spec\.ts/,
+  garage: /e2e\/garage_flow\.spec\.ts/,
+};
+function activePack(): string {
+  if (LIBRARY) return "library";
+  if (GARAGE) return "garage";
+  return "insurance";
+}
 function packSpecIgnore(): RegExp {
-  if (LIBRARY) return INSURANCE_SPECS;
-  if (GARAGE) return INSURANCE_SPECS;
-  return OTHER_PACK_SPECS;
+  const active = activePack();
+  const parts = [INSURANCE_SPECS.source];
+  for (const [name, spec] of Object.entries(FLOW_SPECS)) {
+    if (name !== active) parts.push(spec.source);
+  }
+  return new RegExp(parts.join("|"));
 }
 const testIgnore = packSpecIgnore();
 const PACK_ENV: Record<string, string> = {};

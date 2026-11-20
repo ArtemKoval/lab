@@ -68,10 +68,10 @@
 
 ## 4. Review and merge
 
-- [ ] 4.1 Confirm the staged set is exactly the pack tree, the e2e spec,
+- [x] 4.1 Confirm the staged set is exactly the pack tree, the e2e spec,
   the playwright config branch, the docs rows, the change folder, the ADR,
   and the regenerated eval manifest before every commit.
-- [ ] 4.2 Fold the review findings. Re-run the suite and the gates.
+- [x] 4.2 Fold the review findings. Re-run the suite and the gates.
 - [ ] 4.3 Merge through one squash-merged pull request with a clean port
   commit group, delete the branch, and resync the mainline.
 - [ ] 4.4 Archive the change after the implementation merge.

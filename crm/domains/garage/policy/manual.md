@@ -15,9 +15,10 @@ rule. The wording always comes first.
 ## 1. The desk's authority
 
 A desk worker decides approve, decline, or refer on a waiting job. A desk
-worker authorizes up to 600 pounds. An authorization over 600 pounds goes
-to the service manager, and the desk refers the job. A referred job waits
-for the service manager's resolution.
+worker authorizes up to 600 pounds. An authorization over 600 pounds is
+still an approve the desk records: the engine holds it, and the payment
+waits for the service manager's sign-off. A referred job waits for the
+service manager's resolution.
 
 ## 2. The routing order
 
@@ -51,7 +52,9 @@ wording's excess and cap apply to it.
 
 ## 5. The escalation
 
-The desk refers a job to the service manager when the authorization passes
-600 pounds, or when the certified EV gate finds no garage in the caller's
-city. The reason says which of the two holds. The service manager resolves
-a referred job with the same wording and the same routing order.
+Two roads lead to the service manager. The sign-off hold: an approve whose
+authorization passes 600 pounds waits for the service manager's sign-off,
+and the desk records it as an approve. The referral: when the certified EV
+gate finds no garage in the caller's city, the desk refers the job, and
+the reason names the gap. The service manager resolves a referred job with
+the same wording and the same routing order.

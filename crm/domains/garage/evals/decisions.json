@@ -142,7 +142,7 @@
   {
     "case_id": "JOB-1008",
     "decision": "refer",
-    "award": 150.0,
+    "award": 0.0,
     "over_approval_limit": false,
     "worker_id": "OPS-01",
     "decided_on": "2026-11-17",

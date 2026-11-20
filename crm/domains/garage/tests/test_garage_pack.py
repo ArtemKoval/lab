@@ -180,16 +180,105 @@ def test_every_seed_case_matches_a_fleet_garage_in_its_city():
         assert city in cities, f"{case['case_id']} names the unserved city {city}"
 
 
-def test_every_ev_case_with_a_certified_city_finds_a_certified_garage():
-    garages = _fleet_garages()
+def _list(chunk):
+    """Split one Oxford-comma fact list into its clean items."""
+    items = chunk.replace(", and ", ", ").replace(" and ", ", ").split(",")
+    return [item.strip() for item in items if item.strip()]
+
+
+def _fleet_garages_full():
+    """The fleet facts, parsed to name, city, brands, specialisms, and the
+    certified EV mark."""
+    garages = []
+    for fact in _fleet_facts():
+        name = fact.split(" in ")[0]
+        city = fact.split(" in ")[1].split(" services")[0]
+        brands = _list(fact.split(" services ")[1].split("; specialisms ")[0])
+        specialisms = _list(
+            fact.split("; specialisms ")[1].split("; certified EV")[0]
+        )
+        certified = "certified EV yes" in fact
+        garages.append(
+            {
+                "name": name,
+                "city": city,
+                "brands": brands,
+                "specialisms": specialisms,
+                "certified_ev": certified,
+            }
+        )
+    return garages
+
+
+def _decisions_by_id():
+    decisions = json.loads((PACK / "evals" / "decisions.json").read_text())
+    return {record["case_id"]: record for record in decisions}
+
+
+def _case_make(case):
+    contracts = {c["contract_id"]: c for c in _records("contracts")}
+    return contracts[case["contract_id"]]["trip"]["destination"]
+
+
+def test_every_approved_case_matches_a_local_garage_on_make_and_specialisms():
+    decisions = _decisions_by_id()
+    garages = _fleet_garages_full()
     for case in _records("cases"):
-        story = case["story"]
-        if "EV" not in story and "ev," not in story:
+        if decisions[case["case_id"]]["decision"] != "approve":
             continue
+        make = _case_make(case)
+        categories = {item["category"] for item in case["items"]}
         city = case["incident_location"]
-        local = [g for g in garages if g["city"] == city]
-        certified = [g for g in local if g["certified_ev"]]
-        if case["case_id"] == "JOB-1008":
-            assert certified == [], "JOB-1008 needs the certified gap in Birmingham"
-        else:
-            assert certified, f"{case['case_id']} finds no certified garage in {city}"
+        match = any(
+            garage["city"] == city
+            and make in garage["brands"]
+            and categories <= set(garage["specialisms"])
+            for garage in garages
+        )
+        assert match, (
+            f"{case['case_id']} finds no garage in {city} for {make} "
+            f"with {sorted(categories)}"
+        )
+
+
+def test_the_referred_ev_case_finds_no_certified_garage_in_its_city():
+    garages = _fleet_garages_full()
+    case = next(c for c in _records("cases") if c["case_id"] == "JOB-1008")
+    local = [g for g in garages if g["city"] == case["incident_location"]]
+    certified = [g for g in local if g["certified_ev"]]
+    assert certified == [], "JOB-1008 needs the certified gap in Birmingham"
+
+
+def test_the_agreement_card_names_no_engine_word():
+    manifest = json.loads((PACK / "manifest.json").read_text())
+    card = manifest["vocabulary"]["contract"]
+    assert card["title"] == "Agreement"
+    labels = [row["label"] for row in card["rows"]]
+    assert labels == [
+        "Agreement",
+        "Tier",
+        "Covered vehicle",
+        "Vehicle make",
+        "First registered",
+        "Service due",
+        "Purchased",
+        "Sold through",
+    ]
+    for word in ("plan", "add-ons", "trip", "travelers"):
+        assert all(word not in label.lower() for label in labels), word
+
+
+def test_the_seed_records_carry_the_pinned_counts():
+    from backend.models import Worker
+
+    workers = _records("workers")
+    for record in workers:
+        assert Worker(**record).worker_id
+    assert len(workers) == 2
+    assert sum(1 for w in workers if w["can_approve_over_limit"]) == 1
+    assert len(_records("customers")) == 6
+    cases = _records("cases")
+    assert len(cases) == 8
+    assert all(case["status"] == "waiting" for case in cases)
+    tiers = {c["plan"] for c in _records("contracts")}
+    assert {"standard", "ev", "fleet"} <= tiers
