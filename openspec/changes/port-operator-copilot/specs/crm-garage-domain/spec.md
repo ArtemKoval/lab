@@ -236,8 +236,8 @@ SHALL carry no trip, traveler, or insurance word on a label.
 - **WHEN** a desk worker opens the case
 - **THEN** the agreement section shows the agreement number, the tier, the
   covered vehicle, the vehicle make, the first-registered date, the
-  service-due date, and the sold-through desk, and names none of plan,
-  add-ons, trip, or travelers
+  service-due date, the purchased date, and the sold-through desk, and
+  names none of plan, add-ons, trip, or travelers
 
 #### Scenario: The over-limit refusal carries the pack's words
 - **GIVEN** the garage pack's over-limit message

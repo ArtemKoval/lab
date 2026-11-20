@@ -5,8 +5,10 @@ workers read each case and decide it against the policy documents. A human
 signs off large awards, and then the engine pays them. The packs under
 `crm/domains/` hold the words, the rules, and the seed data of each domain:
 `insurance/` (a fictional travel insurer), `helpdesk/` (FastFix IT support),
-`opsdemo/` (Nimbus OpsDesk), and `library/` (Northgate Public Library, whose
-loan desk works loan requests against the membership rules). The
+`opsdemo/` (Nimbus OpsDesk), `library/` (Northgate Public Library, whose
+loan desk works loan requests against the membership rules), and `garage/`
+(AutoFix Vehicle Repair, whose repair desk routes jobs to garages and
+authorizes the repair against the service agreement rules). The
 `crm-onboard-domain` skill onboards a new domain from a free-form
 description. `CRM_DOMAIN` names the active pack; the default is insurance.
 
@@ -86,6 +88,7 @@ decision. Put a key in `.env` to work real cases.
 ```bash
 npm run check   # ruff, pyright, pytest, prettier, eslint, tsc, vitest, e2e
 CRM_DOMAIN=library npx playwright test   # the loan desk flow on the library pack
+CRM_DOMAIN=garage npx playwright test    # the repair desk flow on the garage pack
 uv run python validate.py library        # the pack validator, from crm/
 uv run python smoke.py library           # the pack smoke run, from crm/
 ```
@@ -105,6 +108,7 @@ API, so they need no model either.
 | `e2e/` | The Playwright specs and helpers |
 | `domains/insurance/` | The first domain pack |
 | `domains/library/` | The Northgate Public Library loan desk pack |
+| `domains/garage/` | The AutoFix Vehicle Repair repair desk pack |
 | `domains/loader.py` | The one seam between the engine and the packs |
 | `docs/` | The product documents |
 | `port/` | The upstream port tool |

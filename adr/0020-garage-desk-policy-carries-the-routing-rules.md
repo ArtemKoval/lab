@@ -15,7 +15,7 @@ can. The source prototype computed the triage score in code
 (`backend/ai/retrieval.py` of the source). ADR 0007 fixes the pack seam,
 and the pack skill bans engine edits. The source also ran a capacity
 planner that raised awareness flags (specialism shortage, EV gap) before
-the queue overflows; the pack contract carries no flag surface.
+the queue overflows. The pack contract carries no flag surface.
 
 ## Decision
 

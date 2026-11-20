@@ -138,7 +138,9 @@ itself, and needs no model key. A browser window opens; close nothing.
   `marcus.oyelaran@undercover.example`, not senior; helpdesk:
   `priya.nair@fastfix.example`, lead; library:
   `rosa.meridian@northgate.example`, senior, or
-  `iris.bonnell@northgate.example`, not senior) and the dev password `crm-dev`
+  `iris.bonnell@northgate.example`, not senior; garage:
+  `gordon.vale@autofix.example`, senior, or
+  `tara.ellison@autofix.example`, not senior) and the dev password `crm-dev`
   (`AUTH_DEV_PASSWORD`).
 - Backend health: `http://localhost:8000/api/health`
 - Agent service: `http://127.0.0.1:8080`

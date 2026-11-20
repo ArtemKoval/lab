@@ -1,0 +1,152 @@
+[
+  {
+    "customer_id": "CUS-1001",
+    "name": "Jenny Doyle",
+    "email": "jenny.doyle@autofix.example",
+    "phone": "+44 7700 900123",
+    "date_of_birth": "1988-03-14",
+    "address": {
+      "street": "12 Elmfield Way",
+      "city": "London",
+      "state": "",
+      "zip": "N1 4QP"
+    },
+    "customer_since": "2024-06-01",
+    "previous_cases": [
+      {
+        "case_id": "JOB-0954",
+        "filed_on": "2026-08-02",
+        "incident_date": "2026-08-01",
+        "case_type": "service",
+        "summary": "Annual service on the Volkswagen Golf in London",
+        "outcome": "approved",
+        "amount_paid": 210.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-1002",
+    "name": "Julia Hart",
+    "email": "julia.hart@autofix.example",
+    "phone": "+44 7700 900124",
+    "date_of_birth": "1992-11-02",
+    "address": {
+      "street": "48 Canonbury Road",
+      "city": "London",
+      "state": "",
+      "zip": "N1 2HB"
+    },
+    "customer_since": "2025-01-15",
+    "previous_cases": [
+      {
+        "case_id": "JOB-0961",
+        "filed_on": "2026-09-12",
+        "incident_date": "2026-09-11",
+        "case_type": "repair",
+        "summary": "Exhaust repair on the Ford Focus in London",
+        "outcome": "approved",
+        "amount_paid": 180.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-1003",
+    "name": "Omar Haddad",
+    "email": "omar.haddad@autofix.example",
+    "phone": "+44 7700 900125",
+    "date_of_birth": "1985-07-21",
+    "address": {
+      "street": "9 Woodhouse Lane",
+      "city": "Leeds",
+      "state": "",
+      "zip": "LS2 8AH"
+    },
+    "customer_since": "2024-10-20",
+    "previous_cases": [
+      {
+        "case_id": "JOB-0949",
+        "filed_on": "2026-07-19",
+        "incident_date": "2026-07-18",
+        "case_type": "diagnostics",
+        "summary": "Warning-light diagnostics on the Nissan Leaf in Leeds",
+        "outcome": "approved",
+        "amount_paid": 95.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-1004",
+    "name": "Priya Nair",
+    "email": "priya.nair@autofix.example",
+    "phone": "+44 7700 900126",
+    "date_of_birth": "1990-01-30",
+    "address": {
+      "street": "23 Chorlton Avenue",
+      "city": "Manchester",
+      "state": "",
+      "zip": "M21 9RD"
+    },
+    "customer_since": "2023-12-05",
+    "previous_cases": [
+      {
+        "case_id": "JOB-0957",
+        "filed_on": "2026-08-28",
+        "incident_date": "2026-08-27",
+        "case_type": "repair",
+        "summary": "Tyre replacement on the Tesla Model 3 in Manchester",
+        "outcome": "approved",
+        "amount_paid": 260.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-1005",
+    "name": "Marcus Webb",
+    "email": "marcus.webb@autofix.example",
+    "phone": "+44 7700 900127",
+    "date_of_birth": "1979-09-09",
+    "address": {
+      "street": "61 Harborne Road",
+      "city": "Birmingham",
+      "state": "",
+      "zip": "B15 3DH"
+    },
+    "customer_since": "2022-05-11",
+    "previous_cases": [
+      {
+        "case_id": "JOB-0938",
+        "filed_on": "2026-06-30",
+        "incident_date": "2026-06-29",
+        "case_type": "repair",
+        "summary": "Cooling repair on the BMW 3 Series in Birmingham",
+        "outcome": "approved",
+        "amount_paid": 340.0
+      }
+    ]
+  },
+  {
+    "customer_id": "CUS-1006",
+    "name": "Elena Duarte",
+    "email": "elena.duarte@autofix.example",
+    "phone": "+44 7700 900128",
+    "date_of_birth": "1994-05-25",
+    "address": {
+      "street": "7 Crown Court",
+      "city": "Reading",
+      "state": "",
+      "zip": "RG1 5HL"
+    },
+    "customer_since": "2025-03-02",
+    "previous_cases": [
+      {
+        "case_id": "JOB-0966",
+        "filed_on": "2026-10-04",
+        "incident_date": "2026-10-03",
+        "case_type": "service",
+        "summary": "Annual service on the Seat Leon in Reading",
+        "outcome": "approved",
+        "amount_paid": 195.0
+      }
+    ]
+  }
+]

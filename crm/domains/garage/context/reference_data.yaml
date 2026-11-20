@@ -1,0 +1,59 @@
+source:
+  system: The AutoFix network directory
+  owner: Network Operations
+  reviewed: "2026-11-19"
+
+topics:
+  - topic: garage network
+    description: >
+      The garages of the AutoFix network in the five served cities, with the
+      makes each garage services, its specialisms, its certified EV mark,
+      and its free slots today.
+    facts:
+      - "North London Auto Centre in London services Volkswagen, Audi, Skoda, and Seat; specialisms brakes, hvac, electrical, and diagnostics; certified EV no; 3 free slots."
+      - "Hackney Motors in London services Ford, Vauxhall, and Nissan; specialisms electrical, diagnostics, and engine_management; certified EV no; 5 free slots."
+      - "Thames EV Works in London services Tesla, Nissan, and Hyundai; specialisms battery, charging, ev_drivetrain, and diagnostics; certified EV yes; 2 free slots."
+      - "Islington Car Care in London services BMW and Mini; specialisms brakes, gearbox, and diagnostics; certified EV no; 4 free slots."
+      - "Westfield Garage in London services Toyota and Honda; specialisms brakes, hvac, and exhaust; certified EV no; 6 free slots."
+      - "City Road AutoFix in London services Volkswagen, Ford, and Toyota; specialisms tyres, brakes, and battery12v; certified EV no; 1 free slot."
+      - "Shoreditch EV Hub in London services Tesla, BYD, and Kia; specialisms charging, battery, and ev_drivetrain; certified EV yes; 3 free slots."
+      - "Paddington Motors in London services Mercedes and Audi; specialisms engine_management, electrical, and cooling; certified EV no; 2 free slots."
+      - "Reading Motor House in Reading services Volkswagen, Seat, and Audi; specialisms brakes, hvac, clutch, and diagnostics; certified EV no; 4 free slots."
+      - "Thameside Repairs in Reading services Ford and Vauxhall; specialisms electrical, gearbox, and exhaust; certified EV no; 5 free slots."
+      - "Oracle EV Centre in Reading services Tesla, Nissan, and MG; specialisms battery, charging, ev_drivetrain, and tyres; certified EV yes; 3 free slots."
+      - "Caversham Garage in Reading services Toyota and Honda; specialisms brakes, hvac, and battery12v; certified EV no; 6 free slots."
+      - "Reading Roadhouse in Reading services BMW; specialisms engine_management, brakes, and diagnostics; certified EV no; 2 free slots."
+      - "Kennet Motors in Reading services Volkswagen and Skoda; specialisms hvac, electrical, and tyres; certified EV no; 3 free slots."
+      - "Coleby Car Care in Reading services Ford; specialisms diagnostics, clutch, and gearbox; certified EV no; 4 free slots."
+      - "Whiteknights AutoFix in Reading services Hyundai and Kia; specialisms brakes, electrical, and exhaust; certified EV no; 5 free slots."
+      - "Leeds Motor Works in Leeds services Volkswagen, Audi, and BMW; specialisms brakes, diagnostics, and engine_management; certified EV no; 3 free slots."
+      - "Aire Valley Motors in Leeds services Ford and Vauxhall; specialisms electrical, hvac, and gearbox; certified EV no; 4 free slots."
+      - "Kirkstall EV Garage in Leeds services Nissan, Renault, and MG; specialisms battery, charging, ev_drivetrain, and diagnostics; certified EV yes; 2 free slots."
+      - "Headingley Car Care in Leeds services Toyota and Honda; specialisms brakes, tyres, and exhaust; certified EV no; 6 free slots."
+      - "Leeds City Autos in Leeds services Volkswagen and Seat; specialisms hvac, electrical, and battery12v; certified EV no; 5 free slots."
+      - "Holbeck Repairs in Leeds services BMW and Mini; specialisms gearbox, clutch, and diagnostics; certified EV no; 3 free slots."
+      - "Chapel Allerton Motors in Leeds services Nissan and Toyota; specialisms brakes, diagnostics, and hvac; certified EV no; 4 free slots."
+      - "Garforth Garage in Leeds services Ford; specialisms engine_management, electrical, and cooling; certified EV no; 2 free slots."
+      - "Deansgate Motors in Manchester services Volkswagen, Audi, and Mercedes; specialisms brakes, hvac, and diagnostics; certified EV no; 3 free slots."
+      - "Ancoats AutoFix in Manchester services Ford and Toyota; specialisms electrical, gearbox, and exhaust; certified EV no; 5 free slots."
+      - "Salford EV Centre in Manchester services Tesla, Nissan, and Polestar; specialisms battery, charging, ev_drivetrain, and tyres; certified EV yes; 4 free slots."
+      - "Northern Quarter Garage in Manchester services BMW; specialisms engine_management, brakes, and diagnostics; certified EV no; 2 free slots."
+      - "Didsbury Car Care in Manchester services Volkswagen and Seat; specialisms hvac, electrical, and battery12v; certified EV no; 4 free slots."
+      - "Trafford Motors in Manchester services Vauxhall and Nissan; specialisms diagnostics, clutch, and gearbox; certified EV no; 3 free slots."
+      - "Piccadilly Autos in Manchester services Toyota and Honda; specialisms brakes, tyres, and hvac; certified EV no; 6 free slots."
+      - "Hulme Street Repairs in Manchester services Kia and Hyundai; specialisms electrical, diagnostics, and cooling; certified EV no; 5 free slots."
+      - "Digbeth Garage in Birmingham services Volkswagen, Audi, and Skoda; specialisms brakes, gearbox, and diagnostics; certified EV no; 3 free slots."
+      - "Jewellery Quarter Motors in Birmingham services BMW and Mini; specialisms engine_management, gearbox, and clutch; certified EV no; 4 free slots."
+      - "Bullring Autos in Birmingham services Ford and Vauxhall; specialisms electrical, hvac, and exhaust; certified EV no; 5 free slots."
+      - "Edgbaston Car Care in Birmingham services Toyota and Honda; specialisms brakes, tyres, and battery12v; certified EV no; 6 free slots."
+      - "Solihull Road Repairs in Birmingham services Mercedes and BMW; specialisms diagnostics, gearbox, and cooling; certified EV no; 2 free slots."
+      - "Selly Oak Garage in Birmingham services Volkswagen and Seat; specialisms hvac, electrical, and diagnostics; certified EV no; 4 free slots."
+      - "Bordesley Autos in Birmingham services Nissan and Renault; specialisms brakes, electrical, and battery12v; certified EV no; 3 free slots."
+      - "Aston Cross Motors in Birmingham services Ford; specialisms gearbox, clutch, and engine_management; certified EV no; 5 free slots."
+
+  - topic: cities
+    description: The cities the AutoFix network serves, and how far the other cities sit from each one.
+    facts:
+      - "The network serves London, Reading, Leeds, Manchester, and Birmingham."
+      - "Reading sits about 40 miles from London; every other city sits over 150 miles from London."
+      - "A garage outside the caller's city loses the location step, whatever its brand and specialism match say."

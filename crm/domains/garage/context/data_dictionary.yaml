@@ -1,0 +1,113 @@
+source:
+  system: The data catalog
+  owner: Desk operations
+  reviewed: "2026-11-19"
+
+records:
+  - record: case
+    description: A repair job as the desk holds it, from the call and the work on it.
+    source_system: Desk intake
+    fields:
+      - field: case_id
+        meaning: The job's reference, such as JOB-1001. A copy worked in an evaluation adds a suffix.
+        personal: false
+      - field: contract_id
+        meaning: The agreement the job is made under, such as AGR-1001.
+        personal: false
+      - field: customer_id
+        meaning: The customer who calls, such as CUS-1001.
+        personal: false
+      - field: customer_name
+        meaning: The customer's full name.
+        personal: true
+        source_system: Customer records
+      - field: case_type
+        meaning: >-
+          What the desk takes in: repair for a fault fix, service for the
+          annual service, diagnostics for a fault-finding session.
+        personal: false
+      - field: incident_date
+        meaning: The day the customer called.
+        personal: false
+      - field: incident_location
+        meaning: The caller's city, which anchors the routing.
+        personal: false
+      - field: summary
+        meaning: One line on the vehicle, the fault, and the city.
+        personal: false
+      - field: story
+        meaning: The call story, with the fault report and the routing facts.
+        personal: false
+      - field: items
+        meaning: The fault lines, each with its description, its fault class, its estimate, and its quantity.
+        personal: false
+      - field: amount_claimed
+        meaning: The total estimate of the fault lines.
+        personal: false
+      - field: status
+        meaning: waiting until the desk decides it.
+        personal: false
+
+  - record: contract
+    description: The service agreement between AutoFix and one vehicle owner.
+    source_system: Agreement administration
+    fields:
+      - field: contract_id
+        meaning: The agreement's reference, such as AGR-1001.
+        personal: false
+      - field: customer_id
+        meaning: The customer who holds the agreement.
+        personal: false
+      - field: plan
+        meaning: The agreement tier, one of standard, ev, or fleet.
+        personal: false
+      - field: add_ons
+        meaning: The extra covers attached to the agreement. The seed agreements carry none.
+        personal: false
+      - field: purchased_on
+        meaning: The day the agreement was bought.
+        personal: false
+      - field: sold_through
+        meaning: The garage or desk that sold the agreement.
+        personal: false
+      - field: status
+        meaning: active or expired. An expired agreement pays nothing.
+        personal: false
+      - field: trip.destination
+        meaning: The vehicle make, such as Volkswagen or Tesla.
+        personal: false
+      - field: trip.departs_on
+        meaning: The first registration date of the vehicle.
+        personal: false
+      - field: trip.returns_on
+        meaning: The service due date of the vehicle.
+        personal: false
+      - field: travelers
+        meaning: The covered vehicle entries, with the make, the model, the year, and the plate.
+        personal: false
+
+  - record: previous_case
+    description: One earlier job of the same customer, as the records hold it.
+    source_system: Desk history
+    fields:
+      - field: case_id
+        meaning: The earlier job's reference.
+        personal: false
+      - field: filed_on
+        meaning: The day the earlier job was filed.
+        personal: false
+      - field: incident_date
+        meaning: The day of the earlier fault.
+        personal: false
+      - field: case_type
+        meaning: What kind of job the earlier one was.
+        personal: false
+      - field: summary
+        meaning: One line on the earlier job.
+        personal: false
+      - field: outcome
+        meaning: How the earlier job ended, such as approved.
+        personal: false
+      - field: amount_paid
+        meaning: What AutoFix paid for the earlier job.
+        personal: false

@@ -1,0 +1,46 @@
+[
+  {
+    "case_id": "JOB-1951",
+    "contract_id": "AGR-1001",
+    "customer_id": "CUS-1001",
+    "case_type": "repair",
+    "submitted_on": "2026-11-18",
+    "incident_date": "2026-11-18",
+    "incident_location": "London",
+    "summary": "Volkswagen Golf 2016 brake pads worn; a held-out routine covered repair",
+    "story": "Jenny Doyle calls about worn front brake pads on her Volkswagen Golf 2016 in London, under an active standard agreement. The estimate is 210 pounds, the fault class is brakes, and North London Auto Centre services Volkswagen with brakes and holds 3 free slots. The job stays off the queue and holds the held-out decision.",
+    "items": [
+      {
+        "description": "Front brake pads and discs",
+        "category": "brakes",
+        "amount": 210.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 210.0,
+    "documents": [],
+    "status": "waiting"
+  },
+  {
+    "case_id": "JOB-1952",
+    "contract_id": "AGR-1005",
+    "customer_id": "CUS-1005",
+    "case_type": "repair",
+    "submitted_on": "2026-11-18",
+    "incident_date": "2026-11-18",
+    "incident_location": "Birmingham",
+    "summary": "BMW 320d cooling repair on the fleet tier; a held-out over-limit approval",
+    "story": "Marcus Webb calls about a coolant leak on his BMW 320d 2019 in Birmingham, on a fleet Care agreement in good standing. The estimate is 640 pounds, the fault class is cooling, and Solihull Road Repairs services BMW with cooling and holds 2 free slots. The fleet tier carries no excess and caps at 900, so the authorization runs to 640 pounds, over the desk limit. The job stays off the queue and holds the held-out decision.",
+    "items": [
+      {
+        "description": "Radiator and coolant hose replacement",
+        "category": "cooling",
+        "amount": 640.0,
+        "quantity": 1
+      }
+    ],
+    "amount_claimed": 640.0,
+    "documents": [],
+    "status": "waiting"
+  }
+]

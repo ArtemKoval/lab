@@ -1,0 +1,24 @@
+[
+  {
+    "case_id": "JOB-1951",
+    "decision": "approve",
+    "award": 185.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-18",
+    "reference": "Repair wording, sections 2, 3 and 6; manual, section 2",
+    "reason": "The brake line sits inside the standard tier's classes, and North London Auto Centre is the brand match in the caller's city with 3 free slots. The estimate is 210 pounds, less the 25 pound excess.",
+    "tiny": true
+  },
+  {
+    "case_id": "JOB-1952",
+    "decision": "approve",
+    "award": 640.0,
+    "over_approval_limit": true,
+    "worker_id": "OPS-02",
+    "decided_on": "2026-11-18",
+    "reference": "Repair wording, sections 2, 4 and 6; manual, sections 1 and 2",
+    "reason": "The cooling line sits inside the fleet tier's classes, and Solihull Road Repairs is the brand match in the caller's city with 2 free slots. The fleet tier carries no excess and caps at 900, so the authorization runs to 640 pounds and waits for the service manager's sign-off.",
+    "tiny": false
+  }
+]

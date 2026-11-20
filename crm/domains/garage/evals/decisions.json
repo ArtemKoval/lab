@@ -1,0 +1,160 @@
+[
+  {
+    "case_id": "JOB-1001",
+    "decision": "approve",
+    "award": 275.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-14",
+    "reason": "Both fault lines sit inside the standard tier's classes, and the agreement stands. The customer has moved to Reading, so the job anchors there: Reading Motor House services Volkswagen with brakes and hvac, and holds 4 free slots. The estimate is 300 pounds, less the 25 pound excess.",
+    "reference": "Repair wording, sections 2, 3 and 6; manual, section 2",
+    "calculation": [
+      {
+        "step": "Front brake pads and discs",
+        "amount": 180.0
+      },
+      {
+        "step": "Aircon compressor and regas",
+        "amount": 120.0
+      },
+      {
+        "step": "Less the base excess of the standard plan",
+        "amount": -25.0
+      }
+    ],
+    "difficulty": "routine",
+    "tiny": false
+  },
+  {
+    "case_id": "JOB-1002",
+    "decision": "approve",
+    "award": 235.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-14",
+    "reason": "The electrical and diagnostics lines sit inside the standard tier's classes, and the agreement stands. Hackney Motors in London services Ford with electrical and diagnostics, and holds 5 free slots. The estimate is 260 pounds, less the 25 pound excess.",
+    "reference": "Repair wording, sections 2, 3 and 6; manual, section 2",
+    "calculation": [
+      {
+        "step": "Starter and ignition electrical diagnosis",
+        "amount": 220.0
+      },
+      {
+        "step": "Full diagnostics session",
+        "amount": 40.0
+      },
+      {
+        "step": "Less the base excess of the standard plan",
+        "amount": -25.0
+      }
+    ],
+    "difficulty": "routine",
+    "tiny": false
+  },
+  {
+    "case_id": "JOB-1003",
+    "decision": "approve",
+    "award": 340.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-15",
+    "reason": "The battery lines sit inside the EV tier's classes, and the job is urgent. The Leaf goes only to a certified EV garage: Kirkstall EV Garage in Leeds holds the mark, services Nissan with battery and diagnostics, and holds 2 free slots. The EV tier carries no excess, so the authorization is the full 340 pounds.",
+    "reference": "Repair wording, sections 2, 3 and 5; manual, sections 2 and 3",
+    "calculation": [
+      {
+        "step": "Battery pack diagnosis",
+        "amount": 180.0
+      },
+      {
+        "step": "Battery cell module replacement",
+        "amount": 160.0
+      }
+    ],
+    "difficulty": "harder",
+    "tiny": false
+  },
+  {
+    "case_id": "JOB-1004",
+    "decision": "approve",
+    "award": 400.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-15",
+    "reason": "The charging line sits inside the EV tier's classes. The Model 3 goes to Salford EV Centre in Manchester, which holds the certified EV mark, services Tesla, and holds 4 free slots. The 520 pound estimate passes the EV tier cap of 400 pounds, so the authorization caps there.",
+    "reference": "Repair wording, sections 2, 4 and 5; manual, sections 2 and 3",
+    "calculation": [
+      {
+        "step": "Onboard charger replacement",
+        "amount": 520.0
+      },
+      {
+        "step": "Less the amount over the ev cap of 400",
+        "amount": -120.0
+      }
+    ],
+    "difficulty": "harder",
+    "tiny": false
+  },
+  {
+    "case_id": "JOB-1005",
+    "decision": "approve",
+    "award": 720.0,
+    "over_approval_limit": true,
+    "worker_id": "OPS-02",
+    "decided_on": "2026-11-16",
+    "reason": "The gearbox line sits inside the fleet tier's classes, and Jewellery Quarter Motors in Birmingham services BMW with gearbox and clutch and holds 4 free slots. The fleet tier carries no excess and caps at 900, so the authorization is the full 720 pounds. It passes the 600 pound desk limit, so the service manager signs off.",
+    "reference": "Repair wording, sections 2, 4 and 6; manual, sections 1 and 2",
+    "calculation": [
+      {
+        "step": "Gearbox mechatronic unit replacement",
+        "amount": 720.0
+      }
+    ],
+    "difficulty": "harder",
+    "tiny": false
+  },
+  {
+    "case_id": "JOB-1006",
+    "decision": "decline",
+    "award": 0.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-16",
+    "reason": "The clutch line sits outside the standard tier's fault classes, so the wording pays nothing for it, whatever the estimate says. The exclusion is whole, and no part of the job authorizes.",
+    "reference": "Repair wording, section 2",
+    "calculation": [],
+    "difficulty": "routine",
+    "tiny": true
+  },
+  {
+    "case_id": "JOB-1007",
+    "decision": "decline",
+    "award": 0.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-17",
+    "reason": "The agreement the customer named expired on 2026-10-10, and AutoFix pays nothing under an expired agreement.",
+    "reference": "Repair wording, section 1",
+    "calculation": [],
+    "difficulty": "routine",
+    "tiny": true
+  },
+  {
+    "case_id": "JOB-1008",
+    "decision": "refer",
+    "award": 0.0,
+    "over_approval_limit": false,
+    "worker_id": "OPS-01",
+    "decided_on": "2026-11-17",
+    "reason": "The EV gate finds no garage with the certified EV mark in Birmingham, the caller's city, so no candidate survives the gate. The job refers to the service manager on the certified EV gap, not on the amount.",
+    "reference": "Repair wording, section 5; manual, section 3",
+    "calculation": [
+      {
+        "step": "EV drivetrain and coolant diagnosis",
+        "amount": 150.0
+      }
+    ],
+    "difficulty": "harder",
+    "tiny": false
+  }
+]
