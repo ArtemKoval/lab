@@ -1,4 +1,17 @@
-## ADDED Requirements
+# harness-improvement-memory Specification
+
+## Purpose
+
+The harness improvement loop keeps the memory of its own improvement
+attempts. A harness lesson names its recurring problem, and an attempt
+ledger records what each application of the rule predicted and observed,
+in which setting, with a verdict. The plan review pulls the lessons whose
+problems name the touched surfaces, the plan cites them, the review round
+holds the teeth, and the run writes the observed outcome back to the
+lesson it cited. The capability covers the feature-pipeline text, the
+agent-memory kit, and the merge-time hook.
+
+## Requirements
 
 ### Requirement: A lesson record names its problem and keeps its attempts
 A lesson record SHALL carry a problem line that names the recurring problem
@@ -78,11 +91,6 @@ unless the problem is new.
   this setting
 - **THEN** the ledger of the lesson gains an attempt with the verdict
   misled and the setting field names the setting of the failure
-
-#### Scenario: A new problem opens a new lesson
-- **GIVEN** a run that hits a problem whose lesson exists nowhere
-- **WHEN** the result review records the miss
-- **THEN** the session opens one new lesson record with its first attempt
 
 ### Requirement: The merge nudge names the write-back
 The merge-time hook SHALL carry a fixed nudge that names the write-back of
