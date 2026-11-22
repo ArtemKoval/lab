@@ -72,7 +72,7 @@ case "$NAME" in
   ""|*[!A-Za-z0-9_.-]*|*/*) exit 0 ;;
 esac
 
-CTX="That merge completed a task. Close the agent-memory loop for the bound thread now (agent-memory skill, Mode 3): write the session summary on the thread, distill lessons, regenerate the cache. No operator prompt is needed; if the store is unreachable, say so and continue."
+CTX="That merge completed a task. Close the agent-memory loop for the bound thread now (agent-memory skill, Mode 3): write the session summary on the thread, distill lessons, regenerate the cache. Also write back the outcome of every lesson the run cited: append the attempt to the lesson's ledger when the run exercised its rule. No operator prompt is needed; if the store is unreachable, say so and continue."
 
 esc="${CTX//\\/\\\\}"
 esc="${esc//\"/\\\"}"
