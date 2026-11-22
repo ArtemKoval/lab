@@ -237,8 +237,12 @@ Route by the question "does this help another person or another session?":
 🔒 Format of a lesson issue:
 
 - Title = the rule itself, phrased as an instruction. Example: `Run the type gate before every push, because stale types break the build.`
-- Body = the rule + the evidence, 1–3 lines.
+- Body = the rule + the evidence, 1–3 lines. Once a recurrence exists, the body also carries the attempt ledger: one attempt per exercised recurrence, with the date, the session, the trigger, the prediction, the observation, the setting, and a verdict of holds, misled, or superseded.
 - Labels = `memory:lesson`.
+
+⚙️ Recurrence rule: on the first recurrence of a store lesson's problem, append the attempt to the lesson issue body. Keep the earlier body text unchanged, and add no comment. The attempt carries the seven fields, and the setting records the repo, the host, or the model with `unrecorded` where the source names none.
+
+⚙️ Host-lesson format rule: a host lesson (the agent's own memory file) names its recurring problem in one line, and carries the same attempt ledger with the same seven fields, append-only. The kit text owns this convention, and no repository file pins the host files.
 
 🎨 The wording is your judgment. Criterion: imperative form, a reader needs no context of this session, not a hypothesis.
 

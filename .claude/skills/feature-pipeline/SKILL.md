@@ -69,8 +69,12 @@ config, hook, docs) runs:
 1. **Plan** — approach, files, shape, edge cases, failure modes; run the ASIT
    pass before adding anything.
 2. **Review the plan** — consult prior lessons first (`MEMORY.md`/memories,
-   CLAUDE.md invariants, recent reflections), then critique against the
-   requirement, CLAUDE.md, and reality; fix. Escalate with risk: independent
+   CLAUDE.md invariants, recent reflections). Read the memory index. Pull
+   every lesson whose problem line names a surface the change touches, and
+   cite each pulled lesson by name in the plan. The review round raises one
+   review finding per plan when the plan touches a surface whose converted
+   index line names a problem and the plan cites no lesson. Then critique
+   against the requirement, CLAUDE.md, and reality; fix. Escalate with risk: independent
    adversarial review (Step 12 machinery) for a risky step; a decision
    tournament (several independent attempts, judged and synthesized) for a
    genuine fork (several valid architectures, ambiguous requirements,
@@ -89,7 +93,11 @@ config, hook, docs) runs:
    trust a model label.
    Surface directions that are the user's call (ExitPlanMode).
 3. **Implement** the corrected plan.
-4. **Review the result** — run it, read the diff, check the gates; fix. At most
+4. **Review the result** — run it, read the diff, check the gates; fix. When
+   the run exercised the rule of a cited lesson, append the attempt (date,
+   session, trigger, prediction, observation, setting, verdict) to that
+   lesson's ledger in this session, and open a new lesson only for a new
+   problem. At most
    2 refinement rounds, each driven by a new external signal (failing test,
    review finding, measured regression) — iterating without one degrades output
    (Huang et al. 2023).
@@ -546,7 +554,9 @@ shipped (Step 13 and the `handover-telemetry` skill). No log-analysis tool or
 reflection skill is adopted in this repo yet. Treat the Analyse and Reflect
 sub-steps below as the target design. Skip each one
 until its tooling exists, and adopt it via Step 8, as its own change, before
-relying on it.
+relying on it. The write-back clause of Reflect is the one exemption: it
+ships with this pipeline, and Reflect itself stays skipped until its
+tooling exists.
 - **Log** — shipped: the cc-logging hook records every tool call, boundary,
   and permission event to a local, uncommitted log at `.cc_logging/`. The
   hook always exits 0 and redacts secrets at write time, so it cannot break a
@@ -560,12 +570,16 @@ relying on it.
 - **Handover** — the `handover` issues hold observations from earlier runs.
   Read them on GitHub when a pattern is worth chasing. This sub-step uses only
   `gh`, so it works now.
-- **Reflect** — after a substantial delivery, if a reflection skill exists,
-  run it for what counts miss: an undocumented convention, a fix that took
-  several attempts, a misleading CLAUDE.md claim, a tournament winner that
-  did not hold. Shared lessons → this pipeline (committed), local → memory,
-  mechanical → the analysis. Act once the same friction recurs (~3+
-  reflections). Lessons pay off only when consulted (inner-loop step 2).
+- **Reflect** — shipped first, the write-back: when the run exercised the
+  rule of a cited lesson, append the attempt (date, session, trigger,
+  prediction, observation, setting, verdict) to that lesson's ledger, and
+  open a new lesson only for a new problem. Then, after a substantial
+  delivery, if a reflection skill exists, run it for what counts miss: an
+  undocumented convention, a fix that took several attempts, a misleading
+  CLAUDE.md claim, a tournament winner that did not hold. Shared lessons →
+  this pipeline (committed), local → memory, mechanical → the analysis. Act
+  once the same friction recurs (~3+ reflections). Lessons pay off only
+  when consulted (inner-loop step 2).
 - **Improve** — feed findings back through this pipeline, placed via Steps
   0.5/0.6 and solved ASIT-first (extend an existing skill, hook, or rule before
   adding one): permission-friction → scoped allow-rule (+ PowerShell twin) or a
