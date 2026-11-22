@@ -18,14 +18,14 @@ harness-only continuation in all ten tested transfer settings.
 ## Decision
 
 A harness lesson names its recurring problem in one line, and carries an
-attempt ledger. One attempt lands per exercised recurrence of the rule,
-and each attempt records the date, the session, the trigger, the
-prediction, the observation, the setting, and a verdict of holds, misled,
-or superseded. The ledger appends only. The plan review pulls lessons from
-the memory index by problem, the plan cites them, and the review round
-raises one finding per plan when a touched surface owns a cited-to-be
-lesson that the plan does not cite. The result review and the merge-hook
-nudge carry the write-back. The consultation teeth ride the review round.
+attempt ledger. One attempt lands per exercised recurrence of the rule.
+Each attempt records the date, the session, the trigger, the prediction,
+the observation, the setting, and a verdict of holds, misled, or
+superseded. The ledger appends only. The plan review pulls lessons from
+the memory index by problem, and the plan cites them. The review round
+raises one finding per plan when a touched surface owns an owning lesson
+that the plan does not cite. The result review and the merge-hook nudge
+carry the write-back. The consultation teeth ride the review round.
 
 The rejected options, with their reasons: a repo guard test and a
 plan-file convention for mechanical enforcement lost, because plans are

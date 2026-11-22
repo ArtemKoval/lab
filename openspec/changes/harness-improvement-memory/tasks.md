@@ -52,7 +52,7 @@
   the problem and the setting, in the file's real link shape, and each line
   stays one line.
 - [x] 5.4 Read back all ten converted files and assert each carries the
-  problem line and one attempt with the five fields.
+  problem line and one attempt with the seven fields.
 - [x] 5.5 Render-check the ten rewritten index lines in MEMORY.md.
 
 ## 6. Verification
