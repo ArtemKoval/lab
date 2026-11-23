@@ -11,16 +11,18 @@ from backend.tests.sign_in import DANA
 
 
 def test_find_customers_by_the_words_in_their_name(dashboard):
-    found = read(dashboard, "/api/customers?name=maya").json()
+    found = read(dashboard, "/api/customers/find?name=maya").json()
     assert found == [{"customer_id": "CUS-3001", "name": "Maya Patel"}]
-    assert read(dashboard, "/api/customers?name=PATEL%20maya").json() == found
-    assert read(dashboard, "/api/customers?name=nobody").json() == []
+    assert read(dashboard, "/api/customers/find?name=PATEL%20maya").json() == found
+    assert read(dashboard, "/api/customers/find?name=nobody").json() == []
 
 
-def test_a_blank_name_finds_nothing(dashboard):
+def test_a_blank_name_finds_nothing_and_an_absent_name_finds_every(dashboard):
     for name in ("", "%20%20"):
-        assert read(dashboard, f"/api/customers?name={name}").status_code == 422
-    assert read(dashboard, "/api/customers").status_code == 422
+        assert read(dashboard, f"/api/customers/find?name={name}").status_code == 422
+    every = read(dashboard, "/api/customers")
+    assert every.status_code == 200
+    assert len(every.json()) > 0
 
 
 def test_a_customer_in_full_without_their_personal_details(dashboard):

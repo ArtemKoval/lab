@@ -137,6 +137,15 @@
       "senior": "Only a worker who can sign off loan terms over {limit} can {action}.",
       "cant_sign_off": "{name} can't sign off loan terms over the approval limit of {limit}"
     },
-    "benefit": "loan"
+    "benefit": "loan",
+    "loan_request": {
+      "label": "Add a loan request",
+      "member_picker": "Member",
+      "membership_picker": "Membership",
+      "title": "Title of the loan",
+      "story": "The desk's note",
+      "price": "Replacement price",
+      "submit": "Add the request"
+    }
   }
 }

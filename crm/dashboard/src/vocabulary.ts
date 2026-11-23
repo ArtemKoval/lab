@@ -17,12 +17,25 @@ export interface ContractRow {
   empty?: string;
 }
 
+export interface LoanRequestWords {
+  label: string;
+  member_picker: string;
+  membership_picker: string;
+  title: string;
+  story: string;
+  price: string;
+  submit: string;
+  case_type: string;
+  item_category: string;
+}
+
 export interface Vocabulary {
   labels?: Record<string, string>;
   benefit?: string;
   contract?: { title: string; rows: ContractRow[] };
   award_format?: "money" | "days";
   messages?: Record<string, string>;
+  loan_request?: LoanRequestWords | null;
 }
 
 export interface PackWords {

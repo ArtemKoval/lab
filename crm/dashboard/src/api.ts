@@ -421,6 +421,21 @@ export interface ResolutionBody {
   benefit?: string;
 }
 
+export interface CustomerMatch {
+  customer_id: string;
+  name: string;
+}
+
+export interface CaseCreateValues {
+  customer_id: string;
+  contract_id: string;
+  case_type: string;
+  summary: string;
+  story: string;
+  incident_location?: string;
+  items: { description: string; category: string; amount: number }[];
+}
+
 export interface PackView {
   name: string;
   display_name: string;
@@ -433,6 +448,12 @@ export interface PackView {
 
 export const api = {
   listCases: () => request<CaseSummary[]>(CASES),
+  listCustomers: () => request<CustomerMatch[]>("/api/customers"),
+  listCustomerContracts: (customerId: string) =>
+    request<Contract[]>(
+      `/api/customers/${encodeURIComponent(customerId)}/contracts`,
+    ),
+  createCase: (values: CaseCreateValues) => post<Case>(CASES, values),
   getPack: () => request<PackView>(PACK),
   getCase: (caseId: string) => request<Case>(casePath(caseId)),
   listSteps: (caseId: string) => request<Step[]>(`${casePath(caseId)}/steps`),
