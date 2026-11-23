@@ -1,0 +1,37 @@
+# Change-level gates for loan-request-queue-control.
+#
+# This change touches the crm backend and the dashboard. It declares no
+# governed capability in the dspy-gate harness registry, so the
+# capabilities block stays empty and Gate 2 never runs for it. The rubric
+# stays an inert reviewed artifact; tasks 1.1 and 2.3 prove the core
+# scenario directly. Text roles follow the effective policy:
+# glm-5.3-flash on every role, thinking disabled.
+version: 1
+
+models:
+  provider: zai
+  base_url: https://api.z.ai/api/paas/v4/
+  key_var: ZAI_API_KEY
+  roles:
+    runtime:      { model: glm-5.3-flash, temperature: 0.2, thinking: disabled, max_tokens: 8192 }
+    runtime_hard: { model: glm-5.3-flash, temperature: 0.6, thinking: disabled, max_tokens: 8192 }
+    reflection:   { model: glm-5.3-flash, temperature: 0.6, thinking: disabled, max_tokens: 16384 }
+    judge:        { model: glm-5.3-flash, temperature: 0.0, thinking: disabled, max_tokens: 4096 }
+    vision_judge: { model: glm-5.3-flash,      temperature: 0.0, thinking: disabled, max_tokens: 4096 }
+
+policy_bounds:
+  tier_b_min: { min: 0.60, max: 1.00 }
+  holdout_ratio: { min: 0.10, max: 0.50 }
+  judge_ensemble: { min: 1, max: 5 }
+
+capabilities: {}
+
+suites:
+  frozen: openspec/specs/**/evals/
+  delta: openspec/changes/*/evals/
+
+ci:
+  tier_a_on_push: true
+  e2e_gate_var: DSPY_GATE_E2E
+  nightly_var: DSPY_NIGHTLY_ENABLED
+  quarantine_expiry_days: 14
