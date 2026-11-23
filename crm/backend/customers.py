@@ -8,7 +8,7 @@ from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 
 from backend.database import case_view, cases, contracts, customers
-from backend.dependencies import Database, SignedInWorker
+from backend.dependencies import Database, SignedInWorker, WorkerOrAgent
 from backend.lookups import customer_record
 from backend.models import Contract, Customer, CustomerMatch, PreviousCase
 from backend.views import to_summary
@@ -20,10 +20,21 @@ Name = Annotated[str, Query(pattern=r"\S", description="Words in the customer's 
 
 
 @router.get(
-    "/api/customers", operation_id="find_customers", dependencies=[SignedInWorker]
+    "/api/customers", operation_id="list_customers", dependencies=[WorkerOrAgent]
 )
-def find_customers(name: Name, db: Database) -> list[CustomerMatch]:
-    """Find the customers whose name holds every word given, ignoring case."""
+def list_customers(db: Database) -> list[CustomerMatch]:
+    """Every customer, for the desk's member picker."""
+    rows = db.execute(select(customers.c.customer_id, customers.c.name)).mappings()
+    return [CustomerMatch(**row) for row in rows]
+
+
+@router.get(
+    "/api/customers/find",
+    operation_id="find_customers",
+    dependencies=[WorkerOrAgent],
+)
+def find_customers(db: Database, name: Name) -> list[CustomerMatch]:
+    """The customers whose name holds every word given, ignoring case."""
     query = select(customers.c.customer_id, customers.c.name)
     for word in name.lower().split():
         query = query.where(
@@ -31,6 +42,20 @@ def find_customers(name: Name, db: Database) -> list[CustomerMatch]:
         )
     rows = db.execute(query.order_by(customers.c.name)).mappings()
     return [CustomerMatch(**row) for row in rows]
+
+
+@router.get(
+    "/api/customers/{customer_id}/contracts",
+    operation_id="list_customer_contracts",
+    dependencies=[WorkerOrAgent],
+)
+def list_customer_contracts(customer_id: str, db: Database) -> list[Contract]:
+    """The contracts that belong to one customer, for the desk's picker."""
+    customer_record(db, customer_id)  # raises the 404 for an unknown customer
+    theirs = select(contracts.c.record).where(
+        contracts.c.record["customer_id"].as_string() == customer_id
+    )
+    return [Contract(**contract) for contract in db.execute(theirs).scalars()]
 
 
 @router.get(

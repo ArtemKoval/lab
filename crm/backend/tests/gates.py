@@ -47,6 +47,10 @@ AGENT_OPERATIONS = {
 # run's once a dispatch has started.
 SHARED_READS = {
     "list_cases": "/api/cases",
+    "create_case": "/api/cases",
+    "find_customers": "/api/customers/find?name=maya",
+    "list_customers": "/api/customers",
+    "list_customer_contracts": "/api/customers/CUS-3001/contracts",
     "get_case": "/api/cases/CLM-1001",
     "get_contract": "/api/contracts/POL-2001",
     "get_case_history": "/api/customers/CUS-3001/cases",
@@ -103,7 +107,6 @@ WORKER_OPERATIONS = {
     "stop_round": ("POST", f"{ROUND}/stop", None),
     "approve_proposal": ("POST", f"{PROPOSAL}/approval", None),
     "reject_proposal": ("POST", f"{PROPOSAL}/rejection", {"reason": "Too broad"}),
-    "find_customers": ("GET", "/api/customers?name=maya", None),
     "get_customer": ("GET", "/api/customers/CUS-3001", None),
     "count_sign_offs": ("GET", "/api/sign-offs", None),
     "list_conversations": ("GET", "/api/copilot/conversations", None),

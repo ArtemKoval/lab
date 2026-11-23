@@ -96,7 +96,7 @@ def get_contract(sign_in: str, contract_id: str) -> dict[str, Any]:
 
 
 def find_customers(sign_in: str, name: str) -> list[dict[str, Any]]:
-    return call_as(sign_in, "GET", "/customers", params={"name": name})
+    return call_as(sign_in, "GET", "/customers/find", params={"name": name})
 
 
 def get_customer(sign_in: str, customer_id: str) -> dict[str, Any]:

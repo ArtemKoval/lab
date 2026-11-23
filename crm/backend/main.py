@@ -20,6 +20,7 @@ from sqlalchemy import (
 )
 
 from backend import agent_api, agent_service, context_files, dashboard
+from backend.case_ids import next_case_id
 from backend.configuration import router as configuration
 from backend.copilot import router as copilot
 from backend.customers import router as customers_router
@@ -37,6 +38,7 @@ from backend.database import (
     seed,
     stamp,
     steps,
+    waiting_case,
     work_times,
 )
 from backend.dependencies import (
@@ -63,6 +65,7 @@ from backend.models import (
     Award,
     AwardRequest,
     Case,
+    CaseCreate,
     CaseSummary,
     Contract,
     DecisionKind,
@@ -399,6 +402,28 @@ def get_pack() -> PackView:
 @app.get("/api/cases/{case_id}", operation_id="get_case", dependencies=[WorkerOrAgent])
 def get_case(case_id: str, db: Database) -> Case:
     """Get one case in full: the story, the items claimed and the documents."""
+    return case_in_full(db, case_id)
+
+
+@app.post("/api/cases", operation_id="create_case", dependencies=[WorkerOrAgent])
+def create_case(request: CaseCreate, db: Database) -> Case:
+    """Add a case to the queue at run time, waiting, under the pack's id series."""
+    customer_record(db, request.customer_id)
+    find_contract(db, request.contract_id)
+    existing = db.execute(
+        select(cases.c.case_id).where(cases.c.evaluation_id.is_(None))
+    ).scalars()
+    case_id = next_case_id(list(existing))
+    record = request.model_dump() | {
+        "case_id": case_id,
+        "contract_id": request.contract_id,
+        "customer_id": request.customer_id,
+        "submitted_on": request.submitted_on,
+        "incident_date": request.incident_date,
+        "amount_claimed": sum(item.amount for item in request.items),
+        "status": Status.WAITING,
+    }
+    db.execute(insert(cases), [waiting_case(record)])
     return case_in_full(db, case_id)
 
 

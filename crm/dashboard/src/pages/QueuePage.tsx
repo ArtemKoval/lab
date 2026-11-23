@@ -16,6 +16,7 @@ import { PageHeader } from "../components/PageHeader";
 import { date, label, money, statusLabels } from "../format";
 import { REFRESH_MS, useLoad } from "../useLoad";
 import { useLabel } from "../vocabulary";
+import { LoanRequestControl } from "../components/LoanRequestControl";
 
 // Each state's icon on its tile.
 const STATUS_ICONS: Record<Status, LucideIcon> = {
@@ -37,10 +38,12 @@ export function QueuePage() {
     Object.keys(pack?.outcomes ?? { award: "" })[0] ?? "award",
   );
   const header = <PageHeader title="Cases queue" />;
+  const loanWords = pack?.vocabulary?.loan_request;
   if (!cases)
     return (
       <>
         {header}
+        {loanWords && <LoanRequestControl words={loanWords} />}
         <StateMessage error={error} />
       </>
     );
@@ -48,6 +51,7 @@ export function QueuePage() {
   return (
     <>
       {header}
+      {loanWords && <LoanRequestControl words={loanWords} />}
       <section className="tiles" aria-label="Cases by state">
         {statuses.map((status) => {
           const count = cases.filter((c) => c.status === status).length;

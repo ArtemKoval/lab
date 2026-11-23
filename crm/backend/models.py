@@ -7,6 +7,7 @@ from pydantic import (
     BaseModel,
     Field,
     StringConstraints,
+    field_validator,
 )
 
 from backend.pack_types import (  # noqa: F401 — the pack-shaped types re-exported
@@ -215,6 +216,30 @@ class SentBackDecision(DecisionRecord):
     note: str
     sent_back_by: str
     sent_back_at: str
+
+
+class CaseCreate(BaseModel):
+    """The desk's run-time request: the person, the membership, and the text.
+    The route validates the person and the membership and fills the id and
+    the dates; the pack-shaped defaults are the dashboard's to compose."""
+
+    customer_id: str
+    contract_id: str
+    case_type: str = Field(min_length=1)
+    summary: str = Field(min_length=1)
+    story: str = Field(min_length=1)
+    incident_location: str = Field(min_length=1)
+    incident_date: str
+    submitted_on: str
+    documents: list[Document] = Field(min_length=0)
+    items: list[Item] = Field(min_length=1)
+
+    @field_validator("summary", "story")
+    @classmethod
+    def text_carries_something(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("the text carries nothing but spaces")
+        return value
 
 
 class CaseSummary(BaseModel):
