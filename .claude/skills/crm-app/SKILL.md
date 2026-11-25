@@ -84,9 +84,13 @@ and exits 2 when a port still answers. The demo script lives at
 
 ## Gates
 
-The repository adds three gates on the changed Python of `crm/`. Run them
-from the `crm/` directory. First produce the coverage report with the crm
-interpreter, then run the gates on the module you changed:
+The gate list of a `crm` change opens with the whole-tree command
+`npm run check:python` from the `crm/` directory. Its exit 0 is the
+merge bar. A worktree has no `.venv` and no `node_modules`. Link the
+main checkout paths and run the four steps through them. The
+repository adds three module gates on the changed Python of `crm/`.
+Run them from the `crm/` directory. First produce the coverage report
+with the crm interpreter, then run the gates on the module you changed:
 
 ```bash
 # in crm/
