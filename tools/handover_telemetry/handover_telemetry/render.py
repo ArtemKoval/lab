@@ -92,10 +92,15 @@ def _models_section(metrics: TaskMetrics, scrubber) -> list[str]:
         lines.append(f"| - | {_NA} | {_NA} | {_NA} | {_NA} | {_NA} |")
     requested = _requested_text(metrics, scrubber)
     hit = _NA if metrics.cache_hit_rate is None else f"{metrics.cache_hit_rate:.0%}"
+    context = metrics.context or {}
+    median = context.get("input_median")
+    peak = context.get("input_peak")
     lines += [
         "",
         f"- requested models: {requested or _NA}",
         f"- cache hit rate: {hit}",
+        f"- per-call input-token median: {_NA if median is None else str(median)}",
+        f"- per-call input-token peak: {_NA if peak is None else str(peak)}",
         "",
     ]
     return lines
@@ -225,6 +230,10 @@ def render_json(metrics: TaskMetrics, host: dict, scrubber) -> str:
         },
         "requested_models": metrics.requested_models,
         "cache_hit_rate": metrics.cache_hit_rate,
+        "context": {
+            "input_median": (metrics.context or {}).get("input_median"),
+            "input_peak": (metrics.context or {}).get("input_peak"),
+        },
         "cost": {
             "by_model": metrics.cost_by_model,
             "by_agent": {

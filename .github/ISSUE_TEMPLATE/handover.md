@@ -36,7 +36,15 @@ labels:
 
 ## Observations
 
-<!-- What behaved differently from the plan. Ideas and causes for later work. -->
+<!-- What behaved differently from the plan. Ideas and causes for later
+     work. Separate verified facts from unverified ideas, and mark each
+     idea as such. -->
+
+## Dead ends
+
+<!-- One line per approach this run tried and dropped: what it was, and
+     why later work must not repeat it. Write None when the run dropped
+     no approach. -->
 
 ## Limitations
 

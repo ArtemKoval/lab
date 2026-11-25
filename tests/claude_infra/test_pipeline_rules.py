@@ -202,3 +202,26 @@ def test_tech_debt_template_present():
 def test_claude_md_names_the_fast_mode_debt_issue():
     text = _collapsed(CLAUDE_MD)
     assert "opens the debt issue instead of the handover issue" in text
+
+
+def test_long_run_rules_present():
+    text = _collapsed(PIPELINE)
+    assert "keeps its state in a `plan_exec` ledger" in text
+    assert "appends one entry at each step boundary" in text
+    assert "openspec-apply-change" in text
+    assert "keeps the input in a file" in text
+    assert "targeted, bounded reads" in text
+    assert "never pastes whole documents" in text
+
+
+def test_dispatch_checklist_present():
+    text = _collapsed(PIPELINE)
+    assert "dispatch checklist" in text
+    for item in (
+        "task verbatim",
+        "rejected options",
+        "file pointers",
+        "expected output shape",
+        "retrieves anything",
+    ):
+        assert item in text

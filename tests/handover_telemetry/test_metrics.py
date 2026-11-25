@@ -319,3 +319,45 @@ def test_git_log_failure_returns_none(tmp_path, monkeypatch):
         metrics.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(sp.TimeoutExpired("git", 1))
     )
     assert metrics._git_log(tmp_path, "main") is None
+
+
+def _usage_run(*values):
+    import types
+
+    turns = []
+    for value in values:
+        if value is None:
+            turns.append(types.SimpleNamespace(usage=None))
+        elif value == 0:
+            turns.append(types.SimpleNamespace(usage={"input_tokens": 0}))
+        else:
+            turns.append(types.SimpleNamespace(usage={"input_tokens": value}))
+    return types.SimpleNamespace(turns=turns)
+
+
+def test_context_gives_median_and_peak_over_runs():
+    got = metrics._context([_usage_run(100, 300), _usage_run(200)])
+    assert got["input_median"] == 200
+    assert got["input_peak"] == 300
+
+
+def test_context_median_spans_an_even_count():
+    got = metrics._context([_usage_run(10, 20, 30, 50)])
+    assert got["input_median"] == 25.0
+    assert got["input_peak"] == 50
+
+
+def test_context_skips_missing_and_zero_usage():
+    got = metrics._context([_usage_run(None, 0, 40)])
+    assert got["input_median"] == 40
+    assert got["input_peak"] == 40
+
+
+def test_context_without_usages_renders_none():
+    got = metrics._context([_usage_run(None, 0)])
+    assert got == {"input_median": None, "input_peak": None}
+
+
+def test_compute_carries_the_context_block(session):
+    got = metrics.compute(session, price_table=pricing.load_prices())
+    assert got.context["input_peak"] >= got.context["input_median"] > 0

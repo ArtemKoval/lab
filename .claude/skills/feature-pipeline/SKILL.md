@@ -92,6 +92,10 @@ config, hook, docs) runs:
    sets the credit cost. Run the zai-routing-audit probes before you
    trust a model label.
    Surface directions that are the user's call (ExitPlanMode).
+   Every agent brief carries the dispatch checklist: the task verbatim,
+   the state with the rejected options, the file pointers, the expected
+   output shape, and one narrow command that retrieves anything
+   truncated.
 3. **Implement** the corrected plan.
 4. **Review the result** — run it, read the diff, check the gates; fix. When
    the run exercised the rule of a cited lesson and confirmed or refuted
@@ -101,6 +105,15 @@ config, hook, docs) runs:
    2 refinement rounds, each driven by a new external signal (failing test,
    review finding, measured regression) — iterating without one degrades output
    (Huang et al. 2023).
+
+A run that crosses several steps keeps its state in a `plan_exec` ledger.
+The run starts the ledger at the first step and appends one entry at each
+step boundary, so a compaction keeps the state. The
+`openspec-apply-change` skill owns the ledger commands.
+
+A task with a long input keeps the input in a file and reads it with
+targeted, bounded reads. The run never pastes whole documents into the
+conversation.
 
 Scale ceremony to risk: most steps need one critique, not a tournament;
 mechanical ones (branching, typo fixes) need only a sanity check.
