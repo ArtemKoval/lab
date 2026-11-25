@@ -61,9 +61,9 @@
   --strict` passes.
 - [x] 5.2 `tools/spec_ste_check` passes on every artifact of this
   change.
-- [ ] 5.3 The root suite passes in the worktree. The lock-class
+- [x] 5.3 The root suite passes in the worktree. The lock-class
   `process_issues` failures the memory note names, counted at run
   time, do not count against this change.
-- [ ] 5.4 `python -m dspy_gate lint add-long-context-proposals` runs
+- [x] 5.4 `python -m dspy_gate lint add-long-context-proposals` runs
   only when the registry governs a touched capability. Today the
   registry governs none of them, so the gate is not applicable.
