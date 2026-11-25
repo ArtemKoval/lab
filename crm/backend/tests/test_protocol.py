@@ -68,6 +68,8 @@ def a_pack(monkeypatch, source: str, tmp_path) -> Pack:
     package.__path__ = [str(root)]
     name = "domains.protocolcheck.protocol"
     spec = importlib.util.spec_from_file_location(name, root / "protocol.py")
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     monkeypatch.setitem(sys.modules, "domains.protocolcheck", package)

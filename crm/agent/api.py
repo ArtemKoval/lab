@@ -115,7 +115,6 @@ class DecisionRequest(TypedDict):
     """A decision to record, with who or what made it."""
 
     decision: DecisionKind
-    award: float
     section: str
     reason: str
     decided_by: str

@@ -133,7 +133,7 @@ def summarize(rows: list[RowMapping]) -> DispatchSummary:
         waiting_for_sign_off=[
             HeldAward(
                 case_id=row["case_id"],
-                outcome=outcome_line(row["payload"]),
+                outcome=outcome_line(row["payload"]) or "",
             )
             for row in rows
             if row["status"] == Status.WAITING_FOR_SIGN_OFF

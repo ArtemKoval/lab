@@ -242,7 +242,7 @@ def stored_payload(db: Connection, case: RowMapping, outcome: str) -> dict | Non
     ).scalar_one_or_none()
 
 
-def gated(db: Connection, payload: dict, limit: float) -> bool:
+def gated(db: Connection, payload: dict | None, limit: float) -> bool:
     """Ask the pack's gate whether an outcome is held for a worker's
     sign-off, under the limit in force."""
     try:
@@ -889,7 +889,10 @@ def run_effect(case_id: str, effect: str, db: Database) -> EffectRun:
     if gated(db, case["payload"], limit):
         raise HTTPException(403, over_the_limit(limit))
     run_the_effect(db, case, effect)
-    return case_in_full(db, case_id).effect
+    ran = case_in_full(db, case_id).effect
+    if ran is None:
+        raise HTTPException(500, "The effect run left no record.")
+    return ran
 
 
 @app.post(

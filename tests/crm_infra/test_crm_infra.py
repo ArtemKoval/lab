@@ -86,6 +86,15 @@ def test_the_crm_app_skill_exists():
         assert command in text
 
 
+def test_the_crm_gate_list_names_the_whole_tree_check():
+    skill = ROOT / ".claude" / "skills" / "crm-app" / "SKILL.md"
+    gates = skill.read_text().split("## Gates", 1)[1].split("\n## ", 1)[0]
+    collapsed = re.sub(r"\s+", " ", gates)
+    assert "whole-tree" in collapsed
+    assert "npm run check:python" in collapsed
+    assert "merge bar" in collapsed
+
+
 def test_the_port_tool_is_present():
     assert (CRM / "port" / "port.py").is_file()
     assert (CRM / "port" / "README.md").is_file()

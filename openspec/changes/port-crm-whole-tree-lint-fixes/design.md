@@ -76,3 +76,4 @@ comment on issue 247 repeats them:
 | `crm/backend/runs.py` | `HeldAward.outcome` fallback | `outcome_line(...) or ""` |
 | `crm/backend/tests/test_protocol.py` | importlib guards | 2 asserts before `module_from_spec` |
 | `crm/backend/tests/test_scoreboard.py` | `RowMapping` cast | `cast(RowMapping, ...)` on `a_row` |
+| `crm/agent/tests/test_screening.py` | lab-canonical pin, task 2.8 | the notebook machinery dies. The served text pins inline |
