@@ -2,11 +2,14 @@
 the guards the suites of the child repository carried, proved here against
 the lab's own fixtures."""
 
+from dataclasses import replace
+
 from sqlalchemy import text
 
 from backend.database import engine
-from backend.tests.case_requests import pay, start
+from backend.tests.case_requests import held, pay, sign_off, start
 from backend.tests.sign_in import DANA, MARCUS, signed_in
+from domains import loader
 
 SECTIONS = "Loan rules 2, 3 and 5"
 
@@ -168,10 +171,6 @@ def test_an_evaluation_copy_refuses_the_desk(client, agent_key):
 
 def a_pack_without_effects():
     """Build the replacement from the real pack BEFORE any patch lands."""
-    from dataclasses import replace
-
-    from domains import loader
-
     pack = loader.pack()
     return replace(pack, manifest={**pack.manifest, "effects": {}})
 
@@ -181,8 +180,6 @@ def test_an_approval_for_a_pack_with_no_effect_skips_the_effect(
 ):
     """A pack may ship an outcome with no effect declared, and the desk's
     approval then decides without running one."""
-    from domains import loader
-
     pack = a_pack_without_effects()
     monkeypatch.setattr(loader, "pack", lambda: pack)
     decided = post_decision(client, approve_body())
@@ -195,8 +192,6 @@ def test_an_approval_for_a_pack_with_no_effect_skips_the_effect(
 def test_a_resolution_for_a_pack_with_no_effect_skips_the_effect(
     client, agent_key, monkeypatch
 ):
-    from domains import loader
-
     pack = a_pack_without_effects()
     monkeypatch.setattr(loader, "pack", lambda: pack)
     post_decision(client, refer_body())
@@ -208,8 +203,6 @@ def test_a_resolution_for_a_pack_with_no_effect_skips_the_effect(
 def test_an_effect_run_for_a_pack_with_no_effect_refuses(
     client, agent_key, monkeypatch
 ):
-    from domains import loader
-
     pack = a_pack_without_effects()
     monkeypatch.setattr(loader, "pack", lambda: pack)
     decided = post_decision(client, approve_body())
@@ -221,9 +214,6 @@ def test_an_effect_run_for_a_pack_with_no_effect_refuses(
 def test_a_sign_off_for_a_pack_with_no_effect_skips_the_effect(
     client, agent_key, monkeypatch
 ):
-    from backend.tests.case_requests import held, sign_off
-    from domains import loader
-
     held(client, "CLM-1001", 1500.0)
     pack = a_pack_without_effects()
     monkeypatch.setattr(loader, "pack", lambda: pack)

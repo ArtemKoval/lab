@@ -1,11 +1,15 @@
 """The scoreboard's award read: the pack's metric, with the award float as
 the fallback the removal stage drops."""
 
+from typing import cast
+
+from sqlalchemy import RowMapping
+
 from backend.scoreboard import scored_award
 
 
-def a_row(**changes):
-    return {"payload": None} | changes
+def a_row(**changes) -> RowMapping:
+    return cast(RowMapping, {"payload": None} | changes)
 
 
 def test_the_award_comes_from_the_pack_metric():
