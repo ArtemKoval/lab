@@ -90,6 +90,8 @@ Served models carry the token sums. The requested models follow.
 
 - requested models: glm-5.3-flash[1m] x4, claude-opus-5-5 x1
 - cache hit rate: 87%
+- per-call input-token median: 200
+- per-call input-token peak: 500
 
 ### Cost (estimate)
 
@@ -153,6 +155,10 @@ Cost split per agent:
 GOLDEN_JSON = """\
 {
   "cache_hit_rate": 0.8733624454148472,
+  "context": {
+    "input_median": 200,
+    "input_peak": 500
+  },
   "cost": {
     "by_agent": {
       "agent-42": 0.001228,
@@ -303,6 +309,8 @@ Served models carry the token sums. The requested models follow.
 
 - requested models: n/a
 - cache hit rate: n/a
+- per-call input-token median: n/a
+- per-call input-token peak: n/a
 
 ### Cost (estimate)
 

@@ -6,6 +6,7 @@ the renderer can mark it honestly. Cost attribution always uses the
 served model of the turn, never the requested one.
 """
 
+import statistics
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -39,6 +40,7 @@ class TaskMetrics:
     funnel: list = field(default_factory=list)
     decisions: list = field(default_factory=list)
     friction: dict = field(default_factory=dict)
+    context: dict = field(default_factory=dict)
     fingerprint: dict = field(default_factory=dict)
     dora: dict = field(default_factory=dict)
 
@@ -58,6 +60,7 @@ def compute(
     got.funnel = _funnel(runs)
     got.decisions = _decisions(runs)
     got.friction = _friction(session, runs, hook_log)  # pragma: no mutate: unused arg
+    got.context = _context(runs)
     got.fingerprint = {
         "version": session.version,
         "entrypoint": session.entrypoint,
@@ -193,6 +196,18 @@ def _summary_pair(head: str, tail: str) -> str:
 
 def _pre_token_peaks(runs: list) -> list:
     return [c["pre_tokens"] for run in runs for c in run.compactions if c["pre_tokens"]]
+
+
+def _context(runs: list) -> dict:
+    per_call = [
+        turn.usage.get("input_tokens")
+        for run in runs
+        for turn in run.turns
+        if turn.usage and turn.usage.get("input_tokens")
+    ]
+    if not per_call:
+        return {"input_median": None, "input_peak": None}
+    return {"input_median": statistics.median(per_call), "input_peak": max(per_call)}
 
 
 def _friction(session: Session, runs: list, hook_log: Path | None) -> dict:

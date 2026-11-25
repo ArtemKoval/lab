@@ -157,6 +157,20 @@ def test_render_tolerates_empty_metrics():
     md = render.render_markdown(empty, {}, scrubber)
     assert "### Funnel" in md
     assert "n/a" in md
+    assert "- per-call input-token median: n/a" in md
+    assert "- per-call input-token peak: n/a" in md
+
+
+def test_markdown_carries_the_context_lines(output):
+    md, _ = output
+    assert "- per-call input-token median: 200" in md
+    assert "- per-call input-token peak: 500" in md
+
+
+def test_json_carries_the_context_block(output):
+    _, js = output
+    payload = jsonlib.loads(js)
+    assert payload["context"] == {"input_median": 200, "input_peak": 500}
 
 
 def test_unknown_model_renders_unknown_row(tmp_path):
