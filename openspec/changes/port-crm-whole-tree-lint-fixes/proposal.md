@@ -46,7 +46,9 @@ None.
 
 - `openspec/specs/quality-gates/spec.md` changes through the archive
   sync of this change.
-- 6 files under `crm/` change in the apply phase. Every fix restores
+- 7 files under `crm/` change in the apply phase: the 6 named fixes,
+  plus the screening pin that task 2.8 added when the whole-tree run
+  surfaced the pre-existing notebook failure. Every fix restores
   intended behavior, so no crm capability carries a delta.
 - `.claude/skills/crm-app/SKILL.md` gains one gate-list line.
 - `tests/crm_infra/test_crm_infra.py` gains one enforcing test.
