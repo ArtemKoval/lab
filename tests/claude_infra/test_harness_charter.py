@@ -166,3 +166,13 @@ def test_charter_holds_no_stray_control_characters():
     allowed = {"\n", "\r", "\t"}
     bad = sorted({ch for ch in text if ord(ch) < 32 and ch not in allowed})
     assert not bad, [hex(ord(ch)) for ch in bad]
+
+
+def test_charter_carries_the_long_run_lines():
+    text = CHARTER.read_text(encoding="utf-8")
+    delivery = text.split("## Delivery contract", 1)[1].split("\n## ", 1)[0]
+    assert "re-establish the task state" in delivery
+    assert "plan_exec" in delivery
+    gates = text.split("## Quality gates", 1)[1].split("\n## ", 1)[0]
+    assert "Keep tool output small" in gates
+    assert "bounded windows" in gates

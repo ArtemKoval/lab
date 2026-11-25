@@ -15,12 +15,18 @@ artifacts merge to main before implementation starts. Implementation
 merges before the archive runs. The openspec-git-discipline skill owns
 these gates. Durable decisions go to adr/ as immutable records.
 
+After a compaction, re-establish the task state from the plan_exec
+ledger when one exists, from the change artifacts, and from git log
+before the next action.
+
 ## Quality gates
 
 Run the full hermetic suite before you claim a green run. The gates are
 coverage, complexity, and mutation. Coverage means 100 percent line and
 branch coverage of new and changed code. Complexity stays at 10 or lower.
 Mutation holds the saturation bar: no surviving mutant on changed code. Mutate an out-of-tree copy, never the repository. Nothing proceeds on red.
+Keep tool output small: write a large output to a file and read it in
+bounded windows.
 
 ## Skills first
 

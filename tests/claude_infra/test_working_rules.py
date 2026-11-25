@@ -112,3 +112,18 @@ def test_handover_template_has_the_unknown_sections():
 
 ## Follow-ups"""
     assert expected in text
+
+
+def test_handover_template_carries_the_dead_ends_section():
+    text = _read(".github", "ISSUE_TEMPLATE", "handover.md")
+    assert "## Dead ends" in text
+    observations = text.find("## Observations")
+    dead_ends = text.find("## Dead ends")
+    limitations = text.find("## Limitations")
+    assert observations < dead_ends < limitations
+    assert "must not repeat" in text
+
+
+def test_handover_observations_separates_verified_from_ideas():
+    text = _read(".github", "ISSUE_TEMPLATE", "handover.md")
+    assert "Separate verified facts from unverified ideas" in text
