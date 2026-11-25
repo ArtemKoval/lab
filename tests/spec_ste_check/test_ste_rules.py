@@ -206,6 +206,13 @@ class TestTenses:
             ("progressive-tense", "error")
         ]
 
+    def test_a_three_word_progressive_is_an_error(self):
+        hits = rules.check_sentence(rules.Sentence(1, "The job has been running."))
+        assert [(v["rule"], v["severity"]) for v in hits] == [
+            ("progressive-tense", "error"),
+            ("perfect-tense", "warning"),
+        ]
+
     def test_a_perfect_tense_is_a_warning(self):
         hits = rules.check_sentence(rules.Sentence(1, "The job has finished."))
         assert [(v["rule"], v["severity"]) for v in hits] == [

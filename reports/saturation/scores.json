@@ -23,15 +23,15 @@
       }
     },
     "spec_ste_check": {
-      "stamp": "2026-11-08T11:39:36.180917+00:00",
+      "stamp": "2026-11-25T17:35:31.131799+00:00",
       "modules": {
         "tools.spec_ste_check.spec_ste_check.cli": {
           "sites": 12,
           "score": 100.0
         },
         "tools.spec_ste_check.spec_ste_check.rules": {
-          "sites": 22,
-          "score": 95.5
+          "sites": 20,
+          "score": 100.0
         },
         "tools.spec_ste_check.spec_ste_check.hook": {
           "sites": 33,
